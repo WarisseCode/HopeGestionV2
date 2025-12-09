@@ -2,7 +2,7 @@
 
 // Importations de base
 import express, { Request, Response } from 'express';
-import cors from 'cors';
+//import cors from 'cors';
 import * as dotenv from 'dotenv';
 import { Pool } from 'pg'; 
 import authRoutes from './routes/authRoutes';
@@ -15,6 +15,7 @@ import depenseRoutes from './routes/depenseRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
 
 import { protect, AuthenticatedRequest } from './middleware/authMiddleware'; 
+
 // -------------------------********************-------------------------///
 
 // Charger les variables d'environnement
@@ -30,7 +31,7 @@ const pool = new Pool({
 });
 
 const app = express();
-const PORT = process.env.PORT || 3001; 
+const PORT = process.env.PORT || 5000; 
 
 pool.connect()
     .then(client => {
@@ -42,10 +43,11 @@ pool.connect()
         console.log('Continuing to start server without database connection...');
     });
 
+import cors from 'cors';    
 // --- 1. Middleware essentiels ---
 app.use(express.json()); 
 app.use(cors({
-    origin: 'http://localhost:3000', 
+    origin: 'http://localhost:5173', 
     credentials: true, 
 }));
 
