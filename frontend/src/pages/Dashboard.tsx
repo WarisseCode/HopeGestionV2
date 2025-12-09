@@ -1,8 +1,8 @@
 // frontend/src/pages/Dashboard.tsx
 
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Grid, Card, CardContent, CircularProgress, Alert } from '@mui/material';
-import { getToken } from '../api/authApi'; // Assurez-vous que ce chemin est correct
+import { getToken } from '../api/authApi';
+import { Home, Users, Wallet, TrendingUp, AlertCircle, Loader2 } from 'lucide-react';
 
 interface DashboardStats {
     totalBiens: number;
@@ -28,7 +28,6 @@ const Dashboard: React.FC = () => {
             }
 
             try {
-                // Assurez-vous que le port est 5000 et la route est correcte
                 const response = await fetch('http://localhost:5000/api/dashboard/stats', {
                     method: 'GET',
                     headers: {
@@ -43,11 +42,9 @@ const Dashboard: React.FC = () => {
                     throw new Error(data.message || 'Erreur lors de la récupération des statistiques.');
                 }
 
-                // IMPORTANT: Nous assumons que le backend renvoie un objet { stats: {...} }
                 setStats(data.stats);
             } catch (err: any) {
                 console.error("Erreur Dashboard:", err);
-                // Si l'erreur est liée à des données manquantes, nous affichons un message moins intrusif
                 if (err.message.includes('stats')) {
                      setError("Aucune donnée statistique à afficher. Veuillez ajouter des biens et des transactions.");
                 } else {
@@ -63,108 +60,99 @@ const Dashboard: React.FC = () => {
 
     if (loading) {
         return (
-            <Container sx={{ mt: 5, textAlign: 'center' }}>
-                <CircularProgress />
-                <Typography>Chargement des statistiques...</Typography>
-            </Container>
+            <div className="flex flex-col items-center justify-center min-h-[50vh]">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                <p className="mt-4 text-base-content/60">Chargement des statistiques...</p>
+            </div>
         );
     }
 
     if (error) {
         return (
-            <Container sx={{ mt: 5 }}>
-                <Alert severity="error">{error}</Alert>
-            </Container>
+            <div className="p-8">
+                <div role="alert" className="alert alert-error">
+                    <AlertCircle />
+                    <span>{error}</span>
+                </div>
+            </div>
         );
     }
     
-    // Si stats est null mais pas d'erreur
     if (!stats) {
         return (
-             <Container sx={{ mt: 5 }}>
-                <Alert severity="warning">Aucune statistique disponible pour le moment.</Alert>
-            </Container>
+             <div className="p-8">
+                <div role="alert" className="alert alert-warning">
+                    <AlertCircle />
+                    <span>Aucune statistique disponible pour le moment.</span>
+                </div>
+            </div>
         );
     }
 
 
     return (
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <Typography variant="h4" component="h1" gutterBottom>
-                Tableau de Bord - Aperçu Général
-            </Typography>
-            <Grid container spacing={3}>
+        <div className="container mx-auto p-4 md:p-8">
+            <h1 className="text-3xl font-bold mb-8 text-base-content">Tableau de Bord</h1>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 
                 {/* Carte 1: Biens et Locataires */}
-                <Grid item xs={12} sm={6} md={3}>
-                    <Card elevation={3}>
-                        <CardContent>
-                            <Typography color="textSecondary" gutterBottom>
-                                Biens Gérés
-                            </Typography>
-                            <Typography variant="h5" component="div">
-                                {stats.totalBiens}
-                            </Typography>
-                            <Typography color="textSecondary">
-                                Locataires Actifs : {stats.locatairesActifs}
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
+                <StatsCard 
+                    title="Biens Gérés" 
+                    value={stats.totalBiens.toString()}
+                    subValue={`Locataires Actifs: ${stats.locatairesActifs}`}
+                    icon={<Home className="w-8 h-8 text-primary" />}
+                    color="primary"
+                />
 
                 {/* Carte 2: Revenus Totaux */}
-                <Grid item xs={12} sm={6} md={3}>
-                    <Card elevation={3}>
-                        <CardContent>
-                            <Typography color="textSecondary" gutterBottom>
-                                Revenus (Net)
-                            </Typography>
-                            <Typography variant="h5" component="div" sx={{ color: 'success.main' }}>
-                                {stats.totalRevenus} €
-                            </Typography>
-                            <Typography color="textSecondary">
-                                (Loyer encaissé)
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
+                <StatsCard 
+                    title="Revenus (Net)" 
+                    value={`${stats.totalRevenus} FCFA`}
+                    subValue="(Loyer encaissé)"
+                    icon={<Wallet className="w-8 h-8 text-success" />}
+                    color="success"
+                    valueColor="text-success"
+                />
 
                 {/* Carte 3: Dépenses Totales */}
-                <Grid item xs={12} sm={6} md={3}>
-                    <Card elevation={3}>
-                        <CardContent>
-                            <Typography color="textSecondary" gutterBottom>
-                                Dépenses Totales
-                            </Typography>
-                            <Typography variant="h5" component="div" sx={{ color: 'error.main' }}>
-                                {stats.totalDepenses} €
-                            </Typography>
-                            <Typography color="textSecondary">
-                                (Charges, travaux, etc.)
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
+                <StatsCard 
+                    title="Dépenses Totales" 
+                    value={`${stats.totalDepenses} FCFA`}
+                    subValue="(Charges, travaux, etc.)"
+                    icon={<TrendingUp className="w-8 h-8 text-error" />}
+                    color="error"
+                    valueColor="text-error"
+                />
 
                 {/* Carte 4: Marge Nette et Rentabilité */}
-                <Grid item xs={12} sm={6} md={3}>
-                    <Card elevation={3}>
-                        <CardContent>
-                            <Typography color="textSecondary" gutterBottom>
-                                Marge Nette
-                            </Typography>
-                            <Typography variant="h5" component="div">
-                                {stats.margeNette} €
-                            </Typography>
-                            <Typography color="textSecondary">
-                                Rentabilité : {stats.rentabilitePourcentage} %
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            </Grid>
-        </Container>
+                <StatsCard 
+                    title="Marge Nette" 
+                    value={`${stats.margeNette} FCFA`}
+                    subValue={`Rentabilité: ${stats.rentabilitePourcentage} %`}
+                    icon={<TrendingUp className="w-8 h-8 text-info" />}
+                    color="info"
+                />
+            </div>
+        </div>
     );
 };
+
+const StatsCard = ({ title, value, subValue, icon, color, valueColor }: { title: string, value: string, subValue: string, icon: React.ReactNode, color: string, valueColor?: string }) => (
+    <div className={`card bg-base-100 shadow-xl border-b-4 border-${color}`}>
+        <div className="card-body">
+            <div className="flex justify-between items-start">
+                <div>
+                    <h2 className="card-title text-base-content/60 text-sm uppercase">{title}</h2>
+                    <p className={`text-2xl font-bold mt-2 ${valueColor || ''}`}>{value}</p>
+                </div>
+                <div className={`p-3 bg-${color}/10 rounded-lg text-${color}`}>
+                    {icon}
+                </div>
+            </div>
+            <p className="text-xs text-base-content/50 mt-2">{subValue}</p>
+        </div>
+    </div>
+);
 
 export default Dashboard;

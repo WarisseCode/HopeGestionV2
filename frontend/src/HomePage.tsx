@@ -1,374 +1,262 @@
 // frontend/src/HomePage.tsx
-
 import React from 'react';
-import './HomePage.css';
+import { 
+  Building2, 
+  Wallet, 
+  Users, 
+  FileText, 
+  Wrench, 
+  BarChart3, 
+  CheckCircle2, 
+  Menu,
+  X,
+  Phone,
+  Mail,
+  MapPin,
+  Facebook,
+  Linkedin,
+  Twitter
+} from 'lucide-react';
 
-// Types
-interface Feature {
-  id: string;
-  icon: string;
-  title: string;
-  description: string;
-  details: string[];
-  badge?: string;
-  highlighted?: boolean;
-}
-
-interface PricingPlan {
-  name: string;
-  price: string;
-  features: string[];
-  recommended?: boolean;
-  ctaText: string;
-  ctaLink: string;
-}
-
-interface Testimonial {
-  text: string;
-  author: string;
-}
-
-interface Step {
-  number: string;
-  title: string;
-  description: string;
-}
-
-// Définition de la nouvelle prop
 interface HomePageProps {
-  onNavigateToLogin: () => void; 
+  onNavigateToLogin: () => void;
 }
 
-// Mise à jour de la signature du composant
 const HomePage: React.FC<HomePageProps> = ({ onNavigateToLogin }) => {
-  // Data (Le contenu est conservé de votre fichier d'origine)
-  const features: Feature[] = [
-    {
-      id: 'properties',
-      icon: '🏢',
-      title: 'Gestion des Biens',
-      description: 'Centralisez tous vos biens immobiliers : appartements, villas, bureaux, magasins. Suivi complet avec photos, documents et historique.',
-      details: [
-        'Fiche détaillée par bien',
-        'Galerie photos',
-        'Suivi du statut'
-      ]
-    },
-    {
-      id: 'payments',
-      icon: '📱',
-      title: 'Paiements Mobile Money',
-      description: 'Acceptez les paiements via MTN Mobile Money et Moov Money en FCFA. Automatisation complète des quittances et rappels.',
-      details: [
-        'MTN & Moov Money',
-        'Paiements en FCFA',
-        'Quittances automatiques'
-      ],
-      badge: 'Populaire',
-      highlighted: true,
-    },
-    {
-      id: 'tenants',
-      icon: '👥',
-      title: 'Gestion Locataires',
-      description: 'Base de données complète de vos locataires avec historique de paiements, documents et communications centralisées.',
-      details: [
-        'Profils détaillés',
-        'Historique complet',
-        'Documents numériques'
-      ]
-    },
-    {
-      id: 'contracts',
-      icon: '📄',
-      title: 'Contrats & Baux',
-      description: 'Génération automatique de contrats de location conformes à la législation béninoise. Suivi des échéances et renouvellements.',
-      details: [
-        'Génération auto',
-        'Conforme législation',
-        'Alertes échéances'
-      ]
-    },
-    {
-      id: 'tickets',
-      icon: '🔧',
-      title: 'Tickets & Maintenance',
-      description: 'Système de gestion des plaintes et interventions. Assignation automatique aux techniciens, suivi en temps réel.',
-      details: [
-        'Gestion des plaintes',
-        'Workflow automatisé',
-        'Notifications SMS'
-      ]
-    },
-    {
-      id: 'stats',
-      icon: '📊',
-      title: 'Statistiques & Rapports',
-      description: 'Dashboard intuitif avec KPIs essentiels : taux d\'occupation, revenus, impayés. Exportation des rapports en PDF.',
-      details: [
-        'Dashboard en temps réel',
-        'Graphiques visuels',
-        'Export PDF/Excel'
-      ]
-    },
-  ];
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
-  const steps: Step[] = [
-    {
-      number: '01',
-      title: 'Créez votre compte',
-      description: 'Inscription gratuite en moins de 2 minutes. Choisissez votre plan selon vos besoins.'
-    },
-    {
-      number: '02',
-      title: 'Ajoutez vos biens',
-      description: 'Enregistrez vos propriétés, locataires et contrats de location en quelques clics.'
-    },
-    {
-      number: '03',
-      title: 'Gérez en automatique',
-      description: 'Laissez la plateforme automatiser vos paiements, documents et notifications.'
-    },
-  ];
-
-  const pricingPlans: PricingPlan[] = [
-    {
-      name: 'Starter',
-      price: '15 000 FCFA/mois',
-      features: ['Jusqu\'à 5 biens', '10 locataires max', 'Paiements Mobile Money', 'Génération quittances', 'Support email'],
-      ctaText: 'Commencer',
-      ctaLink: '#register',
-    },
-    {
-      name: 'Professionnel',
-      price: '35 000 FCFA/mois',
-      features: ['Jusqu\'à 25 biens', 'Locataires illimités', 'Tous modes de paiement', 'Gestion tickets', 'Rapports avancés', 'Support prioritaire'],
-      recommended: true,
-      ctaText: 'Commencer',
-      ctaLink: '#register',
-    },
-    {
-      name: 'Entreprise',
-      price: 'Sur mesure',
-      features: ['Biens illimités', 'Multi-gestionnaires', 'API personnalisée', 'Formation équipe', 'Support dédié 24/7', 'Serveur dédié'],
-      ctaText: 'Nous contacter',
-      ctaLink: '#contact',
-    },
-  ];
-
-  const testimonials: Testimonial[] = [
-    {
-      text: "Hope Gestion Immobilière a transformé ma gestion locative. Les paiements Mobile Money sont un vrai plus pour mes locataires au Bénin.",
-      author: "Marcel Adjovi, Propriétaire, Cotonou"
-    },
-    {
-      text: "Enfin une solution adaptée au marché béninois ! La génération automatique des contrats nous fait gagner un temps précieux.",
-      author: "Fatouma Sanni, Agence Immobilière, Porto-Novo"
-    },
-    {
-      text: "Le système de tickets pour les réparations est génial. Je peux suivre toutes les interventions depuis mon téléphone.",
-      author: "Jean-Baptiste Koudou, Gestionnaire, Parakou"
-    },
-  ];
-
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   return (
-    <div className="homepage-container">
-      {/* 1. Header & Navigation */}
-      <header className="header">
-        <div className="container">
-          <nav className="nav">
-            <div className="logo">
-              Hope Gestion <span className="logo-highlight">Immobilière</span>
+    <div className="min-h-screen bg-base-100 font-sans text-base-content">
+      {/* Navbar */}
+      <div className="navbar bg-base-100 fixed top-0 z-50 shadow-sm px-4 md:px-8">
+        <div className="navbar-start">
+          <div className="dropdown">
+            <div tabIndex={0} role="button" className="btn btn-ghost lg:hidden" onClick={toggleMenu}>
+              {isMenuOpen ? <X /> : <Menu />}
             </div>
-            <ul className="nav-menu">
-              <li><a href="#accueil">Accueil</a></li>
-              <li><a href="#fonctionnalites">Fonctionnalités</a></li>
-              <li><a href="#tarifs">Tarifs</a></li>
-              <li><a href="#contact">Contact</a></li>
-            </ul>
-            <button 
-                className="btn-connexion"
-                onClick={onNavigateToLogin} // <-- APPEL DE LA FONCTION DE NAVIGATION
-            >
-                Connexion
-            </button>
-          </nav>
-        </div>
-      </header>
-
-      {/* 2. Hero Section */}
-      <section id="accueil" className="hero-section">
-        <div className="container hero-container">
-          <div className="hero-content">
-            <span className="badge">🇧🇯 Conçu pour le Bénin</span>
-            <h1 className="hero-title">Gérez votre patrimoine immobilier en toute simplicité</h1>
-            <p className="hero-description">
-              La première plateforme PropTech béninoise pour une gestion moderne et automatisée de vos biens immobiliers. Paiements Mobile Money, contrats digitaux, suivi en temps réel.
-            </p>
-            <div className="hero-stats">
-              <div className="stat-item">
-                <span className="stat-value">100%</span>
-                <span className="stat-label">Digital</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-value">FCFA</span>
-                <span className="stat-label">Monnaie locale</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-value">24/7</span>
-                <span className="stat-label">Disponible</span>
-              </div>
-            </div>
-            <div className="hero-actions">
-              <a href="#register" className="btn-primary">Commencer gratuitement</a>
-              <a href="#demo" className="btn-secondary">Voir la démo</a>
-            </div>
-          </div>
-          <div className="hero-image">
-            {/* L'image de l'URL d'origine est implicitement référencée ou doit être remplacée par une image locale */}
-            <img src="dashboard-placeholder.jpg" alt="Dashboard Hope Gestion Immobilière" />
-          </div>
-        </div>
-      </section>
-
-      {/* 3. Features Section */}
-      <section id="fonctionnalites" className="features-section section-padding">
-        <div className="container">
-          <h2 className="section-title">Fonctionnalités</h2>
-          <p className="section-subtitle">Une solution complète pour tous vos besoins</p>
-          <div className="features-grid">
-            {features.map((feature) => (
-              <div key={feature.id} className={`feature-card ${feature.highlighted ? 'highlighted' : ''}`}>
-                {feature.badge && <span className="feature-badge">{feature.badge}</span>}
-                <span className="feature-icon">{feature.icon}</span>
-                <h3 className="feature-title">{feature.title}</h3>
-                <p className="feature-description">{feature.description}</p>
-                <ul className="feature-details">
-                  {feature.details.map((detail, index) => (
-                    <li key={index}>✓ {detail}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 4. How It Works Section */}
-      <section className="steps-section section-padding bg-light">
-        <div className="container">
-          <h2 className="section-title">Comment ça marche</h2>
-          <p className="section-subtitle">Démarrez en 3 étapes simples</p>
-          <div className="steps-grid">
-            {steps.map((step) => (
-              <div key={step.number} className="step-card">
-                <div className="step-number">{step.number}</div>
-                <h3 className="step-title">{step.title}</h3>
-                <p className="step-description">{step.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 5. Pricing Section */}
-      <section id="tarifs" className="pricing-section section-padding">
-        <div className="container">
-          <h2 className="section-title">Tarification</h2>
-          <p className="section-subtitle">Des tarifs transparents et flexibles</p>
-          <div className="pricing-grid">
-            {pricingPlans.map((plan) => (
-              <div key={plan.name} className={`pricing-card ${plan.recommended ? 'recommended' : ''}`}>
-                <h3 className="plan-name">{plan.name}</h3>
-                {plan.recommended && <span className="recommended-badge">Recommandé</span>}
-                <p className="plan-price">{plan.price}</p>
-                <ul className="plan-features">
-                  {plan.features.map((feature, index) => (
-                    <li key={index}>✓ {feature}</li>
-                  ))}
-                </ul>
-                <a href={plan.ctaLink} className="btn-primary plan-cta">
-                  {plan.ctaText}
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 6. Testimonials Section */}
-      <section className="testimonials-section section-padding bg-light">
-        <div className="container">
-          <h2 className="section-title">Témoignages</h2>
-          <p className="section-subtitle">Ils nous font confiance</p>
-          <div className="testimonials-grid">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="testimonial-card">
-                <p className="testimonial-text">"{testimonial.text}"</p>
-                <p className="testimonial-author">**{testimonial.author.split(',')[0]}**<br/>{testimonial.author.split(',')[1]}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 7. CTA Footer */}
-      <section className="cta-footer-section section-padding">
-        <div className="container">
-          <h2 className="cta-title">Prêt à moderniser votre gestion immobilière ?</h2>
-          <p className="cta-subtitle">Rejoignez les centaines de propriétaires et gestionnaires qui font confiance à Hope Gestion Immobilière</p>
-          <div className="cta-actions">
-            <a href="#register" className="btn-primary">Essayer gratuitement 30 jours</a>
-            <a href="#contact" className="btn-secondary">Planifier une démo</a>
-          </div>
-        </div>
-      </section>
-
-      {/* 8. Footer */}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-content">
-            <div className="footer-col">
-              <div className="footer-logo">
-                Hope Gestion <span className="logo-highlight">Immobilière</span>
-              </div>
-              <p className="footer-description">
-                La première plateforme PropTech béninoise pour une gestion immobilière moderne et automatisée.
-              </p>
-            </div>
-            <div className="footer-col">
-              <h4>Produit</h4>
-              <ul>
+            {isMenuOpen && (
+              <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
                 <li><a href="#fonctionnalites">Fonctionnalités</a></li>
                 <li><a href="#tarifs">Tarifs</a></li>
-                <li><a href="#demo">Démo</a></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4>Entreprise</h4>
-              <ul>
-                <li><a href="#about">À propos</a></li>
                 <li><a href="#contact">Contact</a></li>
-                <li><a href="#blog">Blog</a></li>
               </ul>
-            </div>
-            <div className="footer-col">
-              <h4>Légal</h4>
-              <ul>
-                <li><a href="#privacy">Confidentialité</a></li>
-                <li><a href="#terms">Conditions</a></li>
-                <li><a href="#mentions">Mentions légales</a></li>
-              </ul>
+            )}
+          </div>
+          <a className="btn btn-ghost text-xl md:text-2xl font-bold text-primary">
+            Hope Gestion <span className="text-secondary">Immobilière</span>
+          </a>
+        </div>
+        <div className="navbar-center hidden lg:flex">
+          <ul className="menu menu-horizontal px-1 font-medium">
+            <li><a href="#fonctionnalites">Fonctionnalités</a></li>
+            <li><a href="#tarifs">Tarifs</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </div>
+        <div className="navbar-end">
+          <button onClick={onNavigateToLogin} className="btn btn-primary btn-sm md:btn-md">
+            Connexion
+          </button>
+        </div>
+      </div>
+
+      {/* Hero Section */}
+      <div className="hero min-h-screen bg-base-200 pt-16">
+        <div className="hero-content flex-col lg:flex-row-reverse gap-8 lg:gap-12 px-4 md:px-8 max-w-7xl">
+          <div className="flex-1 w-full max-w-lg">
+             {/* Placeholder for Hero Image - In a real app, use a real image */}
+             <div className="mockup-window border bg-base-300 shadow-2xl">
+                <div className="flex justify-center px-4 py-16 bg-base-200 h-64 items-center">
+                    <span className="text-4xl opacity-20 font-bold">Dashboard Preview</span>
+                </div>
             </div>
           </div>
-          <div className="footer-bottom">
-            <p>&copy; 2024 Hope Gestion Immobilière. Tous droits réservés.</p>
+          <div className="flex-1 text-center lg:text-left">
+            <div className="badge badge-secondary badge-outline mb-4 font-semibold">🇧🇯 Conçu pour le Bénin</div>
+            <h1 className="text-4xl md:text-6xl font-bold leading-tight">
+              Gérez votre patrimoine immobilier en toute <span className="text-primary">simplicité</span>
+            </h1>
+            <p className="py-6 text-lg md:text-xl opacity-90">
+              La première plateforme PropTech béninoise pour une gestion moderne et automatisée. Paiements Mobile Money, contrats digitaux, suivi en temps réel.
+            </p>
+            
+            <div className="flex flex-wrap gap-4 justify-center lg:justify-start mb-8">
+                <div className="flex items-center gap-2 badge badge-ghost p-3">
+                    <CheckCircle2 size={16} className="text-success"/> 100% Digital
+                </div>
+                <div className="flex items-center gap-2 badge badge-ghost p-3">
+                    <CheckCircle2 size={16} className="text-success"/> FCFA Monnaie locale
+                </div>
+                <div className="flex items-center gap-2 badge badge-ghost p-3">
+                    <CheckCircle2 size={16} className="text-success"/> 24/7 Disponible
+                </div>
+            </div>
+
+            <div className="flex gap-4 justify-center lg:justify-start">
+              <button className="btn btn-primary btn-lg shadow-lg">Commencer gratuitement</button>
+              <button className="btn btn-outline btn-lg">Voir la démo</button>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* Features Section */}
+      <section id="fonctionnalites" className="py-20 px-4 md:px-8 bg-base-100">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Fonctionnalités</h2>
+            <p className="text-lg opacity-70 max-w-2xl mx-auto">Une solution complète conçue spécifiquement pour les besoins du marché immobilier béninois.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Feature Cards */}
+            <FeatureCard 
+              icon={<Building2 className="w-10 h-10 text-primary"/>}
+              title="Gestion des Biens"
+              desc="Centralisez tous vos biens : appartements, villas, bureaux. Suivi complet avec photos et historique."
+            />
+            <FeatureCard 
+              icon={<Wallet className="w-10 h-10 text-secondary"/>}
+              title="Paiements Mobile Money"
+              desc="Acceptez MTN Mobile Money et Moov Money. Automatisation complète des quittances."
+              badge="Populaire"
+            />
+            <FeatureCard 
+              icon={<Users className="w-10 h-10 text-accent"/>}
+              title="Gestion Locataires"
+              desc="Base de données complète avec historique de paiements, documents et communications."
+            />
+            <FeatureCard 
+              icon={<FileText className="w-10 h-10 text-info"/>}
+              title="Contrats & Baux"
+              desc="Génération automatique de contrats conformes à la législation béninoise."
+            />
+            <FeatureCard 
+              icon={<Wrench className="w-10 h-10 text-warning"/>}
+              title="Tickets & Maintenance"
+              desc="Gestion des plaintes et interventions. Suivi en temps réel des réparations."
+            />
+            <FeatureCard 
+              icon={<BarChart3 className="w-10 h-10 text-error"/>}
+              title="Statistiques & Rapports"
+              desc="Dashboard intuitif avec KPIs essentiels : taux d'occupation, revenus, impayés."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="tarifs" className="py-20 px-4 md:px-8 bg-base-200">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Tarification Simple</h2>
+            <p className="text-lg opacity-70">Choisissez le plan adapté à votre taille.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <PricingCard 
+              title="Starter"
+              price="15 000"
+              features={["Jusqu'à 5 biens", "10 locataires max", "Paiements Mobile Money", "Support email"]}
+            />
+            <PricingCard 
+              title="Professionnel"
+              price="35 000"
+              features={["Jusqu'à 25 biens", "Locataires illimités", "Tous modes de paiement", "Gestion tickets", "Support prioritaire"]}
+              isPopular
+            />
+            <PricingCard 
+              title="Entreprise"
+              price="Sur mesure"
+              features={["Biens illimités", "Multi-gestionnaires", "API personnalisée", "Formation équipe", "Support dédié 24/7"]}
+              isCustom
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-4 bg-primary text-primary-content text-center">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-3xl md:text-5xl font-bold mb-6">Prêt à moderniser votre gestion ?</h2>
+          <p className="text-xl mb-8 opacity-90">Rejoignez les centaines de propriétaires qui font confiance à Hope Gestion.</p>
+          <button className="btn btn-secondary btn-lg shadow-xl border-none">Créer un compte maintenant</button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="footer p-10 bg-neutral text-neutral-content">
+        <aside>
+           <h3 className="text-2xl font-bold text-primary mb-2">Hope Gestion</h3>
+           <p className="max-w-xs">La solution PropTech N°1 au Bénin pour la gestion locative simplifiée.</p>
+           <div className="flex gap-4 mt-4">
+             <a className="link link-hover"><Facebook size={24}/></a>
+             <a className="link link-hover"><Twitter size={24}/></a>
+             <a className="link link-hover"><Linkedin size={24}/></a>
+           </div>
+        </aside> 
+        <nav>
+          <h6 className="footer-title">Services</h6> 
+          <a className="link link-hover">Gestion Locative</a>
+          <a className="link link-hover">Contrats Digitaux</a>
+          <a className="link link-hover">Paiements MoMo</a>
+        </nav> 
+        <nav>
+          <h6 className="footer-title">Entreprise</h6> 
+          <a className="link link-hover">À propos</a>
+          <a className="link link-hover">Contact</a>
+          <a className="link link-hover">Blog</a>
+        </nav> 
+        <nav>
+          <h6 className="footer-title">Légal</h6> 
+          <a className="link link-hover">Conditions d'utilisation</a>
+          <a className="link link-hover">Confidentialité</a>
+        </nav>
       </footer>
     </div>
   );
 };
+
+// Components
+const FeatureCard = ({ icon, title, desc, badge }: { icon: React.ReactNode, title: string, desc: string, badge?: string }) => (
+  <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow border border-base-200">
+    <div className="card-body">
+      <div className="flex justify-between items-start">
+        <div className="p-3 bg-base-200 rounded-lg mb-4">{icon}</div>
+        {badge && <div className="badge badge-secondary">{badge}</div>}
+      </div>
+      <h3 className="card-title mb-2">{title}</h3>
+      <p className="opacity-70">{desc}</p>
+    </div>
+  </div>
+);
+
+const PricingCard = ({ title, price, features, isPopular, isCustom }: { title: string, price: string, features: string[], isPopular?: boolean, isCustom?: boolean }) => (
+  <div className={`card bg-base-100 shadow-xl border ${isPopular ? 'border-primary border-2 scale-105 z-10' : 'border-base-200'}`}>
+    {isPopular && <div className="absolute -top-4 left-1/2 -translate-x-1/2 badge badge-primary p-3 font-semibold">RECOMMANDÉ</div>}
+    <div className="card-body text-center">
+      <h3 className="text-xl font-bold text-base-content/70 uppercase tracking-wide">{title}</h3>
+      <div className="my-4">
+        <span className="text-4xl font-extrabold">{price}</span>
+        {!isCustom && <span className="text-sm opacity-50"> FCFA/mois</span>}
+      </div>
+      <ul className="text-left space-y-3 mb-8 flex-grow">
+        {features.map((f, i) => (
+          <li key={i} className="flex items-center gap-2">
+            <CheckCircle2 size={18} className="text-success shrink-0"/>
+            <span className="text-sm">{f}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="card-actions justify-center">
+        <button className={`btn w-full ${isPopular ? 'btn-primary' : 'btn-outline'}`}>
+          {isCustom ? 'Nous contacter' : 'Choisir ce plan'}
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
 export default HomePage;

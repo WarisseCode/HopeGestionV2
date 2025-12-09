@@ -1,11 +1,9 @@
 // frontend/src/components/LoginForm.tsx
 
 import React, { useState } from 'react';
-import { Button, TextField, Container, Typography, Box, Alert, CircularProgress } from '@mui/material';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { loginUser } from '../api/authApi';
+import { Lock, ArrowLeft, Loader2 } from 'lucide-react';
 
-// 1. Définition des nouvelles props pour la navigation
 interface LoginFormProps {
     onLoginSuccess: () => void;
     onGoBackToHome: () => void;
@@ -24,11 +22,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onGoBackToHome })
 
         try {
             await loginUser(email, password);
-            
-            // 2. Appelle la fonction de succès pour que App.tsx bascule vers le Dashboard
             onLoginSuccess();
-            alert(`Connexion réussie !`); // Alerte pour feedback immédiat
-
+            // alert(`Connexion réussie !`); // Removed alert for better UX
         } catch (err: any) {
             setError(err.message || 'Échec de la connexion. Veuillez vérifier vos identifiants.');
         } finally {
@@ -37,78 +32,79 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onGoBackToHome })
     };
 
     return (
-        <Container component="main" maxWidth="xs">
-            <Box
-                sx={{
-                    marginTop: 8,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    padding: 4,
-                    boxShadow: 3,
-                    borderRadius: 2,
-                    bgcolor: 'background.paper'
-                }}
-            >
-                <LockOutlinedIcon color="primary" sx={{ m: 1 }} />
-                <Typography component="h1" variant="h5" sx={{ mb: 2 }}>
-                    Connexion Gestion Locative
-                </Typography>
+        <div className="min-h-screen bg-base-200 flex items-center justify-center px-4">
+            <div className="card w-full max-w-md bg-base-100 shadow-xl">
+                <div className="card-body">
+                    <div className="flex flex-col items-center mb-6">
+                        <div className="bg-primary/10 p-3 rounded-full mb-4">
+                            <Lock className="w-8 h-8 text-primary" />
+                        </div>
+                        <h2 className="card-title text-2xl font-bold">Connexion</h2>
+                        <p className="text-base-content/60">Gestion Locative</p>
+                    </div>
 
-                {error && (
-                    <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
-                        {error}
-                    </Alert>
-                )}
+                    {error && (
+                        <div role="alert" className="alert alert-error mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span>{error}</span>
+                        </div>
+                    )}
 
-                <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        id="email"
-                        label="Adresse Email"
-                        name="email"
-                        autoComplete="email"
-                        autoFocus
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                    />
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        name="password"
-                        label="Mot de passe"
-                        type="password"
-                        id="password"
-                        autoComplete="current-password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <Button
-                        type="submit"
-                        fullWidth
-                        variant="contained"
-                        sx={{ mt: 3, mb: 2 }}
-                        disabled={loading}
-                    >
-                        {loading ? <CircularProgress size={24} color="inherit" /> : 'Se connecter'}
-                    </Button>
-                    
-                    {/* 3. Bouton pour revenir à l'accueil */}
-                    <Button
-                        fullWidth
-                        variant="text"
-                        color="secondary"
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="form-control">
+                            <label className="label">
+                                <span className="label-text">Adresse Email</span>
+                            </label>
+                            <input
+                                type="email"
+                                placeholder="email@exemple.com"
+                                className="input input-bordered w-full"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+
+                        <div className="form-control">
+                            <label className="label">
+                                <span className="label-text">Mot de passe</span>
+                            </label>
+                            <input
+                                type="password"
+                                placeholder="••••••••"
+                                className="input input-bordered w-full"
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                            <label className="label">
+                                <a href="#" className="label-text-alt link link-hover">Mot de passe oublié ?</a>
+                            </label>
+                        </div>
+
+                        <div className="form-control mt-6">
+                            <button 
+                                type="submit" 
+                                className="btn btn-primary w-full" 
+                                disabled={loading}
+                            >
+                                {loading ? <Loader2 className="animate-spin" /> : 'Se connecter'}
+                            </button>
+                        </div>
+                    </form>
+
+                    <div className="divider">OU</div>
+
+                    <button 
                         onClick={onGoBackToHome}
-                        sx={{ mt: 1, mb: 1 }}
+                        className="btn btn-ghost btn-block gap-2"
                     >
-                        ← Retour à l'accueil
-                    </Button>
-                </Box>
-            </Box>
-        </Container>
+                        <ArrowLeft size={16} /> Retour à l'accueil
+                    </button>
+                </div>
+            </div>
+        </div>
     );
 };
 
