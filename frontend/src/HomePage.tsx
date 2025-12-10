@@ -1,262 +1,387 @@
 // frontend/src/HomePage.tsx
 import React from 'react';
-import { 
-  Building2, 
-  Wallet, 
-  Users, 
-  FileText, 
-  Wrench, 
-  BarChart3, 
-  CheckCircle2, 
-  Menu,
-  X,
-  Phone,
-  Mail,
-  MapPin,
-  Facebook,
-  Linkedin,
-  Twitter
-} from 'lucide-react';
 
 interface HomePageProps {
   onNavigateToLogin: () => void;
 }
 
 const HomePage: React.FC<HomePageProps> = ({ onNavigateToLogin }) => {
-  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-
   return (
-    <div className="min-h-screen bg-base-100 font-sans text-base-content">
-      {/* Navbar */}
-      <div className="navbar bg-base-100 fixed top-0 z-50 shadow-sm px-4 md:px-8">
-        <div className="navbar-start">
-          <div className="dropdown">
-            <div tabIndex={0} role="button" className="btn btn-ghost lg:hidden" onClick={toggleMenu}>
-              {isMenuOpen ? <X /> : <Menu />}
+    <div>
+      {/* Navigation */}
+      <nav className="navbar">
+        <div className="container">
+          <div className="nav-wrapper">
+            <div className="logo">
+              <i className="fas fa-home-heart"></i>
+              <span>Hope Gestion <span className="highlight">Immobilière</span></span>
             </div>
-            {isMenuOpen && (
-              <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-                <li><a href="#fonctionnalites">Fonctionnalités</a></li>
-                <li><a href="#tarifs">Tarifs</a></li>
-                <li><a href="#contact">Contact</a></li>
-              </ul>
-            )}
+            <div className="nav-links">
+              <a href="#accueil">Accueil</a>
+              <a href="#fonctionnalites">Fonctionnalités</a>
+              <a href="#tarifs">Tarifs</a>
+              <a href="#contact">Contact</a>
+              <button onClick={onNavigateToLogin} className="btn-primary">Connexion</button>
+            </div>
+            <div className="mobile-menu-btn">
+              <i className="fas fa-bars"></i>
+            </div>
           </div>
-          <a className="btn btn-ghost text-xl md:text-2xl font-bold text-primary">
-            Hope Gestion <span className="text-secondary">Immobilière</span>
-          </a>
         </div>
-        <div className="navbar-center hidden lg:flex">
-          <ul className="menu menu-horizontal px-1 font-medium">
-            <li><a href="#fonctionnalites">Fonctionnalités</a></li>
-            <li><a href="#tarifs">Tarifs</a></li>
-            <li><a href="#contact">Contact</a></li>
-          </ul>
-        </div>
-        <div className="navbar-end">
-          <button onClick={onNavigateToLogin} className="btn btn-primary btn-sm md:btn-md">
-            Connexion
-          </button>
-        </div>
-      </div>
+      </nav>
 
       {/* Hero Section */}
-      <div className="hero min-h-screen bg-base-200 pt-16">
-        <div className="hero-content flex-col lg:flex-row-reverse gap-8 lg:gap-12 px-4 md:px-8 max-w-7xl">
-          <div className="flex-1 w-full max-w-lg">
-             {/* Placeholder for Hero Image - In a real app, use a real image */}
-             <div className="mockup-window border bg-base-300 shadow-2xl">
-                <div className="flex justify-center px-4 py-16 bg-base-200 h-64 items-center">
-                    <span className="text-4xl opacity-20 font-bold">Dashboard Preview</span>
+      <section className="hero" id="accueil">
+        <div className="hero-pattern"></div>
+        <div className="container">
+          <div className="hero-content">
+            <div className="hero-text">
+              <div className="badge">🇧🇯 Conçu pour le Bénin</div>
+              <h1>Gérez votre patrimoine immobilier <span className="gradient-text">en toute simplicité</span></h1>
+              <p className="hero-description">La première plateforme PropTech béninoise pour une gestion moderne et automatisée de vos biens immobiliers. Paiements Mobile Money, contrats digitaux, suivi en temps réel.</p>
+              <div className="hero-stats">
+                <div className="stat-card">
+                  <div className="stat-value">100%</div>
+                  <div className="stat-label">Digital</div>
                 </div>
+                <div className="stat-card">
+                  <div className="stat-value">FCFA</div>
+                  <div className="stat-label">Monnaie locale</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-value">24/7</div>
+                  <div className="stat-label">Disponible</div>
+                </div>
+              </div>
+              <div className="hero-cta">
+                <a href="#" className="btn-primary">Commencer gratuitement</a>
+                <a href="#" className="btn-secondary">Voir la démo</a>
+              </div>
             </div>
-          </div>
-          <div className="flex-1 text-center lg:text-left">
-            <div className="badge badge-secondary badge-outline mb-4 font-semibold">🇧🇯 Conçu pour le Bénin</div>
-            <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-              Gérez votre patrimoine immobilier en toute <span className="text-primary">simplicité</span>
-            </h1>
-            <p className="py-6 text-lg md:text-xl opacity-90">
-              La première plateforme PropTech béninoise pour une gestion moderne et automatisée. Paiements Mobile Money, contrats digitaux, suivi en temps réel.
-            </p>
-            
-            <div className="flex flex-wrap gap-4 justify-center lg:justify-start mb-8">
-                <div className="flex items-center gap-2 badge badge-ghost p-3">
-                    <CheckCircle2 size={16} className="text-success"/> 100% Digital
-                </div>
-                <div className="flex items-center gap-2 badge badge-ghost p-3">
-                    <CheckCircle2 size={16} className="text-success"/> FCFA Monnaie locale
-                </div>
-                <div className="flex items-center gap-2 badge badge-ghost p-3">
-                    <CheckCircle2 size={16} className="text-success"/> 24/7 Disponible
-                </div>
-            </div>
-
-            <div className="flex gap-4 justify-center lg:justify-start">
-              <button className="btn btn-primary btn-lg shadow-lg">Commencer gratuitement</button>
-              <button className="btn btn-outline btn-lg">Voir la démo</button>
+            <div className="hero-image">
+              <div className="dashboard-preview">
+                <span className="text-2xl font-bold text-gray-400">Dashboard Preview</span>
+              </div>
+              <div className="floating-card card-1">
+                <div className="stat-value">245</div>
+                <div className="stat-label">Biens Gérés</div>
+              </div>
+              <div className="floating-card card-2">
+                <div className="stat-value">+85%</div>
+                <div className="stat-label">Taux de paiement</div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Features Section */}
-      <section id="fonctionnalites" className="py-20 px-4 md:px-8 bg-base-100">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Fonctionnalités</h2>
-            <p className="text-lg opacity-70 max-w-2xl mx-auto">Une solution complète conçue spécifiquement pour les besoins du marché immobilier béninois.</p>
+      <section className="features" id="fonctionnalites">
+        <div className="container">
+          <div className="section-header">
+            <span className="section-badge">Fonctionnalités</span>
+            <h2>Une solution complète pour tous vos <span className="gradient-text">besoins</span></h2>
+            <p className="hero-description">Des outils professionnels adaptés au marché immobilier béninois</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Feature Cards */}
-            <FeatureCard 
-              icon={<Building2 className="w-10 h-10 text-primary"/>}
-              title="Gestion des Biens"
-              desc="Centralisez tous vos biens : appartements, villas, bureaux. Suivi complet avec photos et historique."
-            />
-            <FeatureCard 
-              icon={<Wallet className="w-10 h-10 text-secondary"/>}
-              title="Paiements Mobile Money"
-              desc="Acceptez MTN Mobile Money et Moov Money. Automatisation complète des quittances."
-              badge="Populaire"
-            />
-            <FeatureCard 
-              icon={<Users className="w-10 h-10 text-accent"/>}
-              title="Gestion Locataires"
-              desc="Base de données complète avec historique de paiements, documents et communications."
-            />
-            <FeatureCard 
-              icon={<FileText className="w-10 h-10 text-info"/>}
-              title="Contrats & Baux"
-              desc="Génération automatique de contrats conformes à la législation béninoise."
-            />
-            <FeatureCard 
-              icon={<Wrench className="w-10 h-10 text-warning"/>}
-              title="Tickets & Maintenance"
-              desc="Gestion des plaintes et interventions. Suivi en temps réel des réparations."
-            />
-            <FeatureCard 
-              icon={<BarChart3 className="w-10 h-10 text-error"/>}
-              title="Statistiques & Rapports"
-              desc="Dashboard intuitif avec KPIs essentiels : taux d'occupation, revenus, impayés."
-            />
+          <div className="features-grid">
+            <div className="feature-card">
+              <div className="feature-icon">
+                <i className="fas fa-building"></i>
+              </div>
+              <h3>Gestion des Biens</h3>
+              <p>Centralisez tous vos biens immobiliers : appartements, villas, bureaux, magasins. Suivi complet avec photos, documents et historique.</p>
+              <a href="#" className="feature-badge">Détails</a>
+            </div>
+
+            <div className="feature-card popular">
+              <div className="feature-icon">
+                <i className="fas fa-wallet"></i>
+              </div>
+              <h3>Paiements Mobile Money</h3>
+              <p>Acceptez les paiements via MTN Mobile Money et Moov Money en FCFA. Automatisation complète des quittances et rappels.</p>
+              <span className="feature-badge">Populaire</span>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-icon">
+                <i className="fas fa-users"></i>
+              </div>
+              <h3>Gestion Locataires</h3>
+              <p>Base de données complète de vos locataires avec historique de paiements, documents et communications centralisées.</p>
+              <a href="#" className="feature-badge">Détails</a>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-icon">
+                <i className="fas fa-file-contract"></i>
+              </div>
+              <h3>Contrats & Baux</h3>
+              <p>Génération automatique de contrats de location conformes à la législation béninoise. Suivi des échéances et renouvellements.</p>
+              <a href="#" className="feature-badge">Détails</a>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-icon">
+                <i className="fas fa-tools"></i>
+              </div>
+              <h3>Tickets & Maintenance</h3>
+              <p>Système de gestion des plaintes et interventions. Assignation automatique aux techniciens, suivi en temps réel.</p>
+              <a href="#" className="feature-badge">Détails</a>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-icon">
+                <i className="fas fa-chart-bar"></i>
+              </div>
+              <h3>Statistiques & Rapports</h3>
+              <p>Dashboard intuitif avec KPIs essentiels : taux d'occupation, revenus, impayés. Exportation des rapports en PDF.</p>
+              <a href="#" className="feature-badge">Détails</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Steps Section */}
+      <section className="steps">
+        <div className="container">
+          <div className="section-header">
+            <span className="section-badge">Comment ça marche</span>
+            <h2>Démarrez en <span className="gradient-text">3 étapes simples</span></h2>
+          </div>
+
+          <div className="steps-grid">
+            <div className="step-card">
+              <div className="step-number">01</div>
+              <h3>Créez votre compte</h3>
+              <p>Inscription gratuite en moins de 2 minutes. Choisissez votre plan selon vos besoins.</p>
+            </div>
+
+            <div className="step-arrow">
+              <i className="fas fa-arrow-right"></i>
+            </div>
+
+            <div className="step-card">
+              <div className="step-number">02</div>
+              <h3>Ajoutez vos biens</h3>
+              <p>Enregistrez vos propriétés, locataires et contrats de location en quelques clics.</p>
+            </div>
+
+            <div className="step-arrow">
+              <i className="fas fa-arrow-right"></i>
+            </div>
+
+            <div className="step-card">
+              <div className="step-number">03</div>
+              <h3>Gérez en automatique</h3>
+              <p>Laissez la plateforme automatiser vos paiements, documents et notifications.</p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Pricing Section */}
-      <section id="tarifs" className="py-20 px-4 md:px-8 bg-base-200">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Tarification Simple</h2>
-            <p className="text-lg opacity-70">Choisissez le plan adapté à votre taille.</p>
+      <section className="pricing" id="tarifs">
+        <div className="container">
+          <div className="section-header">
+            <span className="section-badge">Tarification</span>
+            <h2>Des tarifs <span className="gradient-text">transparents</span> et flexibles</h2>
+            <p className="hero-description">Choisissez le plan qui correspond à votre activité</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <PricingCard 
-              title="Starter"
-              price="15 000"
-              features={["Jusqu'à 5 biens", "10 locataires max", "Paiements Mobile Money", "Support email"]}
-            />
-            <PricingCard 
-              title="Professionnel"
-              price="35 000"
-              features={["Jusqu'à 25 biens", "Locataires illimités", "Tous modes de paiement", "Gestion tickets", "Support prioritaire"]}
-              isPopular
-            />
-            <PricingCard 
-              title="Entreprise"
-              price="Sur mesure"
-              features={["Biens illimités", "Multi-gestionnaires", "API personnalisée", "Formation équipe", "Support dédié 24/7"]}
-              isCustom
-            />
+          <div className="pricing-grid">
+            <div className="pricing-card">
+              <h3>Starter</h3>
+              <div className="price">
+                <span className="price-amount">15 000</span>
+                <span className="price-period">FCFA/mois</span>
+              </div>
+              <ul className="features-list">
+                <li><i className="fas fa-check"></i> Jusqu'à 5 biens</li>
+                <li><i className="fas fa-check"></i> 10 locataires max</li>
+                <li><i className="fas fa-check"></i> Paiements Mobile Money</li>
+                <li><i className="fas fa-check"></i> Génération quittances</li>
+                <li><i className="fas fa-check"></i> Support email</li>
+              </ul>
+              <a href="#" className="btn-pricing">Commencer</a>
+            </div>
+
+            <div className="pricing-card popular">
+              <div className="popular-badge">RECOMMANDÉ</div>
+              <h3>Professionnel</h3>
+              <div className="price">
+                <span className="price-amount">35 000</span>
+                <span className="price-period">FCFA/mois</span>
+              </div>
+              <ul className="features-list">
+                <li><i className="fas fa-check"></i> Jusqu'à 25 biens</li>
+                <li><i className="fas fa-check"></i> Locataires illimités</li>
+                <li><i className="fas fa-check"></i> Tous modes de paiement</li>
+                <li><i className="fas fa-check"></i> Gestion tickets</li>
+                <li><i className="fas fa-check"></i> Rapports avancés</li>
+                <li><i className="fas fa-check"></i> Support prioritaire</li>
+              </ul>
+              <a href="#" className="btn-pricing">Commencer</a>
+            </div>
+
+            <div className="pricing-card">
+              <h3>Entreprise</h3>
+              <div className="price">
+                <span className="price-amount">Sur mesure</span>
+              </div>
+              <ul className="features-list">
+                <li><i className="fas fa-check"></i> Biens illimités</li>
+                <li><i className="fas fa-check"></i> Multi-gestionnaires</li>
+                <li><i className="fas fa-check"></i> API personnalisée</li>
+                <li><i className="fas fa-check"></i> Formation équipe</li>
+                <li><i className="fas fa-check"></i> Support dédié 24/7</li>
+                <li><i className="fas fa-check"></i> Serveur dédié</li>
+              </ul>
+              <a href="#" className="btn-pricing btn-outline">Nous contacter</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="testimonials">
+        <div className="container">
+          <div className="section-header">
+            <span className="section-badge">Témoignages</span>
+            <h2>Ils nous font <span className="gradient-text">confiance</span></h2>
+          </div>
+
+          <div className="testimonials-grid">
+            <div className="testimonial-card">
+              <div className="testimonial-header">
+                <img src="https://ui-avatars.com/api/?name=Marcel+Adjovi&background=667eea&color=fff" alt="Marcel Adjovi" />
+                <div>
+                  <h4>Marcel Adjovi</h4>
+                  <p>Propriétaire, Cotonou</p>
+                </div>
+              </div>
+              <div className="rating">
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+              </div>
+              <p className="testimonial-text">"Hope Gestion Immobilière a transformé ma gestion locative. Les paiements Mobile Money sont un vrai plus pour mes locataires au Bénin."</p>
+            </div>
+
+            <div className="testimonial-card">
+              <div className="testimonial-header">
+                <img src="https://ui-avatars.com/api/?name=Fatouma+Sanni&background=f093fb&color=fff" alt="Fatouma Sanni" />
+                <div>
+                  <h4>Fatouma Sanni</h4>
+                  <p>Agence Immobilière, Porto-Novo</p>
+                </div>
+              </div>
+              <div className="rating">
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+              </div>
+              <p className="testimonial-text">"Enfin une solution adaptée au marché béninois ! La génération automatique des contrats nous fait gagner un temps précieux."</p>
+            </div>
+
+            <div className="testimonial-card">
+              <div className="testimonial-header">
+                <img src="https://ui-avatars.com/api/?name=Jean+Baptiste&background=4facfe&color=fff" alt="Jean Baptiste" />
+                <div>
+                  <h4>Jean-Baptiste Koudou</h4>
+                  <p>Gestionnaire, Parakou</p>
+                </div>
+              </div>
+              <div className="rating">
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+              </div>
+              <p className="testimonial-text">"Le système de tickets pour les réparations est génial. Je peux suivre toutes les interventions depuis mon téléphone."</p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-primary text-primary-content text-center">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl md:text-5xl font-bold mb-6">Prêt à moderniser votre gestion ?</h2>
-          <p className="text-xl mb-8 opacity-90">Rejoignez les centaines de propriétaires qui font confiance à Hope Gestion.</p>
-          <button className="btn btn-secondary btn-lg shadow-xl border-none">Créer un compte maintenant</button>
+      <section className="cta-section">
+        <div className="container">
+          <div className="cta-content">
+            <h2>Prêt à moderniser votre gestion immobilière ?</h2>
+            <p>Rejoignez les centaines de propriétaires et gestionnaires qui font confiance à Hope Gestion Immobilière</p>
+            <div className="cta-buttons">
+              <a href="#" className="btn-cta-primary">Essayer gratuitement 30 jours</a>
+              <a href="#" className="btn-cta-secondary">Planifier une démo</a>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="footer p-10 bg-neutral text-neutral-content">
-        <aside>
-           <h3 className="text-2xl font-bold text-primary mb-2">Hope Gestion</h3>
-           <p className="max-w-xs">La solution PropTech N°1 au Bénin pour la gestion locative simplifiée.</p>
-           <div className="flex gap-4 mt-4">
-             <a className="link link-hover"><Facebook size={24}/></a>
-             <a className="link link-hover"><Twitter size={24}/></a>
-             <a className="link link-hover"><Linkedin size={24}/></a>
-           </div>
-        </aside> 
-        <nav>
-          <h6 className="footer-title">Services</h6> 
-          <a className="link link-hover">Gestion Locative</a>
-          <a className="link link-hover">Contrats Digitaux</a>
-          <a className="link link-hover">Paiements MoMo</a>
-        </nav> 
-        <nav>
-          <h6 className="footer-title">Entreprise</h6> 
-          <a className="link link-hover">À propos</a>
-          <a className="link link-hover">Contact</a>
-          <a className="link link-hover">Blog</a>
-        </nav> 
-        <nav>
-          <h6 className="footer-title">Légal</h6> 
-          <a className="link link-hover">Conditions d'utilisation</a>
-          <a className="link link-hover">Confidentialité</a>
-        </nav>
+      <footer className="footer" id="contact">
+        <div className="container">
+          <div className="footer-grid">
+            <div className="footer-col">
+              <div className="footer-logo">
+                <i className="fas fa-home-heart"></i>
+                <span>Hope Gestion Immobilière</span>
+              </div>
+              <p>La plateforme PropTech de référence au Bénin pour une gestion immobilière moderne et efficace.</p>
+              <div className="social-links">
+                <a href="#"><i className="fab fa-facebook"></i></a>
+                <a href="#"><i className="fab fa-twitter"></i></a>
+                <a href="#"><i className="fab fa-linkedin"></i></a>
+                <a href="#"><i className="fab fa-instagram"></i></a>
+              </div>
+            </div>
+
+            <div className="footer-col">
+              <h4>Produit</h4>
+              <ul>
+                <li><a href="#fonctionnalites">Fonctionnalités</a></li>
+                <li><a href="#tarifs">Tarifs</a></li>
+                <li><a href="#">Démo</a></li>
+                <li><a href="#">Documentation</a></li>
+              </ul>
+            </div>
+
+            <div className="footer-col">
+              <h4>Entreprise</h4>
+              <ul>
+                <li><a href="#">À propos</a></li>
+                <li><a href="#">Blog</a></li>
+                <li><a href="#">Carrières</a></li>
+                <li><a href="#">Partenaires</a></li>
+              </ul>
+            </div>
+
+            <div className="footer-col">
+              <h4>Contact</h4>
+              <ul>
+                <li><i className="fas fa-map-marker-alt"></i> Cotonou, Bénin</li>
+                <li><i className="fas fa-phone"></i> +229 XX XX XX XX</li>
+                <li><i className="fas fa-envelope"></i> contact@hopegimmo.bj</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="footer-bottom">
+            <p>&copy; 2025 Hope Gestion Immobilière. Tous droits réservés.</p>
+            <div className="footer-links">
+              <a href="#">Conditions d'utilisation</a>
+              <a href="#">Confidentialité</a>
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   );
 };
-
-// Components
-const FeatureCard = ({ icon, title, desc, badge }: { icon: React.ReactNode, title: string, desc: string, badge?: string }) => (
-  <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow border border-base-200">
-    <div className="card-body">
-      <div className="flex justify-between items-start">
-        <div className="p-3 bg-base-200 rounded-lg mb-4">{icon}</div>
-        {badge && <div className="badge badge-secondary">{badge}</div>}
-      </div>
-      <h3 className="card-title mb-2">{title}</h3>
-      <p className="opacity-70">{desc}</p>
-    </div>
-  </div>
-);
-
-const PricingCard = ({ title, price, features, isPopular, isCustom }: { title: string, price: string, features: string[], isPopular?: boolean, isCustom?: boolean }) => (
-  <div className={`card bg-base-100 shadow-xl border ${isPopular ? 'border-primary border-2 scale-105 z-10' : 'border-base-200'}`}>
-    {isPopular && <div className="absolute -top-4 left-1/2 -translate-x-1/2 badge badge-primary p-3 font-semibold">RECOMMANDÉ</div>}
-    <div className="card-body text-center">
-      <h3 className="text-xl font-bold text-base-content/70 uppercase tracking-wide">{title}</h3>
-      <div className="my-4">
-        <span className="text-4xl font-extrabold">{price}</span>
-        {!isCustom && <span className="text-sm opacity-50"> FCFA/mois</span>}
-      </div>
-      <ul className="text-left space-y-3 mb-8 flex-grow">
-        {features.map((f, i) => (
-          <li key={i} className="flex items-center gap-2">
-            <CheckCircle2 size={18} className="text-success shrink-0"/>
-            <span className="text-sm">{f}</span>
-          </li>
-        ))}
-      </ul>
-      <div className="card-actions justify-center">
-        <button className={`btn w-full ${isPopular ? 'btn-primary' : 'btn-outline'}`}>
-          {isCustom ? 'Nous contacter' : 'Choisir ce plan'}
-        </button>
-      </div>
-    </div>
-  </div>
-);
 
 export default HomePage;
