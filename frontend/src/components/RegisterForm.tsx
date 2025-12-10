@@ -1,36 +1,35 @@
-// frontend/src/components/LoginForm.tsx
+// frontend/src/components/RegisterForm.tsx
 
 import React, { useState } from 'react';
-import { loginUser } from '../api/authApi';
-import { Lock, ArrowLeft, Loader2 } from 'lucide-react';
+import { registerUser } from '../api/authApi'; // Assuming this API function exists or I need to create it
+import { UserPlus, ArrowLeft, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
-interface LoginFormProps {
-    onLoginSuccess?: () => void; // Optional now
-    onGoBackToHome?: () => void; // Optional now
-}
-
-const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
+const RegisterForm: React.FC = () => {
     const navigate = useNavigate();
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+
+        if (password !== confirmPassword) {
+            setError("Les mots de passe ne correspondent pas.");
+            return;
+        }
+
         setLoading(true);
 
         try {
-            await loginUser(email, password);
-            if (onLoginSuccess) {
-                onLoginSuccess();
-            } else {
-                navigate('/dashboard.html');
-            }
+            await registerUser(name, email, password);
+            navigate('/dashboard.html');
         } catch (err: any) {
-            setError(err.message || 'Échec de la connexion. Veuillez vérifier vos identifiants.');
+            setError(err.message || "Échec de l'inscription. Veuillez réessayer.");
         } finally {
             setLoading(false);
         }
@@ -42,10 +41,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
                 <div className="card-body">
                     <div className="flex flex-col items-center mb-6">
                         <div className="bg-primary/10 p-3 rounded-full mb-4">
-                            <Lock className="w-8 h-8 text-primary" />
+                            <UserPlus className="w-8 h-8 text-primary" />
                         </div>
-                        <h2 className="card-title text-2xl font-bold">Connexion</h2>
-                        <p className="text-base-content/60">Gestion Locative</p>
+                        <h2 className="card-title text-2xl font-bold">Inscription</h2>
+                        <p className="text-base-content/60">Rejoignez Hope Gestion</p>
                     </div>
 
                     {error && (
@@ -58,6 +57,21 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="form-control">
                             <label className="label">
+                                <span className="label-text">Nom complet</span>
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Jean Dupont"
+                                className="input input-bordered w-full"
+                                required
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+
+                        <div className="form-control">
+                            <label className="label">
                                 <span className="label-text">Adresse Email</span>
                             </label>
                             <input
@@ -67,7 +81,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
                                 required
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                autoFocus
                             />
                         </div>
 
@@ -83,9 +96,20 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
+                        </div>
+
+                        <div className="form-control">
                             <label className="label">
-                                <a href="#" className="label-text-alt link link-hover">Mot de passe oublié ?</a>
+                                <span className="label-text">Confirmer le mot de passe</span>
                             </label>
+                            <input
+                                type="password"
+                                placeholder="••••••••"
+                                className="input input-bordered w-full"
+                                required
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                            />
                         </div>
 
                         <div className="form-control mt-6">
@@ -94,7 +118,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
                                 className="btn btn-primary w-full" 
                                 disabled={loading}
                             >
-                                {loading ? <Loader2 className="animate-spin" /> : 'Se connecter'}
+                                {loading ? <Loader2 className="animate-spin" /> : "S'inscrire"}
                             </button>
                         </div>
                     </form>
@@ -102,7 +126,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
                     <div className="divider">OU</div>
 
                     <div className="text-center mb-4">
-                        <p>Pas encore de compte ? <Link to="/register.html" className="link link-primary">S'inscrire</Link></p>
+                        <p>Déjà un compte ? <Link to="/login.html" className="link link-primary">Se connecter</Link></p>
                     </div>
 
                     <Link 
@@ -117,4 +141,4 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
     );
 };
 
-export default LoginForm;
+export default RegisterForm;
