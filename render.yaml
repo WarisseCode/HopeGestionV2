@@ -20,7 +20,7 @@ services:
   - type: web
     name: hope-gestion-frontend
     env: static
-    plan: free
+    # pas de plan defini pour les sites statiques (gratuit par defaut)
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
     envVars:
