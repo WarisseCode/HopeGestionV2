@@ -12,10 +12,13 @@ services:
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
+      - key: NODE_VERSION
+        value: 20.10.0
 
   # Frontend Static Site
-  - type: static
+  - type: web
     name: hope-gestion-frontend
+    env: static
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
     envVars:
