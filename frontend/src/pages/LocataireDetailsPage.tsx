@@ -189,7 +189,7 @@ const LocataireDetailsPage: React.FC = () => {
                 </div>
             </div>
             <div className="mt-6">
-                <Button variant="outline" className="w-full border-dashed">
+                <Button variant="ghost" className="w-full border border-dashed border-base-300">
                     <ExternalLink size={16} className="mr-2"/> 
                     Aller au Coffre-fort numérique
                 </Button>

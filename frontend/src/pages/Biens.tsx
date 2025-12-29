@@ -19,6 +19,7 @@ import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
 import { getImmeubles, getLots, saveImmeuble, saveLot, deleteImmeuble, deleteLot } from '../api/bienApi';
+import type { Immeuble, Lot } from '../api/bienApi';
 
 const Biens: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'immeubles' | 'lots'>('immeubles');

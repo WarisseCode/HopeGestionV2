@@ -158,7 +158,7 @@ const ProprietaireDashboard: React.FC = () => {
                 <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF'}} />
                 <Tooltip 
                   contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}}
-                  formatter={(value: number) => [`${value.toLocaleString()} FCFA`, 'Montant']}
+                  formatter={(value: any) => [`${value?.toLocaleString() ?? 0} FCFA`, 'Montant']}
                 />
                 <Legend wrapperStyle={{paddingTop: '20px'}} iconType="circle" />
                 <Bar dataKey="revenus" fill="#3f51b5" radius={[8, 8, 0, 0]} name="Revenus" />
@@ -188,7 +188,7 @@ const ProprietaireDashboard: React.FC = () => {
                 </Pie>
                 <Tooltip 
                   contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}}
-                  formatter={(value: number) => [`${value}%`, 'Taux']}
+                  formatter={(value: any) => [`${value}%`, 'Taux']}
                 />
                 <Legend verticalAlign="bottom" height={36} iconType="circle" />
               </PieChart>
