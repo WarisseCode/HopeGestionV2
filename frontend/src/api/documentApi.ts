@@ -59,7 +59,6 @@ export const uploadDocument = async (
 };
 
 export const getDownloadUrl = (docId: number) => {
-    const token = getToken();
     // On retourne l'URL directe, l'authentification se fera via un token en paramètre ou cookie si besoin
     // Mais ici le backend attend un Header Authorization, ce qui est compliqué pour un simple lien href
     // Solution simple : fetch blob et download via JS

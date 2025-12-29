@@ -1,3 +1,4 @@
+import { getToken } from './authApi';
 import { API_URL as BASE_URL } from '../config';
 
 const API_URL = `${BASE_URL}/biens`;
@@ -62,7 +63,7 @@ export async function getLots(): Promise<Lot[]> {
     throw new Error('Non authentifié');
   }
 
-  const response = await fetch('http://localhost:5000/api/biens/lots', {
+  const response = await fetch(`${API_URL}/lots`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -107,7 +108,7 @@ export async function saveLot(lot: Partial<Lot>): Promise<Lot> {
     throw new Error('Non authentifié');
   }
 
-  const response = await fetch('http://localhost:5000/api/biens/lots', {
+  const response = await fetch(`${API_URL}/lots`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,

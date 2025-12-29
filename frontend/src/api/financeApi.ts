@@ -58,7 +58,7 @@ export async function getDepenses(): Promise<Depense[]> {
     throw new Error('Non authentifié');
   }
 
-  const response = await fetch('http://localhost:5000/api/finances/depenses', {
+  const response = await fetch(`${API_URL}/depenses`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -103,7 +103,7 @@ export async function saveDepense(depense: Partial<Depense>): Promise<Depense> {
     throw new Error('Non authentifié');
   }
 
-  const response = await fetch('http://localhost:5000/api/finances/depenses', {
+  const response = await fetch(`${API_URL}/depenses`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
