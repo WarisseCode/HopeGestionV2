@@ -31,11 +31,37 @@ const SALT_ROUNDS = 10; // Niveau de complexité pour bcrypt
 router.post('/register', async (req, res) => {
     const { email, password, prenoms, nom, telephone, userType, nomAgence } = req.body;
 
-    if (!email || !password || !nom || !prenoms) {
-        return res.status(400).json({ message: 'Email, mot de passe, nom et prénoms sont requis.' });
-    }
-
     try {
+        // Validation des champs requis
+        if (!email || !password || !nom || !prenoms || !telephone) {
+            return res.status(400).json({ 
+                message: 'Tous les champs sont requis : email, mot de passe, nom, prénoms et téléphone.' 
+            });
+        }
+
+        // Vérification de la validité de l'email
+        const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ 
+                message: 'Veuillez fournir une adresse email valide.' 
+            });
+        }
+
+        // Vérification de la longueur du mot de passe
+        if (password.length < 6) {
+            return res.status(400).json({ 
+                message: 'Le mot de passe doit contenir au moins 6 caractères.' 
+            });
+        }
+
+        // Vérification du format du téléphone
+        const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+        if (!phoneRegex.test(telephone)) {
+            return res.status(400).json({ 
+                message: 'Veuillez fournir un numéro de téléphone valide (format international, ex: +22997000000).' 
+            });
+        }
+
         // Hachage du mot de passe
         const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
         
@@ -64,11 +90,33 @@ router.post('/register', async (req, res) => {
 
     } catch (error: any) {
         console.error('Erreur inscription:', error);
+        
         // Gérer l'erreur d'email déjà utilisé (code d'erreur PostgreSQL 23505)
         if (error.code === '23505') {
-            return res.status(409).json({ message: 'Cet email est déjà utilisé.' });
+            return res.status(409).json({ 
+                message: 'Cet email est déjà utilisé par un autre compte.' 
+            });
         }
-        res.status(500).json({ message: 'Erreur serveur lors de l\'inscription.' });
+        
+        // Gérer l'erreur de téléphone déjà utilisé
+        if (error.code === '23505' && error.detail && error.detail.includes('telephone')) {
+            return res.status(409).json({ 
+                message: 'Ce numéro de téléphone est déjà utilisé par un autre compte.' 
+            });
+        }
+        
+        // Erreur de connexion à la base de données
+        if (error.code === '23502') { // NOT NULL constraint violation
+            return res.status(400).json({ 
+                message: 'Un champ requis n\'a pas été fourni correctement.' 
+            });
+        }
+        
+        // Erreur générique
+        res.status(500).json({ 
+            message: 'Une erreur est survenue lors de l\'inscription. Veuillez réessayer.',
+            error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+        });
     }
 });
 
@@ -156,11 +204,11 @@ router.post('/login', async (req, res) => {
             role: utilisateur.role
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Erreur connexion:', error);
         res.status(500).json({ 
             message: 'Une erreur est survenue lors de la connexion. Veuillez réessayer.',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
         });
     }
 });
