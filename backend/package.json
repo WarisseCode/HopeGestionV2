@@ -9,7 +9,7 @@
     "build": "tsc",
     "dev": "nodemon index.ts",
     "migrate": "ts-node scripts/runMigration.ts",
-    "migrate-prod": "node dist/scripts/runMigration.js"
+    "migrate-prod": "npm run build && node dist/scripts/runMigration.js"
   },
   "keywords": [],
   "author": "",
