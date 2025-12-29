@@ -3,6 +3,7 @@ services:
   - type: web
     name: hope-gestion-backend
     env: node
+    plan: free
     buildCommand: cd backend && npm install && npm run build
     startCommand: cd backend && npm start
     envVars:
@@ -19,6 +20,7 @@ services:
   - type: web
     name: hope-gestion-frontend
     env: static
+    plan: free
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
     envVars:
@@ -26,7 +28,7 @@ services:
         fromService:
           type: web
           name: hope-gestion-backend
-          property: host
+          property: url
     routes:
       - type: rewrite
         source: /*
@@ -36,5 +38,6 @@ databases:
   - name: hope-gestion-db
     databaseName: hopegestion
     user: hope_user
+    plan: free
 
 version: "1"
