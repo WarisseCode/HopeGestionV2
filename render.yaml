@@ -28,7 +28,7 @@ services:
         fromService:
           type: web
           name: hope-gestion-backend
-          property: url
+          property: host
     routes:
       - type: rewrite
         source: /*
