@@ -1,6 +1,7 @@
 // frontend/src/api/authApi.ts
 
 import { API_URL as BASE_URL } from '../config';
+import { apiCall } from '../utils/apiUtils';
 
 interface AuthResponse {
     token: string;
@@ -19,19 +20,10 @@ interface RegisterResponse {
  * Stocke le token et le rôle en cas de succès.
  */
 export async function loginUser(email: string, password: string): Promise<AuthResponse> {
-    const response = await fetch(`${BASE_URL}/auth/login`, {
+    const data = await apiCall<AuthResponse>(`${BASE_URL}/auth/login`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ email, password }),
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-        throw new Error(data.message || `Erreur de connexion (Statut: ${response.status})`);
-    }
 
     // Connexion réussie : Stocker le token et le rôle
     localStorage.setItem('userToken', data.token);
@@ -51,11 +43,8 @@ export async function registerUser(
     password: string,
     userType: string
 ): Promise<RegisterResponse> {
-    const response = await fetch(`${BASE_URL}/auth/register`, {
+    const data = await apiCall<RegisterResponse>(`${BASE_URL}/auth/register`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ 
             nom, 
             prenoms, 
@@ -65,12 +54,6 @@ export async function registerUser(
             userType
         }),
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-        throw new Error(data.message || `Erreur d'inscription (Statut: ${response.status})`);
-    }
     
     return data;
 }
@@ -106,19 +89,13 @@ export async function getProfile(): Promise<UserProfile> {
         throw new Error('Aucun token d\'authentification trouve');
     }
     
-    const response = await fetch(`${BASE_URL}/profil`, {
+    const data = await apiCall<UserProfile>(`${BASE_URL}/profil`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         }
     });
-    
-    const data = await response.json();
-    
-    if (!response.ok) {
-        throw new Error(data.message || `Erreur lors de la récupération du profil (Statut: ${response.status})`);
-    }
     
     return data;
 }

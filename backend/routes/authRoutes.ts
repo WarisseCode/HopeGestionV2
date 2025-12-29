@@ -77,23 +77,56 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
     try {
+        // Validation des champs requis
+        if (!email || !password) {
+            return res.status(400).json({ 
+                message: 'Email et mot de passe sont requis.' 
+            });
+        }
+
+        // Vérification de la validité de l'email
+        const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ 
+                message: 'Veuillez fournir une adresse email valide.' 
+            });
+        }
+
+        // Vérification de la longueur du mot de passe
+        if (password.length < 1) {
+            return res.status(400).json({ 
+                message: 'Le mot de passe ne peut pas être vide.' 
+            });
+        }
+
         // 1. Rechercher l'utilisateur par email
         const result = await pool.query(
-            'SELECT id, password_hash, role FROM users WHERE email = $1',
+            'SELECT id, password_hash, role, statut FROM users WHERE email = $1',
             [email]
         );
 
         if (result.rows.length === 0) {
-            return res.status(401).json({ message: 'Identifiants invalides.' });
+            return res.status(401).json({ 
+                message: 'Aucun compte n\'est associé à cet email.' 
+            });
         }
 
         const utilisateur = result.rows[0];
+        
+        // Vérifier si le compte est actif
+        if (utilisateur.statut === 'inactif' || utilisateur.statut === 'suspendu') {
+            return res.status(401).json({ 
+                message: 'Votre compte est inactif ou suspendu. Veuillez contacter l\'administrateur.' 
+            });
+        }
 
         // 2. Comparer le mot de passe fourni avec le mot de passe haché en DB
         const match = await bcrypt.compare(password, utilisateur.password_hash);
 
         if (!match) {
-            return res.status(401).json({ message: 'Identifiants invalides.' });
+            return res.status(401).json({ 
+                message: 'Mot de passe incorrect.' 
+            });
         }
 
         // 3. Générer le jeton JWT
@@ -106,10 +139,10 @@ router.post('/login', async (req, res) => {
         // 4. Log Audit
         try {
             await AuditService.log({
-                userId: utilisateur.id,
+                userId: utilisateur.id.toString(),
                 action: 'LOGIN',
                 entityType: 'USER',
-                entityId: utilisateur.id,
+                entityId: utilisateur.id.toString(),
                 details: { role: utilisateur.role },
                 ipAddress: req.ip || 'unknown',
                 userAgent: (req.headers['user-agent'] as string) || 'unknown'
@@ -125,7 +158,10 @@ router.post('/login', async (req, res) => {
 
     } catch (error) {
         console.error('Erreur connexion:', error);
-        res.status(500).json({ message: 'Erreur serveur lors de la connexion.' });
+        res.status(500).json({ 
+            message: 'Une erreur est survenue lors de la connexion. Veuillez réessayer.',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 
