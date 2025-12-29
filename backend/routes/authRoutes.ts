@@ -17,7 +17,7 @@ const router = Router();
 
 // Pour que les routes aient accès à la DB (Méthode simple pour le MVP)
 const pool = new Pool({
-    // Utilisez les variables d'environnement ici
+    connectionString: process.env.DATABASE_URL,
     user: process.env.DB_USER,
     host: process.env.DB_HOST,
     database: process.env.DB_NAME,
