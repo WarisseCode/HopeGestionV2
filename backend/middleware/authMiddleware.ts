@@ -11,6 +11,7 @@ dotenv.config();
 export interface AuthenticatedRequest extends Request {
     userId?: number;
     userRole?: string;
+    user?: any; // Allow object access
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
@@ -44,8 +45,15 @@ export const protect = (req: AuthenticatedRequest, res: Response, next: NextFunc
             
             // 3. Ajouter l'ID et le Rôle de l'utilisateur à l'objet requête (req)
             // Les routes futures pourront accéder à ces infos via req.userId et req.userRole.
+            // 3. Ajouter l'ID et le Rôle de l'utilisateur à l'objet requête (req)
             req.userId = payload.id;
             req.userRole = payload.role;
+            // Fix for auditRoutes accessing req.user
+            req.user = {
+                id: payload.id,
+                role: payload.role,
+                userType: (payload as any).userType || 'gestionnaire' // Fallback or fetch from DB if needed
+            };
         } else {
             return res.status(403).json({ message: 'Accès refusé : Jeton invalide.' });
         }

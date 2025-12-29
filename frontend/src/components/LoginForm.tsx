@@ -3,6 +3,9 @@
 import React, { useState } from 'react';
 import { loginUser } from '../api/authApi';
 import { Lock, ArrowLeft, Loader2 } from 'lucide-react';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import Alert from '../components/ui/Alert';
 
 interface LoginFormProps {
     onLoginSuccess: () => void;
@@ -33,76 +36,69 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onGoBackToHome })
 
     return (
         <div className="min-h-screen bg-base-200 flex items-center justify-center px-4">
-            <div className="card w-full max-w-md bg-base-100 shadow-xl">
-                <div className="card-body">
-                    <div className="flex flex-col items-center mb-6">
-                        <div className="bg-primary/10 p-3 rounded-full mb-4">
-                            <Lock className="w-8 h-8 text-primary" />
-                        </div>
-                        <h2 className="card-title text-2xl font-bold">Connexion</h2>
-                        <p className="text-base-content/60">Gestion Locative</p>
+            <div className="w-full max-w-md bg-base-100 rounded-xl shadow-lg border border-base-200 p-8">
+                <div className="flex flex-col items-center mb-8">
+                    <div className="mb-4">
+                        <img src="/logo.png" alt="Logo" className="w-20 h-auto mx-auto" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-base-content">Connexion</h2>
+                    <p className="text-base-content/60 mt-1">Gestion Locative</p>
+                </div>
+
+                {error && (
+                    <Alert variant="error" className="mb-6">
+                        {error}
+                    </Alert>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <Input
+                        label="Adresse Email"
+                        type="email"
+                        placeholder="email@exemple.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        autoFocus
+                    />
+
+                    <Input
+                        label="Mot de passe"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+
+                    <div className="flex justify-end">
+                        <a href="#" className="text-sm text-primary hover:text-primary-focus">Mot de passe oublié ?</a>
                     </div>
 
-                    {error && (
-                        <div role="alert" className="alert alert-error mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            <span>{error}</span>
-                        </div>
-                    )}
-
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="form-control">
-                            <label className="label">
-                                <span className="label-text">Adresse Email</span>
-                            </label>
-                            <input
-                                type="email"
-                                placeholder="email@exemple.com"
-                                className="input input-bordered w-full"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                autoFocus
-                            />
-                        </div>
-
-                        <div className="form-control">
-                            <label className="label">
-                                <span className="label-text">Mot de passe</span>
-                            </label>
-                            <input
-                                type="password"
-                                placeholder="••••••••"
-                                className="input input-bordered w-full"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
-                            <label className="label">
-                                <a href="#" className="label-text-alt link link-hover">Mot de passe oublié ?</a>
-                            </label>
-                        </div>
-
-                        <div className="form-control mt-6">
-                            <button 
-                                type="submit" 
-                                className="btn btn-primary w-full" 
-                                disabled={loading}
-                            >
-                                {loading ? <Loader2 className="animate-spin" /> : 'Se connecter'}
-                            </button>
-                        </div>
-                    </form>
-
-                    <div className="divider">OU</div>
-
-                    <button 
-                        onClick={onGoBackToHome}
-                        className="btn btn-ghost btn-block gap-2"
+                    <Button 
+                        type="submit" 
+                        variant="primary" 
+                        className="w-full py-3" 
+                        disabled={loading}
                     >
-                        <ArrowLeft size={16} /> Retour à l'accueil
-                    </button>
-                </div>
+                        {loading ? (
+                            <>
+                                <Loader2 className="animate-spin mr-2" size={18} />
+                                Chargement...
+                            </>
+                        ) : 'Se connecter'}
+                    </Button>
+                </form>
+
+                <div className="divider my-8 text-base-content/50">OU</div>
+
+                <Button 
+                    variant="ghost" 
+                    className="w-full py-3"
+                    onClick={onGoBackToHome}
+                >
+                    <ArrowLeft size={18} className="mr-2" /> Retour à l'accueil
+                </Button>
             </div>
         </div>
     );

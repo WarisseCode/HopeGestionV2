@@ -1,0 +1,183 @@
+/* src/globals.css - Styles globaux pour harmoniser DaisyUI et MUI */
+
+/* Variables CSS pour les couleurs du thème */
+:root {
+  --primary: #3f51b5;
+  --primary-focus: #303f9f;
+  --primary-content: #ffffff;
+  --secondary: #f50057;
+  --secondary-focus: #c51162;
+  --secondary-content: #ffffff;
+  --accent: #673ab7;
+  --accent-focus: #7b1fa2;
+  --accent-content: #ffffff;
+  --neutral: #3d4451;
+  --neutral-focus: #2a2e37;
+  --neutral-content: #ffffff;
+  --base-100: #ffffff;
+  --base-200: #f9fafb;
+  --base-300: #e5e7eb;
+  --base-content: #1f2937;
+  --success: #4caf50;
+  --success-content: #ffffff;
+  --warning: #ff9800;
+  --warning-content: #ffffff;
+  --error: #f44336;
+  --error-content: #ffffff;
+}
+
+/* Typographie globale */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Amélioration des ombres pour les composants */
+.card {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.01);
+}
+
+/* Amélioration des boutons */
+.btn {
+  transition: all 0.2s ease;
+  text-transform: none;
+  font-weight: 500;
+  border-radius: 0.5rem;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Styles pour les graphiques Recharts */
+.recharts-wrapper {
+  width: 100%;
+  height: 300px;
+}
+
+.recharts-responsive-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Amélioration des tableaux (à utiliser pour les futurs tableaux) */
+.table {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.table th {
+  background-color: var(--base-200);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+/* Amélioration des indicateurs de chargement */
+.loading {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: currentColor;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Amélioration des animations Framer Motion */
+.mui-motion-fadeIn {
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+.mui-motion-fadeIn.mui-motion-visible {
+  opacity: 1;
+}
+
+/* Correction de la superposition de DaisyUI et MUI */
+.btn-primary {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-content);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-focus);
+  border-color: var(--primary-focus);
+}
+
+.btn-secondary {
+  background-color: var(--secondary);
+  border-color: var(--secondary);
+  color: var(--secondary-content);
+}
+
+.btn-secondary:hover {
+  background-color: var(--secondary-focus);
+  border-color: var(--secondary-focus);
+}
+
+/* Amélioration de la navigation */
+.breadcrumb {
+  padding: 0.75rem 1rem;
+  background-color: var(--base-200);
+  border-radius: 0.5rem;
+}
+
+/* Styles pour les notifications */
+.alert {
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* Amélioration des formulaires */
+.form-control {
+  margin-bottom: 1rem;
+}
+
+.input, .textarea, .select {
+  border-radius: 0.5rem;
+  border: 1px solid var(--base-300);
+  transition: all 0.2s ease;
+}
+
+.input:focus, .textarea:focus, .select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.1);
+}
+
+/* Amélioration des cartes de tableau de bord */
+.dashboard-card {
+  background-color: var(--base-100);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* Amélioration des indicateurs KPI */
+.kpi-card {
+  border-radius: 1rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}

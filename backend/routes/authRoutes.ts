@@ -11,6 +11,8 @@ import jwt from 'jsonwebtoken';
 // Charger les variables d'environnement
 dotenv.config();
 
+import { AuditService } from '../services/AuditService';
+
 const router = Router();
 
 // Pour que les routes aient accès à la DB (Méthode simple pour le MVP)
@@ -27,25 +29,25 @@ const SALT_ROUNDS = 10; // Niveau de complexité pour bcrypt
 
 // 1. Endpoint d'INSCRIPTION
 router.post('/register', async (req, res) => {
-    const { email, password, prenom, nom } = req.body;
+    const { email, password, prenoms, nom, telephone, userType, nomAgence } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Email et mot de passe requis.' });
+    if (!email || !password || !nom || !prenoms) {
+        return res.status(400).json({ message: 'Email, mot de passe, nom et prénoms sont requis.' });
     }
 
     try {
         // Hachage du mot de passe
-        const mot_de_passe_hache = await bcrypt.hash(password, SALT_ROUNDS);
+        const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
         
         // Insertion dans la base de données
         const result = await pool.query(
-            `INSERT INTO utilisateurs (email, mot_de_passe_hache, role, prenom, nom) 
-             VALUES ($1, $2, 'gestionnaire', $3, $4) RETURNING id`,
-            [email, mot_de_passe_hache, prenom, nom]
+            `INSERT INTO users (email, password_hash, nom, user_type, telephone) 
+             VALUES ($1, $2, $3 || ' ' || $4, $5, $6) RETURNING id`,
+            [email, password_hash, nom, prenoms, userType || 'gestionnaire', telephone]
         );
 
         res.status(201).json({ 
-            message: 'Gestionnaire créé.',
+            message: 'Utilisateur créé avec succès.',
             userId: result.rows[0].id
         });
 
@@ -66,7 +68,7 @@ router.post('/login', async (req, res) => {
     try {
         // 1. Rechercher l'utilisateur par email
         const result = await pool.query(
-            'SELECT id, mot_de_passe_hache, role FROM utilisateurs WHERE email = $1',
+            'SELECT id, password_hash, role FROM users WHERE email = $1',
             [email]
         );
 
@@ -77,7 +79,7 @@ router.post('/login', async (req, res) => {
         const utilisateur = result.rows[0];
 
         // 2. Comparer le mot de passe fourni avec le mot de passe haché en DB
-        const match = await bcrypt.compare(password, utilisateur.mot_de_passe_hache);
+        const match = await bcrypt.compare(password, utilisateur.password_hash);
 
         if (!match) {
             return res.status(401).json({ message: 'Identifiants invalides.' });
@@ -90,7 +92,20 @@ router.post('/login', async (req, res) => {
             { expiresIn: '1d' } // Le jeton expire après 1 jour
         );
 
-        // 4. Succès: Renvoyer le jeton et le rôle
+        // 4. Log Audit
+        try {
+            await AuditService.log({
+                userId: utilisateur.id,
+                action: 'LOGIN',
+                entityType: 'USER',
+                entityId: utilisateur.id,
+                details: { role: utilisateur.role },
+                ipAddress: req.ip || 'unknown',
+                userAgent: (req.headers['user-agent'] as string) || 'unknown'
+            });
+        } catch (e) { console.error('Audit log failed', e); }
+
+        // 5. Succès: Renvoyer le jeton et le rôle
         res.status(200).json({
             token,
             userId: utilisateur.id,
@@ -102,4 +117,5 @@ router.post('/login', async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur lors de la connexion.' });
     }
 });
+
 export default router;

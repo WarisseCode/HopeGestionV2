@@ -13,6 +13,12 @@ import paiementRoutes from './routes/paiementRoutes';
 import depenseRoutes from './routes/depenseRoutes';
 
 import dashboardRoutes from './routes/dashboardRoutes';
+import compteRoutes from './routes/compteRoutes';
+import ownerRoutes from './routes/ownerRoutes';
+import documentRoutes from './routes/documentRoutes';
+import delegationRoutes from './routes/delegationRoutes';
+import calendarRoutes from './routes/calendarRoutes';
+import auditRoutes from './routes/auditRoutes';
 
 import { protect, AuthenticatedRequest } from './middleware/authMiddleware'; 
 
@@ -22,7 +28,7 @@ import { protect, AuthenticatedRequest } from './middleware/authMiddleware';
 dotenv.config();
 
 // Configuration de la Base de Données
-const pool = new Pool({
+export const pool = new Pool({
     user: process.env.DB_USER,
     host: process.env.DB_HOST,
     database: process.env.DB_NAME,
@@ -69,12 +75,38 @@ app.use('/api/paiements', protect, paiementRoutes);
 app.use('/api/depenses', protect, depenseRoutes);
 
 app.use('/api/dashboard', protect, dashboardRoutes);
+app.use('/api/compte', protect, compteRoutes);
+app.use('/api/owners', protect, ownerRoutes);
+app.use('/api/documents', protect, documentRoutes);
+app.use('/api/delegations', protect, delegationRoutes);
+app.use('/api/calendar', protect, calendarRoutes);
+app.use('/api/audit-logs', protect, auditRoutes);
 
 // Route Test Protégée (pour validation rapide de 'protect')
-app.get('/api/profil', protect, (req: AuthenticatedRequest, res: Response) => {
-    res.status(200).json({ 
-        message: `Bienvenue, votre ID est ${req.userId} et votre rôle est ${req.userRole}`,
-    });
+app.get('/api/profil', protect, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const userResult = await pool.query('SELECT nom, email, user_type, role FROM users WHERE id = $1', [req.userId]);
+        
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+        }
+        
+        const user = userResult.rows[0];
+        
+        res.status(200).json({ 
+            message: `Bienvenue, votre ID est ${req.userId} et votre type est ${user.user_type}`,
+            user: {
+                id: req.userId,
+                nom: user.nom,
+                email: user.email,
+                userType: user.user_type,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error('Erreur lors de la récupération du profil:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la récupération du profil.' });
+    }
 });
 
 // --- 3. Test de communication (Endpoint de Ping) ---

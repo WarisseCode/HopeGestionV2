@@ -1,0 +1,1043 @@
+
+
+🎯 Objectif métier
+
+
+
+👥 Acteurs concernés (gestionnaire, propriétaire, locataire, agent, partenaire)
+
+
+
+🔐 Autorisations & droits d’accès (gestionnaire/propriétaire)
+
+
+
+🧩 Sous-modules fonctionnels
+
+
+
+📝 Formulaires détaillés (champs, validations, pièces jointes)
+
+
+
+🧭 Disposition des boutons (UI/UX)
+
+
+
+🔁 Flux métier (qui fait quoi, quand, comment)
+
+
+
+
+�
+�
+🧑💻 Indications techniques pour développeurs
+
+
+
+🛠️ Technologies recommandées
+
+🧩 Modules couverts (alignés Rentila + enrichis Hope)
+
+– Mon Compte
+
+
+
+Autorisations & délégations d’accès (granulaire)
+
+I – Bureau (Dashboard intelligent)
+
+II – Biens
+
+V – Locataires / Acheteurs
+
+1
+
+– Locations
+
+I – Réservations
+
+II – Inventaires
+III – États des lieux
+
+X – Finances
+
+– Documents
+
+
+
+Mes modèles (contrats, quittances…)
+
+I – Carnet
+
+II – Agenda
+
+III – Interventions
+
+IV – Tâches & Messages
+
+V – Candidats
+
+VI – Outils
+
+2
+
+VII – Corbeille
+
+✔ Catalogue géolocalisé public + moteur de recherche GPS
+✔ Module services connexes (nettoyage, gardiennage, nounou, transport…)
+✔ Module plaintes & demandes depuis l’espace locataire
+✔ Recouvrement intelligent avec affectation automatique d’agent auxiliaire
+✔ Gestion des gestionnaires & paramétrage avancé
+✔ Accès locataire supervisé par le gestionnaire
+
+3
+
+I – MON COMPTE
+(Inspiré de Rentila – Adapté au contexte africain)
+plateforme Hope Gestion Immobilière.
+Il permet la gestion multi-propriétaire, la gestion des utilisateurs, ainsi que l’attribution granulaire
+des droits et délégations d’accès.
+Ce module est obligatoire et conditionne l’accès à tous les autres modules (Biens, Finances,
+
+I.1 – MULTI-PROPRIÉTAIRE
+DESCRIPTION FONCTIONNELLE
+Ce sous-module permet à une agence ou à un gestionnaire principal de gérer plusieurs propriétaires
+distincts au sein d’un même compte, sans mélange de données.
+
+ACTEURS CONCERNÉS
+– Administrateur plateforme
+– Administrateur agence
+– Propriétaire
+– Gestionnaire délégué
+RÈGLES DE GESTION
+– Un propriétaire ne voit que ses propres biens, contrats et finances
+– Une agence peut gérer plusieurs propriétaires
+– Un gestionnaire externe peut être rattaché à plusieurs propriétaires
+– Toute délégation est traçable et révocable
+FORMULAIRE : CRÉATION / MODIFICATION D’UN PROPRIÉTAIRE
+Champs du formulaire
+– Type de propriétaire (Personne physique / Personne morale)
+– Nom ou Raison sociale
+– Prénom (si personne physique)
+– Téléphone principal (WhatsApp prioritaire – obligatoire)
+– Téléphone secondaire (facultatif)
+– Email : affiche automatiquement vue que l’utilisateur l’avait inséré à l’inscription
+– Adresse
+– Ville
+
+4
+
+– Pays
+– Numéro de pièce d’identité ou RCCM
+– Photo du propriétaire (facultatif)
+– Coordonnées Mobile Money (optionnel)
+– Mode de gestion (Direct / Délégué)
+Disposition de l’écran
+– Formulaire en deux colonnes sur ordinateur
+– Une colonne sur mobile
+– Onglets : Informations générales | Documents | Paramètres
+Boutons
+– Enregistrer
+– Modifier
+– Désactiver
+– Voir les biens du propriétaire
+Adaptation au contexte africain
+– Téléphone obligatoire comme identifiant principal
+– Intégration WhatsApp
+– Gestion à distance pour propriétaires vivant à l’étranger
+
+I.2 – GESTION DES UTILISATEURS
+DESCRIPTION FONCTIONNELLE
+Ce sous-module permet de créer, modifier, activer ou suspendre tous les utilisateurs liés à une
+agence ou à un propriétaire.
+Chaque utilisateur dispose d’un rôle et de droits spécifiques.
+TYPES D’UTILISATEURS
+– Administrateur agence
+– Gestionnaire interne
+– Gestionnaire externe
+– Agent recouvreur
+– Comptable
+– Propriétaire
+– Locataire / Acheteur
+– Partenaire de services
+FORMULAIRE : CRÉATION D’UN UTILISATEUR
+Champs du formulaire
+– Nom et prénoms
+
+5
+
+– Téléphone (identifiant principal)
+– Email (facultatif)
+– Rôle utilisateur
+– Photo
+– Mode de création (Mot de passe direct ou invitation)
+– Affectation (Agence / Propriétaire / Bien)
+Disposition de l’écran
+– Liste des utilisateurs sous forme de tableau
+– Colonne : Photo | Nom | Rôle | Statut | Actions
+Boutons
+– Créer utilisateur
+– Envoyer invitation
+– Suspendre l’accès
+– Réactiver
+
+’administrateur crée l’utilisateur
+’utilisateur reçoit une invitation par WhatsApp ou SMS
+
+’accès est accordé selon les autorisations définies
+
+I.3 – AUTORISATIONS & DÉLÉGATIONS D’ACCÈS (GRANULAIRE)
+
+PRINCIPES
+– Les rôles définissent une base de droits
+– Les permissions peuvent être ajustées utilisateur par utilisateur
+– Les accès peuvent être temporaires ou permanents
+EXEMPLES DE PERMISSIONS
+– Voir les biens
+– Ajouter ou modifier un bien
+– Accéder aux finances
+– Valider un paiement
+– Affecter un agent recouvreur
+– Traiter les plaintes et demandes
+
+6
+
+FORMULAIRE : DÉLÉGATION D’ACCÈS
+hamps du formulaire
+– Utilisateur concerné
+– Propriétaire ou agence concernée
+– Liste des modules (cases à cocher)
+– Niveau d’accès (Lecture / Écriture / Suppression / Validation)
+– Date de début
+– Date de fin (optionnelle)
+Disposition de l’écran
+– Tableau de permissions
+– Lignes : Modules
+– Colonnes : Lire | Écrire | Supprimer | Valider
+Boutons
+– Appliquer les autorisations
+– Réinitialiser
+– Révoquer l’accès
+Adaptation au contexte africain
+– Délégation temporaire pour gestion à distance
+– Historique simple et lisible des accès
+– Journal des actions critiques
+
+SÉCURITÉ ET CONFORMITÉ
+– Authentification par téléphone + mot de passe
+– Jetons JWT avec rafraîchissement
+– Journalisation des connexions et actions sensibles
+– Isolation stricte des données par agence et propriétaire
+
+Front-end
+– React ou Next.js
+– Tailwind CSS
+– Application mobile-first (PWA)
+Back-end
+– NestJS (Node.js) ou Laravel (PHP)
+– API REST sécurisée
+
+7
+
+Base de données
+– PostgreSQL ou MySQL
+– Tables clés : users, roles, permissions, owners, owner_user
+Intégrations locales
+– WhatsApp API
+– SMS locaux
+– Mobile Money (MTN, Moov, Orange, etc.)
+
+II – BUREAU (DASHBOARD INTELLIGENT)
+
+d’accueil après connexion.
+de l’activité immobilière : finances, biens, locataires, alertes, actions urgentes.
+II.1 – PRINCIPES GÉNÉRAUX DU DASHBOARD
+I
+lDESCRIPTION FONCTIONNELLE
+Le Bureau affiche des indicateurs clés personnalisés selon le rôle de l’utilisateur :
+d
+– Administrateur agence
+o
+– Gestionnaire
+i– Propriétaire
+t– Agent recouvreur
+p
+eCARACTÉRISTIQUES
+r– Données en temps réel
+m
+– Photos dynamiques (biens, locataires, agents)
+e– Alertes visibles immédiatement
+t– Navigation rapide vers les modules concernés
+t– Responsive (ordinateur, tablette, smartphone)
+r
+e
+a
+u
+g
+
+8
+
+II.2 – INDICATEURS CLÉS (KPI)
+DESCRIPTION
+Les indicateurs permettent de visualiser l’état global de la gestion immobilière.
+INDICATEURS PRINCIPAUX
+– Nombre total de biens
+– Nombre de lots occupés / libres
+– Loyers encaissés (mois en cours)
+– Loyers impayés
+– Taux d’occupation (%)
+– Nombre de contrats actifs
+– Nombre de plaintes ouvertes
+– Nombre de réservations en attente
+– Montant à recouvrer
+– Paiements échelonnés en retard (achat ou location)
+AFFICHAGE
+– Cartes rectangulaires (cards)
+– Icône + chiffre + libellé
+– Couleur dynamique :
+• Vert : normal
+• Orange : attention
+• Rouge : action urgente
+BOUTONS SUR CHAQUE INDICATEUR
+– Voir le détail
+– Accéder au module lié
+
+II.3 – ALERTES INTELLIGENTES
+e système d’alertes informe automatiquement l’utilisateur des actions urgentes à traiter.
+TYPES D’ALERTES
+– Loyer arrivé à échéance
+– Loyer en retard
+– Paiement échelonné non honoré
+– Nouvelle plainte ou demande de service
+– Fin de contrat proche
+– Lot devenu libre
+– Intervention en attente
+– Réservation non validée
+
+9
+
+DESTINATAIRES DES ALERTES
+– Gestionnaire
+– Propriétaire
+– Agent recouvreur affecté
+– Administrateur agence
+CANAUX
+– Notification dans le dashboard
+– WhatsApp
+– SMS
+– Email (optionnel)
+DISPOSITION
+– Panneau latéral « Alertes »
+– Liste chronologique
+– Badge rouge avec compteur
+BOUTONS
+– Voir
+– Traiter
+– Affecter un agent
+– Marquer comme résolu
+
+II.4 – PHOTOS DYNAMIQUES ET VISUELS
+
+ÉLÉMENTS AVEC PHOTOS
+– Biens (immeubles / lots)
+– Locataires
+– Propriétaires
+– Agents recouvreurs
+COMPORTEMENT
+– Sélection d’un élément → affichage immédiat de la photo
+– Photo du bien visible lors d’un impayé ou d’une alerte
+– Photo du locataire visible lors d’un retard ou d’une plainte
+OBJECTIF
+– Réduction des erreurs
+– Identification rapide
+– Présentation claire pour réunions ou visites terrain
+
+10
+
+II.5 – TABLEAU DES ACTIONS RAPIDES
+permettant d’agir sans quitter le Bureau.
+ACTIONS RAPIDES
+– Ajouter un bien
+– Ajouter un locataire
+– Enregistrer un paiement
+– Affecter un agent recouvreur
+– Créer une intervention
+– Générer une quittance
+– Créer un contrat
+– Voir les impayés
+– Boutons larges avec icônes
+– Grille 3 x 3 sur desktop
+– Liste verticale sur mobile
+
+II.6 – LISTES SYNTHÉTIQUES INTÉGRÉES
+
+LISTES DISPONIBLES
+– Derniers paiements
+– Impayés récents
+– Plaintes en cours
+– Interventions programmées
+– Réservations en attente
+COLONNES TYPiques
+– Photo
+– Nom
+– Bien concerné
+– Statut
+– Action
+BOUTONS
+– Voir tout
+
+11
+
+– Détail
+– Traiter
+
+II.7 – FORMULAIRES ACCESSIBLES DEPUIS LE BUREAU
+Champs
+– Locataire
+– Bien / Lot
+– Montant
+– Mode de paiement (Mobile Money, Espèces, Virement)
+– Date
+– Commentaire
+Boutons
+– Enregistrer
+– Générer reçu
+FORMULAIRE : AFFECTER UN AGENT RECOUVREUR
+Champs
+– Impayé concerné
+– Agent recouvreur
+– Zone géographique
+– Date de mission
+Boutons
+– Affecter
+– Notifier l’agent
+FORMULAIRE : CRÉER UNE INTERVENTION
+Champs
+– Bien / Lot
+– Type d’intervention
+– Priorité
+– Prestataire
+– Date souhaitée
+
+II.8 – PERSONNALISATION DU DASHBOARD
+
+12
+
+OPTIONS
+– Masquer / afficher des indicateurs
+– Choisir l’ordre des blocs
+– Filtrer par propriétaire ou agence
+– Choisir la période (jour / mois / année)
+
+II.9 – ADAPTATION AU CONTEXTE AFRICAIN
+– Priorité au mobile (smartphone)
+– WhatsApp comme canal principal
+– Mobile Money intégré
+– Gestion terrain (agents recouvreurs géolocalisés)
+– Simplicité visuelle (faible débit internet)
+
+FRONT-END
+– React ou Next.js
+– Tailwind CSS
+– Charts : Chart.js ou Recharts
+ACK-END
+– NestJS ou Laravel
+– API REST temps réel
+BASE DE DONNÉES
+– PostgreSQL ou MySQL
+– Tables : paiements, alertes, indicateurs, logs
+TEMPS RÉEL
+– WebSockets ou Firebase
+– Cron jobs pour alertes automatiques
+
+, à l’image de Rentila, mais enrichi pour la réalité locale.
+
+III – BIENS
+(Immeubles & Lots – Décomposition détaillée et affectation)
+
+13
+
+d
+é
+III.1 – STRUCTURE GÉNÉRALE DES BIENS
+c
+PRINCIPE DE DÉCOMPOSITION
+o
+– Un propriétaire possède un ou plusieurs immeubles
+m
+– Un immeuble contient un ou plusieurs lots
+p
+– Un lot peut être :
+o
+• loué
+s
+• vendu
+i
+• réservé
+t
+• libre
+i
+• hors service
+o
+n
+RÈGLES DE BASE
+– Aucun lot sans immeuble
+c– Toutes les opérations financières sont rattachées à un lot
+l– Les documents sont attachés au lot et à l’immeuble
+a
+i
+rIII.2 – SOUS-MODULE IMMEUBLES
+e
+:
+INFORMATIONS GÉNÉRALES D’UN IMMEUBLE
+I– Nom de l’immeuble
+m
+– Type (Maison, Immeuble collectif, Résidence, Commerce)
+m
+– Propriétaire
+e
+– Gestionnaire responsable
+u
+– Adresse complète
+b
+– Ville / Département / Pays
+l– Géolocalisation GPS (latitude / longitude)
+e
+– Nombre total de lots
+– Statut (Actif / Inactif)
+→
+ÉLÉMENTS VISUELS
+– Photos extérieures et intérieures
+
+14
+
+– Vidéo (optionnelle)
+– Plan de masse (optionnel)
+
+FORMULAIRE : CRÉATION / MODIFICATION D’UN IMMEUBLE
+Champs du formulaire
+– Nom de l’immeuble
+– Type d’immeuble
+– Propriétaire (liste déroulante)
+– Gestionnaire responsable
+– Adresse
+– Ville
+– Pays
+– Coordonnées GPS (auto via carte)
+– Description
+– Téléversement photos / vidéos
+Disposition de l’écran
+– Formulaire en 2 colonnes (desktop)
+– Carte GPS interactive à droite
+– Onglets : Général | Médias | Paramètres
+Boutons
+– Enregistrer
+– Enregistrer & Ajouter des lots
+– Modifier
+– Supprimer (si aucun lot actif)
+Adaptation contexte africain
+– Localisation par quartier
+– Saisie simple si GPS indisponible
+– Gestion multi-propriétaires
+
+III.3 – SOUS-MODULE LOTS
+DESCRIPTION FONCTIONNELLE
+Le lot est l’unité centrale de gestion.
+
+TYPES DE LOTS
+– Appartement
+
+15
+
+– Studio
+– Chambre
+– Boutique
+– Bureau
+– Dépôt
+– Terrain nu
+
+INFORMATIONS D’UN LOT
+Données générales
+– Immeuble de rattachement
+– Référence du lot
+– Type de lot
+– Étage / Bloc
+– Superficie
+– Nombre de pièces
+– Description
+Données locatives
+– Loyer
+– Charges
+– Périodicité de paiement
+– Caution
+– Avance
+Données de vente (si applicable)
+– Prix de vente
+– Modalité de paiement (comptant / échelonné)
+– Durée d’échelonnement
+– Échéancier
+Statut du lot
+– Libre
+– Réservé
+– Loué
+– Vendu
+– Hors service
+
+FORMULAIRE : CRÉATION / MODIFICATION D’UN LOT
+
+16
+
+Champs du formulaire
+– Immeuble (sélection obligatoire)
+– Référence du lot
+– Type de lot
+– Étage
+– Superficie
+– Nombre de pièces
+– Loyer
+– Charges
+– Prix de vente (si concerné)
+– Mode de paiement
+– Description
+Disposition de l’écran
+– Formulaire en 2 colonnes
+– Photo du lot affichée automatiquement
+– Onglets : Général | Financier | Médias | Statut
+Boutons
+– Enregistrer
+– Modifier
+– Mettre en location
+– Mettre en vente
+– Désactiver
+
+III.4 – AFFECTATION DES LOTS
+DESCRIPTION FONCTIONNELLE
+Permet d’affecter un lot à un locataire, un acheteur ou une réservation.
+TYPES D’AFFECTATION
+– Location
+– Vente
+– Réservation
+FORMULAIRE : AFFECTATION D’UN LOT
+Champs
+– Lot concerné
+– Type d’affectation
+– Locataire / Acheteur
+– Date de début
+
+17
+
+– Date de fin (si location)
+– Conditions particulières
+Boutons
+– Affecter
+– Générer contrat
+– Annuler
+RÈGLES
+– Un lot ne peut avoir qu’une affectation active
+– Toute affectation crée automatiquement un contrat
+
+III.5 – VISUALISATION ET LISTES
+LISTE DES IMMEUBLES
+Colonnes
+– Photo
+– Nom
+– Ville
+– Nombre de lots
+– Occupation
+– Actions
+LISTE DES LOTS
+Colonnes
+– Photo
+– Référence
+– Immeuble
+– Statut
+– Loyer / Prix
+– Actions
+PHOTOS DYNAMIQUES
+– Sélection d’un lot → affichage de sa photo
+– Sélection d’un immeuble → affichage global
+
+III.6 – LIENS AVEC LES AUTRES MODULES
+– Locataires
+– Locations
+– Réservations
+– États des lieux
+
+18
+
+– Inventaires
+– Finances
+– Interventions
+– Catalogue géolocalisé public
+
+III.7 – ADAPTATION AU CONTEXTE AFRICAIN
+– Gestion informelle formalisée
+– Paiements Mobile Money
+– Lots sans plan cadastral formel
+– Suivi terrain par agents
+– Géolocalisation simplifiée
+
+FRONT-END
+– React / Next.js
+– Tailwind CSS
+– Carte : Google Maps ou MapBox
+BACK-END
+– NestJS ou Laravel
+– API REST
+BASE DE DONNÉES
+– PostgreSQL / MySQL
+– Tables : buildings, lots, lot_media, lot_status
+
+robuste, clair et hiérarchisé, permettant une gestion immobilière professionnelle, transparente et
+évolutive, à l’image de Rentila mais parfaitement adaptée aux réalités africaines.
+
+IV – LOCATAIRES / ACHETEURS
+
+p
+e
+r
+m
+e
+
+19
+
+IV.1 – PRINCIPES GÉNÉRAUX
+PRINCIPES DE BASE
+–
+
+–
+ACTEURS
+– Gestionnaire
+– L’accès numérique du locataire est optionnel et activé par le gestionnaire
+– Propriétaire
+–
+– Locataire
+– Acheteur
+
+IV.2 – CRÉATION ET GESTION DES LOCATAIRES / ACHETEURS
+
+Champs d’identification
+– Type de profil (Locataire / Acheteur)
+– Nom et prénoms
+– Téléphone principal (WhatsApp prioritaire – obligatoire)
+– Téléphone secondaire
+– Email (optionnel)
+– Nationalité
+– Adresse actuelle
+Champs administratifs
+– Type de pièce d’identité
+– Numéro de pièce
+– Date d’expiration
+– Téléversement pièce d’identité (photo ou PDF)
+– Photo du locataire
+
+20
+
+Champs financiers (lecture pour locataire)
+– Mode de paiement (Mobile Money, Espèces, Virement)
+– Acompte / Caution
+– Avance
+– Paiement échelonné (Oui / Non)
+Disposition de l’écran
+– Formulaire en 2 colonnes (desktop)
+– Une colonne sur mobile
+– Onglets : Identité | Documents | Finances | Accès
+Boutons
+– Enregistrer
+– Modifier
+– Activer accès locataire
+– Désactiver accès locataire
+
+IV.3 – ACCÈS LOCATAIRE / ACHETEUR (PORTAIL CLIENT)
+
+ACCÈS AUTORISÉ AU LOCATAIRE
+– Voir son lot et ses photos
+– Voir son contrat
+– Voir ses quittances et reçus
+– Voir son échéancier de paiement
+– Payer en ligne
+– Déposer une plainte ou une demande de service
+– Recevoir des notifications
+ACCÈS INTERDIT AU LOCATAIRE
+– Finances globales
+– Autres locataires
+– Autres biens
+– Paramètres de gestion
+
+FORMULAIRE : PARAMÉTRAGE DE L’ACCÈS LOCATAIRE
+Champs
+– Activer accès (Oui / Non)
+– Modules accessibles (cases à cocher)
+
+21
+
+• Contrat
+• Paiements
+• Plaintes
+• Services connexes
+– Autoriser paiement en ligne
+– Canal de notification (WhatsApp / SMS / Email)
+Boutons
+– Valider l’accès
+– Suspendre l’accès
+
+IV.4 – AFFECTATION LOCATAIRE / ACHETEUR À UN LOT
+
+Champs
+– Locataire / Acheteur
+– Lot concerné
+– Type d’occupation (Location / Vente)
+– Date de début
+– Date de fin (si location)
+– Conditions particulières
+Boutons
+– Affecter
+– Générer contrat
+– Annuler
+RÈGLES
+– Un locataire ne peut occuper qu’un lot actif
+– Toute affectation génère un contrat
+
+IV.5 – LISTES ET VISUALISATION
+LISTE DES LOCATAIRES / ACHETEURS
+Colonnes
+– Photo
+– Nom
+– Type (Locataire / Acheteur)
+
+22
+
+– Lot
+– Statut
+– Paiement
+– Actions
+ACTIONS RAPIDES
+– Voir fiche
+– Voir contrat
+– Voir paiements
+– Envoyer message
+– Suspendre accès
+PHOTOS DYNAMIQUES
+– Sélection d’un locataire → photo affichée
+– Sélection d’un lot → photo du bien affichée
+
+IV.6 – ALERTES ET NOTIFICATIONS
+TYPES D’ALERTES
+– Échéance de loyer proche
+– Retard de paiement
+– Échéance de paiement échelonné
+– Nouvelle plainte
+– Document disponible
+DESTINATAIRES
+– Locataire
+– Gestionnaire
+– Agent recouvreur (si affecté)
+AUX
+– Notification interne
+– WhatsApp
+– SMS
+
+IV.7 – ADAPTATION AU CONTEXTE AFRICAIN
+– Téléphone comme identifiant principal
+– WhatsApp comme canal principal
+– Mobile Money prioritaire
+– Gestion de locataires sans email
+
+23
+
+– Paiements fractionnés fréquents
+– Accès simple et mobile-first
+
+FRONT-END
+– React / Next.js
+– Tailwind CSS
+– PWA mobile-first
+BACK-END
+– NestJS ou Laravel
+– API REST sécurisée
+BASE DE DONNÉES
+– PostgreSQL / MySQL
+– Tables : tenants, buyers, tenant_access, tenant_documents
+SÉCURITÉ
+– JWT
+– Contrôle d’accès par rôle
+– Journal des connexions
+
+e par le gestionnaire, à l’image de Rentila mais optimisé pour l’Afrique.
+
+V – LOCATIONS
+
+permet de gérer l’ensemble du cycle de location d’un lot :
+– contractualisation,
+– facturation des loyers,
+– paiements (classiques et échelonnés),
+– suivi des impayés,
+– renouvellement ou résiliation.
+
+24
+
+V.1 – PRINCIPES DE GESTION DES LOCATIONS
+PRINCIPES CLÉS
+–
+
+– Un lot ne peut avoir qu’une location active
+– Les loyers peuvent être payés :
+• de façon classique (mensuelle)
+• de façon échelonnée (hebdomadaire, bimensuelle, personnalisée)
+ACTEURS
+– Le gestionnaire contrôle l’activation, la suspension et la clôture d’une location
+– Gestionnaire
+– Propriétaire
+– Locataire
+– Agent recouvreur
+– Comptable
+
+V.2 – CRÉATION D’UNE LOCATION
+
+FORMULAIRE : CRÉATION / MODIFICATION D’UNE LOCATION
+Champs – Identification
+– Lot concerné
+– Locataire
+– Propriétaire
+– Gestionnaire responsable
+Champs – Période
+– Date de début de location
+– Date de fin (optionnelle)
+– Durée du contrat
+Champs – Conditions financières
+– Loyer mensuel
+– Caution
+– Avance
+– Charges locatives (optionnelles)
+– Devise
+
+25
+
+Champs – Mode de paiement
+– Type de paiement
+• Classique
+• Échelonné
+Disposition de l’écran
+– Formulaire en 2 colonnes
+– Sections repliables
+– Aperçu contrat à droite
+Boutons
+– Enregistrer
+– Générer contrat
+– Activer la location
+
+V.3 – PAIEMENT CLASSIQUE (LOYER STANDARD)
+
+PARAMÉTRAGE
+– Date d’échéance mensuelle
+– Pénalité de retard (optionnelle)
+– Mode de paiement autorisé
+
+Champs
+– Jour d’échéance (1 à 31)
+– Montant mensuel
+– Tolérance de retard (jours)
+– Pénalité (%)
+Boutons
+– Valider
+– Modifier
+
+V.4 – PAIEMENT ÉCHELONNÉ
+le paiement d’un bien en cours d’achat en plusieurs paiements adaptés au pouvoir d’achat local.
+
+26
+
+TYPES D’ÉCHELONNEMENT
+– Hebdomadaire
+– Bimensuel
+– Personnalisé
+
+Champs
+– Montant total du loyer ou d’achat
+– Nombre de tranches
+– Fréquence
+– Date de début
+– Date de fin
+– Montant par tranche (calcul automatique)
+Fonctionnalités
+– Génération automatique de l’échéancier
+– Visualisation calendrier
+– Ajustement manuel possible
+Boutons
+– Générer échéancier
+– Modifier tranches
+– Valider
+
+V.5 – SUIVI DES PAIEMENTS ET IMPAYÉS
+
+Colonnes
+– Mois / période
+– Montant dû
+– Montant payé
+– Solde
+– Statut
+Statuts
+– Payé
+– Partiellement payé
+– En retard
+– Impayé
+ACTIONS
+– Enregistrer paiement
+
+27
+
+– Relancer locataire/ Acheteur
+– Affecter agent recouvreur
+
+V.6 – ALERTES ET RECOUVREMENT
+– Échéance proche
+– Retard de paiement
+– Impayé prolongé
+DESTINATAIRES
+– Locataire
+– Gestionnaire
+– Agent recouvreur (automatique si affecté)
+CANAUX
+– Notification interne
+– WhatsApp
+– SMS
+
+V.7 – PORTAIL LOCATAIRE (LIEN AVEC LOCATIONS)
+ACCÈS LOCATAIRE
+– Voir échéancier
+– Voir paiements effectués
+– Payer en ligne
+– Télécharger quittances
+RESTRICTIONS
+– Lecture seule des conditions contractuelles
+– Aucune modification autorisée
+
+V.8 – ADAPTATION AU CONTEXTE AFRICAIN
+– Paiement fractionné fréquent
+– Mobile Money prioritaire
+– Paiement en espèces enregistré par gestionnaire
+– Connexion instable → mode hors ligne partiel
+– Notifications WhatsApp
+
+28
+
+V.9 – TECHNOLOGIES RECOMMANDÉES
+FRONT-END
+– React / Next.js
+– Tailwind CSS
+– PWA
+BACK-END
+– NestJS ou Laravel
+– API REST
+BASE DE DONNÉES
+– PostgreSQL / MySQL
+– Tables : leases, payments, schedules
+SÉCURITÉ
+– RBAC
+– Journal des transactions
+– Chiffrement
+
+29
+
+
