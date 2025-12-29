@@ -54,7 +54,26 @@ import cors from 'cors';
 // --- 1. Middleware essentiels ---
 app.use(express.json()); 
 app.use(cors({
-    origin: process.env.FRONTEND_URL || process.env.RENDER_EXTERNAL_URL || '*', // Pour la prod
+    origin: (origin, callback) => {
+        const allowedOrigins = [
+            'https://hope-gestion-frontend.onrender.com',
+            process.env.FRONTEND_URL,
+            process.env.RENDER_EXTERNAL_URL
+        ].filter(Boolean); // Filtre les valeurs undefined/null
+        
+        // En développement, autoriser localhost
+        if (process.env.NODE_ENV !== 'production' || !origin) {
+            callback(null, true);
+            return;
+        }
+        
+        // Vérifier si l'origine est dans la liste autorisée
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true, 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
