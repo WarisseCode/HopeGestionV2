@@ -109,8 +109,8 @@ CREATE TABLE IF NOT EXISTS tickets (
 -- Données de test (Seed)
 
 -- Utilisateur démo
-INSERT INTO users (nom, email, password_hash, role) 
-VALUES ('Waris Gestion', 'admin@hope.com', '$2b$10$abcdefghijklmnopqrstuvwxyz123456', 'gestionnaire')
+INSERT INTO users (nom, email, password_hash, role, telephone) 
+VALUES ('Waris Gestion', 'admin@hope.com', '$2b$10$abcdefghijklmnopqrstuvwxyz123456', 'gestionnaire', '+22997000000')
 ON CONFLICT (email) DO NOTHING;
 
 -- Immeuble démo
