@@ -25,6 +25,7 @@ async function runMigration() {
         // Lire les fichiers SQL
         // Lire les fichiers SQL - Utilisation de process.cwd() pour être robuste (source vs dist)
         const dbDir = path.join(process.cwd(), 'db');
+        const initPath = path.join(dbDir, 'init.sql');
         const migrationPath = path.join(dbDir, 'migration_multi_owner.sql');
         const userTypeMigrationPath = path.join(dbDir, 'migration_user_type.sql');
         const documentsMigrationPath = path.join(dbDir, 'migration_documents.sql');
@@ -32,6 +33,7 @@ async function runMigration() {
         const calendarSupportPath = path.join(dbDir, 'migration_calendar_support.sql');
         const auditLogsPath = path.join(dbDir, 'migration_audit_logs.sql');
         
+        const initSql = fs.readFileSync(initPath, 'utf8');
         const sql = fs.readFileSync(migrationPath, 'utf8');
         const userTypeSql = fs.readFileSync(userTypeMigrationPath, 'utf8');
         const documentsSql = fs.readFileSync(documentsMigrationPath, 'utf8');
@@ -46,21 +48,23 @@ async function runMigration() {
         const fixAuditIdsSql = fs.readFileSync(fixAuditIdsPath, 'utf8');
 
         // Exécuter les migrations - Ordre séquentiel
-        console.log('1/8 Exécution migration_multi_owner...');
+        console.log('0/9 Exécution init.sql (tables de base)...');
+        await client.query(initSql);
+        console.log('1/9 Exécution migration_multi_owner...');
         await client.query(sql);
-        console.log('2/8 Exécution migration_user_type...');
+        console.log('2/9 Exécution migration_user_type...');
         await client.query(userTypeSql);
-        console.log('3/8 Exécution migration_documents...');
+        console.log('3/9 Exécution migration_documents...');
         await client.query(documentsSql);
-        console.log('4/8 Exécution migration_tenants_enhancement...');
+        console.log('4/9 Exécution migration_tenants_enhancement...');
         await client.query(tenantsSql);
-        console.log('5/8 Exécution migration_calendar_support...');
+        console.log('5/9 Exécution migration_calendar_support...');
         await client.query(calendarSql);
-        console.log('6/8 Exécution migration_audit_logs...');
+        console.log('6/9 Exécution migration_audit_logs...');
         await client.query(auditSql);
         // await client.query(fixAuditSql); // Fichier manquant ou déjà intégré ?
         // await client.query(fixAuditSchemaV2Sql); // Fichier manquant ou déjà intégré ?
-        console.log('7/8 Exécution fix_audit_logs_ids...');
+        console.log('7/9 Exécution fix_audit_logs_ids...');
         await client.query(fixAuditIdsSql);
         
         console.log('✅ Migration exécutée avec succès!');
