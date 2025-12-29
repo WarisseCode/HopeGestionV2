@@ -54,8 +54,10 @@ import cors from 'cors';
 // --- 1. Middleware essentiels ---
 app.use(express.json()); 
 app.use(cors({
-    origin: process.env.FRONTEND_URL || '*', // Pour la prod
+    origin: process.env.FRONTEND_URL || process.env.RENDER_EXTERNAL_URL || '*', // Pour la prod
     credentials: true, 
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // --- 2. Routes de l'API ---

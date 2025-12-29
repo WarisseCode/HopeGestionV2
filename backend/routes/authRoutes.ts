@@ -42,9 +42,20 @@ router.post('/register', async (req, res) => {
         // Insertion dans la base de données
         const result = await pool.query(
             `INSERT INTO users (email, password_hash, nom, user_type, telephone) 
-             VALUES ($1, $2, $3 || ' ' || $4, $5, $6) RETURNING id`,
+             VALUES ($1, $2, TRIM($3 || ' ' || $4), $5, $6) RETURNING id`,
             [email, password_hash, nom, prenoms, userType || 'gestionnaire', telephone]
         );
+
+        // Log successful registration
+        await AuditService.log({
+            userId: result.rows[0].id.toString(),
+            action: 'REGISTER',
+            entityType: 'USER',
+            entityId: result.rows[0].id.toString(),
+            details: { email, userType: userType || 'gestionnaire' },
+            ipAddress: req.ip || 'unknown',
+            userAgent: (req.headers['user-agent'] as string) || 'unknown'
+        });
 
         res.status(201).json({ 
             message: 'Utilisateur créé avec succès.',

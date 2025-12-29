@@ -12,6 +12,11 @@ interface AuditLogEntry {
 }
 
 export class AuditService {
+    private static isValidUUID(uuid: string | undefined): boolean {
+        if (!uuid) return false;
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(uuid);
+    }
     /**
      * Records an action in the audit log.
      * This method is "fire and forget" to avoid blocking the main request flow,
@@ -24,13 +29,20 @@ export class AuditService {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         `;
 
+        // Stocker les ID numériques dans le champ details et laisser les champs UUID NULL
+        const detailsWithIds = {
+            ...entry.details,
+            userId: entry.userId || null,
+            entityId: entry.entityId || null
+        };
+        
         const values = [
-            entry.userId || null,
+            null, // Ne pas insérer user_id dans le champ UUID
             entry.userName || 'System/Unknown',
             entry.action,
             entry.entityType || null,
-            entry.entityId || null,
-            entry.details ? JSON.stringify(entry.details) : null,
+            null, // Ne pas insérer entity_id dans le champ UUID
+            JSON.stringify(detailsWithIds),
             entry.ipAddress || null,
             entry.userAgent || null
         ];
