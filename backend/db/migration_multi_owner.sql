@@ -82,7 +82,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='buildings' AND column_name='owner_id') THEN
         ALTER TABLE buildings ADD COLUMN owner_id INTEGER;
         ALTER TABLE buildings ADD CONSTRAINT fk_buildings_owner FOREIGN KEY (owner_id) REFERENCES owners(id) ON DELETE SET NULL;
-        CREATE INDEX idx_buildings_owner ON buildings(owner_id);
+        CREATE INDEX IF NOT EXISTS idx_buildings_owner ON buildings(owner_id);
     END IF;
 END $$;
 
@@ -92,7 +92,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='lots' AND column_name='owner_id') THEN
         ALTER TABLE lots ADD COLUMN owner_id INTEGER;
         ALTER TABLE lots ADD CONSTRAINT fk_lots_owner FOREIGN KEY (owner_id) REFERENCES owners(id) ON DELETE SET NULL;
-        CREATE INDEX idx_lots_owner ON lots(owner_id);
+        CREATE INDEX IF NOT EXISTS idx_lots_owner ON lots(owner_id);
     END IF;
 END $$;
 
@@ -102,7 +102,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tenants' AND column_name='owner_id') THEN
         ALTER TABLE tenants ADD COLUMN owner_id INTEGER;
         ALTER TABLE tenants ADD CONSTRAINT fk_tenants_owner FOREIGN KEY (owner_id) REFERENCES owners(id) ON DELETE SET NULL;
-        CREATE INDEX idx_tenants_owner ON tenants(owner_id);
+        CREATE INDEX IF NOT EXISTS idx_tenants_owner ON tenants(owner_id);
     END IF;
 END $$;
 
@@ -112,7 +112,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leases' AND column_name='owner_id') THEN
         ALTER TABLE leases ADD COLUMN owner_id INTEGER;
         ALTER TABLE leases ADD CONSTRAINT fk_leases_owner FOREIGN KEY (owner_id) REFERENCES owners(id) ON DELETE SET NULL;
-        CREATE INDEX idx_leases_owner ON leases(owner_id);
+        CREATE INDEX IF NOT EXISTS idx_leases_owner ON leases(owner_id);
     END IF;
 END $$;
 
@@ -122,7 +122,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='owner_id') THEN
         ALTER TABLE payments ADD COLUMN owner_id INTEGER;
         ALTER TABLE payments ADD CONSTRAINT fk_payments_owner FOREIGN KEY (owner_id) REFERENCES owners(id) ON DELETE SET NULL;
-        CREATE INDEX idx_payments_owner ON payments(owner_id);
+        CREATE INDEX IF NOT EXISTS idx_payments_owner ON payments(owner_id);
     END IF;
 END $$;
 

@@ -20,9 +20,9 @@ CREATE TABLE IF NOT EXISTS documents (
 );
 
 -- Index pour recherche rapide
-CREATE INDEX idx_documents_user_id ON documents(user_id);
-CREATE INDEX idx_documents_categorie ON documents(categorie);
-CREATE INDEX idx_documents_entity ON documents(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_documents_user_id ON documents(user_id);
+CREATE INDEX IF NOT EXISTS idx_documents_categorie ON documents(categorie);
+CREATE INDEX IF NOT EXISTS idx_documents_entity ON documents(entity_type, entity_id);
 
 -- Données de démo (Facultatif, pour tester si besoin)
 -- INSERT INTO documents (user_id, nom, type, url, taille, categorie) 
