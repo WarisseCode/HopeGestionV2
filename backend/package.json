@@ -8,7 +8,8 @@
     "start": "node dist/index.js",
     "build": "tsc",
     "dev": "nodemon index.ts",
-    "migrate": "ts-node scripts/runMigration.ts"
+    "migrate": "ts-node scripts/runMigration.ts",
+    "migrate-prod": "node dist/scripts/runMigration.js"
   },
   "keywords": [],
   "author": "",

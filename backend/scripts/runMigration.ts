@@ -22,12 +22,14 @@ async function runMigration() {
         console.log('🔌 Connexion à la base de données...');
         
         // Lire les fichiers SQL
-        const migrationPath = path.join(__dirname, '..', 'db', 'migration_multi_owner.sql');
-        const userTypeMigrationPath = path.join(__dirname, '..', 'db', 'migration_user_type.sql');
-        const documentsMigrationPath = path.join(__dirname, '..', 'db', 'migration_documents.sql');
-        const tenantsEnhancementPath = path.join(__dirname, '..', 'db', 'migration_tenants_enhancement.sql');
-        const calendarSupportPath = path.join(__dirname, '..', 'db', 'migration_calendar_support.sql');
-        const auditLogsPath = path.join(__dirname, '..', 'db', 'migration_audit_logs.sql');
+        // Lire les fichiers SQL - Utilisation de process.cwd() pour être robuste (source vs dist)
+        const dbDir = path.join(process.cwd(), 'db');
+        const migrationPath = path.join(dbDir, 'migration_multi_owner.sql');
+        const userTypeMigrationPath = path.join(dbDir, 'migration_user_type.sql');
+        const documentsMigrationPath = path.join(dbDir, 'migration_documents.sql');
+        const tenantsEnhancementPath = path.join(dbDir, 'migration_tenants_enhancement.sql');
+        const calendarSupportPath = path.join(dbDir, 'migration_calendar_support.sql');
+        const auditLogsPath = path.join(dbDir, 'migration_audit_logs.sql');
         
         const sql = fs.readFileSync(migrationPath, 'utf8');
         const userTypeSql = fs.readFileSync(userTypeMigrationPath, 'utf8');
@@ -39,25 +41,29 @@ async function runMigration() {
         console.log('📄 Fichier SQL chargé:', migrationPath);
         console.log('🚀 Exécution de la migration...\n');
         
-        const fixAuditIdsPath = path.join(__dirname, '..', 'db', 'fix_audit_logs_ids.sql');
+        const fixAuditIdsPath = path.join(dbDir, 'fix_audit_logs_ids.sql');
         const fixAuditIdsSql = fs.readFileSync(fixAuditIdsPath, 'utf8');
 
-        // Exécuter les migrations
-        // await client.query(sql);
-        // await client.query(userTypeSql);
-        // await client.query(documentsSql);
-        // await client.query(tenantsSql);
-        // await client.query(calendarSql);
-        // await client.query(auditSql);
-        // await client.query(fixAuditSql);
-        // await client.query(fixAuditSchemaV2Sql);
+        // Exécuter les migrations - Ordre séquentiel
+        console.log('1/8 Exécution migration_multi_owner...');
+        await client.query(sql);
+        console.log('2/8 Exécution migration_user_type...');
+        await client.query(userTypeSql);
+        console.log('3/8 Exécution migration_documents...');
+        await client.query(documentsSql);
+        console.log('4/8 Exécution migration_tenants_enhancement...');
+        await client.query(tenantsSql);
+        console.log('5/8 Exécution migration_calendar_support...');
+        await client.query(calendarSql);
+        console.log('6/8 Exécution migration_audit_logs...');
+        await client.query(auditSql);
+        // await client.query(fixAuditSql); // Fichier manquant ou déjà intégré ?
+        // await client.query(fixAuditSchemaV2Sql); // Fichier manquant ou déjà intégré ?
+        console.log('7/8 Exécution fix_audit_logs_ids...');
         await client.query(fixAuditIdsSql);
         
         console.log('✅ Migration exécutée avec succès!');
-        console.log('\n📊 Tables créées:');
-        console.log('   - owners');
-        console.log('   - owner_user');
-        console.log('   - audit_logs');
+        console.log('\n📊 Tables créées et mises à jour.');
         console.log('\n🔧 Modifications appliquées:');
         console.log('   - users (ajout: agency_id, role, is_super_admin)');
         console.log('   - biens (ajout: owner_id)');

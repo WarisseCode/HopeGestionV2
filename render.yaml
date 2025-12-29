@@ -4,8 +4,8 @@ services:
     name: hope-gestion-backend
     env: node
     plan: free
-    buildCommand: cd backend && npm install && npm run build
-    startCommand: cd backend && npm start
+    buildCommand: npm install && npm run build
+    startCommand: npm run migrate-prod && npm start
     envVars:
       - key: DATABASE_URL
         fromDatabase:
