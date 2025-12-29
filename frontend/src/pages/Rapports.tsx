@@ -14,7 +14,9 @@ import {
   Table,
   Filter,
   Eye,
-  Settings
+  Settings,
+  Edit3,
+  Trash2
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';

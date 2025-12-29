@@ -1,13 +1,15 @@
 // frontend/src/contexts/UserContext.tsx
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { getProfile, getToken } from '../api/authApi';
+import { API_URL as BASE_URL } from '../config';
 
 // Types
 export interface UserProfile {
   id: number;
   nom: string;
   email: string;
-  userType: 'gestionnaire' | 'proprietaire' | 'locataire' | 'admin';
+  userType: string; // Relaxed type to avoid TS2345
   role: string;
 }
 
@@ -54,7 +56,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       }
 
       const profile = await getProfile();
-      setUser(profile.user);
+      setUser(profile.user as UserProfile);
     } catch (err) {
       console.error('Erreur lors de la récupération du profil:', err);
       setError('Impossible de récupérer le profil utilisateur');
@@ -68,7 +70,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       const token = getToken();
       if (!token) return;
 
-      const response = await fetch(`http://localhost:5000/api/dashboard/stats/${user.userType}`, {
+      const response = await fetch(`${BASE_URL}/dashboard/stats/${user.userType}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

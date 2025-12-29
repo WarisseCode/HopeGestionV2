@@ -145,10 +145,10 @@ const DelegationsPage: React.FC = () => {
                   </td>
                   <td>
                     <div className="flex gap-2">
-                       {member.permissions?.can_view_finances && <span className="badge badge-xs badge-success" title="Voir Finances">€</span>}
-                       {member.permissions?.can_edit_properties && <span className="badge badge-xs badge-info" title="Éditer Biens">🏠</span>}
-                       {member.permissions?.can_manage_tenants && <span className="badge badge-xs badge-warning" title="Gérer Locataires">👥</span>}
-                       {/* Note: API returns booleans directly in member object as per query, mapping required or direct access */}
+                       {/* Direct boolean access based on TeamMember interface */}
+                       {member.can_view_finances && <span className="badge badge-xs badge-success" title="Voir Finances">€</span>}
+                       {member.can_edit_properties && <span className="badge badge-xs badge-info" title="Éditer Biens">🏠</span>}
+                       {member.can_manage_tenants && <span className="badge badge-xs badge-warning" title="Gérer Locataires">👥</span>}
                        {member.can_view_finances && <span className="badge badge-xs badge-outline badge-success" title="Voir Finances">Finances</span>}
                        {member.can_manage_tenants && <span className="badge badge-xs badge-outline badge-warning" title="Gérer Locataires">Locataires</span>}
                     </div>

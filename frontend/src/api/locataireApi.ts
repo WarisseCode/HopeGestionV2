@@ -18,6 +18,10 @@ export interface Locataire {
     mode_paiement_preferentiel?: string;
     active_leases?: number; // count from SQL
     created_at?: string;
+    // Display fields from join
+    lot?: string;
+    loyer?: number;
+    paiementEcheance?: boolean;
 }
 
 export interface LocataireDetails {

@@ -455,7 +455,7 @@ const Locataires: React.FC = () => {
                       </td>
                       <td>
                         <div className="font-medium">{locataire.nom} {locataire.prenoms}</div>
-                        <div className="text-sm text-base-content/60">{locataire.telephonePrincipal}</div>
+                        <div className="text-sm text-base-content/60">{locataire.telephone_principal}</div>
                       </td>
                       <td>
                         <span className="badge badge-primary">{locataire.type}</span>
@@ -463,7 +463,7 @@ const Locataires: React.FC = () => {
                       <td>
                         <div className="flex items-center gap-1">
                           <Home size={14} />
-                          {locataire.lot}
+                          {locataire.lot || '-'}
                         </div>
                       </td>
                       <td>
@@ -545,7 +545,7 @@ const Locataires: React.FC = () => {
                       </td>
                       <td>
                         <div className="font-medium">{acheteur.nom} {acheteur.prenoms}</div>
-                        <div className="text-sm text-base-content/60">{acheteur.telephonePrincipal}</div>
+                        <div className="text-sm text-base-content/60">{acheteur.telephone_principal}</div>
                       </td>
                       <td>
                         <span className="badge badge-secondary">{acheteur.type}</span>
@@ -553,7 +553,7 @@ const Locataires: React.FC = () => {
                       <td>
                         <div className="flex items-center gap-1">
                           <Home size={14} />
-                          {acheteur.lot}
+                          {acheteur.lot || '-'}
                         </div>
                       </td>
                       <td>
@@ -580,23 +580,24 @@ const Locataires: React.FC = () => {
                                 typeProfil: acheteur.type,
                                 nom: acheteur.nom,
                                 prenoms: acheteur.prenoms,
-                                telephonePrincipal: acheteur.telephonePrincipal,
-                                telephoneSecondaire: acheteur.telephoneSecondaire,
-                                email: acheteur.email,
-                                nationalite: acheteur.nationalite,
-                                typePiece: acheteur.typePiece,
-                                numeroPiece: acheteur.numeroPiece,
-                                dateExpiration: acheteur.dateExpiration,
-                                photoPiece: acheteur.photoPiece,
-                                photoProfil: acheteur.photoProfil,
+                                telephonePrincipal: acheteur.telephone_principal,
+                                telephoneSecondaire: acheteur.telephone_secondaire || '',
+                                email: acheteur.email || '',
+                                nationalite: acheteur.nationalite || 'Béninoise',
+                                typePiece: acheteur.type_piece || 'CNI',
+                                numeroPiece: acheteur.numero_piece || '',
+                                dateExpiration: '', // Manquant dans l'interface API pour l'instant
+                                photoPiece: null,
+                                photoProfil: null,
                                 modePaiement: 'Mobile Money',
                                 acompte: 0,
                                 avance: 0,
-                                paiementEcheance: acheteur.paiementEcheance
+                                paiementEcheance: acheteur.paiementEcheance || false
                               });
                               setShowForm(true);
                             }}
                           >
+
                             <Edit3 size={16} />
                           </Button>
                           <Button variant="ghost" size="sm" className="text-error">
