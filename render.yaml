@@ -17,9 +17,16 @@ services:
       - key: JWT_SECRET
         generateValue: true
 
+databases:
+  - name: hope-gestion-db
+    region: frankfurt
+    plan: free
+    databaseName: hopegestion
+    user: hope_user
+
+staticSites:
   # Frontend Service (Static Site)
-  - type: static
-    name: hope-gestion-frontend
+  - name: hope-gestion-frontend
     region: frankfurt
     plan: free
     buildCommand: cd frontend && npm install && npm run build
@@ -34,12 +41,5 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
-
-databases:
-  - name: hope-gestion-db
-    region: frankfurt
-    plan: free
-    databaseName: hopegestion
-    user: hope_user
 
 version: "1"
