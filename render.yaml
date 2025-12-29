@@ -2,11 +2,14 @@ services:
   # Backend API
   - type: web
     name: hope-gestion-backend
-    env: node
+    runtime: node
     plan: free
-    buildCommand: npm install && npm run build
+    rootDir: backend
+    buildCommand: npm install
     startCommand: npm run migrate-prod && npm start
     envVars:
+      - key: NODE_ENV
+        value: development
       - key: DATABASE_URL
         fromDatabase:
           name: hope-gestion-db
@@ -19,7 +22,7 @@ services:
   # Frontend Static Site
   - type: web
     name: hope-gestion-frontend
-    env: static
+    runtime: static
     # pas de plan defini pour les sites statiques (gratuit par defaut)
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
