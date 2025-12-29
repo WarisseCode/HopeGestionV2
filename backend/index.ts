@@ -53,7 +53,7 @@ import cors from 'cors';
 // --- 1. Middleware essentiels ---
 app.use(express.json()); 
 app.use(cors({
-    origin: 'http://localhost:5173', 
+    origin: process.env.FRONTEND_URL || '*', // Pour la prod
     credentials: true, 
 }));
 
