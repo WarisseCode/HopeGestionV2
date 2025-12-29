@@ -1,5 +1,8 @@
 // frontend/src/api/propertyApi.ts
 import { getToken } from './authApi';
+import { API_URL as BASE_URL } from '../config';
+
+const API_URL = `${BASE_URL}/biens`;
 
 export interface Immeuble {
   id: number;
@@ -40,7 +43,7 @@ export async function getImmeubles(): Promise<Immeuble[]> {
   const token = getToken();
   if (!token) throw new Error('Non authentifié');
 
-  const response = await fetch('http://localhost:5000/api/biens/immeubles', {
+  const response = await fetch(`${API_URL}/immeubles`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -82,7 +85,7 @@ export async function saveImmeuble(immeuble: Partial<Immeuble>): Promise<Immeubl
   const token = getToken();
   if (!token) throw new Error('Non authentifié');
 
-  const response = await fetch('http://localhost:5000/api/biens/immeubles', {
+  const response = await fetch(`${API_URL}/immeubles`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -126,7 +129,7 @@ export async function deleteImmeuble(id: number): Promise<void> {
   const token = getToken();
   if (!token) throw new Error('Non authentifié');
 
-  const response = await fetch(`http://localhost:5000/api/biens/immeubles/${id}`, {
+  const response = await fetch(`${API_URL}/immeubles/${id}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -144,7 +147,7 @@ export async function deleteLot(id: number): Promise<void> {
   const token = getToken();
   if (!token) throw new Error('Non authentifié');
 
-  const response = await fetch(`http://localhost:5000/api/biens/lots/${id}`, {
+  const response = await fetch(`${API_URL}/lots/${id}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`,

@@ -26,7 +26,9 @@ export interface LocataireDetails {
     paiements: any[];
 }
 
-const API_URL = 'http://localhost:5000/api/locataires';
+import { API_URL as BASE_URL } from '../config';
+
+const API_URL = `${BASE_URL}/locataires`;
 
 export async function getLocataires(type?: string, search?: string): Promise<Locataire[]> {
     const token = getToken();

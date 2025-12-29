@@ -1,7 +1,6 @@
 // frontend/src/api/authApi.ts
 
-// Utilisez l'URL de votre serveur backend
-const BASE_URL = 'http://localhost:5000/api';
+import { API_URL as BASE_URL } from '../config';
 
 interface AuthResponse {
     token: string;

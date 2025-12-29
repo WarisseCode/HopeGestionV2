@@ -1,6 +1,8 @@
 import { getToken } from './authApi';
 
-const API_URL = 'http://localhost:5000/api/documents';
+import { API_URL as BASE_URL } from '../config'; 
+
+const API_URL = `${BASE_URL}/documents`;
 
 export interface Document {
   id: number;

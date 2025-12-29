@@ -1,5 +1,8 @@
 // frontend/src/api/financeApi.ts
 import { getToken } from './authApi';
+import { API_URL as BASE_URL } from '../config';
+
+const API_URL = `${BASE_URL}/finances`;
 
 // Interfaces pour les données financières
 export interface Paiement {
@@ -33,7 +36,7 @@ export async function getPaiements(): Promise<Paiement[]> {
     throw new Error('Non authentifié');
   }
 
-  const response = await fetch('http://localhost:5000/api/finances/paiements', {
+  const response = await fetch(`${API_URL}/paiements`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -77,7 +80,7 @@ export async function savePaiement(paiement: Partial<Paiement>): Promise<Paiemen
     throw new Error('Non authentifié');
   }
 
-  const response = await fetch('http://localhost:5000/api/finances/paiements', {
+  const response = await fetch(`${API_URL}/paiements`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -123,7 +126,7 @@ export async function deletePaiement(id: number): Promise<void> {
     throw new Error('Non authentifié');
   }
 
-  const response = await fetch(`http://localhost:5000/api/finances/paiements/${id}`, {
+  const response = await fetch(`${API_URL}/paiements/${id}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -143,7 +146,7 @@ export async function deleteDepense(id: number): Promise<void> {
     throw new Error('Non authentifié');
   }
 
-  const response = await fetch(`http://localhost:5000/api/finances/depenses/${id}`, {
+  const response = await fetch(`${API_URL}/depenses/${id}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`,
