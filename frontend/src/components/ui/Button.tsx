@@ -1,24 +1,18 @@
 // src/components/ui/Button.tsx
 import React from 'react';
 
-interface ButtonProps {
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
   variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'ghost' | 'link';
   size?: 'sm' | 'md' | 'lg';
-  onClick?: () => void;
-  disabled?: boolean;
-  className?: string;
-  type?: 'button' | 'submit' | 'reset';
 }
 
 const Button: React.FC<ButtonProps> = ({
   children,
   variant = 'primary',
   size = 'md',
-  onClick,
-  disabled = false,
   className = '',
-  type = 'button'
+  ...props
 }) => {
   const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg border border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
   
@@ -42,10 +36,8 @@ const Button: React.FC<ButtonProps> = ({
   
   return (
     <button
-      type={type}
       className={classes}
-      onClick={onClick}
-      disabled={disabled}
+      {...props}
     >
       {children}
     </button>
