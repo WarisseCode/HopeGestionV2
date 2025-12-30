@@ -39,7 +39,8 @@ import {
   GestionnaireProprietairePage, 
   LocatairePublicPage, 
   ModulesTransversesPage,
-  AboutPage 
+  AboutPage,
+  BiensPublicsPage 
 } from './pages/public';
 
 type View = 'home' | 'login' | 'dashboard';
@@ -96,6 +97,7 @@ const App: React.FC = () => {
                     <Route path="/fonctionnalites/locataire" element={<LocatairePublicPage />} />
                     <Route path="/fonctionnalites/modules" element={<ModulesTransversesPage />} />
                     <Route path="/a-propos" element={<AboutPage />} />
+                    <Route path="/biens-disponibles" element={<BiensPublicsPage />} />
                     
                     {/* Routes protégées */}
                     <Route 

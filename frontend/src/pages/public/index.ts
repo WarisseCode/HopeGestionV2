@@ -4,3 +4,5 @@ export { default as GestionnaireProprietairePage } from './GestionnaireProprieta
 export { default as LocatairePublicPage } from './LocatairePublicPage';
 export { default as ModulesTransversesPage } from './ModulesTransversesPage';
 export { default as AboutPage } from './AboutPage';
+export { default as BiensPublicsPage } from './BiensPublicsPage';
+

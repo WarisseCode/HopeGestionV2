@@ -17,6 +17,7 @@ import Button from './components/ui/Button';
 import HeroImage from './assets/images/hero-image.png';
 import TenantImage from './assets/images/tenant-family.png';
 import PublicLayout from './layout/PublicLayout';
+import PropertyCarousel from './components/public/PropertyCarousel';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -93,10 +94,15 @@ const HomePage: React.FC = () => {
                 Commencer Gratuitement <ArrowRight size={20} />
               </Button>
               <Button 
+                id="btn-voir-biens"
+                onClick={() => {
+                  const element = document.getElementById('featured-properties');
+                  element?.scrollIntoView({ behavior: 'smooth' });
+                }}
                 variant="ghost" 
                 className="rounded-full border border-base-300 px-8 py-4"
               >
-                Voir la démo
+                Voir les biens
               </Button>
             </div>
 
@@ -108,6 +114,11 @@ const HomePage: React.FC = () => {
             </div>
           </motion.div>
         </div>
+      </div>
+
+      {/* Property Carousel - Biens Disponibles */}
+      <div id="featured-properties">
+        <PropertyCarousel />
       </div>
 
       {/* Statistics Section */}
@@ -308,6 +319,8 @@ const HomePage: React.FC = () => {
             </div>
         </div>
       </section>
+
+
 
       {/* FAQ Section */}
       <section id="faq" className="py-20 px-4 md:px-8 bg-base-100">
