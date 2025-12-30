@@ -22,6 +22,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import ThemeToggle from '../components/ui/ThemeToggle';
 import { getProfile } from '../api/authApi';
 
 interface DashboardLayoutProps {
@@ -238,13 +239,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
                     />
                 </div>
 
-                {/* Notifications */}
+                {/* Theme Toggle */}
+                <ThemeToggle />
+
                 {/* Notifications Dropdown */}
                 <div className="dropdown dropdown-end">
                     <div tabIndex={0} role="button" className="btn btn-ghost btn-circle">
                         <div className="indicator">
-                            <Bell size={20} />
-                            <span className="badge badge-xs badge-error indicator-item"></span>
+                            {/* Notifications */}
+                             <div className="btn btn-ghost btn-circle">
+                                <div className="indicator">
+                                    <Bell size={20} />
+                                    <span className="badge badge-xs badge-error indicator-item"></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-80">
