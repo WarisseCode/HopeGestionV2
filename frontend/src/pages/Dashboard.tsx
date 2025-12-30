@@ -129,7 +129,6 @@ const Dashboard: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     const getUserFirstName = (): string => {
-        console.log("Dashboard updated with AreaChart"); // Debug log for user
         const token = getToken();
         if (token) {
             try {

@@ -62,6 +62,7 @@ const LoginFormWithNavigation: React.FC = () => {
     <LoginForm 
       onLoginSuccess={() => navigate('/dashboard')} 
       onGoBackToHome={() => navigate('/')} 
+      onNavigateToSignup={() => navigate('/signup')}
     />
   );
 };
@@ -73,6 +74,7 @@ const SignupFormWithNavigation: React.FC = () => {
     <SignupForm 
       onSignupSuccess={() => navigate('/login')} 
       onGoBackToHome={() => navigate('/')} 
+      onNavigateToLogin={() => navigate('/login')}
     />
   );
 };
