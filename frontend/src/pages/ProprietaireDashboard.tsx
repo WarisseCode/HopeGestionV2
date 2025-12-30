@@ -2,19 +2,23 @@
 import React from 'react';
 import { 
   Building2, 
-  Home,
+  Home, 
   Wallet, 
   AlertCircle, 
-  Eye
+  Eye, 
+  Search, 
+  Plus,
+  MoreVertical,
+  Users
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import { motion } from 'framer-motion';
 import { 
-  AreaChart,
-  Area,
-  PieChart,
-  Pie,
-  Cell,
+  AreaChart, 
+  Area, 
+  PieChart, 
+  Pie, 
+  Cell, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -26,6 +30,7 @@ import { useUser } from '../contexts/UserContext';
 import { KPICard, QuickActions, ActivityFeed, UpcomingEvents } from '../components/dashboard';
 import type { Activity } from '../components/dashboard/ActivityFeed';
 import type { UpcomingEvent } from '../components/dashboard/UpcomingEvents';
+import Button from '../components/ui/Button';
 
 const ProprietaireDashboard: React.FC = () => {
   const { user, stats, loading } = useUser();
@@ -33,8 +38,8 @@ const ProprietaireDashboard: React.FC = () => {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
+      opacity: 1, 
+      transition: { staggerChildren: 0.05 } 
     }
   };
 
@@ -43,7 +48,7 @@ const ProprietaireDashboard: React.FC = () => {
     visible: { y: 0, opacity: 1 }
   };
 
-  // Données pour les graphiques
+  // Mock Data
   const revenusData = [
     { name: 'Jan', revenus: 400000, depenses: 24000 },
     { name: 'Fév', revenus: 300000, depenses: 13980 },
@@ -56,21 +61,20 @@ const ProprietaireDashboard: React.FC = () => {
 
   const occupationData = [
     { name: 'Occupé', value: stats?.tauxOccupation || 83, color: '#3f51b5' },
-    { name: 'Vacant', value: 100 - (stats?.tauxOccupation || 83), color: '#f50057' },
+    { name: 'Vacant', value: 100 - (stats?.tauxOccupation || 83), color: '#e2e8f0' },
   ];
 
   // Activités récentes
   const activities: Activity[] = [
     { id: 1, type: 'payment', title: 'Paiement reçu', description: 'Loyer décembre - Apt A01', time: 'Il y a 2h' },
     { id: 2, type: 'reminder', title: 'Rappel de paiement', description: 'Loyer novembre - Apt B02', time: 'Il y a 5h' },
-    { id: 3, type: 'alert', title: 'Fuite d\'eau signalée', description: 'Résidence La Paix, Apt B02', time: 'Hier' },
+    { id: 3, type: 'alert', title: 'Fuite d\'eau', description: 'Résidence La Paix, Apt B02', time: 'Hier' },
   ];
 
-  // Événements à venir (pour mes biens)
+  // Événements à venir
   const upcomingEvents: UpcomingEvent[] = [
-    { id: 1, type: 'rent', title: 'Échéance loyer', description: 'Résidence Les Palmiers - M. Koffi', date: '02 Jan', daysUntil: 5 },
-    { id: 2, type: 'contract', title: 'Renouvellement contrat', description: 'Apt A02 - Mme Adjo', date: '10 Jan', daysUntil: 13 },
-    { id: 3, type: 'intervention', title: 'Maintenance prévue', description: 'Vérification électrique', date: '28 Déc', daysUntil: 0 },
+    { id: 1, type: 'rent', title: 'Échéance loyer', description: 'Résidence Les Palmiers', date: '02 Jan', daysUntil: 5 },
+    { id: 2, type: 'contract', title: 'Renouvellement', description: 'Apt A02 - Mme Adjo', date: '10 Jan', daysUntil: 13 },
   ];
 
   const formatCurrency = (amount: number) => {
@@ -79,265 +83,218 @@ const ProprietaireDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex justify-center items-center h-screen bg-base-100">
+        <div className="loading loading-spinner loading-lg text-primary"></div>
       </div>
     );
   }
 
   return (
     <motion.div 
-      className="space-y-8 p-4"
+      className="p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      {/* Section de bienvenue */}
-      <motion.div variants={itemVariants}>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-base-content">
-              Bonjour, {user?.nom || 'Propriétaire'} 👋
-            </h1>
-            <p className="text-base-content/60 mt-1">Voici l'état de vos biens immobiliers</p>
-          </div>
-          <div className="flex items-center gap-3 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl p-4 border border-primary/20">
-            <div className="p-3 bg-gradient-to-r from-primary to-secondary rounded-lg">
-              <Building2 className="text-primary-content" size={24} />
+      {/* Header Section */}
+      <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div>
+          <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
+            Espace Propriétaire <span className="text-secondary">.</span>
+          </h1>
+          <p className="text-base-content/60 font-medium mt-1">
+            Bonjour {user?.nom || 'Propriétaire'}, voici la performance de votre patrimoine.
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+             <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
+                <input 
+                    type="text" 
+                    placeholder="Recherche..." 
+                    className="input input-sm h-10 pl-10 bg-base-100 border-base-200 focus:border-primary w-64 rounded-full shadow-sm"
+                />
             </div>
-            <div>
-              <p className="text-sm text-base-content/60">Total biens</p>
-              <p className="font-bold text-lg text-primary">{stats?.totalBiens || 0}</p>
-            </div>
-          </div>
         </div>
       </motion.div>
 
-      {/* KPI Cards */}
+      {/* KPI Grid */}
       <motion.div 
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
         variants={itemVariants}
       >
         <KPICard 
           icon={Building2} 
-          label="Total biens" 
-          value={stats?.totalBiens || 0} 
+          label="Patrimoine" 
+          value={stats?.totalBiens || 5} 
           color="blue" 
+          trend={{ value: "+1", label: "nouvelle acquisition", positive: true }}
         />
         <KPICard 
-          icon={Home} 
-          label="Taux d'occupation" 
-          value={`${stats?.tauxOccupation || 0}%`} 
+          icon={Users} 
+          label="Taux d'Occupation" 
+          value={`${stats?.tauxOccupation || 83}%`} 
           color="green" 
+          trend={{ value: "Stable", label: "vs mois dernier", positive: true }}
         />
         <KPICard 
           icon={Wallet} 
-          label="Revenus ce mois" 
-          value={formatCurrency(stats?.revenusMois || 0)} 
+          label="Revenus Nette" 
+          value={formatCurrency(stats?.revenusMois || 850000)} 
           color="purple" 
+          trend={{ value: "+5%", label: "performance", positive: true }}
         />
         <KPICard 
           icon={AlertCircle} 
-          label="Impayés en cours" 
+          label="Impayés" 
           value={formatCurrency(stats?.impayesEnCours || 0)} 
           color="orange" 
+          trend={{ value: "0", label: "Aucun retard majeur", positive: true }}
         />
       </motion.div>
 
-      {/* Graphiques */}
-      <motion.div 
-        className="grid grid-cols-1 lg:grid-cols-2 gap-8"
-        variants={itemVariants}
-      >
-        <Card title="Revenus vs Dépenses">
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenusData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorRevenusProprio" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3f51b5" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#3f51b5" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorDepensesProprio" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f50057" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#f50057" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF'}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF'}} />
-                <Tooltip 
-                  contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}}
-                  formatter={(value: any) => [`${value?.toLocaleString() ?? 0} FCFA`, 'Montant']}
-                />
-                <Legend wrapperStyle={{paddingTop: '20px'}} iconType="circle" />
-                <Area 
-                  type="monotone" 
-                  dataKey="revenus" 
-                  stroke="#3f51b5" 
-                  fillOpacity={1} 
-                  fill="url(#colorRevenusProprio)" 
-                  name="Revenus" 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="depenses" 
-                  stroke="#f50057" 
-                  fillOpacity={1} 
-                  fill="url(#colorDepensesProprio)" 
-                  name="Dépenses" 
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        
+        {/* Left Column (Charts) - 2/3 width */}
+        <div className="xl:col-span-2 space-y-8">
+            
+             {/* Finance Chart */}
+             <motion.div variants={itemVariants}>
+                <Card className="overflow-hidden border-none shadow-xl bg-white">
+                    <div className="flex justify-between items-center mb-6 px-2">
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-800">Performance Financière</h3>
+                            <p className="text-sm text-gray-500">Revenus locatifs bruts vs charges</p>
+                        </div>
+                    </div>
+                    <div className="h-[350px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={revenusData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorRevenusProprio" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#3f51b5" stopOpacity={0.3}/>
+                                    <stop offset="95%" stopColor="#3f51b5" stopOpacity={0}/>
+                                </linearGradient>
+                                <linearGradient id="colorDepensesProprio" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#f50057" stopOpacity={0.3}/>
+                                    <stop offset="95%" stopColor="#f50057" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
+                            <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                            <Tooltip 
+                                contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}}
+                                formatter={(value: any) => [`${value?.toLocaleString() ?? 0} FCFA`, '']}
+                            />
+                            <Area type="monotone" dataKey="revenus" stroke="#3f51b5" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenusProprio)" name="Revenus" />
+                            <Area type="monotone" dataKey="depenses" stroke="#f50057" strokeWidth={3} fillOpacity={1} fill="url(#colorDepensesProprio)" name="Dépenses" />
+                        </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </Card>
+            </motion.div>
 
-        <Card title="Taux d'Occupation">
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={occupationData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {occupationData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}}
-                  formatter={(value: any) => [`${value}%`, 'Taux']}
-                />
-                <Legend verticalAlign="bottom" height={36} iconType="circle" />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-      </motion.div>
+            {/* Properties Grid Preview */}
+            <motion.div variants={itemVariants}>
+                 <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <Building2 size={20} className="text-primary" />
+                        Vos Propriétés
+                    </h3>
+                    <Button variant="ghost" className="text-primary btn-sm hover:bg-primary/5">
+                        Détails Complets <Eye size={16} className="ml-1" />
+                    </Button>
+                </div>
 
-      {/* Quick Actions et Activités */}
-      <motion.div 
-        className="grid grid-cols-1 md:grid-cols-3 gap-6"
-        variants={itemVariants}
-      >
-        <Card title="Actions Rapides">
-          <QuickActions userType="proprietaire" />
-        </Card>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex gap-4 hover:shadow-xl transition-all cursor-pointer group">
+                        <div className="w-24 h-24 rounded-xl bg-gray-200 overflow-hidden relative shrink-0">
+                             <div className="absolute inset-0 bg-blue-500/10 flex items-center justify-center">
+                                <Building2 className="text-blue-500" />
+                             </div>
+                        </div>
+                        <div className="flex-1 min-w-0 py-1">
+                            <h4 className="font-bold text-gray-900 truncate">Résidence La Paix</h4>
+                            <p className="text-sm text-gray-500 mb-2">Haie Vive, Cotonou</p>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium bg-green-50 text-green-600 px-2 py-1 rounded-lg">100% Loué</span>
+                                <span className="text-sm font-bold text-gray-900">12 Lots</span>
+                            </div>
+                        </div>
+                    </div>
 
-        <Card title="Répartition des revenus">
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm">Loyer</span>
-                <span className="text-sm">{formatCurrency((stats?.revenusMois || 0) * 0.8)}</span>
-              </div>
-              <div className="w-full bg-base-200 rounded-full h-2">
-                <div className="bg-primary h-2 rounded-full" style={{ width: '80%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm">Caution</span>
-                <span className="text-sm">{formatCurrency((stats?.revenusMois || 0) * 0.13)}</span>
-              </div>
-              <div className="w-full bg-base-200 rounded-full h-2">
-                <div className="bg-success h-2 rounded-full" style={{ width: '13%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm">Charges</span>
-                <span className="text-sm">{formatCurrency((stats?.revenusMois || 0) * 0.07)}</span>
-              </div>
-              <div className="w-full bg-base-200 rounded-full h-2">
-                <div className="bg-warning h-2 rounded-full" style={{ width: '7%' }}></div>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <Card title="Activités récentes">
-          <ActivityFeed activities={activities} />
-        </Card>
-
-        {/* Événements à venir */}
-        <UpcomingEvents events={upcomingEvents} userType="proprietaire" />
-      </motion.div>
-
-      {/* Biens */}
-      <motion.div variants={itemVariants}>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-base-content">Vos Biens</h3>
-          <button className="text-sm font-semibold text-primary hover:text-primary-focus flex items-center gap-1">
-            Voir tous les biens
-            <Eye size={16} />
-          </button>
+                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex gap-4 hover:shadow-xl transition-all cursor-pointer group">
+                        <div className="w-24 h-24 rounded-xl bg-gray-200 overflow-hidden relative shrink-0">
+                            <div className="absolute inset-0 bg-orange-500/10 flex items-center justify-center">
+                                <Home className="text-orange-500" />
+                            </div>
+                        </div>
+                        <div className="flex-1 min-w-0 py-1">
+                            <h4 className="font-bold text-gray-900 truncate">Villa Les Cocotiers</h4>
+                            <p className="text-sm text-gray-500 mb-2">Cocotiers, Cotonou</p>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium bg-red-50 text-red-600 px-2 py-1 rounded-lg">Vacant</span>
+                                <span className="text-sm font-bold text-gray-900">1 Lot</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="rounded-xl overflow-hidden shadow-md border border-base-200 hover:shadow-xl transition-all duration-300 cursor-pointer">
-            <div className="relative h-48 bg-gradient-to-r from-blue-100 to-blue-200 flex items-center justify-center">
-              <Building2 size={64} className="text-blue-500 opacity-30" />
-              <div className="absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-semibold bg-success text-success-content">
-                Complet
-              </div>
-            </div>
-            <div className="p-5">
-              <h3 className="text-lg font-semibold text-base-content mb-2">Résidence La Paix</h3>
-              <div className="flex items-center text-sm text-base-content/70 mb-3">
-                <Home size={14} className="mr-1" /> Haie Vive, Cotonou
-              </div>
-              <div className="flex justify-between items-center pt-3 border-t border-base-200">
-                <span className="text-sm font-semibold text-base-content">12 Lots</span>
-                <span className="text-sm font-bold text-success">100% Occ.</span>
-              </div>
-            </div>
-          </div>
 
-          <div className="rounded-xl overflow-hidden shadow-md border border-base-200 hover:shadow-xl transition-all duration-300 cursor-pointer">
-            <div className="relative h-48 bg-gradient-to-r from-green-100 to-green-200 flex items-center justify-center">
-              <Building2 size={64} className="text-green-500 opacity-30" />
-              <div className="absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-semibold bg-success text-success-content">
-                Disponible
-              </div>
-            </div>
-            <div className="p-5">
-              <h3 className="text-lg font-semibold text-base-content mb-2">Immeuble Le Destin</h3>
-              <div className="flex items-center text-sm text-base-content/70 mb-3">
-                <Home size={14} className="mr-1" /> Fidjrossè, Cotonou
-              </div>
-              <div className="flex justify-between items-center pt-3 border-t border-base-200">
-                <span className="text-sm font-semibold text-base-content">8 Lots</span>
-                <span className="text-sm font-bold text-success">75% Occ.</span>
-              </div>
-            </div>
-          </div>
+        {/* Right Column */}
+        <div className="space-y-8">
+            
+            {/* Quick Actions */}
+            <motion.div variants={itemVariants}>
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                    <h3 className="font-bold text-gray-800 mb-4">Accès Rapide</h3>
+                    <QuickActions userType="proprietaire" />
+                </div>
+            </motion.div>
 
-          <div className="rounded-xl overflow-hidden shadow-md border border-base-200 hover:shadow-xl transition-all duration-300 cursor-pointer">
-            <div className="relative h-48 bg-gradient-to-r from-orange-100 to-orange-200 flex items-center justify-center">
-              <Building2 size={64} className="text-orange-500 opacity-30" />
-              <div className="absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-semibold bg-error text-error-content">
-                Vacant
-              </div>
-            </div>
-            <div className="p-5">
-              <h3 className="text-lg font-semibold text-base-content mb-2">Villa Les Cocotiers</h3>
-              <div className="flex items-center text-sm text-base-content/70 mb-3">
-                <Home size={14} className="mr-1" /> Cocotiers, Cotonou
-              </div>
-              <div className="flex justify-between items-center pt-3 border-t border-base-200">
-                <span className="text-sm font-semibold text-base-content">1 Lot</span>
-                <span className="text-sm font-bold text-error">0% Occ.</span>
-              </div>
-            </div>
-          </div>
+            {/* Occupation Pie Chart */}
+            <motion.div variants={itemVariants}>
+                 <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 relative overflow-hidden">
+                    <h3 className="font-bold text-gray-800 mb-2">Taux d'Occupation</h3>
+                    <div className="h-[200px] flex items-center justify-center relative z-10">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={occupationData}
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                >
+                                    {occupationData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                                    ))}
+                                </Pie>
+                                <Tooltip />
+                            </PieChart>
+                        </ResponsiveContainer>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <span className="text-3xl font-extrabold text-gray-800">{stats?.tauxOccupation || 83}%</span>
+                            <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Loué</span>
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* Upcoming Events */}
+            <motion.div variants={itemVariants}>
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                    <h3 className="font-bold text-gray-800 mb-4">Échéances</h3>
+                    <UpcomingEvents events={upcomingEvents} userType="proprietaire" />
+                </div>
+            </motion.div>
+
         </div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 };

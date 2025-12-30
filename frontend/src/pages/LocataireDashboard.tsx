@@ -7,7 +7,10 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Search,
+  MoreVertical,
+  Bell
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import { motion } from 'framer-motion';
@@ -15,6 +18,7 @@ import { useUser } from '../contexts/UserContext';
 import { KPICard, QuickActions, ActivityFeed, UpcomingEvents } from '../components/dashboard';
 import type { Activity } from '../components/dashboard/ActivityFeed';
 import type { UpcomingEvent } from '../components/dashboard/UpcomingEvents';
+import Button from '../components/ui/Button';
 
 const LocataireDashboard: React.FC = () => {
   const { user, stats, loading } = useUser();
@@ -22,8 +26,8 @@ const LocataireDashboard: React.FC = () => {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
+      opacity: 1, 
+      transition: { staggerChildren: 0.05 } 
     }
   };
 
@@ -34,15 +38,14 @@ const LocataireDashboard: React.FC = () => {
 
   // Activités récentes
   const activities: Activity[] = [
-    { id: 1, type: 'payment', title: 'Paiement reçu', description: 'Loyer décembre', time: 'Il y a 2 jours' },
-    { id: 2, type: 'reminder', title: 'Rappel de paiement', description: 'Loyer novembre', time: 'Il y a 1 semaine' },
-    { id: 3, type: 'alert', title: 'Intervention terminée', description: 'Fuite d\'eau - Salle de bain', time: 'Il y a 2 semaines' },
+    { id: 1, type: 'payment', title: 'Paiement effectué', description: 'Loyer décembre via Mobile Money', time: 'Il y a 2 jours' },
+    { id: 2, type: 'intervention', title: 'Plomberie', description: 'Réparation fuite terminée', time: 'Il y a 1 semaine' },
   ];
 
   // Mes événements à venir
   const upcomingEvents: UpcomingEvent[] = [
     { id: 1, type: 'rent', title: 'Prochain loyer', description: 'Loyer janvier 2025', date: '05 Jan', daysUntil: 8 },
-    { id: 2, type: 'contract', title: 'Renouvellement contrat', description: 'Contrat expire dans 3 mois', date: '28 Mar', daysUntil: 90 },
+    { id: 2, type: 'contract', title: 'Renouvellement', description: 'Expiration du bail', date: '28 Mar', daysUntil: 90 },
   ];
 
   const formatCurrency = (amount: number) => {
@@ -57,8 +60,8 @@ const LocataireDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex justify-center items-center h-screen bg-base-100">
+        <div className="loading loading-spinner text-primary"></div>
       </div>
     );
   }
@@ -71,166 +74,177 @@ const LocataireDashboard: React.FC = () => {
 
   return (
     <motion.div 
-      className="space-y-8 p-4"
+      className="p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      {/* Section de bienvenue */}
-      <motion.div variants={itemVariants}>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-base-content">
-              Bonjour, {user?.nom || 'Locataire'} 👋
-            </h1>
-            <p className="text-base-content/60 mt-1">Bienvenue dans votre espace locataire</p>
-          </div>
-          <div className="flex items-center gap-3 bg-primary/10 rounded-xl p-4">
-            <div className="p-3 bg-primary rounded-lg">
-              <Home className="text-primary-content" size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-base-content/60">Votre logement</p>
-              <p className="font-bold text-lg text-primary">{nomLogement}</p>
-            </div>
-          </div>
+      {/* Header Section */}
+      <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div>
+          <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
+            Mon Espace <span className="text-primary">.</span>
+          </h1>
+          <p className="text-base-content/60 font-medium mt-1">
+            Bonjour {user?.nom || 'Locataire'}, bienvenue chez vous.
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+             <Button variant="ghost" className="btn-circle relative">
+                <Bell size={20} />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+             </Button>
+             <div className="text-right hidden md:block">
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Mon Logement</p>
+                <p className="font-bold text-gray-800">{nomLogement}</p>
+             </div>
         </div>
       </motion.div>
 
-      {/* KPI Cards */}
+      {/* KPI Grid */}
       <motion.div 
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
         variants={itemVariants}
       >
         <KPICard 
-          icon={Home} 
-          label="Votre logement" 
-          value={nomLogement} 
+          icon={Wallet} 
+          label="Loyer Mensuel" 
+          value={formatCurrency(loyerMensuel)} 
           color="blue" 
+          trend={{ value: "Payé", label: "Décembre 2024", positive: true }}
+
         />
         <KPICard 
           icon={FileText} 
-          label="Contrat actif" 
-          value={statutContrat === 'actif' ? 'En cours' : 'Inactif'} 
+          label="Statut du Bail" 
+          value={statutContrat === 'actif' ? 'Actif' : 'Inactif'} 
           color="green" 
-        />
-        <KPICard 
-          icon={Wallet} 
-          label="Loyer mensuel" 
-          value={formatCurrency(loyerMensuel)} 
-          color="purple" 
+          trend={{ value: "90j", label: "restants", positive: true }}
         />
         <KPICard 
           icon={Calendar} 
-          label="Prochain paiement" 
-          value={formatDate(prochainPaiement)} 
-          color="orange" 
+          label="Prochaine Échéance" 
+          value="05 Jan"
+          // value={formatDate(prochainPaiement)} 
+          color="purple" 
+          trend={{ value: "J-8", label: "avant retard", positive: true }}
+        />
+         <KPICard 
+          icon={AlertCircle} 
+          label="Incidents" 
+          value="0" 
+          color="pink" 
+          trend={{ value: "R.A.S.", label: "Tout est calme", positive: true }}
         />
       </motion.div>
 
-      {/* Quick Actions et Paiements */}
-      <motion.div 
-        className="grid grid-cols-1 md:grid-cols-3 gap-6"
-        variants={itemVariants}
-      >
-        <Card title="Actions Rapides">
-          <QuickActions userType="locataire" />
-        </Card>
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        
+        {/* Left Column (Info & History) */}
+        <div className="xl:col-span-2 space-y-8">
+             {/* Info Logement Card */}
+             <motion.div variants={itemVariants}>
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 flex flex-col md:flex-row gap-6 items-start">
+                     <div className="w-full md:w-1/3 rounded-xl overflow-hidden shadow-inner bg-gray-100 aspect-video md:aspect-square relative">
+                        {/* Placeholder image for apartment */}
+                         <div className="absolute inset-0 flex items-center justify-center text-gray-300">
+                             <Home size={48} />
+                         </div>
+                     </div>
+                     <div className="flex-1 w-full space-y-4">
+                         <div className="flex justify-between items-start">
+                             <div>
+                                <h3 className="text-xl font-bold text-gray-900">{nomLogement}</h3>
+                                <p className="text-gray-500">Haie vive, Cotonou • 2ème Étage</p>
+                             </div>
+                             <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-bold rounded-full">En règle</span>
+                         </div>
+                         
+                         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                             <div>
+                                 <p className="text-xs text-gray-400 font-semibold uppercase">Bailleur</p>
+                                 <p className="font-medium">Hope Immobilier</p>
+                             </div>
+                              <div>
+                                 <p className="text-xs text-gray-400 font-semibold uppercase">Début du contrat</p>
+                                 <p className="font-medium">01 Jan 2024</p>
+                             </div>
+                              <div>
+                                 <p className="text-xs text-gray-400 font-semibold uppercase">Caution Déposée</p>
+                                 <p className="font-medium">{formatCurrency(loyerMensuel * 3)}</p>
+                             </div>
+                              <div>
+                                 <p className="text-xs text-gray-400 font-semibold uppercase">Gestionnaire</p>
+                                 <p className="font-medium">M. Paul</p>
+                             </div>
+                         </div>
+                     </div>
+                </div>
+             </motion.div>
 
-        {/* Derniers paiements */}
-        <Card title="Vos derniers paiements">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center pb-3 border-b border-base-200">
-              <div>
-                <p className="font-medium">Loyer Décembre</p>
-                <p className="text-sm text-base-content/60">05/12/2024</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-success">{formatCurrency(loyerMensuel)}</p>
-                <p className="text-xs text-success">Payé</p>
-              </div>
-            </div>
-            <div className="flex justify-between items-center pb-3 border-b border-base-200">
-              <div>
-                <p className="font-medium">Loyer Novembre</p>
-                <p className="text-sm text-base-content/60">05/11/2024</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-success">{formatCurrency(loyerMensuel)}</p>
-                <p className="text-xs text-success">Payé</p>
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="font-medium">Loyer Octobre</p>
-                <p className="text-sm text-base-content/60">05/10/2024</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-success">{formatCurrency(loyerMensuel)}</p>
-                <p className="text-xs text-success">Payé</p>
-              </div>
-            </div>
-          </div>
-        </Card>
+            {/* Payment History Card (Styled as list) */}
+            <motion.div variants={itemVariants}>
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                    <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                        <h3 className="font-bold text-gray-800">Historique des Paiements</h3>
+                        <Button variant="ghost" className="btn-sm text-primary">Tout voir</Button>
+                    </div>
+                    <div className="p-0">
+                         {/* Mock Payment List */}
+                        {[1, 2, 3].map((_, idx) => (
+                             <div key={idx} className="flex items-center justify-between p-4 px-6 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center">
+                                        <CheckCircle2 size={18} className="text-green-600" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-gray-800">Loyer {['Décembre', 'Novembre', 'Octobre'][idx]}</p>
+                                        <p className="text-xs text-gray-400">05/{12-idx}/2024 • Mobile Money</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-bold text-gray-900">{formatCurrency(loyerMensuel)}</p>
+                                    <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-md uppercase tracking-wide">Payé</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </motion.div>
+        </div>
 
-        {/* Activités récentes */}
-        <Card title="Activités récentes">
-          <ActivityFeed activities={activities} />
-        </Card>
+        {/* Right Column */}
+        <div className="space-y-8">
+            
+             {/* Quick Actions */}
+             <motion.div variants={itemVariants}>
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                    <h3 className="font-bold text-gray-800 mb-4">Mes Démarches</h3>
+                    <QuickActions userType="locataire" />
+                </div>
+            </motion.div>
 
-        {/* Mes échéances */}
-        <UpcomingEvents events={upcomingEvents} userType="locataire" />
-      </motion.div>
+             {/* Upcoming Events */}
+            <motion.div variants={itemVariants}>
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                    <h3 className="font-bold text-gray-800 mb-4">À Venir</h3>
+                    <UpcomingEvents events={upcomingEvents} userType="locataire" />
+                </div>
+            </motion.div>
 
-      {/* Détails du logement */}
-      <motion.div variants={itemVariants}>
-        <Card title="Détails de votre logement">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold mb-3 text-lg">Informations du logement</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between py-2 border-b border-base-100">
-                  <span className="text-base-content/60">Adresse</span>
-                  <span className="font-medium">{nomLogement}, Cotonou</span>
+            {/* Recent Activity Timeline */}
+             <motion.div variants={itemVariants}>
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                    <h3 className="font-bold text-gray-800 mb-4">Journal</h3>
+                    <ActivityFeed activities={activities} />
                 </div>
-                <div className="flex justify-between py-2 border-b border-base-100">
-                  <span className="text-base-content/60">Type</span>
-                  <span className="font-medium">Studio Américain</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-base-100">
-                  <span className="text-base-content/60">Superficie</span>
-                  <span className="font-medium">35 m²</span>
-                </div>
-                <div className="flex justify-between py-2">
-                  <span className="text-base-content/60">Pièces</span>
-                  <span className="font-medium">1 pièce</span>
-                </div>
-              </div>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-3 text-lg">Contrat</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between py-2 border-b border-base-100">
-                  <span className="text-base-content/60">Date de début</span>
-                  <span className="font-medium">01 Janvier 2024</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-base-100">
-                  <span className="text-base-content/60">Date de fin</span>
-                  <span className="font-medium">31 Décembre 2024</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-base-100">
-                  <span className="text-base-content/60">Caution</span>
-                  <span className="font-medium">{formatCurrency(loyerMensuel)}</span>
-                </div>
-                <div className="flex justify-between py-2">
-                  <span className="text-base-content/60">Gestionnaire</span>
-                  <span className="font-medium">Hope Gestion</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-      </motion.div>
+            </motion.div>
+
+        </div>
+
+      </div>
     </motion.div>
   );
 };

@@ -6,14 +6,18 @@ import {
   Wallet, 
   FileText, 
   AlertCircle,
-  Eye
+  Eye,
+  Plus,
+  ArrowRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface ActionButton {
   icon: React.ElementType;
   label: string;
+  description?: string;
   colorClass: string;
+  iconColor: string;
   path?: string;
   onClick?: () => void;
 }
@@ -27,42 +31,54 @@ const QuickActions: React.FC<QuickActionsProps> = ({ userType }) => {
 
   const gestionnaireActions: ActionButton[] = [
     { 
-      icon: Building2, 
-      label: 'Ajouter un bien', 
-      colorClass: 'from-primary/10 to-primary/5 border-primary/20',
+      icon: Plus, 
+      label: 'Nouveau Bien',
+      description: 'Ajouter',
+      colorClass: 'bg-primary/5 hover:bg-primary/10 border-primary/20',
+      iconColor: 'text-primary',
       path: '/dashboard/biens'
     },
     { 
       icon: Users, 
-      label: 'Ajouter un locataire', 
-      colorClass: 'from-success/10 to-success/5 border-success/20',
+      label: 'Locataire', 
+      description: 'Nouveau',
+      colorClass: 'bg-secondary/5 hover:bg-secondary/10 border-secondary/20',
+      iconColor: 'text-secondary',
       path: '/dashboard/locataires'
     },
     { 
       icon: Wallet, 
-      label: 'Enregistrer un paiement', 
-      colorClass: 'from-info/10 to-info/5 border-info/20',
+      label: 'Paiement', 
+      description: 'Saisir',
+      colorClass: 'bg-success/5 hover:bg-success/10 border-success/20',
+      iconColor: 'text-success',
       path: '/dashboard/finances'
+    },
+    { 
+      icon: FileText, 
+      label: 'Contrat', 
+      description: 'Créer',
+      colorClass: 'bg-warning/5 hover:bg-warning/10 border-warning/20',
+      iconColor: 'text-warning',
+      path: '/dashboard/contrats'
     }
   ];
 
   const proprietaireActions: ActionButton[] = [
     { 
       icon: Eye, 
-      label: 'Voir mes biens', 
-      colorClass: 'from-primary/10 to-primary/5 border-primary/20',
+      label: 'Mes Biens', 
+      description: 'Consulter',
+      colorClass: 'bg-primary/5 hover:bg-primary/10 border-primary/20',
+      iconColor: 'text-primary',
       path: '/dashboard/biens'
     },
     { 
-      icon: Users, 
-      label: 'Voir mes locataires', 
-      colorClass: 'from-success/10 to-success/5 border-success/20',
-      path: '/dashboard/locataires'
-    },
-    { 
       icon: Wallet, 
-      label: 'Consulter mes finances', 
-      colorClass: 'from-info/10 to-info/5 border-info/20',
+      label: 'Finances', 
+      description: 'Suivi',
+      colorClass: 'bg-success/5 hover:bg-success/10 border-success/20',
+      iconColor: 'text-success',
       path: '/dashboard/finances'
     }
   ];
@@ -70,20 +86,18 @@ const QuickActions: React.FC<QuickActionsProps> = ({ userType }) => {
   const locataireActions: ActionButton[] = [
     { 
       icon: Wallet, 
-      label: 'Payer mon loyer', 
-      colorClass: 'from-primary/10 to-primary/5 border-primary/20',
+      label: 'Payer Loyer', 
+      description: 'Mobile Money',
+      colorClass: 'bg-primary/5 hover:bg-primary/10 border-primary/20',
+      iconColor: 'text-primary',
       path: '/dashboard/finances'
     },
     { 
-      icon: FileText, 
-      label: 'Voir mon contrat', 
-      colorClass: 'from-success/10 to-success/5 border-success/20',
-      path: '/dashboard/contrats'
-    },
-    { 
       icon: AlertCircle, 
-      label: 'Signaler un problème', 
-      colorClass: 'from-info/10 to-info/5 border-info/20',
+      label: 'Signaler', 
+      description: 'Incident',
+      colorClass: 'bg-error/5 hover:bg-error/10 border-error/20',
+      iconColor: 'text-error',
       path: '/dashboard/interventions'
     }
   ];
@@ -103,18 +117,25 @@ const QuickActions: React.FC<QuickActionsProps> = ({ userType }) => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-2 gap-3">
       {actions.map((action, index) => {
         const Icon = action.icon;
         return (
           <button 
             key={index}
             onClick={() => handleClick(action)}
-            className={`w-full text-left p-4 rounded-xl bg-gradient-to-r ${action.colorClass} hover:opacity-80 transition-all duration-300 border`}
+            className={`
+              relative group flex flex-col items-center justify-center p-4 rounded-xl 
+              border transition-all duration-300 ${action.colorClass}
+              hover:shadow-md hover:-translate-y-1
+            `}
           >
-            <div className="flex items-center gap-3">
-              <Icon className="text-current" size={20} />
-              <span className="font-medium">{action.label}</span>
+            <div className={`p-3 rounded-full bg-white shadow-sm mb-3 group-hover:scale-110 transition-transform`}>
+              <Icon className={action.iconColor} size={20} />
+            </div>
+            <div className="text-center">
+              <span className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">{action.description}</span>
+              <span className="block font-bold text-gray-700">{action.label}</span>
             </div>
           </button>
         );
