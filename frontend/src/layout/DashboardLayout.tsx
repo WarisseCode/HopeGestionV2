@@ -163,7 +163,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
         {/* User Profile (Compact) */}
         <div className="p-4 border-b border-base-200 flex items-center gap-3">
             <div className="avatar placeholder">
-              <div className="bg-neutral text-neutral-content rounded-full w-10">
+              <div className="bg-neutral text-neutral-content rounded-full w-10 flex items-center justify-center">
                 <span className="text-xs">WG</span>
               </div>
             </div>

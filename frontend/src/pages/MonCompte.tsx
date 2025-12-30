@@ -369,7 +369,7 @@ const MonCompte: React.FC = () => {
                       <td>
                         <div className="flex items-center gap-3">
                           <div className="avatar placeholder">
-                            <div className="bg-neutral text-neutral-content rounded-full w-8">
+                            <div className="bg-neutral text-neutral-content rounded-full w-8 flex items-center justify-center">
                               <span className="text-xs">{prop.nom ? prop.nom.charAt(0) : '?'}</span>
                             </div>
                           </div>
@@ -510,7 +510,7 @@ const MonCompte: React.FC = () => {
                       <td>
                         <div className="flex items-center gap-3">
                           <div className="avatar placeholder">
-                            <div className="bg-neutral text-neutral-content rounded-full w-8">
+                            <div className="bg-neutral text-neutral-content rounded-full w-8 flex items-center justify-center">
                               <span className="text-xs">{user.nom.charAt(0)}</span>
                             </div>
                           </div>

@@ -170,7 +170,7 @@ const AuditLogsPage: React.FC = () => {
                                         <td>
                                             <div className="flex items-center gap-2">
                                                 <div className="avatar placeholder">
-                                                    <div className="w-6 h-6 rounded-full bg-neutral text-neutral-content text-[10px]">
+                                                    <div className="w-6 h-6 rounded-full bg-neutral text-neutral-content text-[10px] flex items-center justify-center">
                                                         <span>{log.user_name ? log.user_name.charAt(0) : '?'}</span>
                                                     </div>
                                                 </div>

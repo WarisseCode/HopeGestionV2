@@ -375,7 +375,7 @@ const MobileMoney: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-success/10 text-success rounded-full w-12">
+                  <div className="bg-success/10 text-success rounded-full w-12 flex items-center justify-center">
                     <TrendingUp size={24} />
                   </div>
                 </div>
@@ -389,7 +389,7 @@ const MobileMoney: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-error/10 text-error rounded-full w-12">
+                  <div className="bg-error/10 text-error rounded-full w-12 flex items-center justify-center">
                     <TrendingDown size={24} />
                   </div>
                 </div>
@@ -403,7 +403,7 @@ const MobileMoney: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-primary/10 text-primary rounded-full w-12">
+                  <div className="bg-primary/10 text-primary rounded-full w-12 flex items-center justify-center">
                     <CreditCard size={24} />
                   </div>
                 </div>
@@ -417,7 +417,7 @@ const MobileMoney: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-info/10 text-info rounded-full w-12">
+                  <div className="bg-info/10 text-info rounded-full w-12 flex items-center justify-center">
                     <CheckCircle size={24} />
                   </div>
                 </div>
@@ -519,7 +519,7 @@ const MobileMoney: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-primary/10 text-primary rounded-full w-12">
+                  <div className="bg-primary/10 text-primary rounded-full w-12 flex items-center justify-center">
                     <CreditCard size={24} />
                   </div>
                 </div>
@@ -533,7 +533,7 @@ const MobileMoney: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-success/10 text-success rounded-full w-12">
+                  <div className="bg-success/10 text-success rounded-full w-12 flex items-center justify-center">
                     <CheckCircle size={24} />
                   </div>
                 </div>
@@ -547,7 +547,7 @@ const MobileMoney: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-error/10 text-error rounded-full w-12">
+                  <div className="bg-error/10 text-error rounded-full w-12 flex items-center justify-center">
                     <XCircle size={24} />
                   </div>
                 </div>
@@ -630,7 +630,7 @@ const MobileMoney: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center p-4 border rounded-lg">
                 <div className="avatar placeholder">
-                  <div className="bg-success/10 text-success rounded-full w-16 mx-auto mb-3">
+                  <div className="bg-success/10 text-success rounded-full w-16 mx-auto mb-3 flex items-center justify-center">
                     <span className="text-xl">M</span>
                   </div>
                 </div>
@@ -646,7 +646,7 @@ const MobileMoney: React.FC = () => {
               
               <div className="text-center p-4 border rounded-lg">
                 <div className="avatar placeholder">
-                  <div className="bg-primary/10 text-primary rounded-full w-16 mx-auto mb-3">
+                  <div className="bg-primary/10 text-primary rounded-full w-16 mx-auto mb-3 flex items-center justify-center">
                     <span className="text-xl">M</span>
                   </div>
                 </div>
@@ -662,7 +662,7 @@ const MobileMoney: React.FC = () => {
               
               <div className="text-center p-4 border rounded-lg">
                 <div className="avatar placeholder">
-                  <div className="bg-warning/10 text-warning rounded-full w-16 mx-auto mb-3">
+                  <div className="bg-warning/10 text-warning rounded-full w-16 mx-auto mb-3 flex items-center justify-center">
                     <span className="text-xl">O</span>
                   </div>
                 </div>

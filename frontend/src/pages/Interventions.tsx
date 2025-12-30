@@ -590,7 +590,7 @@ const Interventions: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-warning/10 text-warning rounded-full w-12">
+                  <div className="bg-warning/10 text-warning rounded-full w-12 flex items-center justify-center">
                     <AlertCircle size={24} />
                   </div>
                 </div>
@@ -604,7 +604,7 @@ const Interventions: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-info/10 text-info rounded-full w-12">
+                  <div className="bg-info/10 text-info rounded-full w-12 flex items-center justify-center">
                     <Clock size={24} />
                   </div>
                 </div>
@@ -618,7 +618,7 @@ const Interventions: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-success/10 text-success rounded-full w-12">
+                  <div className="bg-success/10 text-success rounded-full w-12 flex items-center justify-center">
                     <CheckCircle size={24} />
                   </div>
                 </div>
@@ -632,7 +632,7 @@ const Interventions: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-primary/10 text-primary rounded-full w-12">
+                  <div className="bg-primary/10 text-primary rounded-full w-12 flex items-center justify-center">
                     <AlertCircle size={24} />
                   </div>
                 </div>
@@ -748,7 +748,7 @@ const Interventions: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-primary/10 text-primary rounded-full w-12">
+                  <div className="bg-primary/10 text-primary rounded-full w-12 flex items-center justify-center">
                     <Wrench size={24} />
                   </div>
                 </div>
@@ -762,7 +762,7 @@ const Interventions: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-info/10 text-info rounded-full w-12">
+                  <div className="bg-info/10 text-info rounded-full w-12 flex items-center justify-center">
                     <Clock size={24} />
                   </div>
                 </div>
@@ -776,7 +776,7 @@ const Interventions: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-success/10 text-success rounded-full w-12">
+                  <div className="bg-success/10 text-success rounded-full w-12 flex items-center justify-center">
                     <CheckCircle size={24} />
                   </div>
                 </div>
@@ -790,7 +790,7 @@ const Interventions: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-error/10 text-error rounded-full w-12">
+                  <div className="bg-error/10 text-error rounded-full w-12 flex items-center justify-center">
                     <XCircle size={24} />
                   </div>
                 </div>

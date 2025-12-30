@@ -254,7 +254,7 @@ const Locataires: React.FC = () => {
                 <label className="block text-sm font-medium mb-2">Téléversement pièce d'identité</label>
                 <div className="flex items-center gap-4">
                   <div className="avatar placeholder">
-                    <div className="bg-neutral text-neutral-content rounded-full w-16">
+                    <div className="bg-neutral text-neutral-content rounded-full w-16 flex items-center justify-center">
                       <span className="text-xs">ID</span>
                     </div>
                   </div>
@@ -268,7 +268,7 @@ const Locataires: React.FC = () => {
                 <label className="block text-sm font-medium mb-2">Photo du locataire</label>
                 <div className="flex items-center gap-4">
                   <div className="avatar placeholder">
-                    <div className="bg-neutral text-neutral-content rounded-full w-16">
+                    <div className="bg-neutral text-neutral-content rounded-full w-16 flex items-center justify-center">
                       <span className="text-xs">PJ</span>
                     </div>
                   </div>
@@ -448,7 +448,7 @@ const Locataires: React.FC = () => {
                     <tr key={locataire.id}>
                       <td>
                         <div className="avatar placeholder">
-                          <div className="bg-neutral text-neutral-content rounded-full w-10">
+                          <div className="bg-neutral text-neutral-content rounded-full w-10 flex items-center justify-center">
                             <span className="text-xs">{locataire.nom.charAt(0)}</span>
                           </div>
                         </div>
@@ -538,7 +538,7 @@ const Locataires: React.FC = () => {
                     <tr key={acheteur.id}>
                       <td>
                         <div className="avatar placeholder">
-                          <div className="bg-neutral text-neutral-content rounded-full w-10">
+                          <div className="bg-neutral text-neutral-content rounded-full w-10 flex items-center justify-center">
                             <span className="text-xs">{acheteur.nom.charAt(0)}</span>
                           </div>
                         </div>

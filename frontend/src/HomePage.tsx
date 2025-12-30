@@ -320,8 +320,6 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-
-
       {/* FAQ Section */}
       <section id="faq" className="py-20 px-4 md:px-8 bg-base-100">
         <div className="max-w-4xl mx-auto">
@@ -511,7 +509,7 @@ const TestimonialCard = ({ quote, author, role }: { quote: string, author: strin
         <p className="text-base-content/80 relative z-10 italic mb-6 pt-6">"{quote}"</p>
         <div className="flex items-center gap-4">
             <div className="avatar placeholder">
-                <div className="bg-primary/10 text-primary rounded-full w-12">
+                <div className="bg-primary/10 text-primary rounded-full w-12 flex items-center justify-center">
                     <span className="text-lg font-bold">{author.charAt(0)}</span>
                 </div>
             </div>

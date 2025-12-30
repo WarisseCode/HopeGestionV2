@@ -74,7 +74,7 @@ const LocataireDetailsPage: React.FC = () => {
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
                         <div className="avatar placeholder">
-                            <div className="bg-neutral-focus text-neutral-content rounded-full w-12">
+                            <div className="bg-neutral-focus text-neutral-content rounded-full w-12 flex items-center justify-center">
                                 <span className="text-xl">{locataire.nom[0]}</span>
                             </div>
                         </div>

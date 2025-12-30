@@ -319,7 +319,7 @@ const Finances: React.FC = () => {
                 <label className="block text-sm font-medium mb-2">Téléversement du reçu</label>
                 <div className="flex items-center gap-4">
                   <div className="avatar placeholder">
-                    <div className="bg-neutral text-neutral-content rounded-full w-16">
+                    <div className="bg-neutral text-neutral-content rounded-full w-16 flex items-center justify-center">
                       <span className="text-xs">PDF</span>
                     </div>
                   </div>
@@ -402,7 +402,7 @@ const Finances: React.FC = () => {
                 <label className="block text-sm font-medium mb-2">Téléversement de la facture</label>
                 <div className="flex items-center gap-4">
                   <div className="avatar placeholder">
-                    <div className="bg-neutral text-neutral-content rounded-full w-16">
+                    <div className="bg-neutral text-neutral-content rounded-full w-16 flex items-center justify-center">
                       <span className="text-xs">PDF</span>
                     </div>
                   </div>
@@ -443,7 +443,7 @@ const Finances: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-success/10 text-success rounded-full w-12">
+                  <div className="bg-success/10 text-success rounded-full w-12 flex items-center justify-center">
                     <TrendingUp size={24} />
                   </div>
                 </div>
@@ -457,7 +457,7 @@ const Finances: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-warning/10 text-warning rounded-full w-12">
+                  <div className="bg-warning/10 text-warning rounded-full w-12 flex items-center justify-center">
                     <TrendingDown size={24} />
                   </div>
                 </div>
@@ -471,7 +471,7 @@ const Finances: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-primary/10 text-primary rounded-full w-12">
+                  <div className="bg-primary/10 text-primary rounded-full w-12 flex items-center justify-center">
                     <Wallet size={24} />
                   </div>
                 </div>
@@ -585,7 +585,7 @@ const Finances: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-error/10 text-error rounded-full w-12">
+                  <div className="bg-error/10 text-error rounded-full w-12 flex items-center justify-center">
                     <TrendingDown size={24} />
                   </div>
                 </div>
@@ -599,7 +599,7 @@ const Finances: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-warning/10 text-warning rounded-full w-12">
+                  <div className="bg-warning/10 text-warning rounded-full w-12 flex items-center justify-center">
                     <TrendingUp size={24} />
                   </div>
                 </div>
@@ -613,7 +613,7 @@ const Finances: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-primary/10 text-primary rounded-full w-12">
+                  <div className="bg-primary/10 text-primary rounded-full w-12 flex items-center justify-center">
                     <Wallet size={24} />
                   </div>
                 </div>

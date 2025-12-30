@@ -128,7 +128,7 @@ const DelegationsPage: React.FC = () => {
                   <td>
                     <div className="flex items-center gap-3">
                       <div className="avatar placeholder">
-                        <div className="bg-neutral-focus text-neutral-content rounded-full w-8">
+                        <div className="bg-neutral-focus text-neutral-content rounded-full w-8 flex items-center justify-center">
                           <span className="text-xs">{member.nom.substring(0, 2).toUpperCase()}</span>
                         </div>
                       </div>

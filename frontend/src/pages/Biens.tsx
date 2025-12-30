@@ -251,7 +251,7 @@ const Biens: React.FC = () => {
                 <label className="block text-sm font-medium mb-2">Téléversement photos / vidéos</label>
                 <div className="flex items-center gap-4">
                   <div className="avatar placeholder">
-                    <div className="bg-neutral text-neutral-content rounded-full w-16">
+                    <div className="bg-neutral text-neutral-content rounded-full w-16 flex items-center justify-center">
                       <span className="text-xs">+</span>
                     </div>
                   </div>
@@ -431,7 +431,7 @@ const Biens: React.FC = () => {
                     <tr key={immeuble.id}>
                       <td>
                         <div className="avatar placeholder">
-                          <div className="bg-neutral text-neutral-content rounded-full w-10">
+                          <div className="bg-neutral text-neutral-content rounded-full w-10 flex items-center justify-center">
                             <span className="text-xs">I</span>
                           </div>
                         </div>

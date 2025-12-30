@@ -289,7 +289,7 @@ const Rapports: React.FC = () => {
               <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="avatar placeholder">
-                    <div className="bg-primary/10 text-primary rounded-full w-10">
+                    <div className="bg-primary/10 text-primary rounded-full w-10 flex items-center justify-center">
                       <FileText size={20} />
                     </div>
                   </div>
@@ -305,7 +305,7 @@ const Rapports: React.FC = () => {
               <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="avatar placeholder">
-                    <div className="bg-success/10 text-success rounded-full w-10">
+                    <div className="bg-success/10 text-success rounded-full w-10 flex items-center justify-center">
                       <Home size={20} />
                     </div>
                   </div>
@@ -321,7 +321,7 @@ const Rapports: React.FC = () => {
               <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="avatar placeholder">
-                    <div className="bg-warning/10 text-warning rounded-full w-10">
+                    <div className="bg-warning/10 text-warning rounded-full w-10 flex items-center justify-center">
                       <Wallet size={20} />
                     </div>
                   </div>
@@ -337,7 +337,7 @@ const Rapports: React.FC = () => {
               <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="avatar placeholder">
-                    <div className="bg-info/10 text-info rounded-full w-10">
+                    <div className="bg-info/10 text-info rounded-full w-10 flex items-center justify-center">
                       <TrendingUp size={20} />
                     </div>
                   </div>
@@ -353,7 +353,7 @@ const Rapports: React.FC = () => {
               <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="avatar placeholder">
-                    <div className="bg-error/10 text-error rounded-full w-10">
+                    <div className="bg-error/10 text-error rounded-full w-10 flex items-center justify-center">
                       <Users size={20} />
                     </div>
                   </div>
@@ -369,7 +369,7 @@ const Rapports: React.FC = () => {
               <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="avatar placeholder">
-                    <div className="bg-secondary/10 text-secondary rounded-full w-10">
+                    <div className="bg-secondary/10 text-secondary rounded-full w-10 flex items-center justify-center">
                       <Settings size={20} />
                     </div>
                   </div>

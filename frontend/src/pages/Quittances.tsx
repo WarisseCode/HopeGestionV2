@@ -250,7 +250,7 @@ const Quittances: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-primary/10 text-primary rounded-full w-12">
+                  <div className="bg-primary/10 text-primary rounded-full w-12 flex items-center justify-center">
                     <FileText size={24} />
                   </div>
                 </div>
@@ -264,7 +264,7 @@ const Quittances: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-success/10 text-success rounded-full w-12">
+                  <div className="bg-success/10 text-success rounded-full w-12 flex items-center justify-center">
                     <CheckCircle size={24} />
                   </div>
                 </div>
@@ -278,7 +278,7 @@ const Quittances: React.FC = () => {
             <Card>
               <div className="flex items-center gap-4">
                 <div className="avatar placeholder">
-                  <div className="bg-warning/10 text-warning rounded-full w-12">
+                  <div className="bg-warning/10 text-warning rounded-full w-12 flex items-center justify-center">
                     <Clock size={24} />
                   </div>
                 </div>
