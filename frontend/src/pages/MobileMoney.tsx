@@ -4,25 +4,26 @@ import {
   CreditCard, 
   Plus, 
   Edit3, 
-  Eye, 
   Trash2, 
-  Calendar, 
-  Users,
   Wallet,
-  FileText,
   CheckCircle,
   XCircle,
   Settings,
   TrendingUp,
-  TrendingDown
+  ArrowUpRight,
+  ArrowDownLeft,
+  Smartphone,
+  RefreshCw,
+  Search,
+  Filter
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
-import Alert from '../components/ui/Alert';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const MobileMoney: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'transactions' | 'configurations' | 'rapports'>('transactions');
+  const [activeTab, setActiveTab] = useState<'transactions' | 'configurations'>('transactions');
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<'transaction' | 'configuration'>('transaction');
 
@@ -99,665 +100,307 @@ const MobileMoney: React.FC = () => {
     }
   ]);
 
-  const [transactionForm, setTransactionForm] = useState({
-    reference: '',
-    type: 'Réception',
-    expediteur: '',
-    destinataire: '',
-    montant: 0,
-    frais: 0,
-    operateur: 'Moov Money',
-    description: ''
-  });
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
 
-  const [configurationForm, setConfigurationForm] = useState({
-    nom: '',
-    operateur: 'Moov Money',
-    numero: '',
-    statut: 'Actif',
-    seuil: 500000,
-    frais: 1
-  });
-
-  // Données pour les graphiques
-  const transactionsData = [
-    { mois: 'Jan', reception: 1200000, envoi: 300000 },
-    { mois: 'Fév', reception: 1500000, envoi: 250000 },
-    { mois: 'Mar', reception: 1300000, envoi: 350000 },
-    { mois: 'Avr', reception: 1600000, envoi: 280000 },
-    { mois: 'Mai', reception: 1400000, envoi: 320000 },
-    { mois: 'Jun', reception: 1700000, envoi: 310000 }
-  ];
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 }
+  };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <motion.div 
+      className="p-6 md:p-8 space-y-8 max-w-[1700px] mx-auto"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Header */}
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-base-content">Mobile Money</h1>
-          <p className="text-base-content/70">Gestion des transactions et configurations</p>
+          <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
+            Transactions Mobiles <span className="text-primary">.</span>
+          </h1>
+          <p className="text-base-content/60 font-medium mt-1">Gérez vos paiements Mobile Money et configurations.</p>
         </div>
-        <Button 
-          variant="primary" 
-          onClick={() => {
-            setFormType(activeTab === 'transactions' ? 'transaction' : 'configuration');
-            setShowForm(true);
-          }}
-        >
-          <Plus size={18} className="mr-2" />
-          {activeTab === 'transactions' ? 'Nouvelle transaction' : 'Nouvelle configuration'}
-        </Button>
-      </div>
-
-      {/* Navigation par onglets */}
-      <div className="flex border-b border-base-200">
-        <button
-          className={`px-4 py-2 font-medium text-sm ${
-            activeTab === 'transactions'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-base-content/60 hover:text-base-content'
-          }`}
-          onClick={() => setActiveTab('transactions')}
-        >
-          <div className="flex items-center gap-2">
-            <CreditCard size={18} />
-            Transactions
-          </div>
-        </button>
-        <button
-          className={`px-4 py-2 font-medium text-sm ${
-            activeTab === 'configurations'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-base-content/60 hover:text-base-content'
-          }`}
-          onClick={() => setActiveTab('configurations')}
-        >
-          <div className="flex items-center gap-2">
-            <Settings size={18} />
-            Configurations
-          </div>
-        </button>
-        <button
-          className={`px-4 py-2 font-medium text-sm ${
-            activeTab === 'rapports'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-base-content/60 hover:text-base-content'
-          }`}
-          onClick={() => setActiveTab('rapports')}
-        >
-          <div className="flex items-center gap-2">
-            <FileText size={18} />
-            Rapports
-          </div>
-        </button>
-      </div>
-
-      {/* Formulaire pour ajouter/modifier */}
-      {showForm && (
-        <Card title={
-          formType === 'transaction' ? 'Création / Modification d\'une transaction' : 'Création / Modification d\'une configuration'
-        }>
-          {formType === 'transaction' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Input 
-                  label="Référence de la transaction" 
-                  placeholder="Ex: MM-2025-001" 
-                  value={transactionForm.reference}
-                  onChange={(e) => setTransactionForm({...transactionForm, reference: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Type de transaction</label>
-                <select 
-                  className="w-full p-3 border border-base-200 rounded-lg bg-base-100"
-                  value={transactionForm.type}
-                  onChange={(e) => setTransactionForm({...transactionForm, type: e.target.value})}
-                >
-                  <option value="Réception">Réception</option>
-                  <option value="Envoi">Envoi</option>
-                </select>
-              </div>
-              
-              <div>
-                <Input 
-                  label="Numéro expéditeur" 
-                  placeholder="Entrez le numéro expéditeur" 
-                  value={transactionForm.expediteur}
-                  onChange={(e) => setTransactionForm({...transactionForm, expediteur: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Numéro destinataire" 
-                  placeholder="Entrez le numéro destinataire" 
-                  value={transactionForm.destinataire}
-                  onChange={(e) => setTransactionForm({...transactionForm, destinataire: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Montant (FCFA)" 
-                  type="number"
-                  placeholder="Entrez le montant" 
-                  value={transactionForm.montant}
-                  onChange={(e) => setTransactionForm({...transactionForm, montant: parseFloat(e.target.value) || 0})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Frais (FCFA)" 
-                  type="number"
-                  placeholder="Entrez les frais" 
-                  value={transactionForm.frais}
-                  onChange={(e) => setTransactionForm({...transactionForm, frais: parseFloat(e.target.value) || 0})}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Opérateur</label>
-                <select 
-                  className="w-full p-3 border border-base-200 rounded-lg bg-base-100"
-                  value={transactionForm.operateur}
-                  onChange={(e) => setTransactionForm({...transactionForm, operateur: e.target.value})}
-                >
-                  <option value="Moov Money">Moov Money</option>
-                  <option value="MTN Money">MTN Money</option>
-                  <option value="MTN ONATEL">MTN ONATEL</option>
-                </select>
-              </div>
-              
-              <div className="md:col-span-2">
-                <Input 
-                  label="Description" 
-                  placeholder="Décrivez la transaction"
-                  value={transactionForm.description}
-                  onChange={(e) => setTransactionForm({...transactionForm, description: e.target.value})}
-                  className="h-24"
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Input 
-                  label="Nom de la configuration" 
-                  placeholder="Entrez le nom de la configuration" 
-                  value={configurationForm.nom}
-                  onChange={(e) => setConfigurationForm({...configurationForm, nom: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Opérateur</label>
-                <select 
-                  className="w-full p-3 border border-base-200 rounded-lg bg-base-100"
-                  value={configurationForm.operateur}
-                  onChange={(e) => setConfigurationForm({...configurationForm, operateur: e.target.value})}
-                >
-                  <option value="Moov Money">Moov Money</option>
-                  <option value="MTN Money">MTN Money</option>
-                  <option value="MTN ONATEL">MTN ONATEL</option>
-                </select>
-              </div>
-              
-              <div>
-                <Input 
-                  label="Numéro de compte" 
-                  placeholder="Entrez le numéro de compte" 
-                  value={configurationForm.numero}
-                  onChange={(e) => setConfigurationForm({...configurationForm, numero: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Statut</label>
-                <select 
-                  className="w-full p-3 border border-base-200 rounded-lg bg-base-100"
-                  value={configurationForm.statut}
-                  onChange={(e) => setConfigurationForm({...configurationForm, statut: e.target.value})}
-                >
-                  <option value="Actif">Actif</option>
-                  <option value="Inactif">Inactif</option>
-                </select>
-              </div>
-              
-              <div>
-                <Input 
-                  label="Seuil de notification (FCFA)" 
-                  type="number"
-                  placeholder="Entrez le seuil" 
-                  value={configurationForm.seuil}
-                  onChange={(e) => setConfigurationForm({...configurationForm, seuil: parseFloat(e.target.value) || 500000})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Frais de transaction (%)" 
-                  type="number"
-                  placeholder="Entrez les frais" 
-                  value={configurationForm.frais}
-                  onChange={(e) => setConfigurationForm({...configurationForm, frais: parseFloat(e.target.value) || 1})}
-                />
-              </div>
-            </div>
-          )}
-          
-          <div className="flex justify-end gap-3 mt-6">
-            <Button 
-              variant="ghost" 
-              onClick={() => setShowForm(false)}
-            >
-              Annuler
+        <div className="flex gap-3">
+             <Button variant="ghost" className="bg-base-100 border border-base-200 text-base-content shadow-sm rounded-full h-10">
+                <RefreshCw size={16} className="mr-2" /> Actualiser
             </Button>
             <Button 
-              variant="primary"
-              onClick={() => {
-                // Traitement de la soumission du formulaire
-                setShowForm(false);
-              }}
+                variant="primary" 
+                className="rounded-full px-6 h-10 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all font-semibold"
+                onClick={() => {
+                  setFormType(activeTab === 'transactions' ? 'transaction' : 'configuration');
+                  setShowForm(true);
+                }}
             >
-              {formType === 'transaction' ? 'Enregistrer la transaction' : 'Enregistrer la configuration'}
+                <Plus size={18} className="mr-2" />
+                {activeTab === 'transactions' ? 'Nouvelle Transaction' : 'Ajouter Compte'}
             </Button>
-          </div>
-        </Card>
-      )}
+        </div>
+      </motion.div>
 
-      {/* Contenu des onglets */}
-      {activeTab === 'transactions' && (
-        <div className="space-y-6">
-          {/* Résumé des transactions */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card>
-              <div className="flex items-center gap-4">
-                <div className="avatar placeholder">
-                  <div className="bg-success/10 text-success rounded-full w-12 flex items-center justify-center">
-                    <TrendingUp size={24} />
+       {/* Tabs */}
+     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-center bg-base-100 rounded-2xl p-2 shadow-sm border border-base-200 mb-6">
+        <div className="flex p-1 bg-base-200/50 rounded-xl overflow-x-auto w-full sm:w-auto">
+             <button
+                onClick={() => setActiveTab('transactions')}
+                className={`flex-1 sm:flex-none px-8 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap ${
+                activeTab === 'transactions' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content'
+                }`}
+            >
+                <Wallet size={18} />
+                Transactions
+            </button>
+            <button
+                onClick={() => setActiveTab('configurations')}
+                className={`flex-1 sm:flex-none px-8 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap ${
+                activeTab === 'configurations' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content'
+                }`}
+            >
+                <Settings size={18} />
+                Comptes & Config
+            </button>
+        </div>
+      </motion.div>
+
+      {/* Stats Cards */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="border-none shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+              <div className="flex justify-between items-start">
+                  <div>
+                      <p className="text-blue-100 font-medium mb-1">Solde Total Mobile Money</p>
+                      <h3 className="text-3xl font-bold">2,540,000 F</h3>
                   </div>
-                </div>
-                <div>
-                  <p className="text-sm text-base-content/60">Total reçu</p>
-                  <p className="text-2xl font-bold">2,300,000 FCFA</p>
-                </div>
-              </div>
-            </Card>
-            
-            <Card>
-              <div className="flex items-center gap-4">
-                <div className="avatar placeholder">
-                  <div className="bg-error/10 text-error rounded-full w-12 flex items-center justify-center">
-                    <TrendingDown size={24} />
+                  <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                      <Wallet size={24} className="text-white"/>
                   </div>
-                </div>
-                <div>
-                  <p className="text-sm text-base-content/60">Total envoyé</p>
-                  <p className="text-2xl font-bold">500,000 FCFA</p>
-                </div>
               </div>
-            </Card>
-            
-            <Card>
-              <div className="flex items-center gap-4">
-                <div className="avatar placeholder">
-                  <div className="bg-primary/10 text-primary rounded-full w-12 flex items-center justify-center">
-                    <CreditCard size={24} />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-base-content/60">Transactions</p>
-                  <p className="text-2xl font-bold">3</p>
-                </div>
+              <div className="mt-4 flex items-center gap-2 text-sm text-blue-100 bg-blue-600/30 w-fit px-2 py-1 rounded-lg">
+                  <TrendingUp size={14} /> +15% ce mois
               </div>
-            </Card>
-            
-            <Card>
-              <div className="flex items-center gap-4">
-                <div className="avatar placeholder">
-                  <div className="bg-info/10 text-info rounded-full w-12 flex items-center justify-center">
-                    <CheckCircle size={24} />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-base-content/60">Validées</p>
-                  <p className="text-2xl font-bold">2</p>
-                </div>
-              </div>
-            </Card>
-          </div>
-          
-          {/* Liste des transactions */}
-          <Card title="Liste des transactions">
-            <div className="overflow-x-auto">
-              <table className="table w-full">
-                <thead>
-                  <tr>
-                    <th>Référence</th>
-                    <th>Type</th>
-                    <th>Montant</th>
-                    <th>Opérateur</th>
-                    <th>Date</th>
-                    <th>Statut</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map((transaction) => (
-                    <tr key={transaction.id}>
-                      <td>
-                        <div className="font-medium">{transaction.reference}</div>
-                        <div className="text-sm text-base-content/60">{transaction.description}</div>
-                      </td>
-                      <td>
-                        <span className={`badge ${transaction.type === 'Réception' ? 'badge-success' : 'badge-error'}`}>
-                          {transaction.type}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="font-medium">{transaction.montant.toLocaleString()} FCFA</div>
-                        <div className="text-sm text-base-content/60">Frais: {transaction.frais.toLocaleString()} FCFA</div>
-                      </td>
-                      <td>
-                        <span className="badge badge-primary">{transaction.operateur}</span>
-                      </td>
-                      <td>{new Date(transaction.date).toLocaleDateString()}</td>
-                      <td>
-                        <span className={`badge ${
-                          transaction.statut === 'Validé' ? 'badge-success' : 
-                          transaction.statut === 'En attente' ? 'badge-warning' : 
-                          'badge-error'
-                        }`}>
-                          {transaction.statut}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye size={16} />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setFormType('transaction');
-                              setTransactionForm({
-                                reference: transaction.reference,
-                                type: transaction.type,
-                                expediteur: transaction.expediteur,
-                                destinataire: transaction.destinataire,
-                                montant: transaction.montant,
-                                frais: transaction.frais,
-                                operateur: transaction.operateur,
-                                description: transaction.description
-                              });
-                              setShowForm(true);
-                            }}
-                          >
-                            <Edit3 size={16} />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-error">
-                            <Trash2 size={16} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </Card>
-        </div>
+           <Card className="border-none shadow-lg bg-base-100">
+              <div className="flex justify-between items-start">
+                  <div>
+                      <p className="text-base-content/60 font-medium mb-1">Entrées (Mois)</p>
+                      <h3 className="text-3xl font-bold text-base-content">1,850,000 F</h3>
+                  </div>
+                  <div className="p-3 bg-green-100 rounded-xl text-green-600 dark:bg-green-900/30 dark:text-green-400">
+                      <ArrowDownLeft size={24}/>
+                  </div>
+              </div>
+              <div className="mt-4 text-sm text-base-content/40">
+                  12 transactions reçues
+              </div>
+          </Card>
+           <Card className="border-none shadow-lg bg-base-100">
+              <div className="flex justify-between items-start">
+                  <div>
+                      <p className="text-base-content/60 font-medium mb-1">Sorties (Mois)</p>
+                      <h3 className="text-3xl font-bold text-base-content">450,000 F</h3>
+                  </div>
+                  <div className="p-3 bg-red-100 rounded-xl text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                      <ArrowUpRight size={24}/>
+                  </div>
+              </div>
+              <div className="mt-4 text-sm text-base-content/40">
+                  5 transactions envoyées
+              </div>
+          </Card>
+      </motion.div>
+
+      <AnimatePresence mode="wait">
+      {activeTab === 'transactions' && (
+        <motion.div
+            key="transactions"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-6"
+        >
+             {/* Filters */}
+            <Card className="border-none shadow-sm bg-base-100 p-2">
+                <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+                    <div className="relative w-full md:w-96">
+                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-base-content/40" />
+                    <input 
+                        type="text" 
+                        placeholder="Rechercher une transaction..." 
+                        className="input input-sm h-10 w-full pl-11 bg-base-200/50 border-transparent focus:bg-base-100 focus:border-primary rounded-xl transition-all"
+                    />
+                    </div>
+                    <div className="flex gap-2 w-full md:w-auto">
+                        <select className="select select-sm h-10 bg-base-200/50 border-transparent rounded-xl">
+                            <option>Tous les statuts</option>
+                            <option>Validé</option>
+                            <option>En attente</option>
+                            <option>Échoué</option>
+                        </select>
+                         <select className="select select-sm h-10 bg-base-200/50 border-transparent rounded-xl">
+                            <option>Tous les opérateurs</option>
+                            <option>Moov Money</option>
+                            <option>MTN Money</option>
+                        </select>
+                    </div>
+                </div>
+            </Card>
+
+            <Card className="border-none shadow-xl bg-base-100 p-0 overflow-hidden">
+                <div className="overflow-x-auto">
+                <table className="table w-full">
+                    <thead className="bg-base-200/50">
+                        <tr>
+                            <th className="pl-6 py-4 text-base-content/60 font-semibold">Référence</th>
+                            <th className="text-base-content/60 font-semibold">Type</th>
+                            <th className="text-base-content/60 font-semibold">Opérateur</th>
+                            <th className="text-base-content/60 font-semibold">Montant</th>
+                            <th className="text-base-content/60 font-semibold">Description</th>
+                            <th className="text-base-content/60 font-semibold">Statut</th>
+                            <th className="text-base-content/60 font-semibold text-right pr-6">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-base-200">
+                        {transactions.map(tx => (
+                            <tr key={tx.id} className="hover:bg-base-200/50 transition-colors">
+                                <td className="pl-6 font-medium text-base-content">{tx.reference}</td>
+                                <td>
+                                    <span className={`badge ${tx.type === 'Réception' ? 'badge-success badge-outline' : 'badge-warning badge-outline'} font-bold`}>
+                                        {tx.type === 'Réception' ? <ArrowDownLeft size={12} className="mr-1"/> : <ArrowUpRight size={12} className="mr-1"/>}
+                                        {tx.type}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div className="flex items-center gap-2">
+                                        <Smartphone size={16} className="text-base-content/40"/>
+                                        <span className="font-medium text-base-content">{tx.operateur}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div className="font-bold text-base-content">{tx.montant.toLocaleString()} F</div>
+                                    <div className="text-xs text-base-content/40">Frais: {tx.frais} F</div>
+                                </td>
+                                <td className="max-w-xs truncate text-base-content/60" title={tx.description}>{tx.description}</td>
+                                <td>
+                                    <span className={`badge ${tx.statut === 'Validé' ? 'bg-green-100 text-green-700 border-none dark:bg-green-900/30 dark:text-green-400' : tx.statut === 'En attente' ? 'bg-yellow-100 text-yellow-700 border-none dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-red-100 text-red-700 border-none dark:bg-red-900/30 dark:text-red-400'} font-bold`}>
+                                        {tx.statut}
+                                    </span>
+                                </td>
+                                <td className="text-right pr-6 text-base-content/60 font-mono text-sm">{tx.date}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                </div>
+            </Card>
+        </motion.div>
       )}
 
       {activeTab === 'configurations' && (
-        <div className="space-y-6">
-          {/* Résumé des configurations */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <div className="flex items-center gap-4">
-                <div className="avatar placeholder">
-                  <div className="bg-primary/10 text-primary rounded-full w-12 flex items-center justify-center">
-                    <CreditCard size={24} />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-base-content/60">Total configurations</p>
-                  <p className="text-2xl font-bold">3</p>
-                </div>
-              </div>
-            </Card>
-            
-            <Card>
-              <div className="flex items-center gap-4">
-                <div className="avatar placeholder">
-                  <div className="bg-success/10 text-success rounded-full w-12 flex items-center justify-center">
-                    <CheckCircle size={24} />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-base-content/60">Actives</p>
-                  <p className="text-2xl font-bold">2</p>
-                </div>
-              </div>
-            </Card>
-            
-            <Card>
-              <div className="flex items-center gap-4">
-                <div className="avatar placeholder">
-                  <div className="bg-error/10 text-error rounded-full w-12 flex items-center justify-center">
-                    <XCircle size={24} />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-base-content/60">Inactives</p>
-                  <p className="text-2xl font-bold">1</p>
-                </div>
-              </div>
-            </Card>
-          </div>
-          
-          {/* Liste des configurations */}
-          <Card title="Liste des configurations">
-            <div className="overflow-x-auto">
-              <table className="table w-full">
-                <thead>
-                  <tr>
-                    <th>Nom</th>
-                    <th>Opérateur</th>
-                    <th>Numéro</th>
-                    <th>Statut</th>
-                    <th>Seuil</th>
-                    <th>Frais</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {configurations.map((config) => (
-                    <tr key={config.id}>
-                      <td>
-                        <div className="font-medium">{config.nom}</div>
-                      </td>
-                      <td>
-                        <span className="badge badge-secondary">{config.operateur}</span>
-                      </td>
-                      <td>
-                        <div className="font-mono">{config.numero}</div>
-                      </td>
-                      <td>
-                        <span className={`badge ${config.statut === 'Actif' ? 'badge-success' : 'badge-warning'}`}>
-                          {config.statut}
-                        </span>
-                      </td>
-                      <td>{config.seuil.toLocaleString()} FCFA</td>
-                      <td>{config.frais}%</td>
-                      <td>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setFormType('configuration');
-                              setConfigurationForm({
-                                nom: config.nom,
-                                operateur: config.operateur,
-                                numero: config.numero,
-                                statut: config.statut,
-                                seuil: config.seuil,
-                                frais: config.frais
-                              });
-                              setShowForm(true);
-                            }}
-                          >
-                            <Edit3 size={16} />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-error">
-                            <Trash2 size={16} />
-                          </Button>
+        <motion.div
+             key="config"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+        >
+            {configurations.map(config => (
+                <Card key={config.id} className="border-none shadow-xl bg-base-100 hover:-translate-y-1 transition-transform group">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className={`p-3 rounded-2xl ${config.operateur.includes('Moov') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
+                            <Smartphone size={24} />
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-          
-          {/* Configuration des API */}
-          <Card title="Configuration des API Mobile Money">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-4 border rounded-lg">
-                <div className="avatar placeholder">
-                  <div className="bg-success/10 text-success rounded-full w-16 mx-auto mb-3 flex items-center justify-center">
-                    <span className="text-xl">M</span>
-                  </div>
-                </div>
-                <h3 className="font-semibold">Moov Money</h3>
-                <p className="text-sm text-base-content/60 mb-2">API Configuration</p>
-                <div className="form-control">
-                  <label className="label cursor-pointer justify-start gap-2">
-                    <input type="checkbox" className="toggle" defaultChecked />
-                    <span className="label-text">Activé</span>
-                  </label>
-                </div>
-              </div>
-              
-              <div className="text-center p-4 border rounded-lg">
-                <div className="avatar placeholder">
-                  <div className="bg-primary/10 text-primary rounded-full w-16 mx-auto mb-3 flex items-center justify-center">
-                    <span className="text-xl">M</span>
-                  </div>
-                </div>
-                <h3 className="font-semibold">MTN Money</h3>
-                <p className="text-sm text-base-content/60 mb-2">API Configuration</p>
-                <div className="form-control">
-                  <label className="label cursor-pointer justify-start gap-2">
-                    <input type="checkbox" className="toggle" defaultChecked />
-                    <span className="label-text">Activé</span>
-                  </label>
-                </div>
-              </div>
-              
-              <div className="text-center p-4 border rounded-lg">
-                <div className="avatar placeholder">
-                  <div className="bg-warning/10 text-warning rounded-full w-16 mx-auto mb-3 flex items-center justify-center">
-                    <span className="text-xl">O</span>
-                  </div>
-                </div>
-                <h3 className="font-semibold">MTN ONATEL</h3>
-                <p className="text-sm text-base-content/60 mb-2">API Configuration</p>
-                <div className="form-control">
-                  <label className="label cursor-pointer justify-start gap-2">
-                    <input type="checkbox" className="toggle" />
-                    <span className="label-text">Activé</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
+                        <div className="form-control">
+                            <label className="cursor-pointer label p-0">
+                                <input type="checkbox" className="toggle toggle-sm toggle-primary" checked={config.statut === 'Actif'} readOnly />
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <h3 className="font-bold text-lg text-base-content">{config.nom}</h3>
+                    <p className="text-sm text-base-content/60 mb-4">{config.operateur}</p>
+                    
+                    <div className="space-y-3 bg-base-200/50 rounded-xl p-4 mb-4">
+                         <div className="flex justify-between text-sm">
+                             <span className="text-base-content/60">Numéro:</span>
+                             <span className="font-mono font-medium text-base-content">{config.numero}</span>
+                         </div>
+                         <div className="flex justify-between text-sm">
+                             <span className="text-base-content/60">Seuil Max:</span>
+                             <span className="font-medium text-base-content">{config.seuil.toLocaleString()} F</span>
+                         </div>
+                    </div>
 
-      {activeTab === 'rapports' && (
-        <div className="space-y-6">
-          {/* Filtres pour les rapports */}
-          <Card title="Filtres de rapport">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Période de début</label>
-                <input type="date" className="w-full p-3 border border-base-200 rounded-lg bg-base-100" />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Période de fin</label>
-                <input type="date" className="w-full p-3 border border-base-200 rounded-lg bg-base-100" />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Opérateur</label>
-                <select className="w-full p-3 border border-base-200 rounded-lg bg-base-100">
-                  <option value="tous">Tous les opérateurs</option>
-                  <option value="Moov Money">Moov Money</option>
-                  <option value="MTN Money">MTN Money</option>
-                  <option value="MTN ONATEL">MTN ONATEL</option>
-                </select>
-              </div>
-              
-              <div className="flex items-end">
-                <Button variant="primary" className="w-full">
-                  Générer le rapport
-                </Button>
-              </div>
-            </div>
-          </Card>
-          
-          {/* Graphiques */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card title="Évolution des transactions">
-              <div className="h-64 flex items-center justify-center">
-                <div className="text-center">
-                  <TrendingUp size={48} className="mx-auto text-primary mb-2" />
-                  <p className="text-base-content/60">Graphique des transactions</p>
-                </div>
-              </div>
-            </Card>
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <Button variant="outline" size="sm" className="flex-1 border-base-200">
+                             Modifier
+                         </Button>
+                         <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
+                             <Trash2 size={18} />
+                         </Button>
+                    </div>
+                </Card>
+            ))}
             
-            <Card title="Répartition par opérateur">
-              <div className="h-64 flex items-center justify-center">
-                <div className="text-center">
-                  <Wallet size={48} className="mx-auto text-primary mb-2" />
-                  <p className="text-base-content/60">Graphique par opérateur</p>
+            {/* Add New Card Placeholder */}
+            <div 
+                className="border-2 border-dashed border-base-300 rounded-2xl flex flex-col items-center justify-center p-8 text-base-content/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all cursor-pointer min-h-[300px]"
+                onClick={() => {
+                     setFormType('configuration');
+                     setShowForm(true);
+                }}
+            >
+                <div className="p-4 rounded-full bg-base-200 mb-3 group-hover:bg-base-100 transition-colors">
+                    <Plus size={32} />
                 </div>
-              </div>
-            </Card>
-          </div>
-          
-          {/* Résumé financier */}
-          <Card title="Résumé des transactions">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="text-center">
-                <p className="text-3xl font-bold text-success">2,300,000</p>
-                <p className="text-sm text-base-content/60">Reçus</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-error">500,000</p>
-                <p className="text-sm text-base-content/60">Envoyés</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-primary">1,800,000</p>
-                <p className="text-sm text-base-content/60">Solde net</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-info">18,000</p>
-                <p className="text-sm text-base-content/60">Frais totaux</p>
-              </div>
+                <span className="font-bold">Ajouter un compte</span>
             </div>
-          </Card>
-        </div>
+        </motion.div>
       )}
-    </div>
+      </AnimatePresence>
+
+      {/* Simplified Modal for Forms */}
+      {showForm && (
+           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+               <motion.div 
+                    initial={{scale: 0.9, opacity: 0}}
+                    animate={{scale: 1, opacity: 1}}
+                    className="bg-base-100 rounded-3xl shadow-2xl max-w-lg w-full p-6"
+                >
+                   <div className="flex justify-between items-center mb-6">
+                       <h3 className="text-xl font-bold text-base-content">
+                           {formType === 'transaction' ? 'Nouvelle Transaction' : 'Nouveau Compte Mobile'}
+                       </h3>
+                       <button onClick={() => setShowForm(false)} className="btn btn-ghost btn-circle btn-sm">
+                           <XCircle size={24} className="text-base-content/40" />
+                       </button>
+                   </div>
+                   
+                   <div className="space-y-4">
+                       <Input label="Nom / Référence" placeholder="Ex: Paiement Loyer..." />
+                       <div className="grid grid-cols-2 gap-4">
+                           <Input label="Montant" placeholder="0 F CFA" type="number" />
+                           <div>
+                               <label className="block text-sm font-bold text-base-content/70 mb-2">Opérateur</label>
+                               <select className="select select-bordered w-full bg-base-200/50">
+                                   <option>Moov Money</option>
+                                   <option>MTN Money</option>
+                               </select>
+                           </div>
+                       </div>
+                   </div>
+
+                   <div className="flex justify-end gap-3 mt-8">
+                       <Button variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
+                       <Button variant="primary" onClick={() => setShowForm(false)}>Enregistrer</Button>
+                   </div>
+               </motion.div>
+           </div>
+      )}
+    </motion.div>
   );
 };
 

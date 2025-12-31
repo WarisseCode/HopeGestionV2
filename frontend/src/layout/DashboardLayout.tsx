@@ -24,6 +24,7 @@ import {
 import { Link, useLocation } from 'react-router-dom';
 import ThemeToggle from '../components/ui/ThemeToggle';
 import { getProfile } from '../api/authApi';
+import ChatBot from '../components/ChatBot';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -298,6 +299,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
         </main>
 
       </div>
+      <ChatBot />
     </div>
   );
 };

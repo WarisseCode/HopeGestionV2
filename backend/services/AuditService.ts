@@ -37,11 +37,11 @@ export class AuditService {
         };
         
         const values = [
-            null, // Ne pas insérer user_id dans le champ UUID
+            entry.userId, // Passer l'ID utilisateur (converti en string ou int selon la DB)
             entry.userName || 'System/Unknown',
             entry.action,
             entry.entityType || null,
-            null, // Ne pas insérer entity_id dans le champ UUID
+            entry.entityId || null, // Passer l'ID de l'entité
             JSON.stringify(detailsWithIds),
             entry.ipAddress || null,
             entry.userAgent || null

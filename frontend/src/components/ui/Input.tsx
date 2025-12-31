@@ -38,7 +38,7 @@ const Input: React.FC<InputProps> = ({
           className={`w-full py-2.5 px-3 ${startIcon ? 'pl-10' : ''} ${endIcon ? 'pr-10' : ''} bg-transparent border-0 focus:ring-0 focus:outline-none text-base-content placeholder-base-content/50 ${className}`}
         />
         {endIcon && (
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-base-content/50">
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center text-base-content/50">
             {endIcon}
           </div>
         )}

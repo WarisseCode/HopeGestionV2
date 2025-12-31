@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Button from './ui/Button';
 import Input from './ui/Input';
+import PhoneInput from './ui/PhoneInput';
 import Alert from './ui/Alert';
 import Select from './ui/Select';
 import { registerUser } from '../api/authApi';
@@ -139,14 +140,12 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
                 required
               />
               
-              <Input
+              <PhoneInput
                 label="Téléphone"
                 name="telephone"
-                type="tel"
-                placeholder="+229 00 000 000"
                 value={formData.telephone}
-                onChange={handleChange}
-                startIcon={<Phone size={16} />}
+                onChange={(fullNumber) => setFormData(prev => ({ ...prev, telephone: fullNumber }))}
+                defaultCountry="BJ"
                 required
               />
               
@@ -157,6 +156,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
+                autoComplete="new-password"
                 startIcon={<Lock size={16} />}
                 endIcon={
                   <button
@@ -177,6 +177,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
                 placeholder="••••••••"
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                autoComplete="new-password"
                 startIcon={<Lock size={16} />}
                 endIcon={
                   <button

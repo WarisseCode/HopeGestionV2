@@ -1,7 +1,7 @@
 // frontend/src/components/public/PropertyCarousel.tsx
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Home, ArrowRight, Maximize2 } from 'lucide-react';
+import { MapPin, Home, ArrowRight, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { mockProperties } from '../../data/mockProperties';
 import type { PublicProperty } from '../../data/mockProperties';
@@ -18,21 +18,12 @@ const carouselStyles = `
     }
   }
   
-  @keyframes shimmer {
-    0% {
-      background-position: -200% 0;
-    }
-    100% {
-      background-position: 200% 0;
-    }
-  }
-  
   .animate-scroll-left {
-    animation: scrollLeft 45s linear infinite;
+    animation: scrollLeft 40s linear infinite;
     will-change: transform;
   }
   
-  .animate-scroll-left:hover {
+  .animate-scroll-left.paused {
     animation-play-state: paused;
   }
   
@@ -40,32 +31,21 @@ const carouselStyles = `
     mask-image: linear-gradient(
       to right,
       transparent,
-      black 5%,
-      black 95%,
+      black 3%,
+      black 97%,
       transparent
     );
     -webkit-mask-image: linear-gradient(
       to right,
       transparent,
-      black 5%,
-      black 95%,
+      black 3%,
+      black 97%,
       transparent
     );
   }
   
   .property-card-glow:hover {
     box-shadow: 0 20px 40px -10px rgba(var(--p), 0.3);
-  }
-  
-  .shimmer-badge {
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255,255,255,0.3),
-      transparent
-    );
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
   }
 `;
 
@@ -175,9 +155,36 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onViewDetails }) 
 
 const PropertyCarousel: React.FC = () => {
   const navigate = useNavigate();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isPaused, setIsPaused] = useState(false);
   
   // Dupliquer les propriétés pour l'effet infini
   const duplicatedProperties = [...mockProperties, ...mockProperties];
+  
+  const cardWidth = 340 + 32; // card width + gap
+
+  const scroll = (direction: 'left' | 'right') => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      const scrollAmount = direction === 'left' ? -cardWidth : cardWidth;
+      // Get the animated div inside
+      const animatedDiv = container.querySelector('.animate-scroll-left') as HTMLElement;
+      if (animatedDiv) {
+        // Get current computed transform
+        const style = window.getComputedStyle(animatedDiv);
+        const matrix = new DOMMatrix(style.transform);
+        const currentX = matrix.m41;
+        
+        // Temporarily pause, apply offset, then resume
+        setIsPaused(true);
+        animatedDiv.style.transform = `translateX(${currentX + scrollAmount}px)`;
+        
+        setTimeout(() => {
+          setIsPaused(false);
+        }, 100);
+      }
+    }
+  };
 
   const handleViewDetails = (id: number) => {
     navigate(`/biens-disponibles?property=${id}`);
@@ -215,9 +222,34 @@ const PropertyCarousel: React.FC = () => {
 
         {/* Carousel Container */}
         <div className="relative">
-          {/* Scrolling container with edge mask */}
-          <div className="overflow-hidden py-6 carousel-container">
-            <div className="flex gap-8 animate-scroll-left" style={{ width: 'max-content' }}>
+          {/* Navigation Buttons */}
+          <button
+            onClick={() => scroll('left')}
+            className="absolute left-0 top-1/2 z-20 w-12 h-12 rounded-full bg-base-100 shadow-xl border border-base-200 flex items-center justify-center transition-all duration-300 opacity-90 hover:bg-primary hover:text-white hover:scale-110 cursor-pointer"
+            style={{ transform: 'translate(-50%, -50%)' }}
+          >
+            <ChevronLeft size={24} />
+          </button>
+          
+          <button
+            onClick={() => scroll('right')}
+            className="absolute right-0 top-1/2 z-20 w-12 h-12 rounded-full bg-base-100 shadow-xl border border-base-200 flex items-center justify-center transition-all duration-300 opacity-90 hover:bg-primary hover:text-white hover:scale-110 cursor-pointer"
+            style={{ transform: 'translate(50%, -50%)' }}
+          >
+            <ChevronRight size={24} />
+          </button>
+
+          {/* Scrolling container with infinite animation */}
+          <div 
+            ref={scrollContainerRef}
+            className="overflow-hidden py-6 carousel-container"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+          >
+            <div 
+              className={`flex gap-8 animate-scroll-left ${isPaused ? 'paused' : ''}`}
+              style={{ width: 'max-content' }}
+            >
               {duplicatedProperties.map((property, index) => (
                 <PropertyCard
                   key={`${property.id}-${index}`}

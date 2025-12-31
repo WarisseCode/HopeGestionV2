@@ -4,605 +4,277 @@ import {
   FileText, 
   Download, 
   Calendar, 
-  Users,
-  Home,
-  Wallet,
   TrendingUp,
-  TrendingDown,
   BarChart3,
   PieChart,
-  Table,
   Filter,
   Eye,
-  Settings,
-  Edit3,
-  Trash2
+  Sliders,
+  Printer
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
-import Input from '../components/ui/Input';
-import Alert from '../components/ui/Alert';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  Legend
+} from 'recharts';
 
 const Rapports: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'rapports' | 'modeles' | 'programmes'>('rapports');
-  const [selectedPeriod, setSelectedPeriod] = useState<'jour' | 'semaine' | 'mois' | 'trimestre' | 'annee'>('mois');
+  const [activeTab, setActiveTab] = useState<'rapports' | 'statistiques'>('statistiques');
+  const [selectedPeriod, setSelectedPeriod] = useState<'mois' | 'trimestre' | 'annee'>('mois');
 
-  // Données de démonstration pour les rapports
-  const [rapportsDisponibles] = useState([
-    {
-      id: 1,
-      nom: 'Rapport des loyers',
-      description: 'Recouvrement des loyers par période',
-      type: 'Financier',
-      dateDerniereGeneration: '2025-01-15',
-      statut: 'Mis à jour'
-    },
-    {
-      id: 2,
-      nom: 'Rapport des occupants',
-      description: 'Taux d\'occupation des lots',
-      type: 'Occupation',
-      dateDerniereGeneration: '2025-01-15',
-      statut: 'Mis à jour'
-    },
-    {
-      id: 3,
-      nom: 'Rapport des dépenses',
-      description: 'Dépenses par catégorie',
-      type: 'Financier',
-      dateDerniereGeneration: '2025-01-15',
-      statut: 'Mis à jour'
-    },
-    {
-      id: 4,
-      nom: 'Rapport des interventions',
-      description: 'Interventions par fournisseur',
-      type: 'Intervention',
-      dateDerniereGeneration: '2025-01-15',
-      statut: 'Mis à jour'
-    },
-    {
-      id: 5,
-      nom: 'Rapport des contrats',
-      description: 'Contrats expirant dans les 30 jours',
-      type: 'Contrat',
-      dateDerniereGeneration: '2025-01-15',
-      statut: 'Mis à jour'
-    },
-    {
-      id: 6,
-      nom: 'Rapport des propriétaires',
-      description: 'Liste des propriétaires et leurs biens',
-      type: 'Propriétaire',
-      dateDerniereGeneration: '2025-01-15',
-      statut: 'Mis à jour'
-    }
+  // Données de démonstration
+  const [rapports] = useState([
+    { id: 1, nom: 'Rapport des loyers', description: 'Recouvrement des loyers par période', type: 'Financier', date: '2025-01-15' },
+    { id: 2, nom: 'Rapport d\'occupation', description: 'Taux d\'occupation des lots', type: 'Exploitation', date: '2025-01-15' },
+    { id: 3, nom: 'Rapport des dépenses', description: 'Dépenses par catégorie et par bien', type: 'Financier', date: '2025-01-15' },
+    { id: 4, nom: 'Rapport fiscal annuel', description: 'Préparation pour la déclaration fiscale', type: 'Fiscalité', date: '2025-01-10' },
+    { id: 5, nom: 'État des lieux global', description: 'Synthèse des états des lieux entrants/sortants', type: 'Exploitation', date: '2025-01-05' },
   ]);
 
-  // Données pour les graphiques
-  const loyerData = [
-    { mois: 'Jan', montant: 1200000 },
-    { mois: 'Fév', montant: 1500000 },
-    { mois: 'Mar', montant: 1300000 },
-    { mois: 'Avr', montant: 1600000 },
-    { mois: 'Mai', montant: 1400000 },
-    { mois: 'Jun', montant: 1700000 }
+  const revenuData = [
+    { name: 'Jan', revenus: 4000000, depenses: 2400000 },
+    { name: 'Fév', revenus: 3000000, depenses: 1398000 },
+    { name: 'Mar', revenus: 2000000, depenses: 5800000 },
+    { name: 'Avr', revenus: 2780000, depenses: 3908000 },
+    { name: 'Mai', revenus: 1890000, depenses: 4800000 },
+    { name: 'Juin', revenus: 2390000, depenses: 3800000 },
   ];
 
   const occupationData = [
-    { lot: 'A01', occupation: 95 },
-    { lot: 'A02', occupation: 85 },
-    { lot: 'B01', occupation: 100 },
-    { lot: 'B02', occupation: 70 },
-    { lot: 'C01', occupation: 100 }
+    { name: 'Occupé', value: 85, color: '#16a34a' },
+    { name: 'Vacant', value: 10, color: '#dc2626' },
+    { name: 'Travaux', value: 5, color: '#f59e0b' },
   ];
 
-  const depensesData = [
-    { categorie: 'Électricité', montant: 300000 },
-    { categorie: 'Eau', montant: 150000 },
-    { categorie: 'Plomberie', montant: 250000 },
-    { categorie: 'Nettoyage', montant: 100000 },
-    { categorie: 'Sécurité', montant: 200000 }
-  ];
+  const COLORS = ['#16a34a', '#dc2626', '#f59e0b'];
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 }
+  };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <motion.div 
+      className="p-6 md:p-8 space-y-8 max-w-[1700px] mx-auto"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Header */}
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-base-content">Rapports et Analyses</h1>
-          <p className="text-base-content/70">Génération et consultation des rapports</p>
+          <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
+            Rapports & Statistiques <span className="text-primary">.</span>
+          </h1>
+          <p className="text-base-content/60 font-medium mt-1">Analysez la performance de votre parc immobilier.</p>
         </div>
-        <Button variant="primary">
-          <Download size={18} className="mr-2" />
-          Exporter tous les rapports
-        </Button>
-      </div>
+        <div className="flex gap-3">
+            <select 
+                className="select select-bordered bg-base-100 shadow-sm rounded-full h-10 min-h-0"
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value as any)}
+            >
+                <option value="mois">Ce Mois</option>
+                <option value="trimestre">Ce Trimestre</option>
+                <option value="annee">Cette Année</option>
+            </select>
+            <Button variant="ghost" className="bg-base-100 border border-base-200 text-base-content shadow-sm rounded-full h-10">
+                <Printer size={16} className="mr-2" /> Imprimer
+            </Button>
+             <Button variant="primary" className="rounded-full pl-4 pr-6 h-10 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all font-semibold">
+                <Download size={18} className="mr-2" />
+                Exporter Tout
+            </Button>
+        </div>
+      </motion.div>
 
-      {/* Navigation par onglets */}
-      <div className="flex border-b border-base-200">
-        <button
-          className={`px-4 py-2 font-medium text-sm ${
-            activeTab === 'rapports'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-base-content/60 hover:text-base-content'
-          }`}
-          onClick={() => setActiveTab('rapports')}
-        >
-          <div className="flex items-center gap-2">
-            <FileText size={18} />
-            Rapports disponibles
-          </div>
-        </button>
-        <button
-          className={`px-4 py-2 font-medium text-sm ${
-            activeTab === 'modeles'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-base-content/60 hover:text-base-content'
-          }`}
-          onClick={() => setActiveTab('modeles')}
-        >
-          <div className="flex items-center gap-2">
-            <Table size={18} />
-            Modèles de rapports
-          </div>
-        </button>
-        <button
-          className={`px-4 py-2 font-medium text-sm ${
-            activeTab === 'programmes'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-base-content/60 hover:text-base-content'
-          }`}
-          onClick={() => setActiveTab('programmes')}
-        >
-          <div className="flex items-center gap-2">
-            <Settings size={18} />
-            Programmes de génération
-          </div>
-        </button>
-      </div>
+       {/* Tabs */}
+     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-center bg-base-100 rounded-2xl p-2 shadow-sm border border-base-200 mb-6">
+        <div className="flex p-1 bg-base-200/50 rounded-xl overflow-x-auto w-full sm:w-auto">
+             <button
+                onClick={() => setActiveTab('statistiques')}
+                className={`flex-1 sm:flex-none px-8 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap ${
+                activeTab === 'statistiques' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content'
+                }`}
+            >
+                <BarChart3 size={18} />
+                Tableau de Bord
+            </button>
+            <button
+                onClick={() => setActiveTab('rapports')}
+                className={`flex-1 sm:flex-none px-8 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap ${
+                activeTab === 'rapports' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content'
+                }`}
+            >
+                <FileText size={18} />
+                Bibliothèque
+            </button>
+        </div>
+      </motion.div>
 
-      {/* Contenu des onglets */}
+      {/* Content */}
+      <AnimatePresence mode="wait">
+      {activeTab === 'statistiques' && (
+          <motion.div
+             key="stats"
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+             className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+          >
+             {/* Chart 1: Revenue vs Expenses */}
+             <div className="lg:col-span-2">
+                 <Card title="Performance Financière" className="h-96 border-none shadow-xl bg-base-100">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={revenuData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorRevenus" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#16a34a" stopOpacity={0.1}/>
+                                    <stop offset="95%" stopColor="#16a34a" stopOpacity={0}/>
+                                </linearGradient>
+                                <linearGradient id="colorDepenses" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#dc2626" stopOpacity={0.1}/>
+                                    <stop offset="95%" stopColor="#dc2626" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                            <YAxis axisLine={false} tickLine={false} />
+                            <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                            <Area type="monotone" dataKey="revenus" stroke="#16a34a" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenus)" name="Revenus" />
+                            <Area type="monotone" dataKey="depenses" stroke="#dc2626" strokeWidth={3} fillOpacity={1} fill="url(#colorDepenses)" name="Dépenses" />
+                            <Legend />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                 </Card>
+             </div>
+
+             {/* Chart 2: Occupation */}
+             <Card title="Taux d'Occupation" className="h-96 border-none shadow-xl bg-base-100">
+                <div className="h-full flex flex-col items-center justify-center">
+                    <ResponsiveContainer width="100%" height={250}>
+                        <RechartsPieChart>
+                            <Pie
+                                data={occupationData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={80}
+                                paddingAngle={5}
+                                dataKey="value"
+                            >
+                                {occupationData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                            </Pie>
+                            <Tooltip />
+                            <Legend />
+                        </RechartsPieChart>
+                    </ResponsiveContainer>
+                    <div className="text-center mt-4">
+                        <p className="text-3xl font-extrabold text-base-content">85%</p>
+                        <p className="text-base-content/60 font-medium">Taux Global</p>
+                    </div>
+                </div>
+             </Card>
+
+              {/* Stats Grid */}
+             <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-6">
+                {[
+                    { label: "Marge Nette", value: "+ 12%", trend: "up", color: "bg-green-100 dark:bg-green-900/30" },
+                    { label: "Loyer Moyen", value: "150,000 F", trend: "neutral", color: "bg-blue-100 dark:bg-blue-900/30" },
+                    { label: "Taux Impayés", value: "2.4%", trend: "down", color: "bg-red-100 dark:bg-red-900/30" },
+                    { label: "Cash Flow", value: "8.5M", trend: "up", color: "bg-purple-100 dark:bg-purple-900/30" }
+                ].map((stat, i) => (
+                    <Card key={i} className="border-none shadow-lg bg-base-100">
+                         <div className="flex items-center gap-4">
+                             <div className={`p-4 rounded-full ${stat.color} flex items-center justify-center`}>
+                                 <TrendingUp className="text-base-content/50" size={24} />
+                             </div>
+                             <div>
+                                 <p className="text-base-content/60 text-sm font-medium">{stat.label}</p>
+                                 <p className="text-2xl font-bold text-base-content">{stat.value}</p>
+                             </div>
+                         </div>
+                    </Card>
+                ))}
+             </div>
+          </motion.div>
+      )}
+
       {activeTab === 'rapports' && (
-        <div className="space-y-6">
-          {/* Filtres et options */}
-          <Card>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="flex flex-wrap gap-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Période</label>
-                  <select 
-                    className="p-2 border border-base-200 rounded-lg bg-base-100"
-                    value={selectedPeriod}
-                    onChange={(e) => setSelectedPeriod(e.target.value as any)}
-                  >
-                    <option value="jour">Aujourd'hui</option>
-                    <option value="semaine">Cette semaine</option>
-                    <option value="mois">Ce mois</option>
-                    <option value="trimestre">Ce trimestre</option>
-                    <option value="annee">Cette année</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1">Type</label>
-                  <select className="p-2 border border-base-200 rounded-lg bg-base-100">
-                    <option value="tous">Tous les types</option>
-                    <option value="financier">Financier</option>
-                    <option value="occupation">Occupation</option>
-                    <option value="intervention">Intervention</option>
-                    <option value="contrat">Contrat</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1">Format</label>
-                  <select className="p-2 border border-base-200 rounded-lg bg-base-100">
-                    <option value="pdf">PDF</option>
-                    <option value="excel">Excel</option>
-                    <option value="csv">CSV</option>
-                  </select>
-                </div>
-              </div>
-              
-              <Button variant="primary">
-                <Filter size={18} className="mr-2" />
-                Filtrer
-              </Button>
-            </div>
-          </Card>
-          
-          {/* Graphiques principaux */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card title="Évolution des loyers perçus">
-              <div className="h-64 flex items-center justify-center">
-                <div className="text-center">
-                  <BarChart3 size={48} className="mx-auto text-primary mb-2" />
-                  <p className="text-base-content/60">Graphique des loyers</p>
-                </div>
-              </div>
+          <motion.div
+            key="library"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <Card className="border-none shadow-xl bg-base-100 p-0 overflow-hidden">
+                <table className="table w-full">
+                    <thead className="bg-base-200/50">
+                        <tr>
+                            <th className="pl-6 py-4 text-base-content/60 font-semibold">Nom du Rapport</th>
+                            <th className="text-base-content/60 font-semibold">Type</th>
+                            <th className="text-base-content/60 font-semibold">Date de génération</th>
+                            <th className="text-right pr-6 text-base-content/60 font-semibold">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-base-200">
+                        {rapports.map(rapport => (
+                            <tr key={rapport.id} className="hover:bg-base-200/50 transition-colors">
+                                <td className="pl-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                                            <FileText size={20} />
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-base-content">{rapport.nom}</div>
+                                            <div className="text-xs text-base-content/60">{rapport.description}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span className="badge badge-ghost font-medium">{rapport.type}</span></td>
+                                <td className="font-mono text-sm text-base-content/60">
+                                    <div className="flex items-center gap-2">
+                                        <Calendar size={14} className="text-base-content/40"/>
+                                        {rapport.date}
+                                    </div>
+                                </td>
+                                <td className="text-right pr-6">
+                                    <Button variant="ghost" size="sm" className="btn-square text-base-content/40 hover:text-primary mr-2">
+                                        <Eye size={18} />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" className="btn-square text-base-content/40 hover:text-primary">
+                                        <Download size={18} />
+                                    </Button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </Card>
-            
-            <Card title="Taux d'occupation par lot">
-              <div className="h-64 flex items-center justify-center">
-                <div className="text-center">
-                  <PieChart size={48} className="mx-auto text-primary mb-2" />
-                  <p className="text-base-content/60">Graphique d'occupation</p>
-                </div>
-              </div>
-            </Card>
-          </div>
-          
-          {/* Liste des rapports disponibles */}
-          <Card title="Rapports disponibles">
-            <div className="overflow-x-auto">
-              <table className="table w-full">
-                <thead>
-                  <tr>
-                    <th>Nom</th>
-                    <th>Description</th>
-                    <th>Type</th>
-                    <th>Dernière génération</th>
-                    <th>Statut</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rapportsDisponibles.map((rapport) => (
-                    <tr key={rapport.id}>
-                      <td>
-                        <div className="font-medium">{rapport.nom}</div>
-                      </td>
-                      <td>
-                        <div className="text-sm text-base-content/60">{rapport.description}</div>
-                      </td>
-                      <td>
-                        <span className="badge badge-primary">{rapport.type}</span>
-                      </td>
-                      <td>{new Date(rapport.dateDerniereGeneration).toLocaleDateString()}</td>
-                      <td>
-                        <span className="badge badge-success">{rapport.statut}</span>
-                      </td>
-                      <td>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye size={16} />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Download size={16} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
+          </motion.div>
       )}
-
-      {activeTab === 'modeles' && (
-        <div className="space-y-6">
-          {/* Modèles de rapports */}
-          <Card title="Modèles de rapports prédéfinis">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="avatar placeholder">
-                    <div className="bg-primary/10 text-primary rounded-full w-10 flex items-center justify-center">
-                      <FileText size={20} />
-                    </div>
-                  </div>
-                  <h3 className="font-semibold">Rapport des loyers</h3>
-                </div>
-                <p className="text-sm text-base-content/60 mb-4">Détail des loyers perçus par période</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs badge badge-primary">Financier</span>
-                  <Button variant="ghost" size="sm">Utiliser</Button>
-                </div>
-              </Card>
-              
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="avatar placeholder">
-                    <div className="bg-success/10 text-success rounded-full w-10 flex items-center justify-center">
-                      <Home size={20} />
-                    </div>
-                  </div>
-                  <h3 className="font-semibold">Rapport d'occupation</h3>
-                </div>
-                <p className="text-sm text-base-content/60 mb-4">Taux d'occupation des lots par immeuble</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs badge badge-success">Occupation</span>
-                  <Button variant="ghost" size="sm">Utiliser</Button>
-                </div>
-              </Card>
-              
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="avatar placeholder">
-                    <div className="bg-warning/10 text-warning rounded-full w-10 flex items-center justify-center">
-                      <Wallet size={20} />
-                    </div>
-                  </div>
-                  <h3 className="font-semibold">Rapport des dépenses</h3>
-                </div>
-                <p className="text-sm text-base-content/60 mb-4">Dépenses par catégorie et fournisseur</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs badge badge-warning">Financier</span>
-                  <Button variant="ghost" size="sm">Utiliser</Button>
-                </div>
-              </Card>
-              
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="avatar placeholder">
-                    <div className="bg-info/10 text-info rounded-full w-10 flex items-center justify-center">
-                      <TrendingUp size={20} />
-                    </div>
-                  </div>
-                  <h3 className="font-semibold">Rapport des interventions</h3>
-                </div>
-                <p className="text-sm text-base-content/60 mb-4">Interventions par fournisseur et coût</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs badge badge-info">Intervention</span>
-                  <Button variant="ghost" size="sm">Utiliser</Button>
-                </div>
-              </Card>
-              
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="avatar placeholder">
-                    <div className="bg-error/10 text-error rounded-full w-10 flex items-center justify-center">
-                      <Users size={20} />
-                    </div>
-                  </div>
-                  <h3 className="font-semibold">Rapport des locataires</h3>
-                </div>
-                <p className="text-sm text-base-content/60 mb-4">Statut des locataires et contrats</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs badge badge-error">Locataire</span>
-                  <Button variant="ghost" size="sm">Utiliser</Button>
-                </div>
-              </Card>
-              
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="avatar placeholder">
-                    <div className="bg-secondary/10 text-secondary rounded-full w-10 flex items-center justify-center">
-                      <Settings size={20} />
-                    </div>
-                  </div>
-                  <h3 className="font-semibold">Rapport personnalisé</h3>
-                </div>
-                <p className="text-sm text-base-content/60 mb-4">Créer un rapport selon vos besoins</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs badge badge-secondary">Personnalisé</span>
-                  <Button variant="ghost" size="sm">Créer</Button>
-                </div>
-              </Card>
-            </div>
-          </Card>
-          
-          {/* Création de rapport personnalisé */}
-          <Card title="Création de rapport personnalisé">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Input 
-                  label="Nom du rapport" 
-                  placeholder="Entrez un nom pour votre rapport" 
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Type de rapport</label>
-                <select className="w-full p-3 border border-base-200 rounded-lg bg-base-100">
-                  <option value="financier">Financier</option>
-                  <option value="occupation">Occupation</option>
-                  <option value="intervention">Intervention</option>
-                  <option value="contrat">Contrat</option>
-                  <option value="locataire">Locataire</option>
-                  <option value="proprietaire">Propriétaire</option>
-                </select>
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Champs à inclure</label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="checkbox" defaultChecked />
-                    <span>Nom</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="checkbox" defaultChecked />
-                    <span>Date</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="checkbox" defaultChecked />
-                    <span>Montant</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="checkbox" />
-                    <span>Statut</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="checkbox" />
-                    <span>Propriétaire</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="checkbox" />
-                    <span>Lot</span>
-                  </label>
-                </div>
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Filtres</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Période de début</label>
-                    <input type="date" className="w-full p-3 border border-base-200 rounded-lg bg-base-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Période de fin</label>
-                    <input type="date" className="w-full p-3 border border-base-200 rounded-lg bg-base-100" />
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-3 mt-6">
-              <Button variant="ghost">Annuler</Button>
-              <Button variant="primary">Prévisualiser</Button>
-              <Button variant="primary">Générer le rapport</Button>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {activeTab === 'programmes' && (
-        <div className="space-y-6">
-          {/* Programme de génération de rapports */}
-          <Card title="Programmes de génération automatique">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Input 
-                  label="Nom du programme" 
-                  placeholder="Entrez un nom pour le programme" 
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Rapport à générer</label>
-                <select className="w-full p-3 border border-base-200 rounded-lg bg-base-100">
-                  <option value="">Sélectionnez un rapport</option>
-                  {rapportsDisponibles.map(rapport => (
-                    <option key={rapport.id} value={rapport.id}>{rapport.nom}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Fréquence</label>
-                <select className="w-full p-3 border border-base-200 rounded-lg bg-base-100">
-                  <option value="quotidien">Quotidien</option>
-                  <option value="hebdomadaire">Hebdomadaire</option>
-                  <option value="mensuel">Mensuel</option>
-                  <option value="trimestriel">Trimestriel</option>
-                  <option value="annuel">Annuel</option>
-                </select>
-              </div>
-              
-              <div>
-                <Input 
-                  label="Heure d'exécution" 
-                  type="time"
-                  placeholder="Sélectionnez l'heure" 
-                />
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Destinataires</label>
-                <select className="w-full p-3 border border-base-200 rounded-lg bg-base-100 mb-2">
-                  <option value="">Sélectionnez les destinataires</option>
-                  <option value="gestionnaire">Gestionnaire</option>
-                  <option value="proprietaire">Propriétaire</option>
-                  <option value="comptable">Comptable</option>
-                </select>
-                <p className="text-sm text-base-content/60">Sélectionnez les utilisateurs qui recevront le rapport automatiquement</p>
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Format</label>
-                <div className="flex flex-wrap gap-4">
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="checkbox" defaultChecked />
-                    <span>PDF</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="checkbox" />
-                    <span>Excel</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="checkbox" />
-                    <span>Email</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-3 mt-6">
-              <Button variant="ghost">Annuler</Button>
-              <Button variant="primary">Enregistrer le programme</Button>
-            </div>
-          </Card>
-          
-          {/* Liste des programmes */}
-          <Card title="Programmes actifs">
-            <div className="overflow-x-auto">
-              <table className="table w-full">
-                <thead>
-                  <tr>
-                    <th>Nom</th>
-                    <th>Rapport</th>
-                    <th>Fréquence</th>
-                    <th>Prochaine exécution</th>
-                    <th>Statut</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Rapport mensuel des loyers</td>
-                    <td>Rapport des loyers</td>
-                    <td>Mensuel</td>
-                    <td>2025-02-01</td>
-                    <td>
-                      <span className="badge badge-success">Actif</span>
-                    </td>
-                    <td>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm">
-                          <Eye size={16} />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Edit3 size={16} />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-error">
-                          <Trash2 size={16} />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Rapport hebdomadaire des interventions</td>
-                    <td>Rapport des interventions</td>
-                    <td>Hebdomadaire</td>
-                    <td>2025-01-20</td>
-                    <td>
-                      <span className="badge badge-success">Actif</span>
-                    </td>
-                    <td>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm">
-                          <Eye size={16} />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Edit3 size={16} />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-error">
-                          <Trash2 size={16} />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
-      )}
-    </div>
+      </AnimatePresence>
+    </motion.div>
   );
 };
 

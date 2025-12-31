@@ -12,7 +12,10 @@ import {
   Edit3,
   Eye,
   EyeOff,
-  Trash2
+  Trash2,
+  CheckCircle,
+  MoreVertical,
+  Key
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -21,7 +24,7 @@ import Alert from '../components/ui/Alert';
 import Select from '../components/ui/Select';
 import { getProprietaires, getUtilisateurs, saveProprietaire, saveUtilisateur, saveAutorisation } from '../api/accountApi';
 import { getRole } from '../api/authApi';
-import { getToken } from '../api/authApi'; // Assuming getToken is also needed directly or indirectly, but getRole is the key addition
+import { motion, AnimatePresence } from 'framer-motion';
 
 const MonCompte: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'proprietaires' | 'utilisateurs' | 'autorisation'>('proprietaires');
@@ -31,49 +34,20 @@ const MonCompte: React.FC = () => {
   
   // State pour le formulaire propriétaire
   const [editingProp, setEditingProp] = useState<any>({
-    type: 'individual',
-    nom: '',
-    prenom: '',
-    telephone: '',
-    telephoneSecondaire: '',
-    email: '',
-    adresse: '',
-    ville: '',
-    pays: 'Bénin',
-    numeroPiece: '',
-    modeGestion: 'direct'
+    type: 'individual', nom: '', prenom: '', telephone: '', telephoneSecondaire: '',
+    email: '', adresse: '', ville: '', pays: 'Bénin', numeroPiece: '', modeGestion: 'direct'
   });
 
   // State pour le formulaire utilisateur
   const [editingUser, setEditingUser] = useState<any>({
-    nom: '',
-    prenoms: '',
-    telephone: '',
-    email: '',
-    role: '',
-    statut: 'Actif'
+    nom: '', prenoms: '', telephone: '', email: '', role: '', statut: 'Actif'
   });
 
   const [autorisation, setAutorisation] = useState({
-    utilisateur: '',
-    proprietaire: '',
-    role: 'viewer',
-    modules: {
-      biens: false,
-      finances: false,
-      locataires: false,
-      paiements: false,
-      contrats: false,
-      interventions: false
-    },
-    niveauAcces: {
-      lecture: false,
-      ecriture: false,
-      suppression: false,
-      validation: false
-    },
-    dateDebut: new Date().toISOString().split('T')[0],
-    dateFin: ''
+    utilisateur: '', proprietaire: '', role: 'viewer',
+    modules: { biens: false, finances: false, locataires: false, paiements: false, contrats: false, interventions: false },
+    niveauAcces: { lecture: false, ecriture: false, suppression: false, validation: false },
+    dateDebut: new Date().toISOString().split('T')[0], dateFin: ''
   });
 
   const [loading, setLoading] = useState(true);
@@ -82,31 +56,15 @@ const MonCompte: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      // Keep loading only for initial load to avoid flashing
       if (proprietaires.length === 0) setLoading(true);
-      
-      console.log('Fetching account data...');
-      
       const userRole = getRole();
       const promises: Promise<any>[] = [getProprietaires()];
-      
-      if (userRole === 'admin') {
-         promises.push(getUtilisateurs());
-      }
+      if (userRole === 'admin') promises.push(getUtilisateurs());
 
       const results = await Promise.all(promises);
-      const propData = results[0];
-      const userData = results[1] || []; // Will be undefined if not fetched
-
-      console.log('Propriétaires fetched:', propData);
-      
-      setProprietaires(propData);
-      if (userRole === 'admin') {
-        setUtilisateurs(userData);
-      }
+      setProprietaires(results[0]);
+      if (userRole === 'admin') setUtilisateurs(results[1] || []);
     } catch (err: any) {
-      console.error('Error fetching data:', err);
-      // Don't block the UI completely if one part fails, but here we assume critical failure if catch block is hit
       setError(err.message || 'Erreur lors du chargement des données');
     } finally {
       setLoading(false);
@@ -126,7 +84,7 @@ const MonCompte: React.FC = () => {
         type: 'individual', nom: '', prenom: '', telephone: '', telephoneSecondaire: '',
         email: '', adresse: '', ville: '', pays: 'Bénin', numeroPiece: '', modeGestion: 'direct'
       });
-      await fetchData(); // Wait for fetch to complete
+      await fetchData();
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la sauvegarde');
     }
@@ -147,9 +105,7 @@ const MonCompte: React.FC = () => {
   const handleSaveAutorisation = async () => {
     try {
       setError(null);
-      if (!autorisation.utilisateur || !autorisation.proprietaire) {
-        throw new Error('Veuillez sélectionner un utilisateur et un propriétaire');
-      }
+      if (!autorisation.utilisateur || !autorisation.proprietaire) throw new Error('Veuillez sélectionner un utilisateur et un propriétaire');
       await saveAutorisation(autorisation);
       setSuccess('Autorisations mises à jour avec succès');
       fetchData();
@@ -158,499 +114,289 @@ const MonCompte: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="p-6 flex justify-center items-center h-full">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-base-content/70">Chargement des données du compte...</p>
-        </div>
-      </div>
-    );
-  }
+  const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
+  const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
+
+  if (loading) return <div className="flex justify-center items-center h-full min-h-[400px]"><div className="loading loading-spinner loading-lg text-primary"></div></div>;
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <motion.div 
+      className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Header */}
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-base-content">Mon Compte</h1>
-          <p className="text-base-content/70">Gestion des propriétaires, utilisateurs et autorisations</p>
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+            Mon Compte & Équipe <span className="text-primary">.</span>
+          </h1>
+          <p className="text-gray-500 font-medium mt-1">
+            Gérez vos informations, vos collaborateurs et les permissions d'accès.
+          </p>
         </div>
-      </div>
+      </motion.div>
 
       {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
       {success && <Alert variant="success" onClose={() => setSuccess(null)}>{success}</Alert>}
 
-      {/* Navigation par onglets */}
-      <div className="flex border-b border-base-200">
-        <button
-          className={`px-4 py-2 font-medium text-sm ${
-            activeTab === 'proprietaires'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-base-content/60 hover:text-base-content'
-          }`}
-          onClick={() => setActiveTab('proprietaires')}
-        >
-          <div className="flex items-center gap-2">
-            <Building2 size={18} />
-            Propriétaires
-          </div>
-        </button>
-        
-        {getRole() === 'admin' && (
-          <>
-            <button
-              className={`px-4 py-2 font-medium text-sm ${
-                activeTab === 'utilisateurs'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-base-content/60 hover:text-base-content'
-              }`}
-              onClick={() => setActiveTab('utilisateurs')}
+       {/* Tabs */}
+     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-center bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
+        <div className="flex p-1 bg-gray-100/50 rounded-xl overflow-x-auto">
+             <button
+                onClick={() => setActiveTab('proprietaires')}
+                className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'proprietaires' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                }`}
             >
-              <div className="flex items-center gap-2">
-                <Users size={18} />
-                Utilisateurs
-              </div>
+                <Building2 size={18} />
+                Propriétaires
             </button>
-            <button
-              className={`px-4 py-2 font-medium text-sm ${
-                activeTab === 'autorisation'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-base-content/60 hover:text-base-content'
-              }`}
-              onClick={() => setActiveTab('autorisation')}
+            {getRole() === 'admin' && (
+                <>
+                <button
+                    onClick={() => setActiveTab('utilisateurs')}
+                    className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
+                    activeTab === 'utilisateurs' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    <Users size={18} />
+                    Utilisateurs
+                </button>
+                <button
+                    onClick={() => setActiveTab('autorisation')}
+                    className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
+                    activeTab === 'autorisation' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    <Shield size={18} />
+                    Autorisations
+                </button>
+                </>
+            )}
+        </div>
+      </motion.div>
+
+      {/* Content */}
+      <AnimatePresence mode="wait">
+        {activeTab === 'proprietaires' && (
+            <motion.div 
+            key="proprietaires"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-6"
             >
-              <div className="flex items-center gap-2">
-                <Shield size={18} />
-                Autorisations
-              </div>
-            </button>
-          </>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Form Column */}
+                    <div className="lg:col-span-1">
+                        <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm sticky top-6">
+                            <h2 className="text-xl font-bold text-gray-800 mb-6">
+                                {editingProp.id ? "Modifier le propriétaire" : "Ajouter un propriétaire"}
+                            </h2>
+                            <div className="space-y-4">
+                                <Select label="Type" value={editingProp.type} onChange={(e) => setEditingProp({...editingProp, type: e.target.value})} options={[{ value: 'individual', label: 'Personne physique' }, { value: 'company', label: 'Personne morale' }]} />
+                                <Input label="Nom / Raison Sociale" value={editingProp.nom} onChange={(e) => setEditingProp({...editingProp, nom: e.target.value})} />
+                                <Input label="Prénom" value={editingProp.prenom} onChange={(e) => setEditingProp({...editingProp, prenom: e.target.value})} />
+                                <Input label="Téléphone (WhatsApp)" value={editingProp.telephone} onChange={(e) => setEditingProp({...editingProp, telephone: e.target.value})} startIcon={<Phone size={16}/>} />
+                                <Input label="Email" value={editingProp.email} onChange={(e) => setEditingProp({...editingProp, email: e.target.value})} startIcon={<Mail size={16}/>} />
+                                <Select label="Mode de gestion" value={editingProp.modeGestion} onChange={(e) => setEditingProp({...editingProp, modeGestion: e.target.value})} options={[{ value: 'direct', label: 'Direct' }, { value: 'delegated', label: 'Délégué' }]} />
+                                
+                                <div className="pt-4 flex justify-end gap-2">
+                                     <Button variant="ghost" size="sm" onClick={() => setEditingProp({ type: 'individual', nom: '', prenom: '', telephone: '', pays: 'Bénin', modeGestion: 'direct' })}>Effacer</Button>
+                                     <Button variant="primary" onClick={handleSaveProprietaire}>{editingProp.id ? "Mettre à jour" : "Enregistrer"}</Button>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+
+                    {/* List Column */}
+                    <div className="lg:col-span-2">
+                        <Card className="border-none shadow-xl bg-white p-0 overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="table w-full">
+                                    <thead className="bg-gray-50/50">
+                                        <tr>
+                                            <th className="py-4 pl-6">Nom & Prénoms</th>
+                                            <th>Type</th>
+                                            <th>Contact</th>
+                                            <th>Localisation</th>
+                                            <th className="pr-6 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {proprietaires.map((prop) => (
+                                            <tr key={prop.id} className="hover:bg-gray-50/50 transition-colors">
+                                                <td className="pl-6">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="avatar placeholder">
+                                                            <div className="bg-primary/10 text-primary rounded-full w-10 h-10 flex items-center justify-center font-bold">
+                                                                {prop.nom ? prop.nom.charAt(0) : '?'}
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-bold text-gray-800">{prop.nom} {prop.prenom}</div>
+                                                            <div className="text-xs text-gray-400">{prop.modeGestion === 'direct' ? 'Gestion Directe' : 'Gestion Déléguée'}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td><span className="badge badge-ghost badge-sm">{prop.type === 'individual' ? 'Physique' : 'Morale'}</span></td>
+                                                <td>
+                                                    <div className="text-sm font-medium">{prop.telephone}</div>
+                                                    <div className="text-xs text-gray-400">{prop.email}</div>
+                                                </td>
+                                                <td className="text-sm text-gray-600">{prop.ville || '-'}</td>
+                                                <td className="pr-6 text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button variant="ghost" size="sm" className="btn-square btn-xs" onClick={() => setEditingProp(prop)}><Edit3 size={14}/></Button>
+                                                        <Button variant="ghost" size="sm" className="btn-square btn-xs text-error"><Trash2 size={14}/></Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                         {proprietaires.length === 0 && (
+                                            <tr><td colSpan={5} className="text-center py-8 text-gray-400">Aucun propriétaire trouvé. Comencez par en ajouter un.</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </Card>
+                    </div>
+                </div>
+            </motion.div>
         )}
-      </div>
 
-      {/* Contenu des onglets */}
-      {activeTab === 'proprietaires' && (
-        <div className="space-y-6">
-          <Card title={editingProp.id ? "Modifier le propriétaire" : "Créer un propriétaire"}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Select
-                label="Type de propriétaire"
-                value={editingProp.type}
-                onChange={(e) => setEditingProp({...editingProp, type: e.target.value})}
-                options={[
-                  { value: 'individual', label: 'Personne physique' },
-                  { value: 'company', label: 'Personne morale' }
-                ]}
-              />
-              
-              <div>
-                <Input 
-                  label="Nom ou Raison sociale" 
-                  placeholder="Entrez le nom"
-                  value={editingProp.nom}
-                  onChange={(e) => setEditingProp({...editingProp, nom: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Prénom (si personne physique)" 
-                  placeholder="Entrez le prénom"
-                  value={editingProp.prenom}
-                  onChange={(e) => setEditingProp({...editingProp, prenom: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Téléphone principal (WhatsApp)" 
-                  placeholder="Entrez le numéro WhatsApp" 
-                  startIcon={<Phone size={16} />}
-                  value={editingProp.telephone}
-                  onChange={(e) => setEditingProp({...editingProp, telephone: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Téléphone secondaire" 
-                  placeholder="Entrez le numéro secondaire" 
-                  startIcon={<Phone size={16} />}
-                  value={editingProp.telephoneSecondaire}
-                  onChange={(e) => setEditingProp({...editingProp, telephoneSecondaire: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Email" 
-                  placeholder="Entrez l'email" 
-                  startIcon={<Mail size={16} />}
-                  value={editingProp.email}
-                  onChange={(e) => setEditingProp({...editingProp, email: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Adresse" 
-                  placeholder="Entrez l'adresse"
-                  value={editingProp.adresse}
-                  onChange={(e) => setEditingProp({...editingProp, adresse: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Ville" 
-                  placeholder="Entrez la ville"
-                  value={editingProp.ville}
-                  onChange={(e) => setEditingProp({...editingProp, ville: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Pays" 
-                  placeholder="Entrez le pays"
-                  value={editingProp.pays}
-                  onChange={(e) => setEditingProp({...editingProp, pays: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Numéro de pièce d'identité ou RCCM" 
-                  placeholder="Entrez le numéro"
-                  value={editingProp.numeroPiece}
-                  onChange={(e) => setEditingProp({...editingProp, numeroPiece: e.target.value})}
-                />
-              </div>
-              
-              <Select
-                label="Mode de gestion"
-                value={editingProp.modeGestion}
-                onChange={(e) => setEditingProp({...editingProp, modeGestion: e.target.value})}
-                options={[
-                  { value: 'direct', label: 'Direct' },
-                  { value: 'delegated', label: 'Délégué' }
-                ]}
-              />
-            </div>
-            
-            <div className="flex justify-end gap-3 mt-6">
-              <Button variant="ghost" onClick={() => setEditingProp({ type: 'individual', nom: '', prenom: '', telephone: '', pays: 'Bénin', modeGestion: 'direct' })}>
-                Réinitialiser
-              </Button>
-              <Button variant="primary" onClick={handleSaveProprietaire}>
-                {editingProp.id ? "Modifier" : "Enregistrer"}
-              </Button>
-            </div>
-          </Card>
-
-          {/* Liste des propriétaires */}
-          <Card title="Liste des propriétaires">
-            <div className="overflow-x-auto">
-              <table className="table w-full">
-                <thead>
-                  <tr>
-                    <th>Nom</th>
-                    <th>Type</th>
-                    <th>Téléphone</th>
-                    <th>Email</th>
-                    <th>Ville</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {proprietaires.map((prop) => (
-                    <tr key={prop.id}>
-                      <td>
-                        <div className="flex items-center gap-3">
-                          <div className="avatar placeholder">
-                            <div className="bg-neutral text-neutral-content rounded-full w-8 flex items-center justify-center">
-                              <span className="text-xs">{prop.nom ? prop.nom.charAt(0) : '?'}</span>
+        {/* Similar structure for Utilisateurs and Autorisations tabs, adapting the premium layout */}
+        {activeTab === 'utilisateurs' && (
+             <motion.div 
+             key="utilisateurs"
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+             className="space-y-6"
+             >
+                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                     <div className="lg:col-span-1">
+                        <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm sticky top-6">
+                            <h2 className="text-xl font-bold text-gray-800 mb-6">
+                                {editingUser.id ? "Modifier l'utilisateur" : "Nouvel Utilisateur"}
+                            </h2>
+                            <div className="space-y-4">
+                                <Input label="Nom" value={editingUser.nom} onChange={(e) => setEditingUser({...editingUser, nom: e.target.value})} startIcon={<User size={16}/>} />
+                                <Input label="Prénoms" value={editingUser.prenoms} onChange={(e) => setEditingUser({...editingUser, prenoms: e.target.value})} />
+                                <Input label="Email" value={editingUser.email} onChange={(e) => setEditingUser({...editingUser, email: e.target.value})} startIcon={<Mail size={16}/>} />
+                                <Input label="Téléphone" value={editingUser.telephone} onChange={(e) => setEditingUser({...editingUser, telephone: e.target.value})} startIcon={<Phone size={16}/>} />
+                                <Select label="Rôle" value={editingUser.role} onChange={(e) => setEditingUser({...editingUser, role: e.target.value})} options={[{ value: 'manager', label: 'Manager' }, { value: 'agent', label: 'Agent' }, { value: 'accountant', label: 'Comptable' }]} />
+                                {!editingUser.id && (
+                                     <Input label="Mot de passe" type={showPassword ? "text" : "password"} value={editingUser.mot_de_passe} onChange={(e) => setEditingUser({...editingUser, mot_de_passe: e.target.value})} endIcon={showPassword ? <EyeOff size={16} onClick={() => setShowPassword(false)}/> : <Eye size={16} onClick={() => setShowPassword(true)}/>} />
+                                )}
+                                <div className="pt-4 flex justify-end gap-2">
+                                     <Button variant="ghost" size="sm" onClick={() => setEditingUser({ nom: '', prenoms: '', telephone: '', email: '', role: '', statut: 'Actif' })}>Effacer</Button>
+                                     <Button variant="primary" onClick={handleSaveUtilisateur}>{editingUser.id ? "Mettre à jour" : "Créer"}</Button>
+                                </div>
                             </div>
-                          </div>
-                          <div>
-                            <div className="font-medium">
-                              {prop.type === 'individual' ? `${prop.nom} ${prop.prenom || ''}` : prop.nom}
+                        </Card>
+                     </div>
+                     <div className="lg:col-span-2">
+                        <Card className="border-none shadow-xl bg-white p-0 overflow-hidden">
+                             <div className="overflow-x-auto">
+                                <table className="table w-full">
+                                    <thead className="bg-gray-50/50">
+                                        <tr>
+                                            <th className="py-4 pl-6">Utilisateur</th>
+                                            <th>Rôle</th>
+                                            <th>Statut</th>
+                                            <th className="pr-6 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {utilisateurs.map((user) => (
+                                            <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
+                                                 <td className="pl-6">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="avatar placeholder">
+                                                            <div className="bg-secondary/10 text-secondary rounded-full w-10 h-10 flex items-center justify-center font-bold">
+                                                                {user.nom.charAt(0)}
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-bold text-gray-800">{user.nom} {user.prenoms}</div>
+                                                            <div className="text-xs text-gray-400">{user.email}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td><span className="badge badge-outline text-xs uppercase">{user.role}</span></td>
+                                                <td><span className={`badge ${user.statut === 'Actif' ? 'badge-success' : 'badge-warning'} badge-sm`}>{user.statut}</span></td>
+                                                <td className="pr-6 text-right">
+                                                     <div className="flex justify-end gap-1">
+                                                        <Button variant="ghost" size="sm" className="btn-square btn-xs" onClick={() => setEditingUser(user)}><Edit3 size={14}/></Button>
+                                                        <Button variant="ghost" size="sm" className="btn-square btn-xs text-error"><Trash2 size={14}/></Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                             </div>
+                        </Card>
+                     </div>
+                 </div>
+             </motion.div>
+        )}
+
+        {activeTab === 'autorisation' && (
+             <motion.div 
+             key="autorisation"
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+             >
+                <Card className="border-none shadow-xl bg-white max-w-4xl mx-auto">
+                    <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                        <Key className="text-primary"/> Gestion des Permissions
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                         <div className="space-y-4">
+                            <Select 
+                                label="Utilisateur" 
+                                value={autorisation.utilisateur} 
+                                onChange={(e) => setAutorisation({...autorisation, utilisateur: e.target.value})} 
+                                options={utilisateurs.map(u => ({value: u.id, label: `${u.nom} ${u.prenoms}`}))} 
+                            />
+                             <Select 
+                                label="Propriétaire / Agence" 
+                                value={autorisation.proprietaire} 
+                                onChange={(e) => setAutorisation({...autorisation, proprietaire: e.target.value})} 
+                                options={proprietaires.map(p => ({value: p.id, label: p.nom}))} 
+                            />
+                            <Select 
+                                label="Rôle Assigné" 
+                                value={autorisation.role} 
+                                onChange={(e) => setAutorisation({...autorisation, role: e.target.value})} 
+                                options={[{ value: 'manager', label: 'Gestionnaire' }, { value: 'viewer', label: 'Observateur' }, { value: 'agent', label: 'Agent' }]} 
+                            />
+                         </div>
+                         <div className="space-y-6">
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">Accès Modules</h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {Object.entries(autorisation.modules).map(([key, value]) => (
+                                        <label key={key} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-primary/30 cursor-pointer bg-gray-50/50 transition-all">
+                                            <input type="checkbox" className="checkbox checkbox-primary checkbox-sm" checked={value} onChange={(e) => setAutorisation({...autorisation, modules: {...autorisation.modules, [key]: e.target.checked}})} />
+                                            <span className="capitalize text-sm font-medium text-gray-600">{key}</span>
+                                        </label>
+                                    ))}
+                                </div>
                             </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="badge badge-primary">{prop.type}</span>
-                      </td>
-                      <td>{prop.telephone}</td>
-                      <td>{prop.email}</td>
-                      <td>{prop.ville}</td>
-                      <td>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => setEditingProp(prop)}>
-                            <Edit3 size={16} />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-error">
-                            <Trash2 size={16} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {proprietaires.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="text-center py-4 text-base-content/50">Aucun propriétaire trouvé</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {activeTab === 'utilisateurs' && (
-        <div className="space-y-6">
-          <Card title={editingUser.id ? "Modifier l'utilisateur" : "Créer un utilisateur"}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Input 
-                  label="Nom" 
-                  placeholder="Entrez le nom" 
-                  startIcon={<User size={16} />}
-                  value={editingUser.nom}
-                  onChange={(e) => setEditingUser({...editingUser, nom: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Prénoms" 
-                  placeholder="Entrez les prénoms" 
-                  value={editingUser.prenoms}
-                  onChange={(e) => setEditingUser({...editingUser, prenoms: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Téléphone (identifiant)" 
-                  placeholder="Entrez le numéro" 
-                  startIcon={<Phone size={16} />}
-                  value={editingUser.telephone}
-                  onChange={(e) => setEditingUser({...editingUser, telephone: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Email" 
-                  placeholder="Entrez l'email" 
-                  startIcon={<Mail size={16} />}
-                  value={editingUser.email}
-                  onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
-                />
-              </div>
-              
-              <Select
-                label="Rôle utilisateur"
-                value={editingUser.role}
-                onChange={(e) => setEditingUser({...editingUser, role: e.target.value})}
-                placeholder="Sélectionnez un rôle"
-                options={[
-                  { value: 'manager', label: 'Administrateur agence (Manager)' },
-                  { value: 'gestionnaire', label: 'Gestionnaire interne' },
-                  { value: 'external_manager', label: 'Gestionnaire externe' },
-                  { value: 'recovery_agent', label: 'Agent recouvreur' },
-                  { value: 'accountant', label: 'Comptable' },
-                  { value: 'owner', label: 'Propriétaire' },
-                  { value: 'service_partner', label: 'Partenaire de services' }
-                ]}
-              />
-
-              {!editingUser.id && (
-                <div>
-                  <Input 
-                    label="Mot de passe initial" 
-                    type={showPassword ? "text" : "password"}
-                    placeholder="password123"
-                    endIcon={showPassword ? <EyeOff size={16} onClick={() => setShowPassword(false)} /> : <Eye size={16} onClick={() => setShowPassword(true)} />}
-                    onChange={(e) => setEditingUser({...editingUser, mot_de_passe: e.target.value})}
-                  />
-                </div>
-              )}
-            </div>
-            
-            <div className="flex justify-end gap-3 mt-6">
-              <Button variant="ghost" onClick={() => setEditingUser({ nom: '', prenoms: '', telephone: '', email: '', role: '', statut: 'Actif' })}>
-                Annuler
-              </Button>
-              <Button variant="primary" onClick={handleSaveUtilisateur}>
-                {editingUser.id ? "Modifier" : "Créer"}
-              </Button>
-            </div>
-          </Card>
-
-          {/* Liste des utilisateurs */}
-          <Card title="Liste des utilisateurs">
-            <div className="overflow-x-auto">
-              <table className="table w-full">
-                <thead>
-                  <tr>
-                    <th>Nom</th>
-                    <th>Rôle</th>
-                    <th>Statut</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {utilisateurs.map((user) => (
-                    <tr key={user.id}>
-                      <td>
-                        <div className="flex items-center gap-3">
-                          <div className="avatar placeholder">
-                            <div className="bg-neutral text-neutral-content rounded-full w-8 flex items-center justify-center">
-                              <span className="text-xs">{user.nom.charAt(0)}</span>
-                            </div>
-                          </div>
-                          <div>{user.nom} {user.prenoms}</div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="badge badge-secondary">{user.role}</span>
-                      </td>
-                      <td>
-                        <span className={`badge ${user.statut === 'Actif' ? 'badge-success' : 'badge-warning'}`}>
-                          {user.statut}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => setEditingUser(user)}>
-                            <Edit3 size={16} />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-error">
-                            <Trash2 size={16} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {activeTab === 'autorisation' && (
-        <div className="space-y-6">
-          <Card title="Délégation d'accès">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Select
-                label="Utilisateur concerné"
-                value={autorisation.utilisateur}
-                onChange={(e) => setAutorisation({...autorisation, utilisateur: e.target.value})}
-                placeholder="Sélectionnez un utilisateur"
-                options={utilisateurs.map(user => ({
-                  value: user.id,
-                  label: `${user.nom} ${user.prenoms}`
-                }))}
-              />
-              
-              <Select
-                label="Propriétaire ou agence concernée"
-                value={autorisation.proprietaire}
-                onChange={(e) => setAutorisation({...autorisation, proprietaire: e.target.value})}
-                placeholder="Sélectionnez un propriétaire"
-                options={proprietaires.map(prop => ({
-                  value: prop.id,
-                  label: prop.type === 'individual' ? `${prop.nom} ${prop.prenom || ''}` : prop.nom
-                }))}
-              />
-
-              <Select
-                label="Rôle assigné"
-                value={autorisation.role}
-                onChange={(e) => setAutorisation({...autorisation, role: e.target.value})}
-                options={[
-                  { value: 'owner', label: 'Propriétaire' },
-                  { value: 'manager', label: 'Gestionnaire' },
-                  { value: 'accountant', label: 'Comptable' },
-                  { value: 'agent', label: 'Agent' },
-                  { value: 'viewer', label: 'Lecteur seul' }
-                ]}
-              />
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Modules autorisés</label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {Object.entries(autorisation.modules).map(([key, value]) => (
-                    <label key={key} className="flex items-center gap-2 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="checkbox checkbox-sm" 
-                        checked={value}
-                        onChange={(e) => setAutorisation({
-                          ...autorisation,
-                          modules: {...autorisation.modules, [key]: e.target.checked}
-                        })}
-                      />
-                      <span className="capitalize">{key}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Niveau d'accès spécifique</label>
-                <div className="flex gap-6">
-                  {Object.entries(autorisation.niveauAcces).map(([key, value]) => (
-                    <label key={key} className="flex items-center gap-2 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="checkbox checkbox-sm checkbox-secondary" 
-                        checked={value}
-                        onChange={(e) => setAutorisation({
-                          ...autorisation,
-                          niveauAcces: {...autorisation.niveauAcces, [key]: e.target.checked}
-                        })}
-                      />
-                      <span className="capitalize">{key}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <Input 
-                  label="Date de début" 
-                  type="date"
-                  value={autorisation.dateDebut}
-                  onChange={(e) => setAutorisation({...autorisation, dateDebut: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Date de fin" 
-                  type="date"
-                  value={autorisation.dateFin}
-                  onChange={(e) => setAutorisation({...autorisation, dateFin: e.target.value})}
-                />
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-3 mt-6">
-              <Button variant="primary" onClick={handleSaveAutorisation}>
-                Appliquer les autorisations
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
-    </div>
+                            <Button variant="primary" className="w-full" onClick={handleSaveAutorisation}>Enregistrer les permissions</Button>
+                         </div>
+                    </div>
+                </Card>
+             </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 

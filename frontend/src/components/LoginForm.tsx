@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { loginUser } from '../api/authApi';
-import { Lock, ArrowLeft, Loader2 } from 'lucide-react';
+import { Lock, ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
@@ -16,6 +16,7 @@ interface LoginFormProps {
 const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onGoBackToHome, onNavigateToSignup }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -76,10 +77,19 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onGoBackToHome, o
 
                     <Input
                         label="Mot de passe"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        endIcon={
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="text-base-content/60 hover:text-base-content cursor-pointer"
+                            >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        }
                         required
                     />
 

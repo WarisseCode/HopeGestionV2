@@ -14,12 +14,15 @@ import {
   Upload,
   Clock,
   CheckCircle,
-  XCircle
+  XCircle,
+  Search,
+  FileCheck
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
-import Alert from '../components/ui/Alert';
+import { motion, AnimatePresence } from 'framer-motion';
+import { KPICard } from '../components/dashboard';
 
 const Contrats: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'locations' | 'ventes' | 'interventions'>('locations');
@@ -28,768 +31,274 @@ const Contrats: React.FC = () => {
 
   // Données de démonstration
   const [contratsLocations] = useState([
-    {
-      id: 1,
-      reference: 'LOC-2025-001',
-      locataire: 'KOFFI Jean',
-      lot: 'A01 - Résidence La Paix',
-      dateDebut: '2025-01-01',
-      dateFin: '2025-12-31',
-      loyer: 150000,
-      charges: 20000,
-      caution: 150000,
-      statut: 'Actif',
-      type: 'Location',
-      fichier: 'contrat_001.pdf',
-      dateSignature: '2024-12-20'
-    },
-    {
-      id: 2,
-      reference: 'LOC-2025-002',
-      locataire: 'DOSSOU Marie',
-      lot: 'A02 - Résidence La Paix',
-      dateDebut: '2025-02-01',
-      dateFin: '2026-01-31',
-      loyer: 80000,
-      charges: 10000,
-      caution: 80000,
-      statut: 'Actif',
-      type: 'Location',
-      fichier: 'contrat_002.pdf',
-      dateSignature: '2024-12-22'
-    }
+    { id: 1, reference: 'LOC-2025-001', locataire: 'KOFFI Jean', lot: 'A01 - Résidence La Paix', dateDebut: '2025-01-01', dateFin: '2025-12-31', loyer: 150000, statut: 'Actif', fichier: 'contrat_001.pdf', dateSignature: '2024-12-20' },
+    { id: 2, reference: 'LOC-2025-002', locataire: 'DOSSOU Marie', lot: 'A02 - Résidence La Paix', dateDebut: '2025-02-01', dateFin: '2026-01-31', loyer: 80000, statut: 'Actif', fichier: 'contrat_002.pdf', dateSignature: '2024-12-22' }
   ]);
 
   const [contratsVentes] = useState([
-    {
-      id: 1,
-      reference: 'VTE-2025-001',
-      acheteur: 'ADJINON Sébastien',
-      lot: 'B01 - Immeuble Le Destin',
-      dateDebut: '2025-01-15',
-      dateFin: '2025-12-15',
-      prixVente: 5000000,
-      avance: 1000000,
-      paiementEcheance: true,
-      statut: 'En cours',
-      type: 'Vente',
-      fichier: 'contrat_vente_001.pdf',
-      dateSignature: '2024-12-21'
-    }
+    { id: 1, reference: 'VTE-2025-001', acheteur: 'ADJINON Sébastien', lot: 'B01 - Immeuble Le Destin', dateDebut: '2025-01-15', dateFin: '2025-12-15', prixVente: 5000000, statut: 'En cours', fichier: 'contrat_vente_001.pdf', dateSignature: '2024-12-21' }
   ]);
 
   const [interventions] = useState([
-    {
-      id: 1,
-      reference: 'INT-2025-001',
-      proprietaire: 'Jean Koffi',
-      bien: 'Résidence La Paix',
-      description: 'Réparation de la toiture',
-      dateDebut: '2025-01-10',
-      dateFin: '2025-01-15',
-      cout: 500000,
-      statut: 'En cours',
-      type: 'Intervention',
-      fichier: 'intervention_001.pdf',
-      dateSignature: '2024-12-23'
-    }
+    { id: 1, reference: 'INT-2025-001', proprietaire: 'Jean Koffi', bien: 'Résidence La Paix', description: 'Réparation de la toiture', dateDebut: '2025-01-10', dateFin: '2025-01-15', cout: 500000, statut: 'En cours', fichier: 'intervention_001.pdf', dateSignature: '2024-12-23' }
   ]);
 
   const [contratForm, setContratForm] = useState({
-    typeContrat: 'Location',
-    reference: '',
-    locataire: '',
-    lot: '',
-    dateDebut: '',
-    dateFin: '',
-    loyer: 0,
-    charges: 0,
-    caution: 0,
-    prixVente: 0,
-    avance: 0,
-    paiementEcheance: false,
-    description: '',
-    cout: 0,
-    fichier: null
+    reference: '', locataire: '', lot: '', dateDebut: '', dateFin: '', loyer: 0, charges: 0, caution: 0, prixVente: 0, avance: 0, paiementEcheance: false, description: '', cout: 0, fichier: null
   });
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 }
+  };
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <motion.div 
+      className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Header */}
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-base-content">Gestion des Contrats</h1>
-          <p className="text-base-content/70">Locations, ventes et interventions</p>
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+            Gestion des Contrats <span className="text-primary">.</span>
+          </h1>
+          <p className="text-gray-500 font-medium mt-1">
+            Centralisez et gérez tous vos contrats de location, vente et intervention.
+          </p>
         </div>
-        <Button 
-          variant="primary" 
-          onClick={() => {
-            setFormType(activeTab === 'locations' ? 'location' : activeTab === 'ventes' ? 'vente' : 'intervention');
-            setShowForm(true);
-          }}
-        >
-          <Plus size={18} className="mr-2" />
-          Ajouter un contrat
-        </Button>
-      </div>
+        <div className="flex items-center gap-3">
+             <div className="relative group hidden md:block">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
+                <input type="text" placeholder="Rechercher..." className="input input-sm h-10 pl-10 bg-white border-gray-200 focus:border-primary w-64 rounded-full shadow-sm transition-all focus:w-72" />
+            </div>
+           <Button 
+            variant="primary" 
+            className="rounded-full px-6 h-10 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all font-semibold"
+            onClick={() => {
+              setFormType(activeTab === 'locations' ? 'location' : activeTab === 'ventes' ? 'vente' : 'intervention');
+              setShowForm(true);
+            }}
+          >
+            <Plus size={18} className="mr-2" />
+            Nouveau Contrat
+          </Button>
+        </div>
+      </motion.div>
 
-      {/* Navigation par onglets */}
-      <div className="flex border-b border-base-200">
-        <button
-          className={`px-4 py-2 font-medium text-sm ${
-            activeTab === 'locations'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-base-content/60 hover:text-base-content'
-          }`}
-          onClick={() => setActiveTab('locations')}
-        >
-          <div className="flex items-center gap-2">
-            <FileText size={18} />
-            Contrats de location
-          </div>
-        </button>
-        <button
-          className={`px-4 py-2 font-medium text-sm ${
-            activeTab === 'ventes'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-base-content/60 hover:text-base-content'
-          }`}
-          onClick={() => setActiveTab('ventes')}
-        >
-          <div className="flex items-center gap-2">
-            <Wallet size={18} />
-            Contrats de vente
-          </div>
-        </button>
-        <button
-          className={`px-4 py-2 font-medium text-sm ${
-            activeTab === 'interventions'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-base-content/60 hover:text-base-content'
-          }`}
-          onClick={() => setActiveTab('interventions')}
-        >
-          <div className="flex items-center gap-2">
-            <Clock size={18} />
-            Contrats d'intervention
-          </div>
-        </button>
-      </div>
-
-      {/* Formulaire pour ajouter/modifier */}
-      {showForm && (
-        <Card title={
-          formType === 'location' ? 'Création / Modification d\'un contrat de location' :
-          formType === 'vente' ? 'Création / Modification d\'un contrat de vente' :
-          'Création / Modification d\'un contrat d\'intervention'
-        }>
-          {formType === 'location' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Input 
-                  label="Référence du contrat" 
-                  placeholder="Ex: LOC-2025-001" 
-                  value={contratForm.reference}
-                  onChange={(e) => setContratForm({...contratForm, reference: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Locataire</label>
-                <select 
-                  className="w-full p-3 border border-base-200 rounded-lg bg-base-100"
-                  value={contratForm.locataire}
-                  onChange={(e) => setContratForm({...contratForm, locataire: e.target.value})}
-                >
-                  <option value="">Sélectionnez un locataire</option>
-                  <option value="KOFFI Jean">KOFFI Jean</option>
-                  <option value="DOSSOU Marie">DOSSOU Marie</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Lot concerné</label>
-                <select 
-                  className="w-full p-3 border border-base-200 rounded-lg bg-base-100"
-                  value={contratForm.lot}
-                  onChange={(e) => setContratForm({...contratForm, lot: e.target.value})}
-                >
-                  <option value="">Sélectionnez un lot</option>
-                  <option value="A01 - Résidence La Paix">A01 - Résidence La Paix</option>
-                  <option value="A02 - Résidence La Paix">A02 - Résidence La Paix</option>
-                </select>
-              </div>
-              
-              <div>
-                <Input 
-                  label="Date de début" 
-                  type="date"
-                  value={contratForm.dateDebut}
-                  onChange={(e) => setContratForm({...contratForm, dateDebut: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Date de fin" 
-                  type="date"
-                  value={contratForm.dateFin}
-                  onChange={(e) => setContratForm({...contratForm, dateFin: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Loyer mensuel (FCFA)" 
-                  type="number"
-                  placeholder="Entrez le loyer mensuel" 
-                  value={contratForm.loyer}
-                  onChange={(e) => setContratForm({...contratForm, loyer: parseFloat(e.target.value) || 0})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Charges mensuelles (FCFA)" 
-                  type="number"
-                  placeholder="Entrez les charges mensuelles" 
-                  value={contratForm.charges}
-                  onChange={(e) => setContratForm({...contratForm, charges: parseFloat(e.target.value) || 0})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Caution / Acompte (FCFA)" 
-                  type="number"
-                  placeholder="Entrez le montant de la caution" 
-                  value={contratForm.caution}
-                  onChange={(e) => setContratForm({...contratForm, caution: parseFloat(e.target.value) || 0})}
-                />
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Téléversement du contrat</label>
-                <div className="flex items-center gap-4">
-                  <div className="avatar placeholder">
-                    <div className="bg-neutral text-neutral-content rounded-full w-16 flex items-center justify-center">
-                      <span className="text-xs">PDF</span>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    <Upload size={16} className="mr-2" />
-                    Télécharger
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : formType === 'vente' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Input 
-                  label="Référence du contrat" 
-                  placeholder="Ex: VTE-2025-001" 
-                  value={contratForm.reference}
-                  onChange={(e) => setContratForm({...contratForm, reference: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Acheteur</label>
-                <select 
-                  className="w-full p-3 border border-base-200 rounded-lg bg-base-100"
-                  value={contratForm.locataire}
-                  onChange={(e) => setContratForm({...contratForm, locataire: e.target.value})}
-                >
-                  <option value="">Sélectionnez un acheteur</option>
-                  <option value="ADJINON Sébastien">ADJINON Sébastien</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Lot concerné</label>
-                <select 
-                  className="w-full p-3 border border-base-200 rounded-lg bg-base-100"
-                  value={contratForm.lot}
-                  onChange={(e) => setContratForm({...contratForm, lot: e.target.value})}
-                >
-                  <option value="">Sélectionnez un lot</option>
-                  <option value="B01 - Immeuble Le Destin">B01 - Immeuble Le Destin</option>
-                </select>
-              </div>
-              
-              <div>
-                <Input 
-                  label="Date de début" 
-                  type="date"
-                  value={contratForm.dateDebut}
-                  onChange={(e) => setContratForm({...contratForm, dateDebut: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Date de fin" 
-                  type="date"
-                  value={contratForm.dateFin}
-                  onChange={(e) => setContratForm({...contratForm, dateFin: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Prix de vente (FCFA)" 
-                  type="number"
-                  placeholder="Entrez le prix de vente" 
-                  value={contratForm.prixVente}
-                  onChange={(e) => setContratForm({...contratForm, prixVente: parseFloat(e.target.value) || 0})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Avance (FCFA)" 
-                  type="number"
-                  placeholder="Entrez le montant de l'avance" 
-                  value={contratForm.avance}
-                  onChange={(e) => setContratForm({...contratForm, avance: parseFloat(e.target.value) || 0})}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Paiement échelonné</label>
-                <div className="flex items-center gap-2">
-                  <input 
-                    type="checkbox" 
-                    className="toggle"
-                    checked={contratForm.paiementEcheance}
-                    onChange={(e) => setContratForm({...contratForm, paiementEcheance: e.target.checked})}
-                  />
-                  <span>Oui</span>
-                </div>
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Téléversement du contrat</label>
-                <div className="flex items-center gap-4">
-                  <div className="avatar placeholder">
-                    <div className="bg-neutral text-neutral-content rounded-full w-16 flex items-center justify-center">
-                      <span className="text-xs">PDF</span>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    <Upload size={16} className="mr-2" />
-                    Télécharger
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Input 
-                  label="Référence du contrat" 
-                  placeholder="Ex: INT-2025-001" 
-                  value={contratForm.reference}
-                  onChange={(e) => setContratForm({...contratForm, reference: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Propriétaire</label>
-                <select 
-                  className="w-full p-3 border border-base-200 rounded-lg bg-base-100"
-                  value={contratForm.locataire}
-                  onChange={(e) => setContratForm({...contratForm, locataire: e.target.value})}
-                >
-                  <option value="">Sélectionnez un propriétaire</option>
-                  <option value="Jean Koffi">Jean Koffi</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Bien concerné</label>
-                <select 
-                  className="w-full p-3 border border-base-200 rounded-lg bg-base-100"
-                  value={contratForm.lot}
-                  onChange={(e) => setContratForm({...contratForm, lot: e.target.value})}
-                >
-                  <option value="">Sélectionnez un bien</option>
-                  <option value="Résidence La Paix">Résidence La Paix</option>
-                </select>
-              </div>
-              
-              <div>
-                <Input 
-                  label="Date de début" 
-                  type="date"
-                  value={contratForm.dateDebut}
-                  onChange={(e) => setContratForm({...contratForm, dateDebut: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Date de fin" 
-                  type="date"
-                  value={contratForm.dateFin}
-                  onChange={(e) => setContratForm({...contratForm, dateFin: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  label="Coût estimé (FCFA)" 
-                  type="number"
-                  placeholder="Entrez le coût estimé" 
-                  value={contratForm.cout}
-                  onChange={(e) => setContratForm({...contratForm, cout: parseFloat(e.target.value) || 0})}
-                />
-              </div>
-              
-              <div className="md:col-span-2">
-                <Input 
-                  label="Description de l'intervention" 
-                  placeholder="Décrivez l'intervention à effectuer"
-                  value={contratForm.description}
-                  onChange={(e) => setContratForm({...contratForm, description: e.target.value})}
-                  className="h-24"
-                />
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Téléversement du contrat</label>
-                <div className="flex items-center gap-4">
-                  <div className="avatar placeholder">
-                    <div className="bg-neutral text-neutral-content rounded-full w-16 flex items-center justify-center">
-                      <span className="text-xs">PDF</span>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    <Upload size={16} className="mr-2" />
-                    Télécharger
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <div className="flex justify-end gap-3 mt-6">
-            <Button 
-              variant="ghost" 
-              onClick={() => setShowForm(false)}
+       {/* Tabs */}
+     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-center bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
+        <div className="flex p-1 bg-gray-100/50 rounded-xl overflow-x-auto">
+             <button
+                onClick={() => setActiveTab('locations')}
+                className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'locations' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                }`}
             >
-              Annuler
-            </Button>
-            <Button 
-              variant="primary"
-              onClick={() => {
-                // Traitement de la soumission du formulaire
-                setShowForm(false);
-              }}
+                <FileText size={18} />
+                Locations
+            </button>
+            <button
+                onClick={() => setActiveTab('ventes')}
+                className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'ventes' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                }`}
             >
-              {formType === 'location' ? 'Enregistrer le contrat de location' :
-               formType === 'vente' ? 'Enregistrer le contrat de vente' :
-               'Enregistrer le contrat d\'intervention'}
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {/* Contenu des onglets */}
-      {activeTab === 'locations' && (
-        <div className="space-y-6">
-          {/* Liste des contrats de location */}
-          <Card title="Liste des contrats de location">
-            <div className="overflow-x-auto">
-              <table className="table w-full">
-                <thead>
-                  <tr>
-                    <th>Référence</th>
-                    <th>Locataire</th>
-                    <th>Lot</th>
-                    <th>Date début</th>
-                    <th>Date fin</th>
-                    <th>Loyer</th>
-                    <th>Statut</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contratsLocations.map((contrat) => (
-                    <tr key={contrat.id}>
-                      <td>
-                        <div className="font-medium">{contrat.reference}</div>
-                        <div className="text-sm text-base-content/60">Signé le {contrat.dateSignature}</div>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <Users size={14} />
-                          {contrat.locataire}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1">
-                          <Home size={14} />
-                          {contrat.lot}
-                        </div>
-                      </td>
-                      <td>{new Date(contrat.dateDebut).toLocaleDateString()}</td>
-                      <td>{new Date(contrat.dateFin).toLocaleDateString()}</td>
-                      <td>{contrat.loyer.toLocaleString()} FCFA</td>
-                      <td>
-                        <span className={`badge ${
-                          contrat.statut === 'Actif' ? 'badge-success' : 
-                          contrat.statut === 'Expiré' ? 'badge-error' : 
-                          'badge-warning'
-                        }`}>
-                          {contrat.statut}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye size={16} />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setFormType('location');
-                              setContratForm({
-                                typeContrat: 'Location',
-                                reference: contrat.reference,
-                                locataire: contrat.locataire,
-                                lot: contrat.lot,
-                                dateDebut: contrat.dateDebut,
-                                dateFin: contrat.dateFin,
-                                loyer: contrat.loyer,
-                                charges: contrat.charges,
-                                caution: contrat.caution,
-                                prixVente: 0,
-                                avance: 0,
-                                paiementEcheance: false,
-                                description: '',
-                                cout: 0,
-                                fichier: null
-                              });
-                              setShowForm(true);
-                            }}
-                          >
-                            <Edit3 size={16} />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-error">
-                            <Trash2 size={16} />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Download size={16} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+                <Wallet size={18} />
+                Ventes
+            </button>
+             <button
+                onClick={() => setActiveTab('interventions')}
+                className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'interventions' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+                <Clock size={18} />
+                Interventions
+            </button>
         </div>
-      )}
+      </motion.div>
 
-      {activeTab === 'ventes' && (
-        <div className="space-y-6">
-          {/* Liste des contrats de vente */}
-          <Card title="Liste des contrats de vente">
-            <div className="overflow-x-auto">
-              <table className="table w-full">
-                <thead>
-                  <tr>
-                    <th>Référence</th>
-                    <th>Acheteur</th>
-                    <th>Lot</th>
-                    <th>Date début</th>
-                    <th>Date fin</th>
-                    <th>Prix vente</th>
-                    <th>Statut</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contratsVentes.map((contrat) => (
-                    <tr key={contrat.id}>
-                      <td>
-                        <div className="font-medium">{contrat.reference}</div>
-                        <div className="text-sm text-base-content/60">Signé le {contrat.dateSignature}</div>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <Users size={14} />
-                          {contrat.acheteur}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1">
-                          <Home size={14} />
-                          {contrat.lot}
-                        </div>
-                      </td>
-                      <td>{new Date(contrat.dateDebut).toLocaleDateString()}</td>
-                      <td>{new Date(contrat.dateFin).toLocaleDateString()}</td>
-                      <td>{contrat.prixVente.toLocaleString()} FCFA</td>
-                      <td>
-                        <span className={`badge ${
-                          contrat.statut === 'Actif' ? 'badge-success' : 
-                          contrat.statut === 'Terminé' ? 'badge-primary' : 
-                          'badge-warning'
-                        }`}>
-                          {contrat.statut}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye size={16} />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setFormType('vente');
-                              setContratForm({
-                                typeContrat: 'Vente',
-                                reference: contrat.reference,
-                                locataire: contrat.acheteur,
-                                lot: contrat.lot,
-                                dateDebut: contrat.dateDebut,
-                                dateFin: contrat.dateFin,
-                                loyer: 0,
-                                charges: 0,
-                                caution: 0,
-                                prixVente: contrat.prixVente,
-                                avance: contrat.avance,
-                                paiementEcheance: contrat.paiementEcheance,
-                                description: '',
-                                cout: 0,
-                                fichier: null
-                              });
-                              setShowForm(true);
-                            }}
-                          >
-                            <Edit3 size={16} />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-error">
-                            <Trash2 size={16} />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Download size={16} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
-      )}
+      {/* Content */}
+      <AnimatePresence mode="wait">
+        {showForm ? (
+             <motion.div
+                key="form"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+             >
+                 <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
+                     <div className="flex justify-between items-center mb-6 pb-6 border-b border-gray-100">
+                         <h2 className="text-xl font-bold text-gray-800">
+                            {formType === 'location' ? 'Contrat de Location' :
+                             formType === 'vente' ? 'Contrat de Vente' :
+                             'Contrat d\'Intervention'}
+                         </h2>
+                         <Button variant="ghost" onClick={() => setShowForm(false)} className="btn-circle btn-sm">
+                            <XCircle size={24} className="text-gray-400" />
+                        </Button>
+                     </div>
 
-      {activeTab === 'interventions' && (
-        <div className="space-y-6">
-          {/* Liste des contrats d'intervention */}
-          <Card title="Liste des contrats d'intervention">
-            <div className="overflow-x-auto">
-              <table className="table w-full">
-                <thead>
-                  <tr>
-                    <th>Référence</th>
-                    <th>Propriétaire</th>
-                    <th>Bien</th>
-                    <th>Date début</th>
-                    <th>Date fin</th>
-                    <th>Coût</th>
-                    <th>Statut</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {interventions.map((contrat) => (
-                    <tr key={contrat.id}>
-                      <td>
-                        <div className="font-medium">{contrat.reference}</div>
-                        <div className="text-sm text-base-content/60">Signé le {contrat.dateSignature}</div>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <Users size={14} />
-                          {contrat.proprietaire}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1">
-                          <Home size={14} />
-                          {contrat.bien}
-                        </div>
-                      </td>
-                      <td>{new Date(contrat.dateDebut).toLocaleDateString()}</td>
-                      <td>{new Date(contrat.dateFin).toLocaleDateString()}</td>
-                      <td>{contrat.cout.toLocaleString()} FCFA</td>
-                      <td>
-                        <span className={`badge ${
-                          contrat.statut === 'En cours' ? 'badge-warning' : 
-                          contrat.statut === 'Terminé' ? 'badge-success' : 
-                          'badge-neutral'
-                        }`}>
-                          {contrat.statut}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye size={16} />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setFormType('intervention');
-                              setContratForm({
-                                typeContrat: 'Intervention',
-                                reference: contrat.reference,
-                                locataire: contrat.proprietaire,
-                                lot: contrat.bien,
-                                dateDebut: contrat.dateDebut,
-                                dateFin: contrat.dateFin,
-                                loyer: 0,
-                                charges: 0,
-                                caution: 0,
-                                prixVente: 0,
-                                avance: 0,
-                                paiementEcheance: false,
-                                description: 'Réparation de la toiture',
-                                cout: contrat.cout,
-                                fichier: null
-                              });
-                              setShowForm(true);
-                            }}
-                          >
-                            <Edit3 size={16} />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-error">
-                            <Trash2 size={16} />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Download size={16} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
-      )}
-    </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <>
+                            <Input label="Référence" value={contratForm.reference} onChange={(e) => setContratForm({...contratForm, reference: e.target.value})} placeholder="Auto-généré" />
+                            <Input label="Partie B (Locataire/Acheteur)" value={contratForm.locataire} onChange={(e) => setContratForm({...contratForm, locataire: e.target.value})} />
+                            
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Bien Immobilier</label>
+                                <select className="select select-bordered w-full bg-gray-50" value={contratForm.lot} onChange={(e) => setContratForm({...contratForm, lot: e.target.value})}>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="A01">A01 - Résidence La Paix</option>
+                                </select>
+                            </div>
+
+                             <div className="grid grid-cols-2 gap-4">
+                                <Input label="Date Début" type="date" value={contratForm.dateDebut} onChange={(e) => setContratForm({...contratForm, dateDebut: e.target.value})} />
+                                <Input label="Date Fin" type="date" value={contratForm.dateFin} onChange={(e) => setContratForm({...contratForm, dateFin: e.target.value})} />
+                             </div>
+
+                             {formType !== 'intervention' && (
+                                 <Input label={formType === 'vente' ? "Prix de Vente" : "Loyer Mensuel"} type="number" value={formType === 'vente' ? contratForm.prixVente : contratForm.loyer} onChange={(e) => setContratForm(formType === 'vente' ? {...contratForm, prixVente: parseFloat(e.target.value)} : {...contratForm, loyer: parseFloat(e.target.value)})} />
+                             )}
+
+                             <div className="md:col-span-2">
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Document numérisé (PDF)</label>
+                                <div className="h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 hover:border-primary transition-all">
+                                    <div className="text-center">
+                                        <Upload className="mx-auto mb-2" size={24}/>
+                                        <p className="text-sm">Glisser-déposer le contrat signé</p>
+                                    </div>
+                                </div>
+                             </div>
+                         </>
+                     </div>
+
+                     <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
+                        <Button variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
+                        <Button variant="primary" onClick={() => setShowForm(false)}>Enregistrer</Button>
+                     </div>
+                 </Card>
+             </motion.div>
+        ) : (
+             <motion.div
+                key="list"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-8"
+             >
+                 {/* KPIs */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <KPICard 
+                        icon={FileCheck} 
+                        label="Contrats Actifs" 
+                        value={(contratsLocations.length + contratsVentes.length).toString()} 
+                        color="green" 
+                    />
+                    <KPICard 
+                        icon={Clock} 
+                        label="Finissant ce mois" 
+                        value="1" 
+                        color="orange" 
+                    />
+                     <KPICard 
+                        icon={Wallet} 
+                        label="Valeur Totale" 
+                        value="12M FCFA" 
+                        color="blue" 
+                    />
+                 </div>
+
+                 <Card className="border-none shadow-xl bg-white overflow-hidden p-0">
+                     <div className="overflow-x-auto">
+                        <table className="table w-full">
+                            <thead className="bg-gray-50/50">
+                                <tr>
+                                    <th className="py-4 pl-6 font-semibold text-gray-500">Référence</th>
+                                    <th className="font-semibold text-gray-500">Parties & Bien</th>
+                                    <th className="font-semibold text-gray-500">Période</th>
+                                    <th className="font-semibold text-gray-500">Montant</th>
+                                    <th className="font-semibold text-gray-500">Statut</th>
+                                    <th className="pr-6 text-right font-semibold text-gray-500">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {activeTab === 'locations' && contratsLocations.map(item => (
+                                    <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="pl-6 font-medium text-gray-900">{item.reference}</td>
+                                        <td>
+                                            <div className="font-bold text-gray-800">{item.locataire}</div>
+                                            <div className="text-xs text-gray-400 flex items-center gap-1"><Home size={10}/> {item.lot}</div>
+                                        </td>
+                                        <td className="text-sm text-gray-600">
+                                            {new Date(item.dateDebut).toLocaleDateString()} - {new Date(item.dateFin).toLocaleDateString()}
+                                        </td>
+                                        <td className="font-bold text-primary">{item.loyer.toLocaleString()} F/mois</td>
+                                        <td><span className="badge badge-success badge-sm gap-1">ACTIF</span></td>
+                                        <td className="pr-6 text-right">
+                                            <div className="flex justify-end gap-1">
+                                                <Button variant="ghost" size="sm" className="btn-square btn-xs"><Eye size={14}/></Button>
+                                                <Button variant="ghost" size="sm" className="btn-square btn-xs"><Download size={14}/></Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {activeTab === 'ventes' && contratsVentes.map(item => (
+                                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="pl-6 font-medium text-gray-900">{item.reference}</td>
+                                        <td>
+                                            <div className="font-bold text-gray-800">{item.acheteur}</div>
+                                            <div className="text-xs text-gray-400 flex items-center gap-1"><Home size={10}/> {item.lot}</div>
+                                        </td>
+                                        <td className="text-sm text-gray-600">
+                                            Signé le {new Date(item.dateSignature).toLocaleDateString()}
+                                        </td>
+                                        <td className="font-bold text-green-600">{item.prixVente.toLocaleString()} F</td>
+                                        <td><span className="badge badge-warning badge-sm gap-1">EN COURS</span></td>
+                                        <td className="pr-6 text-right">
+                                            <div className="flex justify-end gap-1">
+                                                <Button variant="ghost" size="sm" className="btn-square btn-xs"><Eye size={14}/></Button>
+                                                <Button variant="ghost" size="sm" className="btn-square btn-xs"><Download size={14}/></Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {activeTab === 'interventions' && interventions.map(item => (
+                                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="pl-6 font-medium text-gray-900">{item.reference}</td>
+                                        <td>
+                                            <div className="font-bold text-gray-800">{item.description}</div>
+                                            <div className="text-xs text-gray-400 flex items-center gap-1"><Home size={10}/> {item.bien}</div>
+                                        </td>
+                                        <td className="text-sm text-gray-600">
+                                            {new Date(item.dateDebut).toLocaleDateString()}
+                                        </td>
+                                        <td className="font-bold text-gray-700">{item.cout.toLocaleString()} F</td>
+                                        <td><span className="badge badge-info badge-sm gap-1">EN COURS</span></td>
+                                        <td className="pr-6 text-right">
+                                            <div className="flex justify-end gap-1">
+                                                <Button variant="ghost" size="sm" className="btn-square btn-xs"><Eye size={14}/></Button>
+                                                <Button variant="ghost" size="sm" className="btn-square btn-xs"><Download size={14}/></Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                     </div>
+                 </Card>
+             </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 

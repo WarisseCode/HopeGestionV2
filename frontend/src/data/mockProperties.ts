@@ -21,6 +21,8 @@ export interface PublicProperty {
   dateDisponibilite?: string;
   description: string;
   amenities: string[];
+  latitude: number;
+  longitude: number;
 }
 
 // Images placeholders pour les propriétés supplémentaires
@@ -50,7 +52,9 @@ export const mockProperties: PublicProperty[] = [
     image: Apartment1,
     disponible: true,
     description: "Superbe appartement F3 entièrement rénové, lumineux avec vue dégagée. Proche de toutes commodités.",
-    amenities: ["Climatisation", "Parking", "Sécurité 24h"]
+    amenities: ["Climatisation", "Parking", "Sécurité 24h"],
+    latitude: 6.3654,
+    longitude: 2.4183
   },
   {
     id: 2,
@@ -66,7 +70,9 @@ export const mockProperties: PublicProperty[] = [
     image: Villa1,
     disponible: true,
     description: "Magnifique villa avec piscine privée, jardin tropical et terrasse. Quartier résidentiel calme.",
-    amenities: ["Piscine", "Jardin", "Gardien", "Groupe électrogène"]
+    amenities: ["Piscine", "Jardin", "Gardien", "Groupe électrogène"],
+    latitude: 6.3712,
+    longitude: 2.4089
   },
   {
     id: 3,
@@ -82,7 +88,9 @@ export const mockProperties: PublicProperty[] = [
     image: Apartment2,
     disponible: true,
     description: "Appartement moderne avec finitions haut de gamme. Cuisine équipée et balcon.",
-    amenities: ["Climatisation", "Cuisine équipée", "Balcon"]
+    amenities: ["Climatisation", "Cuisine équipée", "Balcon"],
+    latitude: 6.3456,
+    longitude: 2.3678
   },
   {
     id: 4,
@@ -98,7 +106,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[4],
     disponible: true,
     description: "Studio entièrement meublé, idéal pour jeune professionnel. Eau et électricité incluses.",
-    amenities: ["Meublé", "Eau incluse", "Électricité incluse"]
+    amenities: ["Meublé", "Eau incluse", "Électricité incluse"],
+    latitude: 6.3607,
+    longitude: 2.4232
   },
   {
     id: 5,
@@ -114,7 +124,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[3],
     disponible: true,
     description: "Belle maison familiale avec grande cour, parfaite pour une famille. Quartier calme.",
-    amenities: ["Cour", "Parking", "Cuisine séparée"]
+    amenities: ["Cour", "Parking", "Cuisine séparée"],
+    latitude: 6.4969,
+    longitude: 2.6289
   },
   {
     id: 6,
@@ -130,7 +142,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[0],
     disponible: true,
     description: "Espace commercial bien situé près du grand marché. Fort passage clientèle.",
-    amenities: ["Vitrine", "Électricité triphasée", "Rideau métallique"]
+    amenities: ["Vitrine", "Électricité triphasée", "Rideau métallique"],
+    latitude: 6.3589,
+    longitude: 2.4312
   },
   {
     id: 7,
@@ -146,7 +160,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[1],
     disponible: true,
     description: "Appartement de standing dans résidence sécurisée. Ascenseur et parking souterrain.",
-    amenities: ["Ascenseur", "Parking souterrain", "Interphone"]
+    amenities: ["Ascenseur", "Parking souterrain", "Interphone"],
+    latitude: 6.3701,
+    longitude: 2.3956
   },
   {
     id: 8,
@@ -162,7 +178,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[2],
     disponible: true,
     description: "Duplex moderne avec terrasse sur le toit. Architecture contemporaine.",
-    amenities: ["Terrasse", "Garage", "Jardin"]
+    amenities: ["Terrasse", "Garage", "Jardin"],
+    latitude: 6.3823,
+    longitude: 2.3745
   },
   {
     id: 9,
@@ -178,7 +196,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[0],
     disponible: true,
     description: "Espace de bureau climatisé avec salle de réunion. Fibre optique disponible.",
-    amenities: ["Climatisation centrale", "Fibre optique", "Salle de réunion"]
+    amenities: ["Climatisation centrale", "Fibre optique", "Salle de réunion"],
+    latitude: 6.3734,
+    longitude: 2.4456
   },
   {
     id: 10,
@@ -194,7 +214,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[4],
     disponible: true,
     description: "Appartement propre et bien entretenu. Idéal pour étudiants ou jeunes couples.",
-    amenities: ["Eau courante", "Proche université"]
+    amenities: ["Eau courante", "Proche université"],
+    latitude: 6.4312,
+    longitude: 2.3456
   },
   {
     id: 11,
@@ -210,7 +232,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[7],
     disponible: true,
     description: "Charmante maison coloniale entièrement rénovée. Caractère authentique préservé.",
-    amenities: ["Jardin", "Véranda", "Cave"]
+    amenities: ["Jardin", "Véranda", "Cave"],
+    latitude: 6.4973,
+    longitude: 2.6157
   },
   {
     id: 12,
@@ -226,7 +250,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[1],
     disponible: true,
     description: "Studio neuf design avec kitchenette moderne. Immeuble récent.",
-    amenities: ["Neuf", "Kitchenette", "Digicode"]
+    amenities: ["Neuf", "Kitchenette", "Digicode"],
+    latitude: 6.3645,
+    longitude: 2.3789
   },
   {
     id: 13,
@@ -242,7 +268,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[6],
     disponible: true,
     description: "Exceptionnelle villa en front de mer avec accès direct à la plage.",
-    amenities: ["Vue mer", "Accès plage", "Piscine", "Personnel inclus"]
+    amenities: ["Vue mer", "Accès plage", "Piscine", "Personnel inclus"],
+    latitude: 6.3378,
+    longitude: 2.3534
   },
   {
     id: 14,
@@ -258,7 +286,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[5],
     disponible: true,
     description: "Grand appartement familial avec balcon et vue sur la ville. Très lumineux.",
-    amenities: ["Balcon", "Vue dégagée", "2 places parking"]
+    amenities: ["Balcon", "Vue dégagée", "2 places parking"],
+    latitude: 6.3567,
+    longitude: 2.4123
   },
   {
     id: 15,
@@ -274,7 +304,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[0],
     disponible: true,
     description: "Local commercial neuf avec mezzanine. Idéal superette ou showroom.",
-    amenities: ["Mezzanine", "Parking clients", "Toilettes"]
+    amenities: ["Mezzanine", "Parking clients", "Toilettes"],
+    latitude: 6.3989,
+    longitude: 2.3312
   },
   {
     id: 16,
@@ -290,7 +322,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[1],
     disponible: true,
     description: "Magnifique appartement avec vue imprenable sur la lagune. Balcon spacieux.",
-    amenities: ["Vue lagune", "Balcon", "Parking", "Groupe électrogène"]
+    amenities: ["Vue lagune", "Balcon", "Parking", "Groupe électrogène"],
+    latitude: 6.3812,
+    longitude: 2.4589
   },
   {
     id: 17,
@@ -306,7 +340,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[5],
     disponible: true,
     description: "Villa contemporaine de haut standing. Finitions luxueuses, jardin paysager.",
-    amenities: ["Jardin paysager", "Double garage", "Piscine", "Cuisine américaine"]
+    amenities: ["Jardin paysager", "Double garage", "Piscine", "Cuisine américaine"],
+    latitude: 6.4234,
+    longitude: 2.3567
   },
   {
     id: 18,
@@ -322,7 +358,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[4],
     disponible: true,
     description: "Studio moderne entièrement meublé avec coin cuisine équipée. Idéal expatrié.",
-    amenities: ["Meublé complet", "Wifi inclus", "Climatisation", "Sécurité 24h"]
+    amenities: ["Meublé complet", "Wifi inclus", "Climatisation", "Sécurité 24h"],
+    latitude: 6.3478,
+    longitude: 2.3945
   },
   {
     id: 19,
@@ -338,7 +376,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[2],
     disponible: true,
     description: "Superbe duplex avec terrasse privative. Architecture moderne et lumineuse.",
-    amenities: ["Duplex", "Terrasse", "2 Parkings", "Interphone vidéo"]
+    amenities: ["Duplex", "Terrasse", "2 Parkings", "Interphone vidéo"],
+    latitude: 6.4856,
+    longitude: 2.6234
   },
   {
     id: 20,
@@ -354,7 +394,9 @@ export const mockProperties: PublicProperty[] = [
     image: placeholderImages[7],
     disponible: true,
     description: "Grande maison familiale R+1 avec dépendance pour personnel. Terrain clôturé.",
-    amenities: ["Dépendance", "Cour clôturée", "Citerne eau", "Portail automatique"]
+    amenities: ["Dépendance", "Cour clôturée", "Citerne eau", "Portail automatique"],
+    latitude: 6.4567,
+    longitude: 2.3123
   }
 ];
 

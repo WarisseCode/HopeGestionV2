@@ -1,6 +1,7 @@
 import React from 'react';
 import PublicNavbar from '../components/public/PublicNavbar';
 import PublicFooter from '../components/public/PublicFooter';
+import ChatBot from '../components/ChatBot';
 
 interface PublicLayoutProps {
     children: React.ReactNode;
@@ -14,8 +15,10 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
                 {children}
             </main>
             <PublicFooter />
+            <ChatBot />
         </div>
     );
 };
 
 export default PublicLayout;
+
