@@ -335,7 +335,7 @@ const MobileMoney: React.FC = () => {
                     </div>
 
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <Button variant="outline" size="sm" className="flex-1 border-base-200">
+                         <Button variant="ghost" size="sm" className="flex-1 border border-base-200">
                              Modifier
                          </Button>
                          <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">

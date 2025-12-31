@@ -256,7 +256,7 @@ const Finances: React.FC = () => {
                         icon={TrendingDown} 
                         label="Total Dépenses" 
                         value="155k F" 
-                        color="red" 
+                        color="orange" 
                         trend={{ value: "-5%", label: "vs N-1", positive: true }} 
                     />
                     <KPICard 

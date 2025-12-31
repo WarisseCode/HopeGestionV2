@@ -35,7 +35,7 @@ const BiensPublicsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<PublicProperty | null>(null);
-  const [sortBy, setSortBy] = useState<'price-asc' | 'price-desc' | 'recent'>('recent');
+  const [sortBy, setSortBy] = useState<'price-asc' | 'price-desc' | 'recent' | 'distance'>('recent');
   const [highlightedPropertyId, setHighlightedPropertyId] = useState<number | null>(null);
   const [maxDistance, setMaxDistance] = useState<number>(0); // 0 = no distance filter
   

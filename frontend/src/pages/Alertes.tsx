@@ -291,14 +291,14 @@ const Alertes: React.FC = () => {
             {activeTab === 'alertes' && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <KPICard icon={Bell} label="Alertes Actives" value="3" color="blue" />
-                    <KPICard icon={AlertTriangle} label="Haute Priorité" value="2" color="orange" trend={{value: 1, isPositive: false}} />
+                    <KPICard icon={AlertTriangle} label="Haute Priorité" value="2" color="orange" trend={{value: "1", isPositive: false}} />
                     <KPICard icon={CheckCircle} label="Résolues (Mois)" value="12" color="green" />
                 </div>
             )}
             {activeTab === 'notifications' && (
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <KPICard icon={MessageCircle} label="Total Notifications" value="24" color="purple" />
-                    <KPICard icon={Mail} label="Non Lues" value="5" color="red" />
+                    <KPICard icon={Mail} label="Non Lues" value="5" color="orange" />
                     <KPICard icon={Smartphone} label="SMS Envoyés" value="145" color="blue" />
                 </div>
             )}
