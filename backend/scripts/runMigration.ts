@@ -31,7 +31,9 @@ async function runMigration() {
         const documentsMigrationPath = path.join(dbDir, 'migration_documents.sql');
         const tenantsEnhancementPath = path.join(dbDir, 'migration_tenants_enhancement.sql');
         const calendarSupportPath = path.join(dbDir, 'migration_calendar_support.sql');
+
         const auditLogsPath = path.join(dbDir, 'migration_audit_logs.sql');
+        const financeMigrationPath = path.join(dbDir, 'migration_finance.sql');
         
         const initSql = fs.readFileSync(initPath, 'utf8');
         const sql = fs.readFileSync(migrationPath, 'utf8');
@@ -40,6 +42,7 @@ async function runMigration() {
         const tenantsSql = fs.readFileSync(tenantsEnhancementPath, 'utf8');
         const calendarSql = fs.readFileSync(calendarSupportPath, 'utf8');
         const auditSql = fs.readFileSync(auditLogsPath, 'utf8');
+        const financeSql = fs.readFileSync(financeMigrationPath, 'utf8');
         
         console.log('📄 Fichier SQL chargé:', migrationPath);
         console.log('🚀 Exécution de la migration...\n');
@@ -60,12 +63,14 @@ async function runMigration() {
         await client.query(tenantsSql);
         console.log('5/9 Exécution migration_calendar_support...');
         await client.query(calendarSql);
-        console.log('6/9 Exécution migration_audit_logs...');
-        await client.query(auditSql);
+        // console.log('6/9 Exécution migration_audit_logs...');
+        // await client.query(auditSql);
         // await client.query(fixAuditSql); // Fichier manquant ou déjà intégré ?
         // await client.query(fixAuditSchemaV2Sql); // Fichier manquant ou déjà intégré ?
-        console.log('7/9 Exécution fix_audit_logs_ids...');
-        await client.query(fixAuditIdsSql);
+        // console.log('7/9 Exécution fix_audit_logs_ids...');
+        // await client.query(fixAuditIdsSql);
+        console.log('8/9 Exécution migration_finance...');
+        await client.query(financeSql);
         
         console.log('✅ Migration exécutée avec succès!');
         console.log('\n📊 Tables créées et mises à jour.');

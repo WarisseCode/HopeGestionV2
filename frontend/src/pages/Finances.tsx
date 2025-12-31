@@ -1,5 +1,5 @@
 // frontend/src/pages/Finances.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Wallet, 
   Plus, 
@@ -37,42 +37,144 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts';
+import { getPaiements, getDepenses, getPaiementStats, getDepenseStats, savePaiement, saveDepense, getPaiementHistory, getDepenseHistory } from '../api/financeApi';
+import type { Paiement, Depense } from '../api/financeApi';
+import { getLocataires, getLocataireDetails } from '../api/locataireApi';
+import type { Locataire } from '../api/locataireApi';
+import { getImmeubles } from '../api/propertyApi';
+import type { Immeuble } from '../api/propertyApi';
 
 const Finances: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'paiements' | 'depenses' | 'rapports'>('paiements');
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<'paiement' | 'depense'>('paiement');
 
-  // Données de démonstration
-  const [paiements] = useState([
-    { id: 1, reference: 'PMT-2025-001', locataire: 'KOFFI Jean', lot: 'A01 - Résidence La Paix', date: '2025-01-15', type: 'Loyer', montant: 150000, modePaiement: 'Mobile Money', statut: 'Validé', fichier: 'reçu_001.pdf' },
-    { id: 2, reference: 'PMT-2025-002', locataire: 'DOSSOU Marie', lot: 'A02 - Résidence La Paix', date: '2025-01-16', type: 'Charges', montant: 10000, modePaiement: 'Espèces', statut: 'Validé', fichier: 'reçu_002.pdf' },
-    { id: 3, reference: 'PMT-2025-003', locataire: 'ADJINON Sébastien', lot: 'B01 - Immeuble Le Destin', date: '2025-01-17', type: 'Acompte', montant: 200000, modePaiement: 'Virement', statut: 'En attente', fichier: 'reçu_003.pdf' }
-  ]);
+  const [paiements, setPaiements] = useState<Paiement[]>([]);
+  const [depenses, setDepenses] = useState<Depense[]>([]);
+  const [stats, setStats] = useState({ revenus: 0, depenses: 0, benefice: 0 });
+  const [loading, setLoading] = useState(true);
 
-  const [depenses] = useState([
-    { id: 1, reference: 'DEP-2025-001', fournisseur: 'SARL Electricité Pro', type: 'Électricité', date: '2025-01-10', montant: 50000, statut: 'Payé', fichier: 'facture_001.pdf' },
-    { id: 2, reference: 'DEP-2025-002', fournisseur: 'SARL Plomberie Expert', type: 'Plomberie', date: '2025-01-12', montant: 75000, statut: 'Payé', fichier: 'facture_002.pdf' },
-    { id: 3, reference: 'DEP-2025-003', fournisseur: 'SARL Nettoyage Clean', type: 'Nettoyage', date: '2025-01-15', montant: 30000, statut: 'En attente', fichier: 'facture_003.pdf' }
-  ]);
+  // Selectors Data
+  const [locataires, setLocataires] = useState<Locataire[]>([]);
+  const [immeubles, setImmeubles] = useState<Immeuble[]>([]);
+
+  // Chart Data
+  const [revenusData, setRevenusData] = useState<any[]>([]);
 
   const [paiementForm, setPaiementForm] = useState({
-    reference: '', locataire: '', lot: '', date: '', type: 'Loyer', montant: 0, modePaiement: 'Mobile Money', statut: 'En attente', fichier: null
+    reference: '', locataireId: '', lot: '', date: '', type: 'Loyer', montant: 0, modePaiement: 'Mobile Money', statut: 'En attente', fichier: null
   });
 
   const [depenseForm, setDepenseForm] = useState({
-    reference: '', fournisseur: '', type: 'Électricité', date: '', montant: 0, statut: 'En attente', fichier: null
+    reference: '', fournisseur: '', type: 'Électricité', date: '', montant: 0, statut: 'En attente', fichier: null, buildingId: ''
   });
 
-  // Données pour les graphiques
-  const revenusData = [
-    { mois: 'Jan', montant: 1200000, depenses: 300000 },
-    { mois: 'Fév', montant: 1500000, depenses: 250000 },
-    { mois: 'Mar', montant: 1300000, depenses: 350000 },
-    { mois: 'Avr', montant: 1600000, depenses: 280000 },
-    { mois: 'Mai', montant: 1400000, depenses: 320000 },
-    { mois: 'Jun', montant: 1700000, depenses: 310000 }
-  ];
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [pData, dData, pStats, dStats, locs, imms, pHist, dHist] = await Promise.all([
+        getPaiements(),
+        getDepenses(),
+        getPaiementStats(),
+        getDepenseStats(),
+        getLocataires(),
+        getImmeubles(),
+        getPaiementHistory(),
+        getDepenseHistory()
+      ]);
+      
+      setPaiements(pData.map(p => ({
+        ...p,
+        locataire: p.tenant_name ? `${p.tenant_name} ${p.tenant_surname}` : 'Inconnu',
+        lot: p.ref_lot ? `${p.ref_lot} - ${p.building_name}` : 'N/A'
+      } as any)));
+
+      setDepenses(dData.map(d => ({
+        ...d,
+        fournisseur: d.supplier_name,
+        type: d.category
+      } as any)));
+
+      setStats({
+        revenus: parseInt(pStats.mois as any) || 0,
+        depenses: parseInt(dStats.mois as any) || 0,
+        benefice: (parseInt(pStats.mois as any) || 0) - (parseInt(dStats.mois as any) || 0)
+      });
+
+      setLocataires(locs);
+      setImmeubles(imms);
+
+      // Processing Chart Data
+      // Create a map to merge data by month
+      const chartMap = new Map<string, { mois: string, montant: number, depenses: number }>();
+      
+      pHist.forEach(p => {
+          if(!chartMap.has(p.mois)) chartMap.set(p.mois, { mois: p.mois, montant: 0, depenses: 0 });
+          const item = chartMap.get(p.mois)!;
+          item.montant = parseInt(p.total);
+      });
+
+      dHist.forEach(d => {
+           if(!chartMap.has(d.mois)) chartMap.set(d.mois, { mois: d.mois, montant: 0, depenses: 0 });
+           const item = chartMap.get(d.mois)!;
+           item.depenses = parseInt(d.total);
+      });
+      
+      // If empty, providing dummy data for visual confirmation if needed, OR just setting it empty.
+      // Let's rely on the mapped data.
+      setRevenusData(Array.from(chartMap.values()));
+
+    } catch (error) {
+      console.error("Erreur chargement finances:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+      try {
+          if (formType === 'paiement') {
+              if (!paiementForm.locataireId) {
+                  alert("Veuillez sélectionner un locataire");
+                  return;
+              }
+              const details = await getLocataireDetails(parseInt(paiementForm.locataireId));
+              const leaseId = details.baux && details.baux.length > 0 ? details.baux[0].id : null;
+
+              if (!leaseId) {
+                  alert("Ce locataire n'a pas de bail actif");
+                  return;
+              }
+
+              await savePaiement({
+                  lease_id: leaseId,
+                  montant: paiementForm.montant,
+                  type: paiementForm.type,
+                  mode_paiement: paiementForm.modePaiement,
+                  date_paiement: paiementForm.date || new Date().toISOString(),
+                  reference_transaction: paiementForm.reference
+              });
+          } else {
+               await saveDepense({
+                  amount: depenseForm.montant,
+                  category: depenseForm.type,
+                  description: depenseForm.reference, // mapping reference to description
+                  supplier_name: depenseForm.fournisseur,
+                  date_expense: depenseForm.date || new Date().toISOString(),
+                  building_id: depenseForm.buildingId ? parseInt(depenseForm.buildingId) : undefined
+              });
+          }
+          setShowForm(false);
+          fetchData(); // Refresh data
+      } catch (error) {
+          console.error("Erreur lors de la soumission:", error);
+          alert("Erreur lors de l'enregistrement");
+      }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -186,9 +288,11 @@ const Finances: React.FC = () => {
                                 
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Locataire</label>
-                                    <select className="select select-bordered w-full bg-gray-50" value={paiementForm.locataire} onChange={(e) => setPaiementForm({...paiementForm, locataire: e.target.value})}>
-                                        <option value="">Choisir...</option>
-                                        <option value="KOFFI Jean">KOFFI Jean</option>
+                                    <select className="select select-bordered w-full bg-gray-50" value={paiementForm.locataireId} onChange={(e) => setPaiementForm({...paiementForm, locataireId: e.target.value})}>
+                                        <option value="">Choisir un locataire...</option>
+                                        {locataires.map(l => (
+                                            <option key={l.id} value={l.id}>{l.nom} {l.prenoms}</option>
+                                        ))}
                                     </select>
                                 </div>
                                  
@@ -225,13 +329,22 @@ const Finances: React.FC = () => {
                                         <option>Maintenance</option>
                                     </select>
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Immeuble (Optionnel)</label>
+                                    <select className="select select-bordered w-full bg-gray-50" value={depenseForm.buildingId} onChange={(e) => setDepenseForm({...depenseForm, buildingId: e.target.value})}>
+                                        <option value="">Général / Aucun</option>
+                                        {immeubles.map(i => (
+                                            <option key={i.id} value={i.id}>{i.nom}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </>
                         )}
                     </div>
 
                     <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
                         <Button variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
-                        <Button variant="primary" onClick={() => setShowForm(false)}>Confirmer</Button>
+                        <Button variant="primary" onClick={handleSubmit}>Confirmer</Button>
                     </div>
                 </Card>
              </motion.div>
@@ -248,21 +361,21 @@ const Finances: React.FC = () => {
                     <KPICard 
                         icon={Wallet} 
                         label="Total Revenus" 
-                        value="2,8M F" 
+                        value={`${stats.revenus.toLocaleString()} F`} 
                         color="green" 
                         trend={{ value: "+12%", label: "ce mois", positive: true }} 
                     />
                      <KPICard 
                         icon={TrendingDown} 
                         label="Total Dépenses" 
-                        value="155k F" 
+                        value={`${stats.depenses.toLocaleString()} F`} 
                         color="orange" 
                         trend={{ value: "-5%", label: "vs N-1", positive: true }} 
                     />
                     <KPICard 
                         icon={TrendingUp} 
                         label="Bénéfice Net" 
-                        value="2,6M F" 
+                        value={`${stats.benefice.toLocaleString()} F`} 
                         color="blue" 
                     />
                      <KPICard 
@@ -320,14 +433,14 @@ const Finances: React.FC = () => {
                                 <tbody className="divide-y divide-gray-100">
                                     {(activeTab === 'paiements' ? paiements : depenses).map((item: any) => (
                                         <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                                            <td className="pl-6 font-medium text-gray-800">{item.reference}</td>
+                                            <td className="pl-6 font-medium text-gray-800">{item.reference || 'REF-' + item.id}</td>
                                             <td>
                                                 <div className="font-bold text-gray-700">{activeTab === 'paiements' ? item.locataire : item.fournisseur}</div>
                                                 <div className="text-xs text-gray-400">{activeTab === 'paiements' ? item.lot : item.type}</div>
                                             </td>
-                                            <td className="text-gray-500">{new Date(item.date).toLocaleDateString()}</td>
+                                            <td className="text-gray-500">{item.date_paiement ? new Date(item.date_paiement).toLocaleDateString() : (item.date_expense ? new Date(item.date_expense).toLocaleDateString() : 'N/A')}</td>
                                             <td className={`font-mono font-bold ${activeTab === 'paiements' ? 'text-green-600' : 'text-red-600'}`}>
-                                                {activeTab === 'paiements' ? '+' : '-'}{item.montant.toLocaleString()} F
+                                                {activeTab === 'paiements' ? '+' : '-'}{parseInt(item.montant || item.amount).toLocaleString()} F
                                             </td>
                                             <td>
                                                 <span className={`badge ${item.statut === 'Validé' || item.statut === 'Payé' ? 'badge-success' : 'badge-warning'} gap-1 font-bold`}>

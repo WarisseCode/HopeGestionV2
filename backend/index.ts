@@ -18,7 +18,9 @@ import ownerRoutes from './routes/ownerRoutes';
 import documentRoutes from './routes/documentRoutes';
 import delegationRoutes from './routes/delegationRoutes';
 import calendarRoutes from './routes/calendarRoutes';
+
 import auditRoutes from './routes/auditRoutes';
+import mobileMoneyRoutes from './routes/mobileMoneyRoutes';
 
 import { protect, AuthenticatedRequest } from './middleware/authMiddleware'; 
 
@@ -103,6 +105,7 @@ app.use('/api/documents', protect, documentRoutes);
 app.use('/api/delegations', protect, delegationRoutes);
 app.use('/api/calendar', protect, calendarRoutes);
 app.use('/api/audit-logs', protect, auditRoutes);
+app.use('/api/mobile-money', protect, mobileMoneyRoutes);
 
 // Route Test Protégée (pour validation rapide de 'protect')
 app.get('/api/profil', protect, async (req: AuthenticatedRequest, res: Response) => {

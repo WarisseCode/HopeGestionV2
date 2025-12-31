@@ -1,5 +1,5 @@
 // frontend/src/pages/MobileMoney.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   CreditCard, 
   Plus, 
@@ -22,53 +22,53 @@ import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { getTransactionsMoMo, initierPaiement } from '../api/mobileMoneyApi';
+import type { MobileMoneyTransaction } from '../api/mobileMoneyApi';
+
 const MobileMoney: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'transactions' | 'configurations'>('transactions');
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<'transaction' | 'configuration'>('transaction');
 
-  // Données de démonstration
-  const [transactions] = useState([
-    {
-      id: 1,
-      reference: 'MM-2025-001',
-      type: 'Réception',
-      expediteur: '+229 97 00 00 00',
-      destinataire: 'Hope Gestion',
-      montant: 150000,
-      frais: 1500,
-      statut: 'Validé',
-      date: '2025-01-15',
-      description: 'Paiement loyer - KOFFI Jean - Lot A01',
-      operateur: 'Moov Money'
-    },
-    {
-      id: 2,
-      reference: 'MM-2025-002',
-      type: 'Réception',
-      expediteur: '+229 96 00 00 00',
-      destinataire: 'Hope Gestion',
-      montant: 80000,
-      frais: 800,
-      statut: 'Validé',
-      date: '2025-01-16',
-      description: 'Paiement loyer - DOSSOU Marie - Lot A02',
-      operateur: 'MTN Money'
-    },
-    {
-      id: 3,
-      reference: 'MM-2025-003',
-      type: 'Envoi',
-      expediteur: 'Hope Gestion',
-      destinataire: '+229 97 12 34 56',
-      montant: 50000,
-      frais: 500,
-      statut: 'En attente',
-      date: '2025-01-17',
-      description: 'Paiement fournisseur - SARL Plomberie Expert',
-      operateur: 'Moov Money'
-    }
-  ]);
+  const [transactions, setTransactions] = useState<MobileMoneyTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [paymentForm, setPaymentForm] = useState({
+      remarque: '', montant: 0, operator: 'MTN', phone: ''
+  });
+
+  useEffect(() => {
+      fetchTransactions();
+  }, []);
+
+  const fetchTransactions = async () => {
+      try {
+          setLoading(true);
+          const data = await getTransactionsMoMo();
+          setTransactions(data);
+      } catch (e) {
+          console.error("Erreur chargement transactions MoMo", e);
+      } finally {
+          setLoading(false);
+      }
+  };
+
+  const handlePayment = async () => {
+      try {
+          await initierPaiement({
+              amount: paymentForm.montant,
+              phoneNumber: paymentForm.phone,
+              operator: paymentForm.operator,
+              description: paymentForm.remarque
+          });
+          setShowForm(false);
+          fetchTransactions();
+          alert("Paiement initié avec succès !");
+      } catch (e: any) {
+          console.error(e);
+          alert("Erreur: " + e.message);
+      }
+  };
 
   const [configurations] = useState([
     {
@@ -126,8 +126,8 @@ const MobileMoney: React.FC = () => {
           <p className="text-base-content/60 font-medium mt-1">Gérez vos paiements Mobile Money et configurations.</p>
         </div>
         <div className="flex gap-3">
-             <Button variant="ghost" className="bg-base-100 border border-base-200 text-base-content shadow-sm rounded-full h-10">
-                <RefreshCw size={16} className="mr-2" /> Actualiser
+             <Button variant="ghost" className="bg-base-100 border border-base-200 text-base-content shadow-sm rounded-full h-10" onClick={fetchTransactions}>
+                <RefreshCw size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} /> Actualiser
             </Button>
             <Button 
                 variant="primary" 
@@ -266,30 +266,30 @@ const MobileMoney: React.FC = () => {
                     <tbody className="divide-y divide-base-200">
                         {transactions.map(tx => (
                             <tr key={tx.id} className="hover:bg-base-200/50 transition-colors">
-                                <td className="pl-6 font-medium text-base-content">{tx.reference}</td>
+                                <td className="pl-6 font-medium text-base-content">{tx.transaction_id || 'PENDING-' + tx.id}</td>
                                 <td>
-                                    <span className={`badge ${tx.type === 'Réception' ? 'badge-success badge-outline' : 'badge-warning badge-outline'} font-bold`}>
-                                        {tx.type === 'Réception' ? <ArrowDownLeft size={12} className="mr-1"/> : <ArrowUpRight size={12} className="mr-1"/>}
-                                        {tx.type}
+                                    <span className={`badge ${tx.transaction_type === 'collection' ? 'badge-success badge-outline' : 'badge-warning badge-outline'} font-bold`}>
+                                        {tx.transaction_type === 'collection' ? <ArrowDownLeft size={12} className="mr-1"/> : <ArrowUpRight size={12} className="mr-1"/>}
+                                        {tx.transaction_type}
                                     </span>
                                 </td>
                                 <td>
                                     <div className="flex items-center gap-2">
                                         <Smartphone size={16} className="text-base-content/40"/>
-                                        <span className="font-medium text-base-content">{tx.operateur}</span>
+                                        <span className="font-medium text-base-content">{tx.operator}</span>
                                     </div>
                                 </td>
                                 <td>
-                                    <div className="font-bold text-base-content">{tx.montant.toLocaleString()} F</div>
-                                    <div className="text-xs text-base-content/40">Frais: {tx.frais} F</div>
+                                    <div className="font-bold text-base-content">{parseInt(tx.amount as any).toLocaleString()} F</div>
+                                    <div className="text-xs text-base-content/40">{tx.phone_number}</div>
                                 </td>
-                                <td className="max-w-xs truncate text-base-content/60" title={tx.description}>{tx.description}</td>
+                                <td className="max-w-xs truncate text-base-content/60" title={tx.external_reference}>{tx.external_reference}</td>
                                 <td>
-                                    <span className={`badge ${tx.statut === 'Validé' ? 'bg-green-100 text-green-700 border-none dark:bg-green-900/30 dark:text-green-400' : tx.statut === 'En attente' ? 'bg-yellow-100 text-yellow-700 border-none dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-red-100 text-red-700 border-none dark:bg-red-900/30 dark:text-red-400'} font-bold`}>
-                                        {tx.statut}
+                                    <span className={`badge ${tx.status === 'success' ? 'bg-green-100 text-green-700 border-none' : tx.status === 'pending' ? 'bg-yellow-100 text-yellow-700 border-none' : 'bg-red-100 text-red-700 border-none'} font-bold`}>
+                                        {tx.status}
                                     </span>
                                 </td>
-                                <td className="text-right pr-6 text-base-content/60 font-mono text-sm">{tx.date}</td>
+                                <td className="text-right pr-6 text-base-content/60 font-mono text-sm">{new Date(tx.created_at).toLocaleDateString()}</td>
                             </tr>
                         ))}
                     </tbody>
