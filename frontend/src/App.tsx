@@ -1,6 +1,7 @@
 // frontend/src/App.tsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import LoginForm from './components/LoginForm';
 import SignupForm from './components/SignupForm';
 import Dashboard from './pages/Dashboard';
@@ -87,6 +88,7 @@ const App: React.FC = () => {
     return (
         <CustomThemeProvider>
             <Router>
+                <Toaster position="top-center" toastOptions={{ duration: 4000, className: 'text-sm font-medium' }} />
                 <Routes>
                     {/* Routes publiques */}
                     <Route path="/" element={<HomePage />} />

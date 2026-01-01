@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Bot, User, Loader2, Minus, MapPin, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { mockProperties } from '../data/mockProperties';
+import { playNotificationSound } from '../utils/sound';
 
 interface Message {
   id: number;
@@ -14,9 +15,6 @@ interface Message {
   data?: any;
 }
 
-// Son de notification (bip court générique en base64)
-// Petit son "pop"
-const POP_SOUND = "data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"; 
 
 interface QuickSuggestion {
   label: string;
@@ -40,8 +38,7 @@ const ChatBot: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
 
-  // Sound ref
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+
 
   // 10. Message Proactif
   useEffect(() => {
@@ -74,11 +71,6 @@ const ChatBot: React.FC = () => {
     } else {
       initWelcomeMessage();
     }
-    
-    // Init Audio (utilisation d'un son web standard si possible, sinon fallback silencieux)
-    // Ici on tente de charger un son MP3 simple depuis un CDN fiable pour l'exemple, ou le base64
-    audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-    audioRef.current.volume = 0.5;
   }, []);
 
   useEffect(() => {
@@ -103,7 +95,7 @@ const ChatBot: React.FC = () => {
 
   const playSound = () => {
     // 2. Son de notification
-    audioRef.current?.play().catch(() => {}); // Ignorer les erreurs d'autoplay
+    playNotificationSound();
   };
 
   const scrollToBottom = () => {

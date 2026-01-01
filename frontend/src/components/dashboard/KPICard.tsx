@@ -1,6 +1,6 @@
-// frontend/src/components/dashboard/KPICard.tsx
 import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface KPICardProps {
   icon: React.ElementType;
@@ -61,13 +61,17 @@ const KPICard: React.FC<KPICardProps> = ({ icon: Icon, label, value, color, tren
   const classes = colorClasses[color] || colorClasses.blue;
   
   return (
-    <div className={`relative overflow-hidden rounded-2xl p-6 border ${classes.border} ${classes.bg} shadow-lg transition-all duration-300 hover:scale-[1.02] ${classes.shadow}`}>
+    <motion.div 
+      className={`relative overflow-hidden rounded-2xl p-6 border ${classes.border} ${classes.bg} shadow-lg ${classes.shadow}`}
+      whileHover={{ y: -5, scale: 1.02 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+    >
       {/* Background Gradient Decoration */}
       <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${classes.gradient} rounded-bl-full -mr-8 -mt-8`} />
       
       <div className="relative z-10 flex flex-col h-full justify-between">
         <div className="flex justify-between items-start mb-4">
-          <div className={`${classes.iconBg} p-3 rounded-xl ring-4 ring-white dark:ring-base-200 transition-all`}>
+          <div className={`${classes.iconBg} p-3 rounded-xl ring-4 ring-white dark:ring-base-200`}>
             <Icon className={`w-6 h-6 ${classes.iconText}`} />
           </div>
           {trend && (
@@ -81,16 +85,16 @@ const KPICard: React.FC<KPICardProps> = ({ icon: Icon, label, value, color, tren
         </div>
         
         <div>
-          <p className="text-sm font-medium text-gray-500 dark:text-base-content/60 mb-1 transition-colors">{label}</p>
-          <h3 className="text-2xl font-extrabold text-gray-900 dark:text-base-content tracking-tight transition-colors">{value}</h3>
+          <p className="text-sm font-medium text-gray-500 dark:text-base-content/60 mb-1">{label}</p>
+          <h3 className="text-2xl font-extrabold text-gray-900 dark:text-base-content tracking-tight">{value}</h3>
           {trend && (
-            <p className="text-xs text-gray-400 dark:text-base-content/40 mt-2 transition-colors">
+            <p className="text-xs text-gray-400 dark:text-base-content/40 mt-2">
               {trend.label}
             </p>
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

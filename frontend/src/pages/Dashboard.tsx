@@ -226,11 +226,11 @@ const Dashboard: React.FC = () => {
                                     <AreaChart data={REVENUE_DATA} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id="colorRevenusAdmin" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                                                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
                                                 <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
                                             </linearGradient>
                                             <linearGradient id="colorDepensesAdmin" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3}/>
+                                                <stop offset="5%" stopColor="#ec4899" stopOpacity={0.4}/>
                                                 <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
                                             </linearGradient>
                                         </defs>
@@ -238,11 +238,36 @@ const Dashboard: React.FC = () => {
                                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
                                         <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
                                         <Tooltip 
-                                            contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}}
-                                            formatter={(value: any) => [`${value?.toLocaleString() ?? 0} FCFA`, '']}
+                                            contentStyle={{
+                                                borderRadius: '16px', 
+                                                border: 'none', 
+                                                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                                backdropFilter: 'blur(4px)'
+                                            }}
+                                            formatter={(value: any) => [`${value?.toLocaleString()} FCFA`, '']}
+                                            cursor={{ stroke: '#6366f1', strokeWidth: 1, strokeDasharray: '3 3' }}
                                         />
-                                        <Area type="monotone" dataKey="revenus" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenusAdmin)" name="Revenus" />
-                                        <Area type="monotone" dataKey="depenses" stroke="#ec4899" strokeWidth={3} fillOpacity={1} fill="url(#colorDepensesAdmin)" name="Dépenses" />
+                                        <Area 
+                                            type="monotone" 
+                                            dataKey="revenus" 
+                                            stroke="#6366f1" 
+                                            strokeWidth={4} 
+                                            fillOpacity={1} 
+                                            fill="url(#colorRevenusAdmin)" 
+                                            name="Revenus" 
+                                            activeDot={{ r: 6, strokeWidth: 0, fill: '#6366f1' }}
+                                        />
+                                        <Area 
+                                            type="monotone" 
+                                            dataKey="depenses" 
+                                            stroke="#ec4899" 
+                                            strokeWidth={4} 
+                                            fillOpacity={1} 
+                                            fill="url(#colorDepensesAdmin)" 
+                                            name="Dépenses" 
+                                            activeDot={{ r: 6, strokeWidth: 0, fill: '#ec4899' }}
+                                        />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </div>

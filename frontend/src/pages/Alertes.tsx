@@ -19,6 +19,8 @@ import {
   Filter,
   Smartphone
 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { playNotificationSound } from '../utils/sound';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
@@ -103,16 +105,20 @@ const Alertes: React.FC = () => {
 
   const handleMarkAsRead = async (id: number) => {
       try {
-          await markAsRead(id);
-          fetchNotifications(); // Refresh
-      } catch (error) {
-          console.error("Erreur marquage lu", error);
-      }
-  };
+      await markAsRead(id);
+      setNotifications(prev =>
+        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      playNotificationSound();
+      toast.success('Notification marquée comme lue');
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Erreur lors de la mise à jour');
+    }  };
 
   const handleMarkAllRead = async () => {
       try {
-          await markAllAsRead();
           fetchNotifications();
       } catch (error) {
           console.error("Erreur marquage tout lu", error);
