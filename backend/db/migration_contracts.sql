@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS contracts (
 );
 
 -- Index pour les recherches rapides
-CREATE INDEX idx_contracts_tenant ON contracts(tenant_id);
-CREATE INDEX idx_contracts_lot ON contracts(lot_id);
-CREATE INDEX idx_contracts_status ON contracts(status);
-CREATE INDEX idx_contracts_dates ON contracts(date_fin);
+CREATE INDEX IF NOT EXISTS idx_contracts_tenant ON contracts(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_contracts_lot ON contracts(lot_id);
+CREATE INDEX IF NOT EXISTS idx_contracts_status ON contracts(status);
+CREATE INDEX IF NOT EXISTS idx_contracts_dates ON contracts(date_fin);
