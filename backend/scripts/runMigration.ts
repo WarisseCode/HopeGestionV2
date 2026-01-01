@@ -70,7 +70,18 @@ async function runMigration() {
         // console.log('7/9 Exécution fix_audit_logs_ids...');
         // await client.query(fixAuditIdsSql);
         console.log('8/9 Exécution migration_finance...');
+        const notifPath = path.join(dbDir, 'migration_notifications.sql');
+        const notifSql = fs.readFileSync(notifPath, 'utf8');
+
+        console.log('8/9 Exécution migration_finance...');
         await client.query(financeSql);
+        console.log('9/9 Exécution migration_notifications...');
+        await client.query(notifSql);
+
+        console.log('10/10 Exécution migration_contracts...');
+        const contractsPath = path.join(dbDir, 'migration_contracts.sql');
+        const contractsSql = fs.readFileSync(contractsPath, 'utf8');
+        await client.query(contractsSql);
         
         console.log('✅ Migration exécutée avec succès!');
         console.log('\n📊 Tables créées et mises à jour.');

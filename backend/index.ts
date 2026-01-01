@@ -105,7 +105,12 @@ app.use('/api/documents', protect, documentRoutes);
 app.use('/api/delegations', protect, delegationRoutes);
 app.use('/api/calendar', protect, calendarRoutes);
 app.use('/api/audit-logs', protect, auditRoutes);
+
+// Routes Mobile Money
 app.use('/api/mobile-money', protect, mobileMoneyRoutes);
+// Routes Notifications
+import notificationRoutes from './routes/notificationRoutes';
+app.use('/api/notifications', protect, notificationRoutes);
 
 // Route Test Protégée (pour validation rapide de 'protect')
 app.get('/api/profil', protect, async (req: AuthenticatedRequest, res: Response) => {
@@ -143,6 +148,9 @@ app.get('/api/ping', (req: Request, res: Response) => {
 });
 
 // --- 4. Démarrage du serveur ---
+import { CronService } from './services/CronService';
+CronService.init();
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV}`);
