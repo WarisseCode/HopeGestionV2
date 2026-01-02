@@ -66,8 +66,8 @@ const KPICard: React.FC<KPICardProps> = ({ icon: Icon, label, value, color, tren
       whileHover={{ y: -5, scale: 1.02 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >
-      {/* Background Gradient Decoration */}
-      <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${classes.gradient} rounded-bl-full -mr-8 -mt-8`} />
+      {/* Background Gradient Decoration Removed as per user request */}
+      {/* <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${classes.gradient} rounded-bl-full -mr-8 -mt-8`} /> */}
       
       <div className="relative z-10 flex flex-col h-full justify-between">
         <div className="flex justify-between items-start mb-4">

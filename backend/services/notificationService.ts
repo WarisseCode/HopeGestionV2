@@ -1,5 +1,6 @@
 
 import pool from '../db/database';
+import { WhatsAppService } from './WhatsAppService';
 
 export class NotificationService {
     
@@ -26,15 +27,10 @@ export class NotificationService {
     }
 
     /**
-     * Simulate sending a WhatsApp message via provider (Twilio/Meta)
+     * Send a WhatsApp message via provider (Twilio/Meta) or Simulation
      */
     static async sendWhatsApp(phone: string, message: string) {
-        // In a real app, this would use axios to call Twilio API
-        console.log(`[WHATSAPP] 📲 Sending to ${phone}:`);
-        console.log(`           "${message}"`);
-        
-        // return axios.post('https://api.twilio.com/...')
-        return { success: true, simulated: true };
+        return await WhatsAppService.send(phone, message);
     }
 
     /**

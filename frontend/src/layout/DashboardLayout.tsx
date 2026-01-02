@@ -50,6 +50,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
     fetchUserProfile();
   }, []);
 
+
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   // Fonction pour obtenir les éléments de menu en fonction du type d'utilisateur
@@ -133,8 +134,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
     if (path === '/') {
       return location.pathname === '/dashboard' || location.pathname === '/dashboard/';
     }
-    return location.pathname === `/dashboard${path}`;
+    return location.pathname.startsWith(`/dashboard${path}`);
   };
+
+  const getCurrentPageTitle = () => {
+    const currentItem = menuItems.find(item => {
+        if (item.path === '/') {
+            return location.pathname === '/dashboard' || location.pathname === '/dashboard/';
+        }
+        return location.pathname.startsWith(`/dashboard${item.path}`);
+    });
+    return currentItem ? currentItem.label : "Vue d'ensemble";
+  };
+
+  const pageTitle = getCurrentPageTitle();
 
   return (
     <div className="flex h-screen bg-base-200 font-sans text-base-content overflow-hidden">
@@ -226,7 +239,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
                 <div className="hidden md:flex items-center gap-2 text-sm text-base-content/60">
                   <span>Bureau</span>
                   <span>/</span>
-                  <span className="font-semibold text-base-content">Vue d'ensemble</span>
+                  <span className="font-semibold text-base-content">{pageTitle}</span>
                 </div>
             </div>
 

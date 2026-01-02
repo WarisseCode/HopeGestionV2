@@ -1,53 +1,11 @@
 // frontend/src/components/public/PropertyCarousel.tsx
-import React, { useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-import { MapPin, Home, ArrowRight, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { motion, useAnimation } from 'framer-motion';
+import { MapPin, Home, Maximize2, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { mockProperties } from '../../data/mockProperties';
 import type { PublicProperty } from '../../data/mockProperties';
 import Button from '../ui/Button';
-
-// Styles CSS pour l'animation infinie
-const carouselStyles = `
-  @keyframes scrollLeft {
-    0% {
-      transform: translateX(0);
-    }
-    100% {
-      transform: translateX(-50%);
-    }
-  }
-  
-  .animate-scroll-left {
-    animation: scrollLeft 40s linear infinite;
-    will-change: transform;
-  }
-  
-  .animate-scroll-left.paused {
-    animation-play-state: paused;
-  }
-  
-  .carousel-container {
-    mask-image: linear-gradient(
-      to right,
-      transparent,
-      black 3%,
-      black 97%,
-      transparent
-    );
-    -webkit-mask-image: linear-gradient(
-      to right,
-      transparent,
-      black 3%,
-      black 97%,
-      transparent
-    );
-  }
-  
-  .property-card-glow:hover {
-    box-shadow: 0 20px 40px -10px rgba(var(--p), 0.3);
-  }
-`;
 
 interface PropertyCardProps {
   property: PublicProperty;
@@ -60,10 +18,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onViewDetails }) 
   };
 
   return (
-    <motion.div
+    <div
       className="flex-shrink-0 w-[340px] bg-base-100 rounded-2xl overflow-hidden shadow-lg border border-base-200 group cursor-pointer property-card-glow transition-shadow duration-300"
-      whileHover={{ y: -10, scale: 1.03 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
       onClick={() => onViewDetails(property.id)}
     >
       {/* Image Container */}
@@ -73,10 +29,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onViewDetails }) 
           alt={property.titre}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
-        {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         
-        {/* Badge Type */}
         <div className="absolute top-3 left-3">
           <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg
             ${property.type === 'Villa' ? 'bg-amber-500 text-white' : 
@@ -89,7 +43,6 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onViewDetails }) 
           </span>
         </div>
         
-        {/* Badge Disponible */}
         <div className="absolute top-3 right-3">
           <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white shadow-lg flex items-center gap-1">
             <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
@@ -97,7 +50,6 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onViewDetails }) 
           </span>
         </div>
         
-        {/* Price overlay */}
         <div className="absolute bottom-3 left-3">
           <div className="bg-white/95 backdrop-blur-sm px-4 py-2 rounded-xl shadow-lg">
             <span className="text-lg font-extrabold text-primary">
@@ -119,7 +71,6 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onViewDetails }) 
           <span>{property.quartier}, {property.ville}</span>
         </div>
         
-        {/* Specs */}
         <div className="flex items-center gap-4 text-sm text-base-content/70">
           <div className="flex items-center gap-1">
             <Maximize2 size={14} />
@@ -137,7 +88,6 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onViewDetails }) 
           )}
         </div>
 
-        {/* Amenities preview */}
         <div className="flex flex-wrap gap-1 mt-3">
           {property.amenities.slice(0, 3).map((amenity, idx) => (
             <span 
@@ -149,41 +99,70 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onViewDetails }) 
           ))}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
 const PropertyCarousel: React.FC = () => {
   const navigate = useNavigate();
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [index, setIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   
-  // Dupliquer les propriétés pour l'effet infini
-  const duplicatedProperties = [...mockProperties, ...mockProperties];
+  // Create a triple set of properties to ensure smooth infinite scrolling in both directions
+  // [Set 1 (Clone)] [Set 2 (Real)] [Set 3 (Clone)]
+  const items = [...mockProperties, ...mockProperties, ...mockProperties];
+  const realLength = mockProperties.length;
+  // Start at the middle set
+  const startIndex = realLength;
   
-  const cardWidth = 340 + 32; // card width + gap
+  const CARD_WIDTH = 340 + 32; // card + gap
+  const controls = useAnimation();
+  
+  // Initialize index at the start of the middle set
+  useEffect(() => {
+    setIndex(startIndex);
+  }, []);
 
-  const scroll = (direction: 'left' | 'right') => {
-    const container = scrollContainerRef.current;
-    if (container) {
-      const scrollAmount = direction === 'left' ? -cardWidth : cardWidth;
-      // Get the animated div inside
-      const animatedDiv = container.querySelector('.animate-scroll-left') as HTMLElement;
-      if (animatedDiv) {
-        // Get current computed transform
-        const style = window.getComputedStyle(animatedDiv);
-        const matrix = new DOMMatrix(style.transform);
-        const currentX = matrix.m41;
-        
-        // Temporarily pause, apply offset, then resume
-        setIsPaused(true);
-        animatedDiv.style.transform = `translateX(${currentX + scrollAmount}px)`;
-        
-        setTimeout(() => {
-          setIsPaused(false);
-        }, 100);
-      }
+  // Handle auto-scroll
+  useEffect(() => {
+    if (isPaused) return;
+
+    const timer = setInterval(() => {
+      handleNext();
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, [index, isPaused]);
+
+  // Handle Infinite Loop Logic
+  useEffect(() => {
+    // If we reach the end of the 3rd set, jump back to start of 2nd set
+    if (index >= realLength * 2) {
+      const resetIndex = index - realLength;
+      controls.set({ x: -resetIndex * CARD_WIDTH });
+      setIndex(resetIndex);
     }
+    // If we reach the start of the 1st set, jump forward to start of 2nd set
+    else if (index < realLength) {
+      const resetIndex = index + realLength;
+      controls.set({ x: -resetIndex * CARD_WIDTH });
+      setIndex(resetIndex);
+    }
+    else {
+      // Normal animation
+      controls.start({
+        x: -index * CARD_WIDTH,
+        transition: { duration: 0.5, ease: "easeInOut" }
+      });
+    }
+  }, [index, controls, realLength]);
+
+  const handleNext = () => {
+    setIndex(prev => prev + 1);
+  };
+
+  const handlePrev = () => {
+    setIndex(prev => prev - 1);
   };
 
   const handleViewDetails = (id: number) => {
@@ -192,15 +171,11 @@ const PropertyCarousel: React.FC = () => {
 
   return (
     <section className="py-20 bg-gradient-to-b from-base-200 to-base-100 overflow-hidden relative">
-      {/* Inject animation styles */}
-      <style>{carouselStyles}</style>
-      
       {/* Background decoration */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/5 rounded-full blur-3xl" />
       
       <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-10">
-        {/* Section Header */}
         <motion.div 
           className="text-center mb-12"
           initial={{ opacity: 0, y: 20 }}
@@ -221,49 +196,73 @@ const PropertyCarousel: React.FC = () => {
         </motion.div>
 
         {/* Carousel Container */}
-        <div className="relative">
+        <div 
+          className="relative max-w-full overflow-hidden"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+        >
           {/* Navigation Buttons */}
           <button
-            onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 z-20 w-12 h-12 rounded-full bg-base-100 shadow-xl border border-base-200 flex items-center justify-center transition-all duration-300 opacity-90 hover:bg-primary hover:text-white hover:scale-110 cursor-pointer"
-            style={{ transform: 'translate(-50%, -50%)' }}
+            onClick={() => {
+              handlePrev();
+              setIsPaused(true); // Pause interacting manually
+            }}
+            className="absolute left-4 top-1/2 z-20 w-12 h-12 rounded-full bg-base-100/80 backdrop-blur-sm shadow-xl border border-base-200 flex items-center justify-center transition-all duration-300 hover:bg-primary hover:text-white hover:scale-110 cursor-pointer"
+            style={{ transform: 'translateY(-50%)' }}
+            aria-label="Previous property"
           >
             <ChevronLeft size={24} />
           </button>
           
           <button
-            onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 z-20 w-12 h-12 rounded-full bg-base-100 shadow-xl border border-base-200 flex items-center justify-center transition-all duration-300 opacity-90 hover:bg-primary hover:text-white hover:scale-110 cursor-pointer"
-            style={{ transform: 'translate(50%, -50%)' }}
+            onClick={() => {
+              handleNext();
+              setIsPaused(true); // Pause interacting manually
+            }}
+            className="absolute right-4 top-1/2 z-20 w-12 h-12 rounded-full bg-base-100/80 backdrop-blur-sm shadow-xl border border-base-200 flex items-center justify-center transition-all duration-300 hover:bg-primary hover:text-white hover:scale-110 cursor-pointer"
+            style={{ transform: 'translateY(-50%)' }}
+            aria-label="Next property"
           >
             <ChevronRight size={24} />
           </button>
 
-          {/* Scrolling container with infinite animation */}
-          <div 
-            ref={scrollContainerRef}
-            className="overflow-hidden py-6 carousel-container"
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
-          >
-            <div 
-              className={`flex gap-8 animate-scroll-left ${isPaused ? 'paused' : ''}`}
-              style={{ width: 'max-content' }}
-            >
-              {duplicatedProperties.map((property, index) => (
-                <PropertyCard
-                  key={`${property.id}-${index}`}
-                  property={property}
-                  onViewDetails={handleViewDetails}
-                />
-              ))}
-            </div>
+          {/* Draggable/Animated List */}
+          <div className="py-10">
+             <motion.div
+                className="flex gap-8"
+                animate={controls}
+                initial={{ x: -startIndex * CARD_WIDTH }}
+                drag="x"
+                dragConstraints={{ left: -10000, right: 10000 }} // Allow free drag, we snap back
+                onDragEnd={(e, { offset, velocity }) => {
+                  const swipe = offset.x; // Drag distance
+                  if (swipe < -50) {
+                    handleNext();
+                  } else if (swipe > 50) {
+                    handlePrev();
+                  } else {
+                    // Snap back if not dragged enough
+                    controls.start({ x: -index * CARD_WIDTH });
+                  }
+                  // Temporary pause after drag
+                  setIsPaused(true);
+                  setTimeout(() => setIsPaused(false), 2000);
+                }}
+             >
+                {items.map((property, idx) => (
+                  <PropertyCard
+                    key={`${property.id}-${idx}`}
+                    property={property}
+                    onViewDetails={handleViewDetails}
+                  />
+                ))}
+             </motion.div>
           </div>
         </div>
 
         {/* CTA Button */}
         <motion.div 
-          className="text-center mt-12"
+          className="text-center"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
