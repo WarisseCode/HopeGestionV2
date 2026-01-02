@@ -1,5 +1,5 @@
 // frontend/src/pages/Quittances.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   Plus, 
@@ -16,47 +16,47 @@ import {
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import { generateQuittancePDF } from '../utils/pdfGenerator';
+import { getPaiements } from '../api/financeApi';
+import toast from 'react-hot-toast';
 
 const Quittances: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'liste' | 'generer'>('liste');
   const [showForm, setShowForm] = useState(false);
 
-  // Données de démonstration
-  const [quittances] = useState([
-    {
-      id: 1,
-      numero: 'QUI-2025-001',
-      locataire: 'KOFFI Jean',
-      bien: 'Résidence La Paix - Apt A01',
-      periode: 'Janvier 2025',
-      montant: 150000,
-      dateEmission: '2025-01-05',
-      statut: 'Payé',
-      datePaiement: '2025-01-10'
-    },
-    {
-      id: 2,
-      numero: 'QUI-2025-002',
-      locataire: 'DOSSOU Marie',
-      bien: 'Immeuble Le Destin - Apt B02',
-      periode: 'Janvier 2025',
-      montant: 80000,
-      dateEmission: '2025-01-05',
-      statut: 'Payé',
-      datePaiement: '2025-01-08'
-    },
-    {
-      id: 3,
-      numero: 'QUI-2025-003',
-      locataire: 'AGBO Paul',
-      bien: 'Villa Les Cocotiers',
-      periode: 'Janvier 2025',
-      montant: 200000,
-      dateEmission: '2025-01-05',
-      statut: 'En attente',
-      datePaiement: null
+  // State pour les données réelles
+  const [quittances, setQuittances] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Charger les paiements depuis l'API
+  useEffect(() => {
+    fetchQuittances();
+  }, []);
+
+  const fetchQuittances = async () => {
+    try {
+      setLoading(true);
+      const data = await getPaiements();
+      // Transformation des données API pour l'affichage
+      const formatted = data.map((p: any) => ({
+        id: p.id,
+        numero: p.reference || `QUI-${new Date(p.date_paiement).getFullYear()}-${p.id.toString().padStart(3, '0')}`,
+        locataire: `${p.tenant_name || ''} ${p.tenant_surname || ''}`.trim() || 'Locataire sc.',
+        bien: p.ref_lot ? `${p.building_name} - ${p.ref_lot}` : p.building_name || 'Bien inconnu',
+        periode: new Date(p.date_paiement).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+        montant: p.montant,
+        dateEmission: p.date_paiement,
+        statut: 'Payé', // Par définition, un paiement enregistré est payé
+        datePaiement: p.date_paiement
+      }));
+      setQuittances(formatted);
+    } catch (error) {
+      console.error(error);
+      toast.error("Erreur lors du chargement des quittances");
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   const [formData, setFormData] = useState({
     locataire: '',
@@ -352,16 +352,24 @@ const Quittances: React.FC = () => {
                         </td>
                         <td>
                           <div className="flex gap-2">
-                            <Button variant="ghost" size="sm">
-                              <Eye size={16} />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Download size={16} />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="text-error">
-                              <Trash2 size={16} />
-                            </Button>
-                          </div>
+                             <Button variant="ghost" size="sm" title="Voir">
+                               <Eye size={16} />
+                             </Button>
+                             <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                title="Télécharger PDF"
+                                onClick={() => {
+                                  generateQuittancePDF(quittance);
+                                  toast.success(`Quittance ${quittance.numero} téléchargée !`);
+                                }}
+                             >
+                               <Download size={16} />
+                             </Button>
+                             <Button variant="ghost" size="sm" className="text-error" title="Supprimer">
+                               <Trash2 size={16} />
+                             </Button>
+                           </div>
                         </td>
                       </tr>
                     ))}
