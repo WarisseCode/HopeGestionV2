@@ -9,9 +9,10 @@ interface ModalProps {
   title: string;
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  footer?: React.ReactNode;
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md', footer }) => {
   const sizeClasses = {
     sm: 'max-w-md',
     md: 'max-w-2xl',
@@ -56,6 +57,13 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
                 <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
                   {children}
                 </div>
+
+                {/* Footer */}
+                {footer && (
+                  <div className="flex justify-end gap-3 p-6 border-t border-gray-100 bg-gray-50">
+                    {footer}
+                  </div>
+                )}
               </motion.div>
             </div>
           </div>
