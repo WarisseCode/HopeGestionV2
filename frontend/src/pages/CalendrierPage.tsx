@@ -8,6 +8,7 @@ import { fr } from 'date-fns/locale'; // Pour afficher les mois en français
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { getToken } from '../api/authApi';
+import { API_URL } from '../config';
 
 interface CalendarEvent {
   id: string;
@@ -36,7 +37,7 @@ const CalendrierPage: React.FC = () => {
       const end = format(endOfMonth(currentDate), 'yyyy-MM-dd');
       
       const token = getToken();
-      const response = await fetch(`http://localhost:5000/api/calendar?start=${start}&end=${end}`, {
+      const response = await fetch(`${API_URL}/calendar?start=${start}&end=${end}`, {
           headers: { 'Authorization': `Bearer ${token}` }
       });
       

@@ -39,6 +39,7 @@ import { KPICard, QuickActions, ActivityFeed } from '../components/dashboard';
 import type { Activity } from '../components/dashboard/ActivityFeed';
 import Button from '../components/ui/Button';
 import { getToken } from '../api/authApi';
+import { API_URL } from '../config';
 
 // ... existing interfaces ...
 // --- Types for API Data ---
@@ -159,7 +160,7 @@ const GestionnaireDashboard: React.FC = () => {
       }
       
       try {
-        const response = await fetch('http://localhost:5000/api/dashboard/kpi', {
+        const response = await fetch(`${API_URL}/dashboard/kpi`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

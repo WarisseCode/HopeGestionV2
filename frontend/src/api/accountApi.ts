@@ -1,5 +1,6 @@
 // frontend/src/api/accountApi.ts
 import { getToken } from './authApi';
+import { API_URL } from '../config';
 
 // Interfaces pour les données de compte
 export interface Proprietaire {
@@ -59,7 +60,7 @@ export async function getProprietaires(): Promise<Proprietaire[]> {
     throw new Error('Non authentifié');
   }
 
-  const response = await fetch('http://localhost:5000/api/compte/proprietaires', {
+  const response = await fetch(`${API_URL}/compte/proprietaires`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -82,7 +83,7 @@ export async function getUtilisateurs(): Promise<Utilisateur[]> {
     throw new Error('Non authentifié');
   }
 
-  const response = await fetch('http://localhost:5000/api/compte/utilisateurs', {
+  const response = await fetch(`${API_URL}/compte/utilisateurs`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -105,7 +106,7 @@ export async function getAutorisations(): Promise<Autorisation[]> {
     throw new Error('Non authentifié');
   }
 
-  const response = await fetch('http://localhost:5000/api/compte/autorisations', {
+  const response = await fetch(`${API_URL}/compte/autorisations`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -128,7 +129,7 @@ export async function saveProprietaire(proprietaire: Partial<Proprietaire>): Pro
     throw new Error('Non authentifié');
   }
 
-  const response = await fetch('http://localhost:5000/api/compte/proprietaires', {
+  const response = await fetch(`${API_URL}/compte/proprietaires`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -152,7 +153,7 @@ export async function saveUtilisateur(utilisateur: Partial<Utilisateur>): Promis
     throw new Error('Non authentifié');
   }
 
-  const response = await fetch('http://localhost:5000/api/compte/utilisateurs', {
+  const response = await fetch(`${API_URL}/compte/utilisateurs`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -175,7 +176,7 @@ export async function saveAutorisation(autorisation: Partial<Autorisation>): Pro
     throw new Error('Non authentifié');
   }
 
-  const response = await fetch('http://localhost:5000/api/compte/autorisations', {
+  const response = await fetch(`${API_URL}/compte/autorisations`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -196,7 +197,7 @@ export async function deleteProprietaire(id: number): Promise<void> {
   const token = getToken();
   if (!token) throw new Error('Non authentifié');
 
-  const response = await fetch(`http://localhost:5000/api/compte/proprietaires/${id}`, {
+  const response = await fetch(`${API_URL}/compte/proprietaires/${id}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -215,7 +216,7 @@ export async function deleteUtilisateur(id: number): Promise<void> {
   const token = getToken();
   if (!token) throw new Error('Non authentifié');
 
-  const response = await fetch(`http://localhost:5000/api/compte/utilisateurs/${id}`, {
+  const response = await fetch(`${API_URL}/compte/utilisateurs/${id}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -234,7 +235,7 @@ export async function reactivateUtilisateur(id: number): Promise<void> {
   const token = getToken();
   if (!token) throw new Error('Non authentifié');
 
-  const response = await fetch(`http://localhost:5000/api/compte/utilisateurs/${id}/reactivate`, {
+  const response = await fetch(`${API_URL}/compte/utilisateurs/${id}/reactivate`, {
     method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -253,7 +254,7 @@ export async function getProprietaireBiens(id: number): Promise<any> {
   const token = getToken();
   if (!token) throw new Error('Non authentifié');
 
-  const response = await fetch(`http://localhost:5000/api/compte/proprietaires/${id}/biens`, {
+  const response = await fetch(`${API_URL}/compte/proprietaires/${id}/biens`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',

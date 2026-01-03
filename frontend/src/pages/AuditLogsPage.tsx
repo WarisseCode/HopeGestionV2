@@ -16,6 +16,7 @@ import {
   Eye
 } from 'lucide-react';
 import { getToken } from '../api/authApi';
+import { API_URL } from '../config';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -64,7 +65,7 @@ const AuditLogsPage: React.FC = () => {
             
             if (actionFilter) queryParams.append('action', actionFilter);
 
-            const response = await fetch(`http://localhost:5000/api/audit-logs?${queryParams.toString()}`, {
+            const response = await fetch(`${API_URL}/audit-logs?${queryParams.toString()}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 

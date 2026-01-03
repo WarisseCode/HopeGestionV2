@@ -1,6 +1,6 @@
 import { getToken } from './authApi';
 
-const API_URL = 'http://localhost:5000/api';
+import { API_URL } from '../config';
 
 export interface Alert {
     id: string;
