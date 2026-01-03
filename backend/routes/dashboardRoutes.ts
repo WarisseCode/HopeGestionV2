@@ -346,11 +346,15 @@ router.get('/kpi', async (req: AuthenticatedRequest, res: Response) => {
         const montantARecouvrer = parseFloat(recouvrementResult.rows[0].total) || 0;
 
         // 13. Paiements échelonnés en retard
+        // 13. Paiements échelonnés en retard (Note: Table payment_schedules not implemented yet)
+        const echelonementsEnRetard = 0;
+        /*
         const echelonementsResult = await pool.query(`
             SELECT COUNT(*) FROM payment_schedules 
             WHERE status = 'overdue' OR (status = 'pending' AND due_date < CURRENT_DATE)
         `);
         const echelonementsEnRetard = parseInt(echelonementsResult.rows[0].count, 10);
+        */
 
         // Fonction pour déterminer le statut dynamique
         const getStatus = (type: string, value: number, total?: number): 'success' | 'warning' | 'danger' => {
