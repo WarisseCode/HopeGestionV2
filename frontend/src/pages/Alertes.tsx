@@ -17,9 +17,13 @@ import {
   AlertTriangle,
   Clock,
   Filter,
-  Smartphone
+  Smartphone,
+
+  ArrowRight,
+  TrendingUp
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import { playNotificationSound } from '../utils/sound';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -28,44 +32,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { KPICard } from '../components/dashboard';
 import { getNotifications, markAsRead, markAllAsRead } from '../api/notificationApi';
 import type { AppNotification } from '../api/notificationApi';
+import { getAlerts } from '../api/alertApi';
+import type { Alert } from '../api/alertApi';
 
 const Alertes: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'alertes' | 'notifications' | 'parametres'>('alertes');
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<'alerte' | 'notification' | 'parametre'>('alerte');
+  
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  
+  const [alertes, setAlertes] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Données de démonstration pour Alertes et Paramètres (Pas encore en base)
-  const [alertes] = useState([
-    {
-      id: 1,
-      reference: 'ALT-2025-001',
-      titre: 'Loyer en retard',
-      description: 'Le loyer du lot A01 est en retard de 5 jours',
-      destinataire: 'Gestionnaire',
-      type: 'Paiement',
-      priorite: 'Haute',
-      dateCreation: '2025-01-15',
-      statut: 'Active',
-      frequence: 'Quotidienne',
-      dateEcheance: '2025-01-20'
-    },
-     {
-      id: 2,
-      reference: 'ALT-2025-002',
-      titre: 'Intervention requise',
-      description: 'Fuite d\'eau détectée dans le lot A02',
-      destinataire: 'Technicien',
-      type: 'Intervention',
-      priorite: 'Urgente',
-      dateCreation: '2025-01-16',
-      statut: 'Active',
-      frequence: 'Hebdomadaire',
-      dateEcheance: '2025-01-18'
-    }
-  ]);
-
+  // Mock Params for now
   const [parametres] = useState([
     {
         id: 1,
@@ -90,16 +72,26 @@ const Alertes: React.FC = () => {
   });
 
   useEffect(() => {
-      fetchNotifications();
+      fetchData();
   }, []);
 
-  const fetchNotifications = async () => {
+  const fetchData = async () => {
+      setLoading(true);
       try {
-          const data = await getNotifications();
-          setNotifications(data.notifications);
-          setUnreadCount(data.unreadCount);
+          // Fetch Notifications
+          const notifsData = await getNotifications();
+          setNotifications(notifsData.notifications);
+          setUnreadCount(notifsData.unreadCount);
+
+          // Fetch Alerts
+          const alertsData = await getAlerts();
+          setAlertes(alertsData);
+
       } catch (error) {
-          console.error("Erreur chargement notifs", error);
+          console.error("Erreur chargement données", error);
+          toast.error("Erreur lors du chargement des alertes");
+      } finally {
+          setLoading(false);
       }
   };
 
@@ -119,13 +111,15 @@ const Alertes: React.FC = () => {
 
   const handleMarkAllRead = async () => {
       try {
-          fetchNotifications();
+          await markAllAsRead(); // API call (needs implementation in notificationApi if not exists, but we mocked logic in fetch)
+          // Re-fetch to be safe
+          fetchData();
+          toast.success("Toutes les notifications marquées comme lues");
       } catch (error) {
           console.error("Erreur marquage tout lu", error);
       }
   };
 
-  // ... (Keep existing variants)
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -147,10 +141,10 @@ const Alertes: React.FC = () => {
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-            Centre de Notifications <span className="text-primary">.</span>
+            Centre d'Alertes <span className="text-primary">.</span>
           </h1>
           <p className="text-gray-500 font-medium mt-1">
-            Gérez vos alertes et notifications système.
+            Actions requises et notifications système.
           </p>
         </div>
         <div className="flex gap-2">
@@ -166,8 +160,8 @@ const Alertes: React.FC = () => {
             }}
             >
             <Plus size={18} className="mr-2" />
-            {activeTab === 'alertes' ? 'Nouvelle Alerte' : 
-            activeTab === 'notifications' ? 'Envoyer Notification' : 'Nouveau Paramètre'}
+            {activeTab === 'alertes' ? 'Simuler Alerte' : 
+            activeTab === 'notifications' ? 'Test Notification' : 'Nouveau Paramètre'}
             </Button>
         </div>
       </motion.div>
@@ -181,8 +175,9 @@ const Alertes: React.FC = () => {
                 activeTab === 'alertes' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
-                <Bell size={18} />
+                <AlertTriangle size={18} />
                 Alertes
+                <span className="badge badge-neutral badge-xs ml-1">{alertes.length}</span>
             </button>
             <button
                 onClick={() => setActiveTab('notifications')}
@@ -190,7 +185,7 @@ const Alertes: React.FC = () => {
                 activeTab === 'notifications' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
-                <MessageCircle size={18} />
+                <Bell size={18} />
                 Notifications
                 {unreadCount > 0 && <span className="badge badge-error badge-xs ml-1 text-white">{unreadCount}</span>}
             </button>
@@ -218,35 +213,18 @@ const Alertes: React.FC = () => {
             <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
                 <div className="flex justify-between items-center mb-6 pb-6 border-b border-gray-100">
                     <h2 className="text-xl font-bold text-gray-800">
-                      {formType === 'alerte' ? 'Configuration d\'une Alerte' :
-                       formType === 'notification' ? 'Envoyer une Notification' :
-                       'Paramètre de Notification'}
+                      Configuration
                     </h2>
                     <Button variant="ghost" onClick={() => setShowForm(false)} className="btn-circle btn-sm">
                         <XCircle size={24} className="text-gray-400" />
                     </Button>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {formType === 'alerte' && (
-                     <>
-                        <Input label="Titre" value={alerteForm.titre} onChange={(e) => setAlerteForm({...alerteForm, titre: e.target.value})} placeholder="Ex: Retard de Loyer" />
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Priorité</label>
-                            <select className="select select-bordered w-full bg-gray-50" value={alerteForm.priorite} onChange={(e) => setAlerteForm({...alerteForm, priorite: e.target.value})}>
-                                <option>Haute</option><option>Moyenne</option><option>Basse</option>
-                            </select>
-                        </div>
-                        <div className="md:col-span-2">
-                             <Input label="Description" value={alerteForm.description} onChange={(e) => setAlerteForm({...alerteForm, description: e.target.value})} />
-                        </div>
-                     </>
-                 )}
+                {/* Simplified form for demo */}
+                <div className="p-8 text-center text-gray-500">
+                    Fonctionnalité de simulation/création manuelle à venir.
                 </div>
-                
                 <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
-                    <Button variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
-                    <Button variant="primary" onClick={() => setShowForm(false)}>Enregistrer</Button>
+                    <Button variant="ghost" onClick={() => setShowForm(false)}>Fermer</Button>
                 </div>
             </Card>
           </motion.div>
@@ -258,23 +236,16 @@ const Alertes: React.FC = () => {
             exit={{ opacity: 0 }}
             className="space-y-8"
         >
-            {/* KPIs - Updated to rely on activeTab or general stats if available */}
+            {/* KPIs */}
             {activeTab === 'alertes' && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <KPICard icon={Bell} label="Alertes Actives" value={alertes.length.toString()} color="blue" />
-                    <KPICard icon={AlertTriangle} label="Haute Priorité" value="0" color="orange" />
-                    <KPICard icon={CheckCircle} label="Résolues (Mois)" value="12" color="green" />
+                    <KPICard icon={AlertTriangle} label="Action Requise" value={alertes.length.toString()} color="orange" />
+                    <KPICard icon={TrendingUp} label="Priorité Haute" value={alertes.filter(a => a.priorite === 'Urgente' || a.priorite === 'Haute').length.toString()} color="pink" />
+                    <KPICard icon={CheckCircle} label="Résolues (Auto)" value="-" color="green" />
                 </div>
             )}
-            {activeTab === 'notifications' && (
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <KPICard icon={MessageCircle} label="Total" value={notifications.length.toString()} color="purple" />
-                    <KPICard icon={Mail} label="Non Lues" value={unreadCount.toString()} color="orange" />
-                    <KPICard icon={Smartphone} label="SMS Envoyés" value="0" color="blue" />
-                </div>
-            )}
-
-            {/* Content Lists */}
+            
+            {/* ALERTES LIST */}
             {activeTab === 'alertes' && (
                 <Card className="border-none shadow-xl bg-white p-0 overflow-hidden">
                      <div className="overflow-x-auto">
@@ -285,48 +256,64 @@ const Alertes: React.FC = () => {
                                 <th className="text-gray-500 font-semibold">Alerte</th>
                                 <th className="text-gray-500 font-semibold">Type</th>
                                 <th className="text-gray-500 font-semibold">Priorité</th>
-                                <th className="text-gray-500 font-semibold">Statut</th>
-                                <th className="pr-6 text-right text-gray-500 font-semibold">Actions</th>
+                                <th className="text-gray-500 font-semibold">Date</th>
+                                <th className="pr-6 text-right text-gray-500 font-semibold">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {alertes.map(alerte => (
-                                <tr key={alerte.id} className="hover:bg-gray-50/50 transition-colors">
-                                    <td className="pl-6 font-medium text-gray-800">{alerte.reference}</td>
-                                    <td>
-                                        <div className="font-bold text-gray-800">{alerte.titre}</div>
-                                        <div className="text-xs text-gray-500">{alerte.description}</div>
-                                    </td>
-                                    <td><span className="badge badge-ghost badge-sm">{alerte.type}</span></td>
-                                    <td>
-                                         <span className={`badge ${
-                                            alerte.priorite === 'Urgente' ? 'badge-error' : 
-                                            alerte.priorite === 'Haute' ? 'badge-warning' : 
-                                            'badge-info'
-                                            } gap-1 text-white`}>
-                                            {alerte.priorite}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span className={`badge ${alerte.statut === 'Active' ? 'badge-success' : 'badge-neutral'} badge-xs gap-1 py-2 px-3 text-white`}>
-                                            {alerte.statut}
-                                        </span>
-                                    </td>
-                                    <td className="pr-6 text-right">
-                                        <Button variant="ghost" size="sm" className="btn-square btn-xs text-gray-400 hover:text-primary"><Edit3 size={16}/></Button>
-                                    </td>
-                                </tr>
-                            ))}
+                            {loading ? (
+                                <tr><td colSpan={6} className="text-center py-8"><span className="loading loading-spinner loading-md"></span></td></tr>
+                            ) : alertes.length === 0 ? (
+                                <tr><td colSpan={6} className="text-center py-8 text-gray-400">Aucune alerte active. Tout va bien !</td></tr>
+                            ) : (
+                                alertes.map(alerte => (
+                                    <tr key={alerte.id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="pl-6 font-medium text-gray-800">{alerte.reference}</td>
+                                        <td>
+                                            <div className="font-bold text-gray-800">{alerte.titre}</div>
+                                            <div className="text-xs text-gray-500">{alerte.description}</div>
+                                        </td>
+                                        <td><span className="badge badge-ghost badge-sm">{alerte.type}</span></td>
+                                        <td>
+                                             <span className={`badge ${
+                                                alerte.priorite === 'Urgente' ? 'badge-error text-white' : 
+                                                alerte.priorite === 'Haute' ? 'badge-warning text-white' : 
+                                                'badge-info text-white'
+                                                } gap-1`}>
+                                                {alerte.priorite}
+                                            </span>
+                                        </td>
+                                        <td className="text-sm font-mono text-gray-500">
+                                            {new Date(alerte.dateCreation).toLocaleDateString()}
+                                        </td>
+                                        <td className="pr-6 text-right">
+                                            {alerte.link && (
+                                                <Button 
+                                                    variant="secondary" 
+                                                    size="sm" 
+                                                    className="btn-xs gap-1"
+                                                    onClick={() => navigate(alerte.link!)}
+                                                >
+                                                    Traiter <ArrowRight size={12}/>
+                                                </Button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                     </div>
                 </Card>
             )}
 
+            {/* NOTIFICATIONS LIST */}
             {activeTab === 'notifications' && (
                 <div className="grid gap-4">
-                     {notifications.length === 0 ? (
-                         <div className="text-center py-10 text-gray-400">Aucune notification pour le moment.</div>
+                     {loading ? (
+                         <div className="text-center py-8"><span className="loading loading-spinner loading-md"></span></div>
+                     ) : notifications.length === 0 ? (
+                         <div className="text-center py-10 text-gray-400">Aucune notification.</div>
                      ) : (
                          notifications.map(notif => (
                             <Card key={notif.id} className={`border-l-4 ${!notif.is_read ? 'border-l-primary bg-primary/5' : 'border-l-gray-200 bg-white'} hover:shadow-md transition-all cursor-pointer`}>
@@ -358,6 +345,7 @@ const Alertes: React.FC = () => {
                 </div>
             )}
 
+            {/* PARAMETRES */}
             {activeTab === 'parametres' && (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {parametres.map(param => (

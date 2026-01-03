@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Building2, Home, MapPin, Plus, Edit3, Trash2, LayoutGrid, List, Users, TrendingUp, AlertCircle } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -12,7 +13,9 @@ import { getProprietaires } from '../api/accountApi';
 import type { Proprietaire } from '../api/accountApi';
 
 const BiensPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'immeubles' | 'lots'>('immeubles');
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'lots' ? 'lots' : 'immeubles';
+  const [activeTab, setActiveTab] = useState<'immeubles' | 'lots'>(initialTab);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

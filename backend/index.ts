@@ -21,6 +21,7 @@ import calendarRoutes from './routes/calendarRoutes';
 
 import auditRoutes from './routes/auditRoutes';
 import mobileMoneyRoutes from './routes/mobileMoneyRoutes';
+import alertRoutes from './routes/alertRoutes';
 
 import { protect, AuthenticatedRequest } from './middleware/authMiddleware'; 
 
@@ -111,6 +112,8 @@ app.use('/api/mobile-money', protect, mobileMoneyRoutes);
 // Routes Notifications
 import notificationRoutes from './routes/notificationRoutes';
 app.use('/api/notifications', protect, notificationRoutes);
+// Routes Alertes
+app.use('/api/alertes', protect, alertRoutes);
 
 // Route Test Protégée (pour validation rapide de 'protect')
 app.get('/api/profil', protect, async (req: AuthenticatedRequest, res: Response) => {

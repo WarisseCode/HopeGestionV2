@@ -12,6 +12,7 @@ interface KPICardProps {
     label: string;
     positive: boolean;
   };
+  onClick?: () => void;
 }
 
 const colorClasses = {
@@ -57,22 +58,21 @@ const colorClasses = {
   }
 };
 
-const KPICard: React.FC<KPICardProps> = ({ icon: Icon, label, value, color, trend }) => {
+const KPICard: React.FC<KPICardProps> = ({ icon: Icon, label, value, color, trend, onClick }) => {
   const classes = colorClasses[color] || colorClasses.blue;
   
   return (
     <motion.div 
-      className={`relative overflow-hidden rounded-2xl p-6 border ${classes.border} ${classes.bg} shadow-lg ${classes.shadow}`}
+      onClick={onClick}
+      className={`relative overflow-hidden rounded-2xl p-5 border ${classes.border} ${classes.bg} shadow-lg ${classes.shadow} h-full min-h-[150px] flex flex-col justify-between transition-all duration-300 hover:shadow-xl ${onClick ? 'cursor-pointer hover:border-primary/50' : ''}`}
       whileHover={{ y: -5, scale: 1.02 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >
-      {/* Background Gradient Decoration Removed as per user request */}
-      {/* <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${classes.gradient} rounded-bl-full -mr-8 -mt-8`} /> */}
       
-      <div className="relative z-10 flex flex-col h-full justify-between">
-        <div className="flex justify-between items-start mb-4">
-          <div className={`${classes.iconBg} p-3 rounded-xl ring-4 ring-white dark:ring-base-200`}>
-            <Icon className={`w-6 h-6 ${classes.iconText}`} />
+      <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+        <div className="flex justify-between items-start">
+          <div className={`${classes.iconBg} p-2.5 rounded-xl ring-4 ring-white dark:ring-base-200`}>
+            <Icon className={`w-5 h-5 ${classes.iconText}`} />
           </div>
           {trend && (
             <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
@@ -86,9 +86,9 @@ const KPICard: React.FC<KPICardProps> = ({ icon: Icon, label, value, color, tren
         
         <div>
           <p className="text-sm font-medium text-gray-500 dark:text-base-content/60 mb-1">{label}</p>
-          <h3 className="text-2xl font-extrabold text-gray-900 dark:text-base-content tracking-tight">{value}</h3>
+          <h3 className="text-2xl font-bold text-gray-800 dark:text-base-content tracking-tight">{value}</h3>
           {trend && (
-            <p className="text-xs text-gray-400 dark:text-base-content/40 mt-2">
+            <p className="text-xs text-gray-400 dark:text-base-content/40 mt-1">
               {trend.label}
             </p>
           )}

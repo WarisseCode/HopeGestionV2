@@ -4,6 +4,7 @@ import { ChevronDown } from 'lucide-react';
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
+  required?: boolean;
   error?: string;
   helperText?: string;
   startIcon?: React.ReactNode;
@@ -13,6 +14,7 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 
 const Select: React.FC<SelectProps> = ({
   label,
+  required,
   error,
   helperText,
   startIcon,
@@ -27,7 +29,7 @@ const Select: React.FC<SelectProps> = ({
     <div className="w-full">
       {label && (
         <label className="block text-sm font-medium text-base-content mb-1">
-          {label}
+          {label} {required && <span className="text-error">*</span>}
         </label>
       )}
       <div

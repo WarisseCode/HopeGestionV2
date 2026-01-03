@@ -16,6 +16,8 @@ export interface Proprietaire {
   numeroPiece: string;
   photo?: string | null;
   modeGestion?: string;
+  mobileMoney?: string;
+  rccmNumber?: string;
 }
 
 export interface Utilisateur {
@@ -184,6 +186,83 @@ export async function saveAutorisation(autorisation: Partial<Autorisation>): Pro
 
   if (!response.ok) {
     throw new Error(`Erreur: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// Delete (soft) proprietaire
+export async function deleteProprietaire(id: number): Promise<void> {
+  const token = getToken();
+  if (!token) throw new Error('Non authentifié');
+
+  const response = await fetch(`http://localhost:5000/api/compte/proprietaires/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Erreur: ${response.status}`);
+  }
+}
+
+// Delete (suspend) utilisateur
+export async function deleteUtilisateur(id: number): Promise<void> {
+  const token = getToken();
+  if (!token) throw new Error('Non authentifié');
+
+  const response = await fetch(`http://localhost:5000/api/compte/utilisateurs/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Erreur: ${response.status}`);
+  }
+}
+
+// Reactivate utilisateur
+export async function reactivateUtilisateur(id: number): Promise<void> {
+  const token = getToken();
+  if (!token) throw new Error('Non authentifié');
+
+  const response = await fetch(`http://localhost:5000/api/compte/utilisateurs/${id}/reactivate`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Erreur: ${response.status}`);
+  }
+}
+
+// Get proprietaire's properties
+export async function getProprietaireBiens(id: number): Promise<any> {
+  const token = getToken();
+  if (!token) throw new Error('Non authentifié');
+
+  const response = await fetch(`http://localhost:5000/api/compte/proprietaires/${id}/biens`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Erreur: ${response.status}`);
   }
 
   return await response.json();

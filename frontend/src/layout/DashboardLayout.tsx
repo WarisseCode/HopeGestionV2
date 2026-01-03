@@ -25,6 +25,7 @@ import {
 import { Link, useLocation } from 'react-router-dom';
 import ThemeToggle from '../components/ui/ThemeToggle';
 import { getProfile } from '../api/authApi';
+import { getAlerts } from '../api/alertApi';
 import ChatBot from '../components/ChatBot';
 
 interface DashboardLayoutProps {
@@ -35,6 +36,7 @@ interface DashboardLayoutProps {
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [alertsCount, setAlertsCount] = useState(0);
   const location = useLocation();
 
   useEffect(() => {
@@ -48,6 +50,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
     };
 
     fetchUserProfile();
+
+    // Fetch alerts count
+    const fetchAlertsCount = async () => {
+        try {
+            const alerts = await getAlerts();
+            setAlertsCount(alerts.length);
+        } catch (error) {
+            console.error('Error fetching alerts count', error);
+        }
+    };
+    fetchAlertsCount();
   }, []);
 
 
@@ -206,7 +219,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
               `}
             >
               {item.icon}
-              {isSidebarOpen && <span className="font-medium text-sm">{item.label}</span>}
+              {isSidebarOpen && (
+                <div className="flex justify-between items-center w-full">
+                    <span className="font-medium text-sm">{item.label}</span>
+                    {item.path === '/alertes' && alertsCount > 0 && (
+                        <span className="badge badge-error badge-xs text-white px-1.5 py-2 h-auto text-[10px] font-bold">
+                            {alertsCount}
+                        </span>
+                    )}
+                </div>
+              )}
             </Link>
           ))}
         </nav>

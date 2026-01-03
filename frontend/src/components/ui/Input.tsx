@@ -3,6 +3,7 @@ import React from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
+  required?: boolean;
   error?: string;
   helperText?: string;
   startIcon?: React.ReactNode;
@@ -11,6 +12,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 const Input: React.FC<InputProps> = ({
   label,
+  required,
   error,
   helperText,
   startIcon,
@@ -24,7 +26,7 @@ const Input: React.FC<InputProps> = ({
     <div className="w-full">
       {label && (
         <label className="block text-sm font-medium text-base-content mb-1">
-          {label}
+          {label} {required && <span className="text-error">*</span>}
         </label>
       )}
       <div className={`relative rounded-lg ${hasError ? 'border-error' : 'border-base-300'} border ${hasError ? 'focus-within:border-error' : 'focus-within:border-primary'} focus-within:ring-1 ${hasError ? 'focus-within:ring-error/50' : 'focus-within:ring-primary/50'} transition-colors`}>

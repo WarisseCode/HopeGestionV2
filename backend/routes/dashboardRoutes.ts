@@ -274,4 +274,212 @@ router.get('/stats/locataire', async (req: AuthenticatedRequest, res: Response) 
 });
 
 
+// GET /api/dashboard/kpi : KPIs complets avec statuts dynamiques
+router.get('/kpi', async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        // 1. Nombre total de biens (bâtiments)
+        const buildingsResult = await pool.query('SELECT COUNT(*) FROM buildings');
+        const totalBiens = parseInt(buildingsResult.rows[0].count, 10);
+
+        // 2. Total des lots
+        const lotsResult = await pool.query('SELECT COUNT(*) FROM lots');
+        const totalLots = parseInt(lotsResult.rows[0].count, 10);
+
+        // 3. Lots occupés
+        const occupiedResult = await pool.query("SELECT COUNT(*) FROM lots WHERE statut = 'occupe'");
+        const lotsOccupes = parseInt(occupiedResult.rows[0].count, 10);
+
+        // 4. Lots libres
+        const freeResult = await pool.query("SELECT COUNT(*) FROM lots WHERE statut = 'disponible'");
+        const lotsLibres = parseInt(freeResult.rows[0].count, 10);
+
+        // 5. Lots réservés (approximation pour réservations en attente)
+        const reservedResult = await pool.query("SELECT COUNT(*) FROM lots WHERE statut = 'reserve'");
+        const reservationsEnAttente = parseInt(reservedResult.rows[0].count, 10);
+
+        // 6. Taux d'occupation
+        const tauxOccupation = totalLots > 0 ? Math.round((lotsOccupes / totalLots) * 100) : 0;
+
+        // 7. Loyers encaissés (mois en cours)
+        const loyersEncaissesResult = await pool.query(`
+            SELECT COALESCE(SUM(montant), 0) as total 
+            FROM payments 
+            WHERE type = 'Loyer'
+            AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
+            AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
+            AND statut = 'valide'
+        `);
+        const loyersEncaisses = parseFloat(loyersEncaissesResult.rows[0].total) || 0;
+
+        // 8. Loyers attendus (contrats actifs)
+        const loyersAttendusResult = await pool.query(`
+            SELECT COALESCE(SUM(loyer_actuel), 0) as total 
+            FROM leases 
+            WHERE statut = 'actif'
+        `);
+        const loyersAttendus = parseFloat(loyersAttendusResult.rows[0].total) || 0;
+
+        // 9. Loyers impayés du mois courant
+        const loyersImpayes = Math.max(0, loyersAttendus - loyersEncaisses);
+
+        // 10. Contrats actifs
+        const contratsResult = await pool.query("SELECT COUNT(*) FROM leases WHERE statut = 'actif'");
+        const contratsActifs = parseInt(contratsResult.rows[0].count, 10);
+
+        // 11. Plaintes ouvertes (tickets)
+        const plaintesResult = await pool.query("SELECT COUNT(*) FROM tickets WHERE statut = 'ouvert'");
+        const plaintesOuvertes = parseInt(plaintesResult.rows[0].count, 10);
+
+        // 12. Montant à recouvrer (impayés cumulés sur plusieurs mois)
+        const recouvrementResult = await pool.query(`
+            SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
+            FROM leases l
+            WHERE l.statut = 'actif'
+            AND NOT EXISTS (
+                SELECT 1 FROM payments p 
+                WHERE p.lease_id = l.id 
+                AND p.type = 'Loyer'
+                AND p.statut = 'valide'
+                AND p.date_paiement >= DATE_TRUNC('month', CURRENT_DATE)
+            )
+        `);
+        const montantARecouvrer = parseFloat(recouvrementResult.rows[0].total) || 0;
+
+        // 13. Paiements échelonnés en retard
+        const echelonementsResult = await pool.query(`
+            SELECT COUNT(*) FROM payment_schedules 
+            WHERE status = 'overdue' OR (status = 'pending' AND due_date < CURRENT_DATE)
+        `);
+        const echelonementsEnRetard = parseInt(echelonementsResult.rows[0].count, 10);
+
+        // Fonction pour déterminer le statut dynamique
+        const getStatus = (type: string, value: number, total?: number): 'success' | 'warning' | 'danger' => {
+            switch(type) {
+                case 'occupation':
+                    if (value >= 80) return 'success';
+                    if (value >= 50) return 'warning';
+                    return 'danger';
+                case 'impayes':
+                case 'recouvrement':
+                    if (value === 0) return 'success';
+                    if (value < (total || 100000)) return 'warning';
+                    return 'danger';
+                case 'plaintes':
+                    if (value === 0) return 'success';
+                    if (value <= 3) return 'warning';
+                    return 'danger';
+                case 'echelonements':
+                    if (value === 0) return 'success';
+                    if (value <= 2) return 'warning';
+                    return 'danger';
+                default:
+                    return 'success';
+            }
+        };
+
+        res.status(200).json({
+            kpis: [
+                {
+                    id: 'total_biens',
+                    label: 'Nombre total de biens',
+                    value: totalBiens,
+                    status: 'success',
+                    icon: 'Building2',
+                    modulePath: '/biens'
+                },
+                {
+                    id: 'lots_occupation',
+                    label: 'Lots occupés / libres',
+                    value: `${lotsOccupes} / ${lotsLibres}`,
+                    status: getStatus('occupation', tauxOccupation),
+                    icon: 'Home',
+                    modulePath: '/biens'
+                },
+                {
+                    id: 'loyers_encaisses',
+                    label: 'Loyers encaissés (mois)',
+                    value: loyersEncaisses,
+                    status: loyersEncaisses >= loyersAttendus * 0.8 ? 'success' : loyersEncaisses >= loyersAttendus * 0.5 ? 'warning' : 'danger',
+                    icon: 'Wallet',
+                    modulePath: '/paiements'
+                },
+                {
+                    id: 'loyers_impayes',
+                    label: 'Loyers impayés',
+                    value: loyersImpayes,
+                    status: getStatus('impayes', loyersImpayes, loyersAttendus * 0.2),
+                    icon: 'AlertTriangle',
+                    modulePath: '/paiements'
+                },
+                {
+                    id: 'taux_occupation',
+                    label: "Taux d'occupation",
+                    value: `${tauxOccupation}%`,
+                    status: getStatus('occupation', tauxOccupation),
+                    icon: 'Percent',
+                    modulePath: '/biens'
+                },
+                {
+                    id: 'contrats_actifs',
+                    label: 'Contrats actifs',
+                    value: contratsActifs,
+                    status: 'success',
+                    icon: 'FileText',
+                    modulePath: '/locataires'
+                },
+                {
+                    id: 'plaintes_ouvertes',
+                    label: 'Plaintes ouvertes',
+                    value: plaintesOuvertes,
+                    status: getStatus('plaintes', plaintesOuvertes),
+                    icon: 'MessageCircle',
+                    modulePath: '/alertes'
+                },
+                {
+                    id: 'reservations',
+                    label: 'Réservations en attente',
+                    value: reservationsEnAttente,
+                    status: reservationsEnAttente > 0 ? 'warning' : 'success',
+                    icon: 'Calendar',
+                    modulePath: '/biens'
+                },
+                {
+                    id: 'recouvrement',
+                    label: 'Montant à recouvrer',
+                    value: montantARecouvrer,
+                    status: getStatus('recouvrement', montantARecouvrer, loyersAttendus * 0.3),
+                    icon: 'DollarSign',
+                    modulePath: '/paiements'
+                },
+                {
+                    id: 'echelonements_retard',
+                    label: 'Échelonnements en retard',
+                    value: echelonementsEnRetard,
+                    status: getStatus('echelonements', echelonementsEnRetard),
+                    icon: 'Clock',
+                    modulePath: '/paiements'
+                }
+            ],
+            summary: {
+                totalBiens,
+                totalLots,
+                lotsOccupes,
+                lotsLibres,
+                tauxOccupation,
+                loyersEncaisses,
+                loyersImpayes,
+                contratsActifs,
+                plaintesOuvertes,
+                reservationsEnAttente,
+                montantARecouvrer,
+                echelonementsEnRetard
+            }
+        });
+
+    } catch (error) {
+        console.error('Erreur récupération KPIs:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la récupération des KPIs.' });
+    }
+});
+
 export default router;

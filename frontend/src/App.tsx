@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'r
 import { Toaster } from 'react-hot-toast';
 import LoginForm from './components/LoginForm';
 import SignupForm from './components/SignupForm';
-import Dashboard from './pages/Dashboard';
+// import Dashboard from './pages/Dashboard'; // Removed as file is deleted
 import LocataireDashboard from './pages/LocataireDashboard';
 import ProprietaireDashboard from './pages/ProprietaireDashboard';
 import GestionnaireDashboard from './pages/GestionnaireDashboard';

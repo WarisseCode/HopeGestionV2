@@ -1,42 +1,85 @@
 // frontend/src/pages/GestionnaireDashboard.tsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Building2, 
   Home, 
   Wallet, 
-  AlertCircle, 
-  Eye, 
+  AlertTriangle, 
+  Percent, 
+  FileText, 
+  MessageCircle, 
+  Calendar, 
+  DollarSign, 
+  Clock, 
   Search, 
-  Filter, 
   Plus, 
-  Bell,
-  MoreVertical,
-  Calendar,
-  Users
+  MoreVertical, 
+  Eye,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import Card from '../components/ui/Card';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+// ... existing imports ...
 import { 
-  AreaChart, 
-  Area, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Legend // Fix: was missing from import or used implicitly
+    AreaChart, 
+    Area, 
+    PieChart, 
+    Pie, 
+    Cell, 
+    XAxis, 
+    YAxis, 
+    CartesianGrid, 
+    Tooltip, 
+    ResponsiveContainer
 } from 'recharts';
 import { useUser } from '../contexts/UserContext';
-import { KPICard, QuickActions, ActivityFeed, UpcomingEvents } from '../components/dashboard'; // Added UpcomingEvents
+import { KPICard, QuickActions, ActivityFeed } from '../components/dashboard'; 
 import type { Activity } from '../components/dashboard/ActivityFeed';
-import type { UpcomingEvent } from '../components/dashboard/UpcomingEvents';
-import Button from '../components/ui/Button'; // Assuming Button component exists
+import Button from '../components/ui/Button';
+import { getToken } from '../api/authApi';
+
+// ... existing interfaces ...
+// --- Types for API Data ---
+interface KPIData {
+    id: string;
+    label: string;
+    value: string | number;
+    status: 'success' | 'warning' | 'danger';
+    icon: string;
+    modulePath: string;
+}
 
 const GestionnaireDashboard: React.FC = () => {
   const { user, stats, loading } = useUser();
+  const navigate = useNavigate();
+
+  const handleKpiClick = (kpi: KPIData) => {
+      if (kpi.id === 'lots_occupation') {
+          navigate('/dashboard/biens?tab=lots');
+          return;
+      }
+      
+      const path = kpi.modulePath.startsWith('/') ? kpi.modulePath : `/${kpi.modulePath}`;
+      navigate(`/dashboard${path}`);
+  };
+  const [kpis, setKpis] = useState<KPIData[]>([]);
+  const [showAllKpis, setShowAllKpis] = useState(false); // State for collapsible grid
+
+  // ... existing mock data ...
+  const mockKpis: KPIData[] = [
+      { id: 'total_biens', label: 'Total Biens', value: 15, status: 'success', icon: 'Building2', modulePath: '/biens' },
+      { id: 'lots_occupation', label: 'Occupés / Libres', value: "12 / 3", status: 'success', icon: 'Home', modulePath: '/biens' },
+      { id: 'loyers_encaisses', label: 'Encaissés (Mois)', value: 4500000, status: 'success', icon: 'Wallet', modulePath: '/finances' },
+      { id: 'loyers_impayes', label: 'Impayés', value: 150000, status: 'warning', icon: 'AlertTriangle', modulePath: '/finances' },
+      { id: 'taux_occupation', label: "Taux Occupation", value: "85%", status: 'success', icon: 'Percent', modulePath: '/biens' },
+      { id: 'contrats_actifs', label: 'Contrats Actifs', value: 12, status: 'success', icon: 'FileText', modulePath: '/locataires' },
+      { id: 'plaintes_ouvertes', label: 'Plaintes', value: 2, status: 'warning', icon: 'MessageCircle', modulePath: '/alertes' },
+      { id: 'reservations', label: 'Réservations', value: 1, status: 'warning', icon: 'Calendar', modulePath: '/biens' },
+      { id: 'recouvrement', label: 'À Recouvrer', value: 280000, status: 'danger', icon: 'DollarSign', modulePath: '/finances' },
+      { id: 'echelonements_retard', label: 'Retards Échél.', value: 0, status: 'success', icon: 'Clock', modulePath: '/finances' },
+  ];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -51,7 +94,95 @@ const GestionnaireDashboard: React.FC = () => {
     visible: { y: 0, opacity: 1 }
   };
 
-  // Mock Data
+  // ... existing formatting helpers ...
+  // Helper to format values based on KPI type
+  const formatValue = (kpi: KPIData) => {
+      // 1. Currency KPIs
+      if (['loyers_encaisses', 'loyers_impayes', 'recouvrement'].includes(kpi.id)) {
+          if (typeof kpi.value === 'number') {
+              return new Intl.NumberFormat('fr-FR').format(kpi.value) + ' FCFA';
+          }
+          return kpi.value + ' FCFA';
+      }
+      
+      // 2. Percentage or Special String KPIs
+      if (['taux_occupation', 'lots_occupation'].includes(kpi.id)) {
+          return kpi.value;
+      }
+      
+      // 3. Count KPIs (Integer)
+      if (typeof kpi.value === 'number') {
+           return new Intl.NumberFormat('fr-FR').format(kpi.value);
+      }
+      return kpi.value;
+  };
+
+  const getIcon = (iconName: string) => {
+      switch(iconName) {
+          case 'Building2': return Building2;
+          case 'Home': return Home;
+          case 'Wallet': return Wallet;
+          case 'AlertTriangle': return AlertTriangle;
+          case 'Percent': return Percent;
+          case 'FileText': return FileText;
+          case 'MessageCircle': return MessageCircle;
+          case 'Calendar': return Calendar;
+          case 'DollarSign': return DollarSign;
+          case 'Clock': return Clock;
+          default: return Building2;
+      }
+  };
+
+  const getKeyColor = (kpi: KPIData): 'blue' | 'green' | 'purple' | 'orange' | 'pink' => {
+      switch(kpi.id) {
+          case 'total_biens': return 'blue';
+          case 'lots_occupation': return 'purple';
+          case 'loyers_encaisses': return 'green';
+          case 'loyers_impayes': return 'pink';
+          case 'taux_occupation': return 'blue';
+          case 'contrats_actifs': return 'green';
+          case 'plaintes_ouvertes': return 'orange';
+          case 'reservations': return 'purple';
+          case 'recouvrement': return 'pink';
+          case 'echelonements_retard': return 'orange';
+          default: return 'blue';
+      }
+  };
+
+  // ... useEffect for fetching KPIs ...
+  useEffect(() => {
+    const fetchKPIs = async () => {
+      const token = getToken();
+      if (!token) {
+        setKpis(mockKpis);
+        return;
+      }
+      
+      try {
+        const response = await fetch('http://localhost:5000/api/dashboard/kpi', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setKpis(data.kpis);
+        } else {
+          setKpis(mockKpis);
+        }
+      } catch (error) {
+        console.error('Error fetching KPIs:', error);
+        setKpis(mockKpis);
+      }
+    };
+    
+    fetchKPIs();
+  }, [stats]);
+
+
+  // ... Chart Data ...
   const revenusData = [
     { name: 'Jan', revenus: 1200000, depenses: 240000 },
     { name: 'Fév', revenus: 1100000, depenses: 139800 },
@@ -63,8 +194,8 @@ const GestionnaireDashboard: React.FC = () => {
   ];
 
   const occupationData = [
-    { name: 'Occupé', value: stats?.tauxOccupation || 85, color: '#6366f1' }, // Indigo
-    { name: 'Vacant', value: 100 - (stats?.tauxOccupation || 85), color: '#e2e8f0' }, // Slate-200
+    { name: 'Occupé', value: stats?.tauxOccupation || 85, color: '#6366f1' },
+    { name: 'Vacant', value: 100 - (stats?.tauxOccupation || 85), color: '#e2e8f0' },
   ];
 
   const activities: Activity[] = [
@@ -74,26 +205,13 @@ const GestionnaireDashboard: React.FC = () => {
     { id: 4, type: 'contract', title: 'Nouveau bail', description: 'Résidence La Paix, Apt C04', time: '28 Déc' },
   ];
 
-  const upcomingEvents: UpcomingEvent[] = [
-    { id: 1, type: 'rent', title: 'Échéance loyer', description: '5 paiements en attente', date: '05 Jan', daysUntil: 5 },
-    { id: 2, type: 'contract', title: 'Fin de bail', description: 'Mme. Salami (Apt D01)', date: '15 Jan', daysUntil: 15 },
-  ];
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-base-100">
-        <div className="loading loading-spinner loading-lg text-primary"></div>
-      </div>
-    );
-  }
+  const allKpis = kpis.length > 0 ? kpis : mockKpis;
+  const visibleKpis = showAllKpis ? allKpis : allKpis.slice(0, 4);
 
   return (
     <motion.div 
-      className="p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto"
+      className="p-4 md:p-8 space-y-8 max-w-[1700px] mx-auto"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -125,46 +243,63 @@ const GestionnaireDashboard: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* KPI Grid */}
-      <motion.div 
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-        variants={itemVariants}
-      >
-        <KPICard 
-          icon={Building2} 
-          label="Parc Immobilier" 
-          value={stats?.totalBiens || 42} 
-          color="blue"
-          trend={{ value: "+2", label: "nouveaux biens", positive: true }}
-        />
-        <KPICard 
-          icon={Users} 
-          label="Taux d'Occupation" 
-          value={`${stats?.tauxOccupation || 85}%`} 
-          color="green" 
-          trend={{ value: "+5%", label: "vs mois dernier", positive: true }}
-        />
-        <KPICard 
-          icon={Wallet} 
-          label="Revenus du Mois" 
-          value={formatCurrency(stats?.revenusMois || 4500000)} 
-          color="purple" 
-          trend={{ value: "+12%", label: "performance excellente", positive: true }}
+      {/* KPI Section */}
+       <motion.div variants={itemVariants} className="relative">
+          <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold text-gray-800 dark:text-base-content">Indicateurs Stratégiques</span>
+                <span className="px-2 py-0.5 rounded-full bg-gray-100 text-xs font-medium text-gray-500">
+                    {showAllKpis ? '10 metrics' : '4 metrics'}
+                </span>
+              </div>
+              
+              <button 
+                onClick={() => setShowAllKpis(!showAllKpis)}
+                className="flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-focus transition-colors"
+                >
+                  {showAllKpis ? (
+                      <>
+                        Voir moins <ChevronUp size={16} />
+                      </>
+                  ) : (
+                      <>
+                        Voir tous <ChevronDown size={16} />
+                      </>
+                  )}
+              </button>
+          </div>
 
-        />
-        <KPICard 
-          icon={AlertCircle} 
-          label="Impayés / Retards" 
-          value={formatCurrency(stats?.impayesEnCours || 250000)} 
-          color="pink" 
-          trend={{ value: "-8%", label: "diminution des risques", positive: true }}
-        />
+          <motion.div 
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6"
+          >
+            <AnimatePresence>
+                {visibleKpis.map((kpi) => (
+                <motion.div
+                    key={kpi.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    <KPICard 
+                        icon={getIcon(kpi.icon)}
+                        label={kpi.label}
+                        value={formatValue(kpi)}
+                        color={getKeyColor(kpi)}
+                        onClick={() => handleKpiClick(kpi)}
+                    />
+                </motion.div>
+                ))}
+            </AnimatePresence>
+          </motion.div>
       </motion.div>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         
-        {/* Left Column (Charts) - 2/3 width */}
+        {/* Left Column (Charts & Properties) - 2/3 width */}
         <div className="xl:col-span-2 space-y-8">
             
             {/* Finance Chart */}
@@ -209,7 +344,7 @@ const GestionnaireDashboard: React.FC = () => {
                 </Card>
             </motion.div>
 
-            {/* Properties Grid (New Premium Look) */}
+            {/* Properties Grid */}
             <motion.div variants={itemVariants}>
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -226,7 +361,7 @@ const GestionnaireDashboard: React.FC = () => {
                     <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex gap-4 hover:shadow-xl transition-all cursor-pointer group">
                         <div className="w-24 h-24 rounded-xl bg-gray-200 overflow-hidden relative shrink-0">
                             <img src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&q=80" alt="Bien" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
-                            <div className="absolute top-1 right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                             <div className="absolute top-1 right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                         </div>
                         <div className="flex-1 min-w-0 py-1">
                             <h4 className="font-bold text-gray-900 truncate">Résidence Les Palmiers</h4>
