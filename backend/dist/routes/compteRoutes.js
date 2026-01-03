@@ -18,7 +18,8 @@ router.get('/proprietaires', async (req, res) => {
             SELECT id, type, name as nom, first_name as prenom, phone as telephone, 
                    phone_secondary as "telephoneSecondaire", email, address as adresse, 
                    city as ville, country as pays, id_number as "numeroPiece", 
-                   photo, management_mode as "modeGestion"
+                   photo, management_mode as "modeGestion",
+                   mobile_money_coordinates as "mobileMoney", rccm_number as "rccmNumber"
             FROM owners
             WHERE is_active = TRUE
             ORDER BY name ASC
@@ -78,7 +79,7 @@ router.post('/proprietaires', async (req, res) => {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     try {
-        const { id, type, nom, prenom, telephone, telephoneSecondaire, email, adresse, ville, pays, numeroPiece, photo, modeGestion } = req.body;
+        const { id, type, nom, prenom, telephone, telephoneSecondaire, email, adresse, ville, pays, numeroPiece, photo, modeGestion, mobileMoney, rccmNumber } = req.body;
         let result;
         if (id) {
             // Mise à jour
@@ -86,18 +87,19 @@ router.post('/proprietaires', async (req, res) => {
                 UPDATE owners SET 
                     type = $1, name = $2, first_name = $3, phone = $4, phone_secondary = $5,
                     email = $6, address = $7, city = $8, country = $9, id_number = $10,
-                    photo = $11, management_mode = $12, updated_at = CURRENT_TIMESTAMP
-                WHERE id = $13 RETURNING *
+                    photo = $11, management_mode = $12, mobile_money_coordinates = $13,
+                    rccm_number = $14, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $15 RETURNING *
             `;
-            result = await database_1.default.query(query, [type, nom, prenom, telephone, telephoneSecondaire, email, adresse, ville, pays, numeroPiece, photo, modeGestion, id]);
+            result = await database_1.default.query(query, [type, nom, prenom, telephone, telephoneSecondaire, email, adresse, ville, pays, numeroPiece, photo, modeGestion, mobileMoney, rccmNumber, id]);
         }
         else {
             // Création
             const query = `
-                INSERT INTO owners (type, name, first_name, phone, phone_secondary, email, address, city, country, id_number, photo, management_mode)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *
+                INSERT INTO owners (type, name, first_name, phone, phone_secondary, email, address, city, country, id_number, photo, management_mode, mobile_money_coordinates, rccm_number)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *
             `;
-            result = await database_1.default.query(query, [type, nom, prenom, telephone, telephoneSecondaire, email, adresse, ville, pays, numeroPiece, photo, modeGestion]);
+            result = await database_1.default.query(query, [type, nom, prenom, telephone, telephoneSecondaire, email, adresse, ville, pays, numeroPiece, photo, modeGestion, mobileMoney, rccmNumber]);
             // AUTOMATICALLY LINK CREATOR TO OWNER
             // If the creator is not an admin (i.e., a manager), they need explicit access.
             // Even for admins, it's good practice to have the link if they act as a manager.
@@ -190,6 +192,94 @@ router.post('/autorisations', async (req, res) => {
     catch (error) {
         console.error('Erreur sauvegarde autorisation:', error);
         res.status(500).json({ message: 'Erreur serveur lors de la sauvegarde de l\'autorisation.' });
+    }
+});
+// DELETE /api/compte/proprietaires/:id : Soft delete (désactiver) un propriétaire
+router.delete('/proprietaires/:id', async (req, res) => {
+    if (!['admin', 'gestionnaire'].includes(req.userRole || '')) {
+        return res.status(403).json({ message: 'Accès refusé.' });
+    }
+    try {
+        const { id } = req.params;
+        await database_1.default.query('UPDATE owners SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
+        await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'DEACTIVATE_OWNER', 'COMPTE', `Propriétaire ID: ${id}`]);
+        res.status(200).json({ message: 'Propriétaire désactivé avec succès' });
+    }
+    catch (error) {
+        console.error('Erreur désactivation propriétaire:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la désactivation.' });
+    }
+});
+// DELETE /api/compte/utilisateurs/:id : Soft delete (suspendre) un utilisateur
+router.delete('/utilisateurs/:id', async (req, res) => {
+    if (req.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Accès refusé.' });
+    }
+    try {
+        const { id } = req.params;
+        await database_1.default.query('UPDATE users SET statut = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', ['Suspendu', id]);
+        await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'SUSPEND_USER', 'COMPTE', `Utilisateur ID: ${id}`]);
+        res.status(200).json({ message: 'Utilisateur suspendu avec succès' });
+    }
+    catch (error) {
+        console.error('Erreur suspension utilisateur:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la suspension.' });
+    }
+});
+// PATCH /api/compte/utilisateurs/:id/reactivate : Réactiver un utilisateur
+router.patch('/utilisateurs/:id/reactivate', async (req, res) => {
+    if (req.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Accès refusé.' });
+    }
+    try {
+        const { id } = req.params;
+        await database_1.default.query('UPDATE users SET statut = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', ['Actif', id]);
+        await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'REACTIVATE_USER', 'COMPTE', `Utilisateur ID: ${id}`]);
+        res.status(200).json({ message: 'Utilisateur réactivé avec succès' });
+    }
+    catch (error) {
+        console.error('Erreur réactivation utilisateur:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la réactivation.' });
+    }
+});
+// GET /api/compte/proprietaires/:id/biens : Récupérer les biens d'un propriétaire
+router.get('/proprietaires/:id/biens', async (req, res) => {
+    if (!['admin', 'gestionnaire'].includes(req.userRole || '')) {
+        return res.status(403).json({ message: 'Accès refusé.' });
+    }
+    try {
+        const { id } = req.params;
+        // Get buildings
+        const buildingsQuery = `
+            SELECT id, nom as name, adresse as address, ville as city, 
+                   nombre_etages as floors, nombre_lots as total_lots
+            FROM buildings 
+            WHERE owner_id = $1 AND is_active = TRUE
+            ORDER BY nom ASC
+        `;
+        const buildings = await database_1.default.query(buildingsQuery, [id]);
+        // Get lots
+        const lotsQuery = `
+            SELECT l.id, l.ref_lot, l.type, l.superficie, l.loyer, l.statut,
+                   b.nom as building_name
+            FROM lots l
+            JOIN buildings b ON l.building_id = b.id
+            WHERE l.owner_id = $1
+            ORDER BY b.nom, l.ref_lot ASC
+        `;
+        const lots = await database_1.default.query(lotsQuery, [id]);
+        res.status(200).json({
+            buildings: buildings.rows,
+            lots: lots.rows,
+            summary: {
+                totalBuildings: buildings.rows.length,
+                totalLots: lots.rows.length
+            }
+        });
+    }
+    catch (error) {
+        console.error('Erreur récupération biens propriétaire:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la récupération des biens.' });
     }
 });
 exports.default = router;

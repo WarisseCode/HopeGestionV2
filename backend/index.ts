@@ -97,6 +97,7 @@ app.use('/api/notifications', protect, notificationRoutes);
 app.use('/api/alertes', protect, alertRoutes);
 
 // Route Test Protégée (pour validation rapide de 'protect')
+// Route Test Protégée (pour validation rapide de 'protect')
 app.get('/api/profil', protect, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const userResult = await pool.query('SELECT nom, email, user_type, role FROM users WHERE id = $1', [req.userId]);
@@ -117,6 +118,14 @@ app.get('/api/profil', protect, async (req: AuthenticatedRequest, res: Response)
                 role: user.role
             }
         });
+    } catch (error) {
+        console.error('Erreur lors de la récupération du profil:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la récupération du profil.' });
+    }
+});
+
+import adminRoutes from './routes/adminRoutes';
+app.use('/api/admin', adminRoutes);
     } catch (error) {
         console.error('Erreur lors de la récupération du profil:', error);
         res.status(500).json({ message: 'Erreur serveur lors de la récupération du profil.' });

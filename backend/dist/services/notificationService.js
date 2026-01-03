@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationService = void 0;
 const database_1 = __importDefault(require("../db/database"));
+const WhatsAppService_1 = require("./WhatsAppService");
 class NotificationService {
     /**
      * Send a notification to a user (DB + External if needed)
@@ -24,14 +25,10 @@ class NotificationService {
         }
     }
     /**
-     * Simulate sending a WhatsApp message via provider (Twilio/Meta)
+     * Send a WhatsApp message via provider (Twilio/Meta) or Simulation
      */
     static async sendWhatsApp(phone, message) {
-        // In a real app, this would use axios to call Twilio API
-        console.log(`[WHATSAPP] 📲 Sending to ${phone}:`);
-        console.log(`           "${message}"`);
-        // return axios.post('https://api.twilio.com/...')
-        return { success: true, simulated: true };
+        return await WhatsAppService_1.WhatsAppService.send(phone, message);
     }
     /**
      * Mark notification as read

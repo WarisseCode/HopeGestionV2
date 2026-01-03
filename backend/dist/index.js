@@ -57,6 +57,7 @@ const delegationRoutes_1 = __importDefault(require("./routes/delegationRoutes"))
 const calendarRoutes_1 = __importDefault(require("./routes/calendarRoutes"));
 const auditRoutes_1 = __importDefault(require("./routes/auditRoutes"));
 const mobileMoneyRoutes_1 = __importDefault(require("./routes/mobileMoneyRoutes"));
+const alertRoutes_1 = __importDefault(require("./routes/alertRoutes"));
 const authMiddleware_1 = require("./middleware/authMiddleware");
 // -------------------------********************-------------------------///
 // Charger les variables d'environnement
@@ -85,27 +86,9 @@ const cors_1 = __importDefault(require("cors"));
 // --- 1. Middleware essentiels ---
 app.use(express_1.default.json());
 app.use((0, cors_1.default)({
-    origin: (origin, callback) => {
-        const allowedOrigins = [
-            'https://hope-gestion-frontend.onrender.com',
-            process.env.FRONTEND_URL,
-            process.env.RENDER_EXTERNAL_URL
-        ].filter(Boolean); // Filtre les valeurs undefined/null
-        // En développement, autoriser localhost
-        if (process.env.NODE_ENV !== 'production' || !origin) {
-            callback(null, true);
-            return;
-        }
-        // Vérifier si l'origine est dans la liste autorisée
-        if (allowedOrigins.includes(origin)) {
-            callback(null, true);
-        }
-        else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: true, // Allow all origins temporarily for debugging
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 // --- 2. Routes de l'API ---
@@ -131,6 +114,8 @@ app.use('/api/mobile-money', authMiddleware_1.protect, mobileMoneyRoutes_1.defau
 // Routes Notifications
 const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
 app.use('/api/notifications', authMiddleware_1.protect, notificationRoutes_1.default);
+// Routes Alertes
+app.use('/api/alertes', authMiddleware_1.protect, alertRoutes_1.default);
 // Route Test Protégée (pour validation rapide de 'protect')
 app.get('/api/profil', authMiddleware_1.protect, async (req, res) => {
     try {
@@ -165,6 +150,14 @@ app.get('/api/ping', (req, res) => {
 // --- 4. Démarrage du serveur ---
 const CronService_1 = require("./services/CronService");
 CronService_1.CronService.init();
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled Error:', err);
+    res.status(500).json({
+        message: 'Erreur serveur critique',
+        error: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error'
+    });
+});
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV}`);

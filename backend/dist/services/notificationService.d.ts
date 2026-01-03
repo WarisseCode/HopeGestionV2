@@ -4,12 +4,9 @@ export declare class NotificationService {
      */
     static send(userId: number, title: string, message: string, type?: 'info' | 'success' | 'warning' | 'error'): Promise<any>;
     /**
-     * Simulate sending a WhatsApp message via provider (Twilio/Meta)
+     * Send a WhatsApp message via provider (Twilio/Meta) or Simulation
      */
-    static sendWhatsApp(phone: string, message: string): Promise<{
-        success: boolean;
-        simulated: boolean;
-    }>;
+    static sendWhatsApp(phone: string, message: string): Promise<boolean>;
     /**
      * Mark notification as read
      */

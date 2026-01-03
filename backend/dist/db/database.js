@@ -37,7 +37,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const pg_1 = require("pg");
 const dotenv = __importStar(require("dotenv"));
 dotenv.config();
+const isProduction = process.env.NODE_ENV === 'production';
 const pool = new pg_1.Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: isProduction ? { rejectUnauthorized: false } : undefined,
+    // Fallback if DATABASE_URL is not provided (local dev)
     user: process.env.DB_USER,
     host: process.env.DB_HOST,
     database: process.env.DB_NAME,
