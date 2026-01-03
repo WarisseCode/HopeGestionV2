@@ -135,6 +135,15 @@ app.get('/api/ping', (req: Request, res: Response) => {
 import { CronService } from './services/CronService';
 CronService.init();
 
+// Global Error Handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error('Unhandled Error:', err);
+    res.status(500).json({ 
+        message: 'Erreur serveur critique', 
+        error: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error' 
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV}`);

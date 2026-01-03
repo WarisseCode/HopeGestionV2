@@ -8,13 +8,7 @@ import { AuthenticatedRequest } from '../middleware/authMiddleware';
 dotenv.config();
 
 const router = Router();
-const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-});
+import pool from '../db/database';
 
 
 // GET /api/dashboard/stats/gestionnaire : Stats globales pour le gestionnaire
