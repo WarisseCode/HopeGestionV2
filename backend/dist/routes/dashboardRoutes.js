@@ -44,7 +44,7 @@ const router = (0, express_1.Router)();
 const database_1 = __importDefault(require("../db/database"));
 // GET /api/dashboard/stats/gestionnaire : Stats globales pour le gestionnaire
 router.get('/stats/gestionnaire', async (req, res) => {
-    if (!['gestionnaire', 'admin'].includes(req.userRole || '')) {
+    if (!['gestionnaire', 'admin', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     try {

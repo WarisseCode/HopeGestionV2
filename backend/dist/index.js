@@ -117,6 +117,7 @@ app.use('/api/notifications', authMiddleware_1.protect, notificationRoutes_1.def
 // Routes Alertes
 app.use('/api/alertes', authMiddleware_1.protect, alertRoutes_1.default);
 // Route Test Protégée (pour validation rapide de 'protect')
+// Route Test Protégée (pour validation rapide de 'protect')
 app.get('/api/profil', authMiddleware_1.protect, async (req, res) => {
     try {
         const userResult = await exports.pool.query('SELECT nom, email, user_type, role FROM users WHERE id = $1', [req.userId]);
@@ -140,6 +141,8 @@ app.get('/api/profil', authMiddleware_1.protect, async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur lors de la récupération du profil.' });
     }
 });
+const adminRoutes_1 = __importDefault(require("./routes/adminRoutes"));
+app.use('/api/admin', adminRoutes_1.default);
 // --- 3. Test de communication (Endpoint de Ping) ---
 app.get('/api/ping', (req, res) => {
     res.status(200).json({

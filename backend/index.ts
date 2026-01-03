@@ -126,11 +126,7 @@ app.get('/api/profil', protect, async (req: AuthenticatedRequest, res: Response)
 
 import adminRoutes from './routes/adminRoutes';
 app.use('/api/admin', adminRoutes);
-    } catch (error) {
-        console.error('Erreur lors de la récupération du profil:', error);
-        res.status(500).json({ message: 'Erreur serveur lors de la récupération du profil.' });
-    }
-});
+
 
 // --- 3. Test de communication (Endpoint de Ping) ---
 app.get('/api/ping', (req: Request, res: Response) => {
