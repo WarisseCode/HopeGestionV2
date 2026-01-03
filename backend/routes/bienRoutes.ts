@@ -133,7 +133,7 @@ router.get('/lots', filterByOwner, async (req: AuthenticatedRequest, res: Respon
 // POST /api/biens/immeubles : Créer ou mettre à jour un immeuble
 router.post('/immeubles', async (req: AuthenticatedRequest, res: Response) => {
     // Vérification de base du rôle
-    if (!['admin', 'gestionnaire'].includes(req.userRole || '')) {
+    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
@@ -188,7 +188,7 @@ router.post('/immeubles', async (req: AuthenticatedRequest, res: Response) => {
 
 // POST /api/biens/lots : Créer ou mettre à jour un lot
 router.post('/lots', async (req: AuthenticatedRequest, res: Response) => {
-    if (!['admin', 'gestionnaire'].includes(req.userRole || '')) {
+    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
@@ -280,7 +280,7 @@ router.post('/lots', async (req: AuthenticatedRequest, res: Response) => {
 
 // DELETE /api/biens/immeubles/:id
 router.delete('/immeubles/:id', async (req: AuthenticatedRequest, res: Response) => {
-    if (!['admin', 'gestionnaire'].includes(req.userRole || '')) {
+    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
@@ -313,7 +313,7 @@ router.delete('/immeubles/:id', async (req: AuthenticatedRequest, res: Response)
 
 // DELETE /api/biens/lots/:id
 router.delete('/lots/:id', async (req: AuthenticatedRequest, res: Response) => {
-     if (!['admin', 'gestionnaire'].includes(req.userRole || '')) {
+     if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     const lotId = parseInt(req.params.id || '0', 10);

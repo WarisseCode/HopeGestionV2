@@ -8,7 +8,7 @@ const router = Router();
 // GET /api/compte/proprietaires : Récupérer la liste des propriétaires
 router.get('/proprietaires', async (req: AuthenticatedRequest, res: Response) => {
     // Vérification : Seuls les admins et gestionnaires peuvent accéder aux propriétaires
-    if (!['admin', 'gestionnaire'].includes(req.userRole || '')) {
+    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
@@ -76,7 +76,7 @@ router.get('/autorisations', async (req: AuthenticatedRequest, res: Response) =>
 
 // POST /api/compte/proprietaires : Créer ou mettre à jour un propriétaire
 router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) => {
-    if (!['admin', 'gestionnaire'].includes(req.userRole || '')) {
+    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
@@ -215,7 +215,7 @@ router.post('/autorisations', async (req: AuthenticatedRequest, res: Response) =
 
 // DELETE /api/compte/proprietaires/:id : Soft delete (désactiver) un propriétaire
 router.delete('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response) => {
-    if (!['admin', 'gestionnaire'].includes(req.userRole || '')) {
+    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
@@ -275,7 +275,7 @@ router.patch('/utilisateurs/:id/reactivate', async (req: AuthenticatedRequest, r
 
 // GET /api/compte/proprietaires/:id/biens : Récupérer les biens d'un propriétaire
 router.get('/proprietaires/:id/biens', async (req: AuthenticatedRequest, res: Response) => {
-    if (!['admin', 'gestionnaire'].includes(req.userRole || '')) {
+    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
