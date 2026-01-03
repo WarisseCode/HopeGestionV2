@@ -83,6 +83,12 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
     try {
         const { id, type, nom, prenom, telephone, telephoneSecondaire, email, adresse, ville, pays, numeroPiece, photo, modeGestion, mobileMoney, rccmNumber } = req.body;
         
+        // Sanitize phones
+        const cleanPhone = telephone ? telephone.replace(/[^\d+]/g, '') : telephone;
+        const cleanPhoneSec = telephoneSecondaire ? telephoneSecondaire.replace(/[^\d+]/g, '') : telephoneSecondaire;
+        const cleanMobileMoney = mobileMoney ? mobileMoney.replace(/[^\d+]/g, '') : mobileMoney;
+
+        
         let result;
         if (id) {
             // Mise à jour
@@ -94,14 +100,14 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
                     rccm_number = $14, updated_at = CURRENT_TIMESTAMP
                 WHERE id = $15 RETURNING *
             `;
-            result = await db.query(query, [type, nom, prenom, telephone, telephoneSecondaire, email, adresse, ville, pays, numeroPiece, photo, modeGestion, mobileMoney, rccmNumber, id]);
+            result = await db.query(query, [type, nom, prenom, cleanPhone, cleanPhoneSec, email, adresse, ville, pays, numeroPiece, photo, modeGestion, cleanMobileMoney, rccmNumber, id]);
         } else {
             // Création
             const query = `
                 INSERT INTO owners (type, name, first_name, phone, phone_secondary, email, address, city, country, id_number, photo, management_mode, mobile_money_coordinates, rccm_number)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *
             `;
-            result = await db.query(query, [type, nom, prenom, telephone, telephoneSecondaire, email, adresse, ville, pays, numeroPiece, photo, modeGestion, mobileMoney, rccmNumber]);
+            result = await db.query(query, [type, nom, prenom, cleanPhone, cleanPhoneSec, email, adresse, ville, pays, numeroPiece, photo, modeGestion, cleanMobileMoney, rccmNumber]);
             
             // AUTOMATICALLY LINK CREATOR TO OWNER
             // If the creator is not an admin (i.e., a manager), they need explicit access.

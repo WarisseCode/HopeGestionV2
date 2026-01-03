@@ -54,13 +54,32 @@ router.post('/register', async (req, res) => {
             });
         }
 
-        // Vérification du format du téléphone
-        const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-        if (!phoneRegex.test(telephone)) {
-            return res.status(400).json({ 
-                message: 'Veuillez fournir un numéro de téléphone valide (format international, ex: +22997000000).' 
-            });
+        // Nettoyage et validation du téléphone
+        // On enlève les espaces, tirets, parenthèses pour ne garder que + et chiffres
+        const cleanPhone = telephone.replace(/[^\d+]/g, '');
+
+        // Vérification du format du téléphone (formats internationaux ou locaux acceptés après nettoyage)
+        // Accepte +229..., 00229..., ou juste des chiffres
+        const phoneRegex = /^(\+|00)?[1-9]\d{1,14}$/;
+        
+        // Si le numéro commence par 0 (format local sans indicatif), on peut l'accepter ou le rejeter
+        // Ici on décide d'être permissif si c'est des chiffres, mais on préfère E.164 (+...)
+        // L'expression ci-dessus demande (optionnel + ou 00) puis un chiffre 1-9.
+        // Donc "01..." sera rejeté. Pour accepter "01...", on doit ajuster.
+        // Mais PhoneInput envoie "+229 ..." donc cleanPhone sera "+229..." -> OK.
+        
+        if (!phoneRegex.test(cleanPhone)) {
+             // Fallback: Si c'est un format local (ex: 01 97...) on pourrait l'accepter
+             // Essayons une regex plus simple : au moins 8 chiffres
+             const simpleRegex = /^(\+)?\d{8,15}$/;
+             if (!simpleRegex.test(cleanPhone)) {
+                return res.status(400).json({ 
+                    message: 'Veuillez fournir un numéro de téléphone valide.' 
+                });
+             }
         }
+        // Save the cleaned phone number
+        const finalPhone = cleanPhone;
 
         // Hachage du mot de passe
         const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
@@ -69,7 +88,7 @@ router.post('/register', async (req, res) => {
         const result = await pool.query(
             `INSERT INTO users (email, password_hash, nom, user_type, telephone) 
              VALUES ($1, $2, TRIM($3 || ' ' || $4), $5, $6) RETURNING id`,
-            [email, password_hash, nom, prenoms, userType || 'gestionnaire', telephone]
+            [email, password_hash, nom, prenoms, userType || 'gestionnaire', finalPhone]
         );
 
         // Log successful registration
