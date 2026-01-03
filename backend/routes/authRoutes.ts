@@ -86,8 +86,8 @@ router.post('/register', async (req, res) => {
         
         // Insertion dans la base de données
         const result = await pool.query(
-            `INSERT INTO users (email, password_hash, nom, user_type, telephone) 
-             VALUES ($1, $2, TRIM($3 || ' ' || $4), $5, $6) RETURNING id`,
+            `INSERT INTO users (email, password_hash, nom, user_type, role, telephone) 
+             VALUES ($1, $2, TRIM($3 || ' ' || $4), $5, $5, $6) RETURNING id`,
             [email, password_hash, nom, prenoms, userType || 'gestionnaire', finalPhone]
         );
 
