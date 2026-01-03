@@ -8,6 +8,8 @@ const router = Router();
 
 // Endpoint d'urgence pour exécuter la migration manuellement
 // Usage: GET /api/admin/run-migration?secret=Hope2026
+// Endpoint d'urgence pour exécuter la migration manuellement
+// Usage: GET /api/admin/run-migration?secret=Hope2026
 router.get('/run-migration', async (req: Request, res: Response) => {
     const secret = req.query.secret;
     
@@ -17,13 +19,37 @@ router.get('/run-migration', async (req: Request, res: Response) => {
     }
 
     try {
-        const migrationPath = path.join(__dirname, '../migrations/add_owner_fields.sql');
+        console.log('Début de la migration manuelle...');
         
-        if (!fs.existsSync(migrationPath)) {
-            return res.status(404).json({ message: 'Fichier de migration non trouvé.' });
-        }
+        // SQL Migration Hardcodé pour éviter les problèmes de chemin de fichier sur Render/Dist
+        const sql = `
+            -- Migration: Add mobile_money_coordinates and RCCM fields to owners table
+            -- Date: 2026-01-03
+            
+            -- Add mobile_money_coordinates column (if not exists)
+            DO $$ 
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'owners' AND column_name = 'mobile_money_coordinates'
+                ) THEN
+                    ALTER TABLE owners ADD COLUMN mobile_money_coordinates VARCHAR(255);
+                    COMMENT ON COLUMN owners.mobile_money_coordinates IS 'Mobile Money account details (operator, number, account name)';
+                END IF;
+            END $$;
 
-        const sql = fs.readFileSync(migrationPath, 'utf8');
+            -- Add rccm_number column (if not exists)
+            DO $$ 
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'owners' AND column_name = 'rccm_number'
+                ) THEN
+                    ALTER TABLE owners ADD COLUMN rccm_number VARCHAR(100);
+                    COMMENT ON COLUMN owners.rccm_number IS 'RCCM registration number for legal entities (personne morale)';
+                END IF;
+            END $$;
+        `;
 
         // Exécuter le SQL
         await db.query(sql);
