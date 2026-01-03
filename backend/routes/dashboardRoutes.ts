@@ -13,7 +13,7 @@ import pool from '../db/database';
 
 // GET /api/dashboard/stats/gestionnaire : Stats globales pour le gestionnaire
 router.get('/stats/gestionnaire', async (req: AuthenticatedRequest, res: Response) => {
-    if (req.userRole !== 'gestionnaire') {
+    if (!['gestionnaire', 'admin'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     
