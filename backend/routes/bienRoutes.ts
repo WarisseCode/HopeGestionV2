@@ -48,22 +48,14 @@ router.get('/immeubles', filterByOwner, async (req: AuthenticatedRequest, res: R
         
         const result = await pool.query(query);
 
-        // Pour chaque immeuble, calculons le taux d'occupation
-        const immeublesAvecOccupation = await Promise.all(result.rows.map(async (immeuble: any) => {
-            // Récupérer le nombre de lots occupés
-            const occupesResult = await pool.query(
-                `SELECT COUNT(*) as occupes 
-                 FROM lots l 
-                 JOIN leases le ON le.lot_id = l.id 
-                 WHERE l.building_id = $1 AND le.statut = 'actif'`,
-                [immeuble.id]
-            );
-            const lotsOccupes = parseInt(occupesResult.rows[0].occupes);
+        // Pour chaque immeuble, formater le résultat (Calcul occupation désactivé temporairement car table leases manquante)
+        const immeublesAvecOccupation = result.rows.map((immeuble: any) => {
             const totalLots = parseInt(immeuble.nb_lots);
-
-            // Calculer le pourcentage d'occupation
-            const occupation = totalLots > 0 ? Math.round((lotsOccupes / totalLots) * 100) : 0;
             
+            // Placeholder: Occupation hardcodée à 0 le temps d'implémenter les baux
+            const lotsOccupes = 0; 
+            const occupation = 0;
+
             // Formater le nom du propriétaire
             const ownerLabel = immeuble.owner_type === 'individual' 
                 ? `${immeuble.owner_name} ${immeuble.owner_first_name || ''}`.trim()
@@ -73,10 +65,10 @@ router.get('/immeubles', filterByOwner, async (req: AuthenticatedRequest, res: R
                 ...immeuble,
                 nbLots: totalLots,
                 occupation,
-                statut: occupation === 100 ? 'Complet' : occupation === 0 ? 'Vacant' : 'Disponible',
+                statut: totalLots === 0 ? 'Vide' : 'Disponible',
                 proprietaire: ownerLabel
             };
-        }));
+        });
 
         res.status(200).json({ immeubles: immeublesAvecOccupation });
     } catch (error) {
@@ -145,8 +137,8 @@ router.post('/immeubles', async (req: AuthenticatedRequest, res: Response) => {
 
     try {
         // En mode multi-propriétaire, il faut vérifier que le User a accès à cet Owner
-        // Sauf si c'est un admin
-        if (req.userRole !== 'admin') {
+        // Sauf si c'est un admin ou gestionnaire/manager global
+        if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
              const accessCheck = await pool.query(
                 `SELECT 1 FROM owner_user WHERE owner_id = $1 AND user_id = $2 AND is_active = TRUE`,
                 [owner_id, req.userId]
