@@ -96,6 +96,14 @@ app.use('/api/notifications', protect, notificationRoutes);
 // Routes Alertes
 app.use('/api/alertes', protect, alertRoutes);
 
+// Routes Permissions (Matrice)
+import permissionRoutes from './routes/permissionRoutes';
+app.use('/api/permissions', protect, permissionRoutes);
+
+// Routes User-Owner Assignments (Affectation)
+import userAssignmentRoutes from './routes/userAssignmentRoutes';
+app.use('/api/user-assignments', protect, userAssignmentRoutes);
+
 // Route Test Protégée (pour validation rapide de 'protect')
 // Route Test Protégée (pour validation rapide de 'protect')
 app.get('/api/profil', protect, async (req: AuthenticatedRequest, res: Response) => {

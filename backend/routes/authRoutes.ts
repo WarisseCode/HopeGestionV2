@@ -232,4 +232,100 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// Middleware de vérification de token (simplifié pour ce fichier)
+const verifyToken = (req: any, res: any, next: any) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) return res.status(401).json({ message: 'Accès refusé. Token manquant.' });
+
+    jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+        if (err) return res.status(403).json({ message: 'Token invalide.' });
+        req.user = user;
+        next();
+    });
+};
+
+// 3. Endpoint PROFILE (GET)
+router.get('/profile', verifyToken, async (req: any, res) => {
+    try {
+        const userId = req.user.id;
+        const result = await pool.query(
+            `SELECT id, nom, user_type as role, email, telephone, photo_url, preferences 
+             FROM users WHERE id = $1`,
+            [userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+        }
+
+        const user = result.rows[0];
+        
+        // Séparation nom/prénom basique si stocké ensemble (legacy)
+        // Mais notre INSERT faisait TRIM($3 || ' ' || $4), stockant "Nom Prénom" dans 'nom'.
+        // Idéalement on devrait avoir des colonnes séparées.
+        // Pour l'affichage, on va renvoyer tel quel ou essayer de split.
+        // Le frontend attend "nom" et "prenom".
+        // On va assumer que la colonne 'nom' contient "NOM Prénom"
+        
+        const nameParts = user.nom.split(' ');
+        const lastName = nameParts[0];
+        const firstName = nameParts.slice(1).join(' ');
+
+        res.json({
+            id: user.id,
+            nom: lastName,
+            prenom: firstName,
+            email: user.email,
+            telephone: user.telephone,
+            role: user.role,
+            photo_url: user.photo_url,
+            preferences: user.preferences || {}
+        });
+
+    } catch (error) {
+        console.error('Erreur récupération profil:', error);
+        res.status(500).json({ message: 'Erreur serveur.' });
+    }
+});
+
+// 4. Endpoint UPDATE PROFILE (PUT)
+router.put('/profile', verifyToken, async (req: any, res) => {
+    const { nom, prenom, email, telephone, preferences, photo_url } = req.body;
+    const userId = req.user.id;
+
+    try {
+        // Validation basique
+        if (!email) return res.status(400).json({ message: 'Email requis.' });
+
+        // Reconstruction du nom complet
+        const fullName = `${nom} ${prenom}`.trim();
+
+        await pool.query(
+            `UPDATE users 
+             SET nom = $1, email = $2, telephone = $3, preferences = $4, photo_url = $5 
+             WHERE id = $6`,
+            [fullName, email, telephone, JSON.stringify(preferences), photo_url, userId]
+        );
+
+        // Log
+        await AuditService.log({
+            userId: userId.toString(),
+            action: 'UPDATE_PROFILE',
+            entityType: 'USER',
+            entityId: userId.toString(),
+            details: { updatedFields: Object.keys(req.body) },
+            ipAddress: req.ip || 'unknown',
+            userAgent: (req.headers['user-agent'] as string) || 'unknown'
+        });
+
+        res.json({ message: 'Profil mis à jour avec succès.' });
+
+    } catch (error) {
+        console.error('Erreur mise à jour profil:', error);
+        res.status(500).json({ message: 'Erreur serveur.' });
+    }
+});
+
 export default router;

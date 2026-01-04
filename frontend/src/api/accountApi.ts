@@ -2,7 +2,7 @@
 import { getToken } from './authApi';
 import { API_URL } from '../config';
 
-// Interfaces pour les données de compte
+// Interfaces
 export interface Proprietaire {
   id: number;
   type: string;
@@ -19,122 +19,82 @@ export interface Proprietaire {
   modeGestion?: string;
   mobileMoney?: string;
   rccmNumber?: string;
+  company_name?: string;
+  rccm_number?: string;
+  mobile_money?: string;
+  management_mode?: 'direct' | 'delegated';
+  delegation_start_date?: string;
+  delegation_end_date?: string;
 }
 
 export interface Utilisateur {
   id: number;
   nom: string;
-  prenoms: string;
+  prenom: string;
+  prenoms?: string; // Legacy support
   telephone: string;
   email: string;
   role: string;
   photo?: string | null;
   statut: string;
+  photo_url?: string;
+  preferences?: any;
 }
 
 export interface Autorisation {
   utilisateur: string;
   proprietaire: string;
-  modules: {
-    biens: boolean;
-    finances: boolean;
-    locataires: boolean;
-    paiements: boolean;
-    contrats: boolean;
-    interventions: boolean;
-  };
-  niveauAcces: {
-    lecture: boolean;
-    ecriture: boolean;
-    suppression: boolean;
-    validation: boolean;
-  };
+  modules: any;
+  niveauAcces: any;
   dateDebut: string;
   dateFin?: string;
 }
 
-// Fonction pour récupérer les propriétaires
+// --- Fonctions Individuelles (Legacy / French) ---
+
 export async function getProprietaires(): Promise<Proprietaire[]> {
   const token = getToken();
-  if (!token) {
-    throw new Error('Non authentifié');
-  }
+  if (!token) throw new Error('Non authentifié');
 
   const response = await fetch(`${API_URL}/compte/proprietaires`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || `Erreur: ${response.status}`);
   }
-
-  const data = await response.json();
-  return data.proprietaires || [];
+  return (await response.json()).proprietaires || [];
 }
 
-// Fonction pour récupérer les utilisateurs
 export async function getUtilisateurs(): Promise<Utilisateur[]> {
   const token = getToken();
-  if (!token) {
-    throw new Error('Non authentifié');
-  }
+  if (!token) throw new Error('Non authentifié');
 
   const response = await fetch(`${API_URL}/compte/utilisateurs`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || `Erreur: ${response.status}`);
   }
-
-  const data = await response.json();
-  return data.utilisateurs || [];
+  return (await response.json()).utilisateurs || [];
 }
 
-// Fonction pour récupérer les autorisations
-export async function getAutorisations(): Promise<Autorisation[]> {
+export async function saveProprietaire(proprietaire: any): Promise<Proprietaire> {
   const token = getToken();
-  if (!token) {
-    throw new Error('Non authentifié');
-  }
+  if (!token) throw new Error('Non authentifié');
 
-  const response = await fetch(`${API_URL}/compte/autorisations`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
+  const url = proprietaire.id 
+    ? `${API_URL}/compte/proprietaires/${proprietaire.id}`
+    : `${API_URL}/compte/proprietaires`;
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Erreur: ${response.status}`);
-  }
+  const method = proprietaire.id ? 'PUT' : 'POST';
 
-  const data = await response.json();
-  return data.autorisations || [];
-}
-
-// Fonction pour créer ou mettre à jour un propriétaire
-export async function saveProprietaire(proprietaire: Partial<Proprietaire>): Promise<Proprietaire> {
-  const token = getToken();
-  if (!token) {
-    throw new Error('Non authentifié');
-  }
-
-  const response = await fetch(`${API_URL}/compte/proprietaires`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+  const response = await fetch(url, {
+    method,
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(proprietaire),
   });
 
@@ -142,129 +102,216 @@ export async function saveProprietaire(proprietaire: Partial<Proprietaire>): Pro
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || `Erreur: ${response.status}`);
   }
-
   return await response.json();
 }
 
-// Fonction pour créer ou mettre à jour un utilisateur
-export async function saveUtilisateur(utilisateur: Partial<Utilisateur>): Promise<Utilisateur> {
+export async function saveUtilisateur(utilisateur: any): Promise<Utilisateur> {
   const token = getToken();
-  if (!token) {
-    throw new Error('Non authentifié');
-  }
+  if (!token) throw new Error('Non authentifié');
 
   const response = await fetch(`${API_URL}/compte/utilisateurs`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(utilisateur),
   });
 
-  if (!response.ok) {
-    throw new Error(`Erreur: ${response.status}`);
-  }
-
+  if (!response.ok) throw new Error(`Erreur: ${response.status}`);
   return await response.json();
 }
 
-// Fonction pour attribuer des autorisations
-export async function saveAutorisation(autorisation: Partial<Autorisation>): Promise<Autorisation> {
-  const token = getToken();
-  if (!token) {
-    throw new Error('Non authentifié');
-  }
-
-  const response = await fetch(`${API_URL}/compte/autorisations`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(autorisation),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Erreur: ${response.status}`);
-  }
-
-  return await response.json();
-}
-
-// Delete (soft) proprietaire
 export async function deleteProprietaire(id: number): Promise<void> {
   const token = getToken();
   if (!token) throw new Error('Non authentifié');
 
   const response = await fetch(`${API_URL}/compte/proprietaires/${id}`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Erreur: ${response.status}`);
-  }
+  if (!response.ok) throw new Error(`Erreur: ${response.status}`);
 }
 
-// Delete (suspend) utilisateur
 export async function deleteUtilisateur(id: number): Promise<void> {
   const token = getToken();
   if (!token) throw new Error('Non authentifié');
 
   const response = await fetch(`${API_URL}/compte/utilisateurs/${id}`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) throw new Error(`Erreur: ${response.status}`);
+}
+
+// --- Nouvelles Méthodes (Profile) ---
+
+export async function getProfile(): Promise<Utilisateur> {
+  const token = getToken();
+  if (!token) throw new Error('Non authentifié');
+
+  const response = await fetch(`${API_URL}/auth/profile`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error('Erreur chargement profil');
+  return await response.json();
+}
+
+export async function updateProfile(data: any): Promise<Utilisateur> {
+  const token = getToken();
+  if (!token) throw new Error('Non authentifié');
+
+  const response = await fetch(`${API_URL}/auth/profile`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+  });
+  if (!response.ok) throw new Error('Erreur mise à jour profil');
+  return await response.json();
+}
+
+// --- Restored Missing Functions ---
+
+export async function getAutorisations(): Promise<Autorisation[]> {
+  const token = getToken();
+  if (!token) throw new Error('Non authentifié');
+
+  const response = await fetch(`${API_URL}/compte/autorisations`, {
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || `Erreur: ${response.status}`);
   }
+  return (await response.json()).autorisations || [];
 }
 
-// Reactivate utilisateur
+export async function saveAutorisation(autorisation: any): Promise<Autorisation> {
+  const token = getToken();
+  if (!token) throw new Error('Non authentifié');
+
+  const response = await fetch(`${API_URL}/compte/autorisations`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(autorisation),
+  });
+
+  if (!response.ok) throw new Error(`Erreur: ${response.status}`);
+  return await response.json();
+}
+
 export async function reactivateUtilisateur(id: number): Promise<void> {
   const token = getToken();
   if (!token) throw new Error('Non authentifié');
 
   const response = await fetch(`${API_URL}/compte/utilisateurs/${id}/reactivate`, {
     method: 'PATCH',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Erreur: ${response.status}`);
-  }
+  if (!response.ok) throw new Error(`Erreur: ${response.status}`);
 }
 
-// Get proprietaire's properties
 export async function getProprietaireBiens(id: number): Promise<any> {
-  const token = getToken();
-  if (!token) throw new Error('Non authentifié');
-
-  const response = await fetch(`${API_URL}/compte/proprietaires/${id}/biens`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Erreur: ${response.status}`);
+    const token = getToken();
+    if (!token) throw new Error('Non authentifié');
+  
+    const response = await fetch(`${API_URL}/compte/proprietaires/${id}/biens`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+  
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Erreur: ${response.status}`);
+    }
+  
+    return await response.json();
   }
 
-  return await response.json();
-}
+
+// --- UNIFIED EXPORT OBJECT (Pour compatibilité avec les nouveaux composants) ---
+export const accountApi = {
+    getProprietaires,
+    getUtilisateurs,
+    saveProprietaire,
+    saveUtilisateur, 
+    deleteProprietaire,
+    deleteUtilisateur,
+    getAutorisations,
+    saveAutorisation,
+    reactivateUtilisateur,
+    getProprietaireBiens,
+    
+    // Alias English -> French (Ce que les nouveaux composants utilisent)
+    getUsers: getUtilisateurs,
+    createUser: saveUtilisateur,
+    deleteUser: deleteUtilisateur,
+    createOwner: saveProprietaire,
+    updateOwner: (id: number, data: any) => saveProprietaire({ ...data, id }), // Helper alias
+    
+    // Profile
+    getProfile,
+    updateProfile,
+
+    // Permissions Matrix
+    getPermissionsMatrix: async () => {
+        const token = getToken();
+        if (!token) throw new Error('Non authentifié');
+        const res = await fetch(`${API_URL}/permissions/matrix`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Erreur chargement permissions');
+        return await res.json();
+    },
+    updatePermission: async (data: { role: string, module: string, can_read: boolean, can_write: boolean, can_delete: boolean, can_validate: boolean }) => {
+        const token = getToken();
+        if (!token) throw new Error('Non authentifié');
+        const res = await fetch(`${API_URL}/permissions/matrix`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Erreur mise à jour permissions');
+        return await res.json();
+    },
+
+    // User-Owner Assignments (Affectation)
+    getUserAssignments: async (userId: number) => {
+        const token = getToken();
+        if (!token) throw new Error('Non authentifié');
+        const res = await fetch(`${API_URL}/user-assignments/${userId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Erreur chargement affectations');
+        return await res.json();
+    },
+    assignUserToOwner: async (userId: number, ownerId: number, notes?: string) => {
+        const token = getToken();
+        if (!token) throw new Error('Non authentifié');
+        const res = await fetch(`${API_URL}/user-assignments`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, owner_id: ownerId, notes })
+        });
+        if (!res.ok) throw new Error('Erreur création affectation');
+        return await res.json();
+    },
+    removeAssignment: async (assignmentId: number) => {
+        const token = getToken();
+        if (!token) throw new Error('Non authentifié');
+        const res = await fetch(`${API_URL}/user-assignments/${assignmentId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Erreur suppression affectation');
+        return await res.json();
+    },
+    bulkUpdateAssignments: async (userId: number, ownerIds: number[]) => {
+        const token = getToken();
+        if (!token) throw new Error('Non authentifié');
+        const res = await fetch(`${API_URL}/user-assignments/bulk/${userId}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ owner_ids: ownerIds })
+        });
+        if (!res.ok) throw new Error('Erreur mise à jour affectations');
+        return await res.json();
+    }
+};

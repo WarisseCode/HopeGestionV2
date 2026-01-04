@@ -40,7 +40,7 @@ router.get('/utilisateurs', async (req: AuthenticatedRequest, res: Response) => 
 
     try {
         const query = `
-            SELECT id, nom, prenom as prenoms, telephone, email, role, photo, statut
+            SELECT id, nom, '' as prenom, telephone, email, role, photo_url as photo, statut
             FROM users
             ORDER BY nom ASC
         `;
@@ -81,59 +81,107 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
     }
 
     try {
-        const { id, type, nom, prenom, telephone, telephoneSecondaire, email, adresse, ville, pays, numeroPiece, photo, modeGestion, mobileMoney, rccmNumber } = req.body;
-        
-        // Sanitize phones
-        const cleanPhone = telephone ? telephone.replace(/[^\d+]/g, '') : telephone;
-        const cleanPhoneSec = telephoneSecondaire ? telephoneSecondaire.replace(/[^\d+]/g, '') : telephoneSecondaire;
-        const cleanMobileMoney = mobileMoney ? mobileMoney.replace(/[^\d+]/g, '') : mobileMoney;
+        const cleanPhone = req.body.phone ? req.body.phone.replace(/[^\d+]/g, '') : null;
+        const cleanMobileMoney = req.body.mobile_money ? req.body.mobile_money.replace(/[^\d+]/g, '') : null;
 
+        // Insérer le propriétaire
+        const newOwner = await db.query(
+            `INSERT INTO owners (
+                name, type, contact_info, phone, email, address, 
+                company_name, rccm_number, mobile_money, 
+                management_mode, delegation_start_date, delegation_end_date
+            ) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
+            RETURNING *`,
+            [
+                req.body.name || req.body.company_name, // Nom ou Raison sociale
+                req.body.type,
+                req.body.contact_info || '',
+                cleanPhone,
+                req.body.email || '',
+                req.body.address || '',
+                req.body.company_name,
+                req.body.rccm_number,
+                cleanMobileMoney,
+                req.body.management_mode || 'direct',
+                req.body.delegation_start_date || null,
+                req.body.delegation_end_date || null
+            ]
+        );
         
-        let result;
-        if (id) {
-            // Mise à jour
-            const query = `
-                UPDATE owners SET 
-                    type = $1, name = $2, first_name = $3, phone = $4, phone_secondary = $5,
-                    email = $6, address = $7, city = $8, country = $9, id_number = $10,
-                    photo = $11, management_mode = $12, mobile_money_coordinates = $13,
-                    rccm_number = $14, updated_at = CURRENT_TIMESTAMP
-                WHERE id = $15 RETURNING *
-            `;
-            result = await db.query(query, [type, nom, prenom, cleanPhone, cleanPhoneSec, email, adresse, ville, pays, numeroPiece, photo, modeGestion, cleanMobileMoney, rccmNumber, id]);
-        } else {
-            // Création
-            const query = `
-                INSERT INTO owners (type, name, first_name, phone, phone_secondary, email, address, city, country, id_number, photo, management_mode, mobile_money_coordinates, rccm_number)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *
-            `;
-            result = await db.query(query, [type, nom, prenom, cleanPhone, cleanPhoneSec, email, adresse, ville, pays, numeroPiece, photo, modeGestion, cleanMobileMoney, rccmNumber]);
-            
-            // AUTOMATICALLY LINK CREATOR TO OWNER
-            // If the creator is not an admin (i.e., a manager), they need explicit access.
-            // Even for admins, it's good practice to have the link if they act as a manager.
-            const newOwnerId = result.rows[0].id;
-            await db.query(
-                `INSERT INTO owner_user (owner_id, user_id, role, is_active, start_date, can_manage_users, can_delete_data, can_access_audit_logs, can_view_finances, can_edit_properties, can_manage_tenants, can_manage_contracts, can_validate_payments)
-                 VALUES ($1, $2, 'manager', TRUE, CURRENT_DATE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE)`,
-                [newOwnerId, req.userId]
-            );
-        }
+        const ownerId = newOwner.rows[0].id;
         
+        // Lier à l'utilisateur qui crée (si ce n'est pas un admin pur qui crée pour les autres)
+        // Pour simplification, on lie toujours celui qui crée
+        await db.query(
+            `INSERT INTO owner_user (user_id, owner_id) VALUES ($1, $2)`,
+            [req.userId, ownerId]
+        );
+
         // Log action
         await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, id ? 'UPDATE_OWNER' : 'CREATE_OWNER', 'COMPTE', `Propriétaire: ${nom}`]);
+            [req.userId, 'CREATE_OWNER', 'COMPTE', `Propriétaire: ${req.body.name || req.body.company_name}`]);
 
-        res.status(200).json(result.rows[0]);
+        res.status(201).json(newOwner.rows[0]);
     } catch (error: any) {
-        console.error('Erreur sauvegarde propriétaire:', error);
-        if (error.code === '23505') {
-            if (error.constraint === 'owners_phone_key') {
-                return res.status(400).json({ message: 'Ce numéro de téléphone est déjà utilisé par un autre propriétaire.' });
-            }
-            return res.status(400).json({ message: 'Une donnée unique existe déjà (téléphone ou email).' });
+        console.error('Erreur création propriétaire:', error);
+        if (error.constraint === 'owners_phone_key') {
+             return res.status(400).json({ message: 'Ce numéro de téléphone est déjà utilisé par un autre propriétaire.' });
         }
-        res.status(500).json({ message: 'Erreur serveur lors de la sauvegarde du propriétaire.' });
+        res.status(500).json({ message: 'Erreur serveur lors de la création du propriétaire' });
+    }
+});
+
+// PUT /api/compte/proprietaires/:id : Modifier un propriétaire
+router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response) => {
+    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
+        return res.status(403).json({ message: 'Accès refusé.' });
+    }
+
+    try {
+        const { 
+            name, type, phone, email, address, 
+            company_name, rccm_number, mobile_money, telephoneSecondaire,
+            management_mode, delegation_start_date, delegation_end_date 
+        } = req.body;
+        
+        const ownerId = req.params.id;
+
+        // Nettoyage des numéros
+        const cleanPhone = phone ? phone.replace(/[\s\-\(\)\.]/g, '') : null;
+        const cleanPhoneSec = telephoneSecondaire ? telephoneSecondaire.replace(/[\s\-\(\)\.]/g, '') : null;
+        const cleanMobileMoney = mobile_money ? mobile_money.replace(/[\s\-\(\)\.]/g, '') : null;
+
+        const updatedOwner = await db.query(
+            `UPDATE owners 
+             SET name = $1, type = $2, phone = $3, email = $4, address = $5,
+                 company_name = $6, rccm_number = $7, mobile_money = $8,
+                 contact_info = COALESCE($9, contact_info),
+                 management_mode = COALESCE($10, management_mode),
+                 delegation_start_date = COALESCE($11, delegation_start_date),
+                 delegation_end_date = COALESCE($12, delegation_end_date),
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = $13 RETURNING *`,
+            [
+                name, type, cleanPhone, email, address, 
+                company_name, rccm_number, cleanMobileMoney, 
+                cleanPhoneSec, // On map telephoneSecondaire dans contact_info pour l'instant ou on pourrait créer une colonne dédiée
+                management_mode, delegation_start_date, delegation_end_date,
+                ownerId
+            ]
+        );
+
+        if (updatedOwner.rows.length === 0) {
+            return res.status(404).json({ message: 'Propriétaire non trouvé' });
+        }
+
+        await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
+            [req.userId, 'UPDATE_OWNER', 'COMPTE', `Propriétaire ID: ${ownerId}`]);
+
+        res.json(updatedOwner.rows[0]);
+    } catch (error) {
+        console.error('Erreur modification propriétaire:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la modification.' });
     }
 });
 
