@@ -118,14 +118,20 @@ router.get('/fix-roles', async (req: Request, res: Response) => {
     }
 
     try {
-        // Compter les utilisateurs affectés avant
-        const beforeCount = await db.query(`SELECT COUNT(*) as count FROM users WHERE role IS NULL`);
+        // Compter les utilisateurs affectés avant (role NULL, vide, ou 'user' générique)
+        const beforeCount = await db.query(`
+            SELECT COUNT(*) as count FROM users 
+            WHERE role IS NULL OR role = '' OR role = 'user'
+        `);
         
         // Réparer : copier user_type dans role si role est NULL
-        await db.query(`UPDATE users SET role = user_type WHERE role IS NULL`);
+        await db.query(`UPDATE users SET role = user_type WHERE role IS NULL AND user_type IS NOT NULL`);
         
-        // Aussi réparer si role est vide mais user_type ne l'est pas
+        // Réparer si role est vide
         await db.query(`UPDATE users SET role = user_type WHERE role = '' AND user_type IS NOT NULL AND user_type != ''`);
+        
+        // IMPORTANT: Réparer si role = 'user' (valeur par défaut incorrecte) mais user_type est plus spécifique
+        await db.query(`UPDATE users SET role = user_type WHERE role = 'user' AND user_type IS NOT NULL AND user_type != '' AND user_type != 'user'`);
         
         // Compter après
         const afterResult = await db.query(`SELECT id, email, role, user_type FROM users`);
