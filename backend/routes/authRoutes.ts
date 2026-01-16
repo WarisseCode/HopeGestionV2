@@ -256,10 +256,10 @@ router.get('/profile', verifyToken, async (req: any, res) => {
 
         const user = result.rows[0];
         
-        // Séparation nom/prénom
-        const nameParts = user.nom.split(' ');
-        const lastName = nameParts[0];
-        const firstName = nameParts.slice(1).join(' ');
+        // Séparation nom/prénom (with null safety)
+        const nameParts = (user.nom || '').split(' ');
+        const lastName = nameParts[0] || '';
+        const firstName = nameParts.slice(1).join(' ') || '';
 
         // --- FETCH PERMISSIONS ---
         let permissions: any = {};
