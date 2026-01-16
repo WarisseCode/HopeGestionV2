@@ -139,8 +139,12 @@ app.get('/api/profil', protect, async (req: AuthenticatedRequest, res: Response)
     }
 });
 
-import adminRoutes from './routes/adminRoutes';
-app.use('/api/admin', adminRoutes);
+import adminRoutes, { acceptAdminInvite, checkAdminInvite } from './routes/adminRoutes';
+app.use('/api/admin', protect, adminRoutes);
+
+// Public routes for admin invitation (no auth required)
+app.get('/api/admin-invite/check', checkAdminInvite);
+app.post('/api/admin-invite/accept', acceptAdminInvite);
 
 
 // --- 3. Test de communication (Endpoint de Ping) ---
