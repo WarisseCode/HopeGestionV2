@@ -38,10 +38,15 @@ export const pool = sharedPool;
 const app = express();
 const PORT = process.env.PORT || 5000; 
 
+// Auto-seed Super Admin if none exists
+import { seedSuperAdmin } from './scripts/seedAdmin';
+
 pool.connect()
-    .then(client => {
+    .then(async client => {
         console.log('Successfully connected to PostgreSQL!');
         client.release(); 
+        // Seed Super Admin on first startup
+        await seedSuperAdmin();
     })
     .catch(err => {
         console.error('Warning: Error connecting to PostgreSQL:', err.stack);
