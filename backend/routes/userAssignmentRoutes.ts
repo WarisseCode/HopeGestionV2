@@ -6,58 +6,83 @@ dotenv.config();
 
 const router = Router();
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-});
+import pool from '../db/database';
 
-// GET /api/user-assignments/:userId
-// Get all owner assignments for a specific user
-router.get('/:userId', async (req, res) => {
+// PUT /api/user-assignments/bulk/:userId
+// Bulk update assignments for a user with granular permissions
+// NOTE: This route MUST be defined BEFORE /:userId to avoid path conflicts
+router.put('/bulk/:userId', async (req: any, res) => {
     try {
         const { userId } = req.params;
-        const result = await pool.query(`
-            SELECT 
-                uoa.id,
-                uoa.owner_id,
-                uoa.assigned_at,
-                uoa.is_active,
-                uoa.notes,
-                o.name as owner_name,
-                o.type as type_proprietaire
-            FROM user_owner_assignments uoa
-            JOIN owners o ON o.id = uoa.owner_id
-            WHERE uoa.user_id = $1 AND uoa.is_active = true
-            ORDER BY o.name
-        `, [userId]);
-        
-        res.json(result.rows);
+        const { assignments } = req.body; // Array of { owner_id, role, permissions }
+
+        if (!assignments || !Array.isArray(assignments)) {
+            return res.status(400).json({ message: 'Assignments array required' });
+        }
+
+        // Deactivate all current assignments
+        await pool.query(
+            'UPDATE owner_user SET is_active = false WHERE user_id = $1',
+            [userId]
+        );
+
+        // Reactivate/Insert selected
+        for (const assign of assignments) {
+            const { owner_id, role, permissions } = assign;
+             await pool.query(`
+                INSERT INTO owner_user (
+                    user_id, owner_id, role, is_active, start_date,
+                    can_view_finances, can_edit_properties, can_manage_tenants,
+                    can_manage_contracts, can_validate_payments, can_manage_users,
+                    can_delete_data
+                )
+                VALUES ($1, $2, $3, true, CURRENT_DATE, $4, $5, $6, $7, $8, $9, $10)
+                ON CONFLICT (user_id, owner_id) 
+                DO UPDATE SET 
+                    is_active = true,
+                    role = EXCLUDED.role,
+                    can_view_finances = EXCLUDED.can_view_finances,
+                    can_edit_properties = EXCLUDED.can_edit_properties,
+                    can_manage_tenants = EXCLUDED.can_manage_tenants,
+                    can_manage_contracts = EXCLUDED.can_manage_contracts,
+                    can_validate_payments = EXCLUDED.can_validate_payments,
+                    can_manage_users = EXCLUDED.can_manage_users,
+                    can_delete_data = EXCLUDED.can_delete_data
+            `, [
+                userId, owner_id, role || 'viewer',
+                permissions?.can_view_finances || false,
+                permissions?.can_edit_properties || false,
+                permissions?.can_manage_tenants || false,
+                permissions?.can_manage_contracts || false,
+                permissions?.can_validate_payments || false,
+                permissions?.can_manage_users || false,
+                permissions?.can_delete_data || false
+            ]);
+        }
+
+        res.json({ message: 'Affectations mises à jour', count: assignments.length });
     } catch (error) {
-        console.error('Error fetching assignments:', error);
+        console.error('Error bulk updating assignments:', error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
 
 // GET /api/user-assignments/by-owner/:ownerId
 // Get all users assigned to a specific owner
+// NOTE: This route MUST be defined BEFORE /:userId 
 router.get('/by-owner/:ownerId', async (req, res) => {
     try {
         const { ownerId } = req.params;
         const result = await pool.query(`
             SELECT 
-                uoa.id,
-                uoa.user_id,
-                uoa.assigned_at,
+                ou.user_id,
+                ou.start_date as assigned_at,
                 u.nom as user_name,
                 u.email,
-                u.role
-            FROM user_owner_assignments uoa
-            JOIN users u ON u.id = uoa.user_id
-            WHERE uoa.owner_id = $1 AND uoa.is_active = true
+                ou.role
+            FROM owner_user ou
+            JOIN users u ON u.id = ou.user_id
+            WHERE ou.owner_id = $1 AND ou.is_active = true
             ORDER BY u.nom
         `, [ownerId]);
         
@@ -68,84 +93,99 @@ router.get('/by-owner/:ownerId', async (req, res) => {
     }
 });
 
+// GET /api/user-assignments/:userId
+// Get all owner assignments for a specific user
+router.get('/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const result = await pool.query(`
+            SELECT 
+                ou.user_id,
+                ou.owner_id,
+                ou.role,
+                ou.is_active,
+                ou.start_date as assigned_at,
+                o.name as owner_name,
+                o.type as type_proprietaire,
+                ou.can_view_finances,
+                ou.can_edit_properties,
+                ou.can_manage_tenants,
+                ou.can_manage_contracts,
+                ou.can_validate_payments,
+                ou.can_manage_users,
+                ou.can_delete_data,
+                ou.can_access_audit_logs
+            FROM owner_user ou
+            JOIN owners o ON o.id = ou.owner_id
+            WHERE ou.user_id = $1 AND ou.is_active = true
+            ORDER BY o.name
+        `, [userId]);
+        
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching assignments:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
 // POST /api/user-assignments
-// Assign a user to an owner
+// Assign a user to an owner with permissions
 router.post('/', async (req: any, res) => {
     try {
-        const { user_id, owner_id, notes } = req.body;
-        const assigned_by = req.userId; // From auth middleware
+        const { user_id, owner_id, role, permissions } = req.body;
+        // permissions = { can_view_finances: true, ... }
 
-        // Check if assignment already exists
-        const existing = await pool.query(
-            'SELECT id FROM user_owner_assignments WHERE user_id = $1 AND owner_id = $2',
-            [user_id, owner_id]
-        );
+        const query = `
+            INSERT INTO owner_user (
+                user_id, owner_id, role, is_active, start_date,
+                can_view_finances, can_edit_properties, can_manage_tenants,
+                can_manage_contracts, can_validate_payments, can_manage_users,
+                can_delete_data
+            )
+            VALUES ($1, $2, $3, true, CURRENT_DATE, $4, $5, $6, $7, $8, $9, $10)
+            ON CONFLICT (user_id, owner_id) DO UPDATE SET
+                role = EXCLUDED.role,
+                is_active = true,
+                can_view_finances = EXCLUDED.can_view_finances,
+                can_edit_properties = EXCLUDED.can_edit_properties,
+                can_manage_tenants = EXCLUDED.can_manage_tenants,
+                can_manage_contracts = EXCLUDED.can_manage_contracts,
+                can_validate_payments = EXCLUDED.can_validate_payments,
+                can_manage_users = EXCLUDED.can_manage_users,
+                can_delete_data = EXCLUDED.can_delete_data
+            RETURNING *
+        `;
 
-        if (existing.rows.length > 0) {
-            // Reactivate if exists but was deactivated
-            await pool.query(
-                'UPDATE user_owner_assignments SET is_active = true, notes = $3 WHERE user_id = $1 AND owner_id = $2',
-                [user_id, owner_id, notes || null]
-            );
-            return res.json({ message: 'Affectation réactivée', id: existing.rows[0].id });
-        }
+        const result = await pool.query(query, [
+            user_id, owner_id, role || 'viewer',
+            permissions?.can_view_finances || false,
+            permissions?.can_edit_properties || false,
+            permissions?.can_manage_tenants || false,
+            permissions?.can_manage_contracts || false,
+            permissions?.can_validate_payments || false,
+            permissions?.can_manage_users || false,
+            permissions?.can_delete_data || false
+        ]);
 
-        const result = await pool.query(`
-            INSERT INTO user_owner_assignments (user_id, owner_id, assigned_by, notes)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id
-        `, [user_id, owner_id, assigned_by, notes || null]);
-
-        res.status(201).json({ message: 'Affectation créée', id: result.rows[0].id });
+        res.status(201).json({ message: 'Affectation créée/mise à jour', assignment: result.rows[0] });
     } catch (error) {
         console.error('Error creating assignment:', error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
 
-// DELETE /api/user-assignments/:id
-// Remove an assignment (soft delete - set is_active = false)
-router.delete('/:id', async (req, res) => {
+// DELETE /api/user-assignments/:userId/:ownerId
+// Remove an assignment (soft delete)
+router.delete('/:userId/:ownerId', async (req, res) => {
     try {
-        const { id } = req.params;
+        const { userId, ownerId } = req.params;
         await pool.query(
-            'UPDATE user_owner_assignments SET is_active = false WHERE id = $1',
-            [id]
+            'UPDATE owner_user SET is_active = false WHERE user_id = $1 AND owner_id = $2',
+            [userId, ownerId]
         );
         res.json({ message: 'Affectation supprimée' });
     } catch (error) {
         console.error('Error removing assignment:', error);
-        res.status(500).json({ message: 'Erreur serveur' });
-    }
-});
-
-// PUT /api/user-assignments/bulk/:userId
-// Bulk update assignments for a user (replaces all assignments)
-router.put('/bulk/:userId', async (req: any, res) => {
-    try {
-        const { userId } = req.params;
-        const { owner_ids } = req.body; // Array of owner IDs
-        const assigned_by = req.userId;
-
-        // Deactivate all current assignments
-        await pool.query(
-            'UPDATE user_owner_assignments SET is_active = false WHERE user_id = $1',
-            [userId]
-        );
-
-        // Create/reactivate new assignments
-        for (const ownerId of owner_ids) {
-            await pool.query(`
-                INSERT INTO user_owner_assignments (user_id, owner_id, assigned_by, is_active)
-                VALUES ($1, $2, $3, true)
-                ON CONFLICT (user_id, owner_id) 
-                DO UPDATE SET is_active = true, assigned_at = CURRENT_TIMESTAMP
-            `, [userId, ownerId, assigned_by]);
-        }
-
-        res.json({ message: 'Affectations mises à jour', count: owner_ids.length });
-    } catch (error) {
-        console.error('Error bulk updating assignments:', error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });

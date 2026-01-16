@@ -151,7 +151,9 @@ export async function getProfile(): Promise<Utilisateur> {
       headers: { 'Authorization': `Bearer ${token}` }
   });
   if (!response.ok) throw new Error('Erreur chargement profil');
-  return await response.json();
+  
+  const data = await response.json();
+  return data.user; // Backend returns { message, user }
 }
 
 export async function updateProfile(data: any): Promise<Utilisateur> {
@@ -166,6 +168,40 @@ export async function updateProfile(data: any): Promise<Utilisateur> {
   if (!response.ok) throw new Error('Erreur mise à jour profil');
   return await response.json();
 }
+
+export async function changePassword(data: any): Promise<void> {
+    const token = getToken();
+    if (!token) throw new Error('Non authentifié');
+
+    const response = await fetch(`${API_URL}/auth/change-password`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Erreur changement mot de passe');
+    }
+}
+
+export async function inviteUser(data: any): Promise<any> {
+    const token = getToken();
+    if (!token) throw new Error('Non authentifié');
+
+    const response = await fetch(`${API_URL}/auth/invite-user`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Erreur invitation');
+    }
+    return await response.json();
+}
+
 
 // --- Restored Missing Functions ---
 
@@ -196,6 +232,17 @@ export async function saveAutorisation(autorisation: any): Promise<Autorisation>
 
   if (!response.ok) throw new Error(`Erreur: ${response.status}`);
   return await response.json();
+}
+
+export async function suspendUtilisateur(id: number): Promise<void> {
+  const token = getToken();
+  if (!token) throw new Error('Non authentifié');
+
+  const response = await fetch(`${API_URL}/compte/utilisateurs/${id}/suspend`, {
+    method: 'PATCH',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) throw new Error(`Erreur: ${response.status}`);
 }
 
 export async function reactivateUtilisateur(id: number): Promise<void> {
@@ -234,6 +281,7 @@ export const accountApi = {
     saveUtilisateur, 
     deleteProprietaire,
     deleteUtilisateur,
+    suspendUtilisateur,
     getAutorisations,
     saveAutorisation,
     reactivateUtilisateur,
@@ -243,12 +291,16 @@ export const accountApi = {
     getUsers: getUtilisateurs,
     createUser: saveUtilisateur,
     deleteUser: deleteUtilisateur,
+    suspendUser: suspendUtilisateur,
+    reactivateUser: reactivateUtilisateur,
     createOwner: saveProprietaire,
     updateOwner: (id: number, data: any) => saveProprietaire({ ...data, id }), // Helper alias
     
     // Profile
     getProfile,
     updateProfile,
+    changePassword,
+    inviteUser,
 
     // Permissions Matrix
     getPermissionsMatrix: async () => {
@@ -282,13 +334,13 @@ export const accountApi = {
         if (!res.ok) throw new Error('Erreur chargement affectations');
         return await res.json();
     },
-    assignUserToOwner: async (userId: number, ownerId: number, notes?: string) => {
+    assignUserToOwner: async (userId: number, ownerId: number, role: string, permissions: any) => {
         const token = getToken();
         if (!token) throw new Error('Non authentifié');
         const res = await fetch(`${API_URL}/user-assignments`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId, owner_id: ownerId, notes })
+            body: JSON.stringify({ user_id: userId, owner_id: ownerId, role, permissions })
         });
         if (!res.ok) throw new Error('Erreur création affectation');
         return await res.json();
@@ -303,15 +355,63 @@ export const accountApi = {
         if (!res.ok) throw new Error('Erreur suppression affectation');
         return await res.json();
     },
-    bulkUpdateAssignments: async (userId: number, ownerIds: number[]) => {
+    bulkUpdateAssignments: async (userId: number, assignments: any[]) => {
         const token = getToken();
         if (!token) throw new Error('Non authentifié');
         const res = await fetch(`${API_URL}/user-assignments/bulk/${userId}`, {
             method: 'PUT',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ owner_ids: ownerIds })
+            body: JSON.stringify({ assignments }) // assignments: [{owner_id, role, permissions}]
         });
         if (!res.ok) throw new Error('Erreur mise à jour affectations');
         return await res.json();
+    },
+    // Guest Access
+    createGuestAccess: async (data: any) => {
+        const token = getToken();
+        if (!token) throw new Error('Non authentifié');
+        const res = await fetch(`${API_URL}/auth/create-guest`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || 'Erreur création accès invité');
+        }
+        return await res.json();
+    },
+    loginWithKey: async (accessKey: string) => {
+        const res = await fetch(`${API_URL}/auth/login-with-key`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accessKey })
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || 'Erreur connexion invité');
+        }
+        const data = await res.json();
+        
+        // Store token and full context for shared account access
+        // FIXED: Use localStorage and 'userToken' to match authApi.ts
+        localStorage.setItem('userToken', data.token);
+        localStorage.setItem('userRole', 'guest'); // Explicitly set role
+        
+        // Store full user context including issuer details
+        localStorage.setItem('user', JSON.stringify({
+            id: data.userId,
+            role: data.role,
+            isGuest: true,
+            issuerId: data.issuerId,       // The account context to use for data
+            issuerName: data.issuerName,
+            permissions: data.permissions,
+            expiresAt: data.expiresAt
+        }));
+        
+        window.dispatchEvent(new Event('auth-change'));
+        window.dispatchEvent(new Event('storage')); // Notify other tabs/components
+        return data;
     }
+
 };

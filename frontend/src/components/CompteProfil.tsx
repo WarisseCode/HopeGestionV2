@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Camera, Globe, DollarSign, Clock, Save, Lock, MessageCircle } from 'lucide-react';
+import { User, Mail, Phone, Camera, Globe, DollarSign, Clock, Save, Lock, MessageCircle, X } from 'lucide-react';
 import { accountApi } from '../api/accountApi';
 import { motion } from 'framer-motion';
 
@@ -38,6 +38,12 @@ const CompteProfil: React.FC = () => {
         currency: 'XOF',
         timezone: 'GMT+1'
     });
+
+    // Password Modal State
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [passwordData, setPasswordData] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    const [passwordError, setPasswordError] = useState<string | null>(null);
+    const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
     useEffect(() => {
         loadProfile();
@@ -122,6 +128,29 @@ const CompteProfil: React.FC = () => {
             setMessage({ type: 'error', text: 'Erreur lors de la mise à jour.' });
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handlePasswordChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPasswordError(null);
+        setPasswordSuccess(null);
+
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            setPasswordError("Les nouveaux mots de passe ne correspondent pas.");
+            return;
+        }
+
+        try {
+            await accountApi.changePassword({ 
+                oldPassword: passwordData.oldPassword, 
+                newPassword: passwordData.newPassword 
+            });
+            setPasswordSuccess("Mot de passe modifié avec succès !");
+            setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+            setTimeout(() => setShowPasswordModal(false), 2000);
+        } catch (err: any) {
+            setPasswordError(err.message || "Erreur lors du changement de mot de passe.");
         }
     };
 
@@ -237,7 +266,11 @@ const CompteProfil: React.FC = () => {
                                 <p className="font-medium">Mot de passe</p>
                                 <p className="text-sm opacity-80">Dernière modification il y a 3 mois</p>
                             </div>
-                            <button type="button" className="px-4 py-2 bg-white text-blue-600 rounded-lg text-sm font-medium shadow-sm hover:bg-gray-50 border border-blue-100 transition-colors">
+                            <button 
+                                type="button" 
+                                onClick={() => setShowPasswordModal(true)}
+                                className="px-4 py-2 bg-white text-blue-600 rounded-lg text-sm font-medium shadow-sm hover:bg-gray-50 border border-blue-100 transition-colors"
+                            >
                                 Changer
                             </button>
                         </div>
@@ -328,6 +361,76 @@ const CompteProfil: React.FC = () => {
                 </div>
 
             </form>
+
+            {/* Password Modal */}
+            {showPasswordModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-scale-in relative">
+                        <button 
+                            onClick={() => setShowPasswordModal(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                        >
+                            <X size={24} />
+                        </button>
+                        
+                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                            <Lock className="text-blue-600"/> Changer de mot de passe
+                        </h3>
+                        
+                        {passwordError && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">{passwordError}</div>}
+                        {passwordSuccess && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm">{passwordSuccess}</div>}
+
+                        <form onSubmit={handlePasswordChange} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe actuel</label>
+                                <input 
+                                    type="password" 
+                                    className="w-full p-2 border rounded-lg"
+                                    value={passwordData.oldPassword}
+                                    onChange={e => setPasswordData({...passwordData, oldPassword: e.target.value})}
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nouveau mot de passe</label>
+                                <input 
+                                    type="password" 
+                                    className="w-full p-2 border rounded-lg"
+                                    value={passwordData.newPassword}
+                                    onChange={e => setPasswordData({...passwordData, newPassword: e.target.value})}
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Confirmer le nouveau mot de passe</label>
+                                <input 
+                                    type="password" 
+                                    className="w-full p-2 border rounded-lg"
+                                    value={passwordData.confirmPassword}
+                                    onChange={e => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                                    required
+                                />
+                            </div>
+                            
+                            <div className="flex justify-end gap-2 mt-6">
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowPasswordModal(false)}
+                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                                >
+                                    Annuler
+                                </button>
+                                <button 
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                >
+                                    Valider
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

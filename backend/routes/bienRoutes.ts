@@ -4,20 +4,15 @@ import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { filterByOwner, buildOwnerWhereClause } from '../middleware/ownerIsolation';
+import permissions from '../middleware/permissionMiddleware';
 
 dotenv.config();
 
 const router = Router();
-const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-});
+import pool from '../db/database';
 
 // GET /api/biens/immeubles : Récupérer la liste des immeubles (filtrés par accès propriétaire)
-router.get('/immeubles', filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/immeubles', permissions.canRead('biens'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
     // Note: filterByOwner middleware sets (req as any).ownerIds based on user access
     const ownerIds = (req as any).ownerIds;
     const whereClause = buildOwnerWhereClause(ownerIds);
@@ -78,7 +73,7 @@ router.get('/immeubles', filterByOwner, async (req: AuthenticatedRequest, res: R
 });
 
 // GET /api/biens/lots : Récupérer la liste des lots (filtrés par accès propriétaire)
-router.get('/lots', filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/lots', permissions.canRead('biens'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
     const ownerIds = (req as any).ownerIds;
     const whereClause = buildOwnerWhereClause(ownerIds);
 
@@ -123,11 +118,7 @@ router.get('/lots', filterByOwner, async (req: AuthenticatedRequest, res: Respon
 });
 
 // POST /api/biens/immeubles : Créer ou mettre à jour un immeuble
-router.post('/immeubles', async (req: AuthenticatedRequest, res: Response) => {
-    // Vérification de base du rôle
-    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
-        return res.status(403).json({ message: 'Accès refusé.' });
-    }
+router.post('/immeubles', permissions.canWrite('biens'), async (req: AuthenticatedRequest, res: Response) => {
 
     const { id, nom, type, adresse, ville, pays, description, owner_id } = req.body;
 
@@ -179,10 +170,7 @@ router.post('/immeubles', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // POST /api/biens/lots : Créer ou mettre à jour un lot
-router.post('/lots', async (req: AuthenticatedRequest, res: Response) => {
-    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
-        return res.status(403).json({ message: 'Accès refusé.' });
-    }
+router.post('/lots', permissions.canWrite('biens'), async (req: AuthenticatedRequest, res: Response) => {
 
     const { 
         id, 

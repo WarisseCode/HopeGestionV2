@@ -4,12 +4,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'r
 import { Toaster } from 'react-hot-toast';
 import LoginForm from './components/LoginForm';
 import SignupForm from './components/SignupForm';
+import AcceptInvite from './pages/AcceptInvite';
 // import Dashboard from './pages/Dashboard'; // Removed as file is deleted
 import LocataireDashboard from './pages/LocataireDashboard';
 import ProprietaireDashboard from './pages/ProprietaireDashboard';
 import GestionnaireDashboard from './pages/GestionnaireDashboard';
 import UserDashboardRedirect from './pages/UserDashboardRedirect';
 import RouteProtection from './components/RouteProtection';
+import PermissionGate from './components/PermissionGate';
 import HomePage from './HomePage';
 import DashboardLayout from './layout/DashboardLayout'; // Import Layout
 import UserSpecificLayout from './layout/UserSpecificLayout';
@@ -17,7 +19,7 @@ import { getToken, logoutUser } from './api/authApi';
 import CustomThemeProvider from './theme/Theme';
 import { UserProvider } from './contexts/UserContext';
 import MonCompte from './pages/MonCompte';
-import BiensPage from './pages/BiensPage';
+import Biens from './pages/Biens';
 import Locataires from './pages/Locataires';
 import Contrats from './pages/Contrats';
 import Finances from './pages/Finances';
@@ -29,11 +31,12 @@ import MobileMoney from './pages/MobileMoney';
 import Quittances from './pages/Quittances';
 import Proprietaires from './pages/Proprietaires';
 import LotsPage from './pages/LotsPage';
-import DocumentsPage from './pages/DocumentsPage';
+import Documents from './pages/Documents';
 import DelegationsPage from './pages/DelegationsPage';
 import LocataireDetailsPage from './pages/LocataireDetailsPage';
 import CalendrierPage from './pages/CalendrierPage';
 import AuditLogsPage from './pages/AuditLogsPage';
+import Locations from './pages/Locations';
 // Public marketing pages
 import { 
   FonctionnalitesPage, 
@@ -94,6 +97,7 @@ const App: React.FC = () => {
                     <Route path="/" element={<HomePage />} />
                     <Route path="/login" element={<LoginFormWithNavigation />} />
                     <Route path="/signup" element={<SignupFormWithNavigation />} />
+                    <Route path="/accept-invite" element={<AcceptInvite />} />
                     
                     {/* Pages marketing publiques */}
                     <Route path="/fonctionnalites" element={<FonctionnalitesPage />} />
@@ -113,12 +117,13 @@ const App: React.FC = () => {
                                         <Routes>
                                             <Route index element={<UserDashboardRedirect />} />
                                             <Route path="mon-compte" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<MonCompte />} />} />
-                                            <Route path="biens" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<BiensPage />} />} />
+                                            <Route path="biens" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Biens />} />} />
                                             <Route path="locataires" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Locataires />} />} />
                                             <Route path="locataires/:id" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<LocataireDetailsPage />} />} />
                                             <Route path="calendrier" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<CalendrierPage />} />} />
+                                            <Route path="locations" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Locations />} />} />
                                             <Route path="contrats" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Contrats />} />} />
-                                            <Route path="documents" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<DocumentsPage />} />} />
+                                            <Route path="documents" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Documents />} />} />
                                             <Route path="finances" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Finances />} />} />
                                             <Route path="interventions" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Interventions />} />} />
                                             <Route path="equipe" element={<RouteProtection allowedUserTypes={['proprietaire']} children={<DelegationsPage />} />} />
@@ -135,6 +140,8 @@ const App: React.FC = () => {
                                             <Route path="proprietaire/*" element={<ProprietaireDashboard />} />
                                             <Route path="gestionnaire" element={<GestionnaireDashboard />} />
                                             <Route path="gestionnaire/*" element={<GestionnaireDashboard />} />
+                                            <Route path="manager" element={<GestionnaireDashboard />} />
+                                            <Route path="manager/*" element={<GestionnaireDashboard />} />
                                         </Routes>
                                     </UserSpecificLayout>
                                 </UserProvider>

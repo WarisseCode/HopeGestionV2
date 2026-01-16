@@ -17,7 +17,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import { generateQuittancePDF } from '../utils/pdfGenerator';
-import { getPaiements } from '../api/financeApi';
+import { financeApi } from '../api/financeApi';
 import toast from 'react-hot-toast';
 
 const Quittances: React.FC = () => {
@@ -36,18 +36,18 @@ const Quittances: React.FC = () => {
   const fetchQuittances = async () => {
     try {
       setLoading(true);
-      const data = await getPaiements();
+      const data = await financeApi.getPayments();
       // Transformation des données API pour l'affichage
       const formatted = data.map((p: any) => ({
         id: p.id,
-        numero: p.reference || `QUI-${new Date(p.date_paiement).getFullYear()}-${p.id.toString().padStart(3, '0')}`,
-        locataire: `${p.tenant_name || ''} ${p.tenant_surname || ''}`.trim() || 'Locataire sc.',
-        bien: p.ref_lot ? `${p.building_name} - ${p.ref_lot}` : p.building_name || 'Bien inconnu',
-        periode: new Date(p.date_paiement).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
-        montant: p.montant,
-        dateEmission: p.date_paiement,
-        statut: 'Payé', // Par définition, un paiement enregistré est payé
-        datePaiement: p.date_paiement
+        numero: p.reference || `QUI-${new Date(p.payment_date).getFullYear()}-${p.id.toString().padStart(3, '0')}`,
+        locataire: `${p.locataire_prenoms || ''} ${p.locataire_nom || ''}`.trim() || 'Locataire sc.',
+        bien: p.reference_bail || 'Bail inconnu', // On utilise ref_bail faute de mieux pour l'instant
+        periode: new Date(p.payment_date).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+        montant: parseFloat(p.amount),
+        dateEmission: p.payment_date,
+        statut: 'Payé',
+        datePaiement: p.payment_date
       }));
       setQuittances(formatted);
     } catch (error) {
@@ -70,14 +70,15 @@ const Quittances: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-base-content">Quittances de Loyer</h1>
-          <p className="text-base-content/70">Gestion et génération des reçus de paiement</p>
+          <h1 className="text-2xl font-bold text-gray-800">Quittances de Loyer</h1>
+          <p className="text-gray-500">Gestion et génération des reçus de paiement</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="ghost" className="flex items-center gap-2">
+          <Button variant="ghost" className="flex items-center gap-2" onClick={fetchQuittances}>
             <RefreshCw size={18} />
             Actualiser
           </Button>
+          {/* Le bouton "Nouvelle quittance" ici est un raccourci pour générer un PDF manuellement */}
           <Button 
             variant="primary" 
             onClick={() => setShowForm(true)}
@@ -90,12 +91,12 @@ const Quittances: React.FC = () => {
       </div>
 
       {/* Navigation par onglets */}
-      <div className="flex border-b border-base-200">
+      <div className="flex border-b border-gray-200">
         <button
           className={`px-4 py-2 font-medium text-sm ${
             activeTab === 'liste'
               ? 'text-primary border-b-2 border-primary'
-              : 'text-base-content/60 hover:text-base-content'
+              : 'text-gray-500 hover:text-gray-700'
           }`}
           onClick={() => setActiveTab('liste')}
         >
@@ -108,47 +109,38 @@ const Quittances: React.FC = () => {
           className={`px-4 py-2 font-medium text-sm ${
             activeTab === 'generer'
               ? 'text-primary border-b-2 border-primary'
-              : 'text-base-content/60 hover:text-base-content'
+              : 'text-gray-500 hover:text-gray-700'
           }`}
           onClick={() => setActiveTab('generer')}
         >
           <div className="flex items-center gap-2">
             <Plus size={18} />
-            Générer une quittance
+            Générer manuel
           </div>
         </button>
       </div>
 
       {/* Formulaire de génération */}
       {(showForm || activeTab === 'generer') && (
-        <Card title="Générer une nouvelle quittance">
+        <Card title="Générer une nouvelle quittance (Manuel)">
+            {/* Formulaire simplifié pour démo/manuel - en réalité on devrait lier aux données */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium mb-2">Locataire</label>
-              <select 
-                className="w-full p-3 border border-base-200 rounded-lg bg-base-100"
+              <Input 
                 value={formData.locataire}
                 onChange={(e) => setFormData({...formData, locataire: e.target.value})}
-              >
-                <option value="">Sélectionner un locataire</option>
-                <option value="1">KOFFI Jean</option>
-                <option value="2">DOSSOU Marie</option>
-                <option value="3">AGBO Paul</option>
-              </select>
+                placeholder="Nom du locataire"
+              />
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">Bien</label>
-              <select 
-                className="w-full p-3 border border-base-200 rounded-lg bg-base-100"
+              <Input 
                 value={formData.bien}
                 onChange={(e) => setFormData({...formData, bien: e.target.value})}
-              >
-                <option value="">Sélectionner un bien</option>
-                <option value="1">Résidence La Paix - Apt A01</option>
-                <option value="2">Immeuble Le Destin - Apt B02</option>
-                <option value="3">Villa Les Cocotiers</option>
-              </select>
+                placeholder="Référence du bien"
+              />
             </div>
 
             <div>
@@ -187,15 +179,20 @@ const Quittances: React.FC = () => {
               Annuler
             </Button>
             <Button 
-              variant="secondary"
-              className="flex items-center gap-2"
-            >
-              <Eye size={18} />
-              Prévisualiser
-            </Button>
-            <Button 
               variant="primary"
               className="flex items-center gap-2"
+              onClick={() => {
+                  generateQuittancePDF({
+                      id: 'MANUAL-' + Date.now(),
+                      numero: 'QUI-MANUAL-' + new Date().getFullYear(),
+                      locataire: formData.locataire,
+                      bien: formData.bien,
+                      periode: formData.periode,
+                      montant: formData.montant,
+                      datePaiement: formData.dateEmission
+                  });
+                  toast.success("PDF généré !");
+              }}
             >
               <Download size={18} />
               Générer PDF
@@ -207,169 +204,91 @@ const Quittances: React.FC = () => {
       {/* Liste des quittances */}
       {activeTab === 'liste' && (
         <div className="space-y-6">
-          {/* Filtres */}
-          <Card>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Locataire</label>
-                <select className="w-full p-3 border border-base-200 rounded-lg bg-base-100">
-                  <option value="">Tous les locataires</option>
-                  <option value="1">KOFFI Jean</option>
-                  <option value="2">DOSSOU Marie</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Bien</label>
-                <select className="w-full p-3 border border-base-200 rounded-lg bg-base-100">
-                  <option value="">Tous les biens</option>
-                  <option value="1">Résidence La Paix</option>
-                  <option value="2">Immeuble Le Destin</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Période</label>
-                <input 
-                  type="month" 
-                  className="w-full p-3 border border-base-200 rounded-lg bg-base-100"
-                />
-              </div>
-
-              <div className="flex items-end">
-                <Button variant="primary" className="w-full flex items-center justify-center gap-2">
-                  <Filter size={18} />
-                  Filtrer
-                </Button>
-              </div>
-            </div>
-          </Card>
-
           {/* Statistiques rapides */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
               <div className="flex items-center gap-4">
-                <div className="avatar placeholder">
-                  <div className="bg-primary/10 text-primary rounded-full w-12 flex items-center justify-center">
+                <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
                     <FileText size={24} />
-                  </div>
                 </div>
                 <div>
-                  <p className="text-sm text-base-content/60">Total quittances</p>
-                  <p className="text-2xl font-bold">{quittances.length}</p>
+                  <p className="text-sm text-gray-500">Total quittances</p>
+                  <p className="text-2xl font-bold text-gray-800">{quittances.length}</p>
                 </div>
               </div>
             </Card>
 
             <Card>
               <div className="flex items-center gap-4">
-                <div className="avatar placeholder">
-                  <div className="bg-success/10 text-success rounded-full w-12 flex items-center justify-center">
+                <div className="p-3 bg-green-100 text-green-600 rounded-full">
                     <CheckCircle size={24} />
-                  </div>
                 </div>
                 <div>
-                  <p className="text-sm text-base-content/60">Payées</p>
-                  <p className="text-2xl font-bold">{quittances.filter(q => q.statut === 'Payé').length}</p>
+                  <p className="text-sm text-gray-500">Payées</p>
+                  <p className="text-2xl font-bold text-gray-800">{quittances.length}</p>
                 </div>
               </div>
             </Card>
 
             <Card>
               <div className="flex items-center gap-4">
-                <div className="avatar placeholder">
-                  <div className="bg-warning/10 text-warning rounded-full w-12 flex items-center justify-center">
+                <div className="p-3 bg-yellow-100 text-yellow-600 rounded-full">
                     <Clock size={24} />
-                  </div>
                 </div>
                 <div>
-                  <p className="text-sm text-base-content/60">En attente</p>
-                  <p className="text-2xl font-bold">{quittances.filter(q => q.statut === 'En attente').length}</p>
+                  <p className="text-sm text-gray-500">Ce mois</p>
+                  <p className="text-2xl font-bold text-gray-800">
+                      {quittances.filter(q => new Date(q.datePaiement).getMonth() === new Date().getMonth()).length}
+                  </p>
                 </div>
               </div>
             </Card>
           </div>
 
           {/* Table des quittances */}
-          <Card title="Liste des quittances émises">
+          <Card title="Historique des paiements & quittances">
             {quittances.length === 0 ? (
               <div className="text-center py-12">
-                <FileText size={48} className="mx-auto text-base-content/30 mb-4" />
-                <p className="text-base-content/60 mb-4">Aucune quittance pour le moment</p>
-                <Button 
-                  variant="primary"
-                  onClick={() => setShowForm(true)}
-                  className="flex items-center gap-2 mx-auto"
-                >
-                  <Plus size={18} />
-                  Générer ma première quittance
-                </Button>
+                <FileText size={48} className="mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500 mb-4">Aucun paiement enregistré pour générer des quittances.</p>
+                <div className="text-sm text-gray-400">Allez dans Finances pour enregistrer un paiement.</div>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="table w-full">
                   <thead>
-                    <tr>
-                      <th>Numéro</th>
-                      <th>Locataire</th>
-                      <th>Bien</th>
-                      <th>Période</th>
-                      <th>Montant</th>
-                      <th>Date émission</th>
-                      <th>Statut</th>
-                      <th>Actions</th>
+                    <tr className="text-left text-gray-500 uppercase text-xs tracking-wider">
+                      <th className="p-4">Numéro</th>
+                      <th className="p-4">Locataire</th>
+                      <th className="p-4">Bail</th>
+                      <th className="p-4">Période</th>
+                      <th className="p-4">Montant</th>
+                      <th className="p-4">Date</th>
+                      <th className="p-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-100">
                     {quittances.map((quittance) => (
-                      <tr key={quittance.id}>
-                        <td>
-                          <div className="font-medium">{quittance.numero}</div>
-                        </td>
-                        <td>
-                          <div className="flex items-center gap-2">
-                            <Users size={16} className="text-base-content/60" />
-                            {quittance.locataire}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="flex items-center gap-2">
-                            <Home size={16} className="text-base-content/60" />
-                            {quittance.bien}
-                          </div>
-                        </td>
-                        <td>{quittance.periode}</td>
-                        <td>
-                          <div className="font-medium">{quittance.montant.toLocaleString()} FCFA</div>
-                        </td>
-                        <td>{new Date(quittance.dateEmission).toLocaleDateString()}</td>
-                        <td>
-                          <span className={`badge ${
-                            quittance.statut === 'Payé' ? 'badge-success' : 'badge-warning'
-                          }`}>
-                            {quittance.statut}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="flex gap-2">
-                             <Button variant="ghost" size="sm" title="Voir">
-                               <Eye size={16} />
-                             </Button>
-                             <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                title="Télécharger PDF"
-                                onClick={() => {
-                                  generateQuittancePDF(quittance);
-                                  toast.success(`Quittance ${quittance.numero} téléchargée !`);
-                                }}
-                             >
-                               <Download size={16} />
-                             </Button>
-                             <Button variant="ghost" size="sm" className="text-error" title="Supprimer">
-                               <Trash2 size={16} />
-                             </Button>
-                           </div>
+                      <tr key={quittance.id} className="hover:bg-gray-50">
+                        <td className="p-4 font-mono text-sm">{quittance.numero}</td>
+                        <td className="p-4 font-medium">{quittance.locataire}</td>
+                        <td className="p-4 text-sm text-gray-500">{quittance.bien}</td>
+                        <td className="p-4 text-sm">{quittance.periode}</td>
+                        <td className="p-4 font-bold text-green-600">{quittance.montant.toLocaleString()} F</td>
+                        <td className="p-4 text-sm text-gray-500">{new Date(quittance.dateEmission).toLocaleDateString()}</td>
+                        <td className="p-4 text-right">
+                           <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            title="Télécharger PDF"
+                            onClick={() => {
+                                generateQuittancePDF(quittance); // Assuming this utility function handles the object structure
+                                toast.success(`Quittance pour ${quittance.locataire} générée !`);
+                            }}
+                            className="text-primary hover:bg-primary/10"
+                           >
+                            <Download size={18} />
+                           </Button>
                         </td>
                       </tr>
                     ))}

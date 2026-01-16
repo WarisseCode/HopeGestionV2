@@ -11,16 +11,23 @@ const UserDashboardRedirect: React.FC = () => {
       try {
         const profile = await getProfile();
         const userType = profile.user.userType;
+        const isGuest = profile.user.isGuest || profile.user.role === 'guest'; // Check guest flag
 
-        if (userType === 'locataire') {
+        if (isGuest) {
+             // Guests access the issuer's dashboard (typically gestionnaire/proprietaire view)
+             // For now, default to gestionnaire dashboard as they are delegating access
+             navigate('/dashboard/gestionnaire'); 
+        } else if (userType === 'locataire') {
           navigate('/dashboard/locataire');
         } else if (userType === 'proprietaire') {
           navigate('/dashboard/proprietaire');
         } else if (userType === 'gestionnaire') {
           navigate('/dashboard/gestionnaire');
+        } else if (userType === 'manager') {
+            navigate('/dashboard/manager');
         } else {
-          // Pour les autres types d'utilisateurs, rediriger vers le dashboard standard
-          navigate('/dashboard');
+          // Pour les autres types d'utilisateurs, rediriger vers la page d'accueil pour éviter une boucle
+          navigate('/');
         }
       } catch (error) {
         console.error('Erreur lors de la redirection:', error);

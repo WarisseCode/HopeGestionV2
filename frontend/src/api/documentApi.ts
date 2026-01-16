@@ -1,125 +1,84 @@
-import { getToken } from './authApi';
+import axios from 'axios';
 
-import { API_URL as BASE_URL } from '../config'; 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-const API_URL = `${BASE_URL}/documents`;
+const getToken = () => localStorage.getItem('userToken');
 
 export interface Document {
-  id: number;
-  user_id: number;
-  nom: string;
-  type: string;
-  url: string;
-  taille: string;
-  categorie: string;
-  description?: string;
-  created_at: string;
+    id: number;
+    nom: string;
+    type: string;
+    url: string;
+    taille: string;
+    categorie: string;
+    entity_type: string | null;
+    entity_id: number | null;
+    description: string | null;
+    created_at: string;
+    user_id: number;
 }
 
-// Récupérer les documents
-export async function getDocuments(): Promise<Document[]> {
-  const token = getToken();
-  if (!token) throw new Error('Non authentifié');
-
-  const response = await fetch(API_URL, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Erreur: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.documents || [];
+export interface DocumentFilters {
+    entity_type?: string;
+    entity_id?: number;
+    categorie?: string;
 }
 
-// Ajout de support pour upload de fichiers
-export const uploadDocument = async (
-  formData: FormData
-): Promise<Document> => {
-  const token = getToken();
-  if (!token) throw new Error('Non authentifié'); // Added missing token check
-  const response = await fetch(`${API_URL}/upload`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      // Pas de Content-Type ici, le navigateur le définit automatiquement avec le boundary pour FormData
+export interface UploadData {
+    file: File;
+    nom?: string;
+    categorie: string;
+    entity_type?: string;
+    entity_id?: number | string;
+    description?: string;
+}
+
+export const documentApi = {
+    getDocuments: async (filters: DocumentFilters = {}): Promise<Document[]> => {
+        const token = getToken();
+        // Construire la query string
+        const params = new URLSearchParams();
+        if (filters.entity_type) params.append('entity_type', filters.entity_type);
+        if (filters.entity_id) params.append('entity_id', filters.entity_id.toString());
+        if (filters.categorie) params.append('categorie', filters.categorie);
+
+        const response = await axios.get(`${API_URL}/documents?${params.toString()}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
     },
-    body: formData,
-  });
 
-  if (!response.ok) {
-    throw new Error('Erreur lors de l\'upload du document');
-  }
+    uploadDocument: async (data: UploadData): Promise<Document> => {
+        const token = getToken();
+        const formData = new FormData();
+        formData.append('file', data.file);
+        formData.append('categorie', data.categorie);
+        if (data.nom) formData.append('nom', data.nom);
+        if (data.entity_type) formData.append('entity_type', data.entity_type);
+        if (data.entity_id) formData.append('entity_id', data.entity_id.toString());
+        if (data.description) formData.append('description', data.description);
 
-  return response.json();
+        const response = await axios.post(`${API_URL}/documents/upload`, formData, {
+            headers: { 
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'multipart/form-data' 
+            }
+        });
+        return response.data;
+    },
+
+    deleteDocument: async (id: number): Promise<void> => {
+        const token = getToken();
+        await axios.delete(`${API_URL}/documents/${id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+
+    generateLease: async (leaseId: number): Promise<Document> => {
+        const token = getToken();
+        const response = await axios.post(`${API_URL}/documents/generate/lease/${leaseId}`, {}, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
+    }
 };
-
-export const getDownloadUrl = (docId: number) => {
-    // On retourne l'URL directe, l'authentification se fera via un token en paramètre ou cookie si besoin
-    // Mais ici le backend attend un Header Authorization, ce qui est compliqué pour un simple lien href
-    // Solution simple : fetch blob et download via JS
-    return `${API_URL}/download/${docId}`;
-};
-
-export const downloadDocument = async (docId: number, filename: string) => {
-    const token = getToken();
-    if (!token) throw new Error('Non authentifié'); // Added missing token check
-    const response = await fetch(`${API_URL}/download/${docId}`, {
-         headers: { 'Authorization': `Bearer ${token}` }
-    });
-    
-    if (!response.ok) throw new Error("Erreur téléchargement");
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-};
-
-// Ajouter un document
-export async function addDocument(doc: Partial<Document>): Promise<Document> {
-  const token = getToken();
-  if (!token) throw new Error('Non authentifié');
-
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(doc),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || `Erreur: ${response.status}`);
-  }
-
-  return await response.json();
-}
-
-// Supprimer un document
-export async function deleteDocument(id: number): Promise<void> {
-  const token = getToken();
-  if (!token) throw new Error('Non authentifié');
-
-  const response = await fetch(`${API_URL}/${id}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Erreur: ${response.status}`);
-  }
-}

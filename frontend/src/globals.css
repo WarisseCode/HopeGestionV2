@@ -1,80 +1,241 @@
 /* src/globals.css - Styles globaux pour harmoniser DaisyUI et MUI */
 
-/* Variables CSS pour les couleurs du thème */
+/* ============================
+   Variables CSS - Thème Light
+   ============================ */
 :root {
+  /* Couleurs primaires */
   --primary: #3f51b5;
   --primary-focus: #303f9f;
   --primary-content: #ffffff;
+  --primary-light: rgba(63, 81, 181, 0.1);
+  
+  /* Couleurs secondaires */
   --secondary: #f50057;
   --secondary-focus: #c51162;
   --secondary-content: #ffffff;
+  
+  /* Accent */
   --accent: #673ab7;
   --accent-focus: #7b1fa2;
   --accent-content: #ffffff;
+  
+  /* Neutres */
   --neutral: #3d4451;
   --neutral-focus: #2a2e37;
   --neutral-content: #ffffff;
+  
+  /* Bases */
   --base-100: #ffffff;
   --base-200: #f9fafb;
   --base-300: #e5e7eb;
   --base-content: #1f2937;
-  --success: #4caf50;
+  
+  /* États */
+  --success: #10b981;
   --success-content: #ffffff;
-  --warning: #ff9800;
+  --success-light: rgba(16, 185, 129, 0.1);
+  
+  --warning: #f59e0b;
   --warning-content: #ffffff;
-  --error: #f44336;
+  --warning-light: rgba(245, 158, 11, 0.1);
+  
+  --error: #ef4444;
   --error-content: #ffffff;
+  --error-light: rgba(239, 68, 68, 0.1);
+  
+  --info: #3b82f6;
+  --info-content: #ffffff;
+  --info-light: rgba(59, 130, 246, 0.1);
+  
+  /* Ombres */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
 }
 
-/* Typographie globale */
+/* ============================
+   Variables CSS - Thème Dark
+   ============================ */
+[data-theme="dark"], .dark {
+  --primary: #7986cb;
+  --primary-focus: #9fa8da;
+  --primary-content: #1a1a2e;
+  --primary-light: rgba(121, 134, 203, 0.15);
+  
+  --secondary: #ff4081;
+  --secondary-focus: #ff80ab;
+  --secondary-content: #1a1a2e;
+  
+  --accent: #b388ff;
+  --accent-focus: #d1c4e9;
+  --accent-content: #1a1a2e;
+  
+  --neutral: #1a1a2e;
+  --neutral-focus: #16213e;
+  --neutral-content: #e2e8f0;
+  
+  --base-100: #1a1a2e;
+  --base-200: #16213e;
+  --base-300: #0f3460;
+  --base-content: #e2e8f0;
+  
+  --success: #34d399;
+  --success-content: #1a1a2e;
+  --success-light: rgba(52, 211, 153, 0.15);
+  
+  --warning: #fbbf24;
+  --warning-content: #1a1a2e;
+  --warning-light: rgba(251, 191, 36, 0.15);
+  
+  --error: #f87171;
+  --error-content: #1a1a2e;
+  --error-light: rgba(248, 113, 113, 0.15);
+  
+  --info: #60a5fa;
+  --info-content: #1a1a2e;
+  --info-light: rgba(96, 165, 250, 0.15);
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================
+   Typographie globale
+   ============================ */
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--base-200);
+  color: var(--base-content);
+  transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
 h1, h2, h3, h4, h5, h6, .font-heading {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Amélioration des ombres pour les composants */
+/* ============================
+   Animations
+   ============================ */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ============================
+   Amélioration des composants
+   ============================ */
+
+/* Cards */
 .card {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow);
+  transition: all var(--transition-normal);
+  border-radius: 1rem;
 }
 
 .card:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.01);
+  box-shadow: var(--shadow-md);
 }
 
-/* Amélioration des boutons */
+/* Boutons */
 .btn {
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
   text-transform: none;
   font-weight: 500;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
 }
 
-.btn:hover {
+.btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow);
 }
 
-/* Styles pour les graphiques Recharts */
-.recharts-wrapper {
-  width: 100%;
-  height: 300px;
+.btn:active:not(:disabled) {
+  transform: translateY(0);
 }
 
-.recharts-responsive-container {
-  width: 100% !important;
-  height: 100% !important;
+.btn-primary {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-content);
 }
 
-/* Amélioration des tableaux (à utiliser pour les futurs tableaux) */
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--primary-focus);
+  border-color: var(--primary-focus);
+}
+
+.btn-secondary {
+  background-color: var(--secondary);
+  border-color: var(--secondary);
+  color: var(--secondary-content);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--secondary-focus);
+  border-color: var(--secondary-focus);
+}
+
+/* Tables */
 .table {
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   overflow: hidden;
 }
 
@@ -86,7 +247,25 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   letter-spacing: 0.05em;
 }
 
-/* Amélioration des indicateurs de chargement */
+/* Formulaires */
+.form-control {
+  margin-bottom: 1rem;
+}
+
+.input, .textarea, .select {
+  border-radius: 0.75rem;
+  border: 2px solid var(--base-300);
+  transition: all var(--transition-fast);
+  background-color: var(--base-100);
+}
+
+.input:focus, .textarea:focus, .select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+/* Loading spinner */
 .loading {
   display: inline-block;
   width: 1rem;
@@ -97,91 +276,133 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   animation: spin 1s ease-in-out infinite;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+/* Graphiques Recharts */
+.recharts-wrapper {
+  width: 100%;
+  height: 300px;
 }
 
-/* Amélioration des animations Framer Motion */
-.mui-motion-fadeIn {
-  opacity: 0;
-  transition: opacity 0.3s ease-out;
+.recharts-responsive-container {
+  width: 100% !important;
+  height: 100% !important;
 }
 
-.mui-motion-fadeIn.mui-motion-visible {
-  opacity: 1;
-}
-
-/* Correction de la superposition de DaisyUI et MUI */
-.btn-primary {
-  background-color: var(--primary);
-  border-color: var(--primary);
-  color: var(--primary-content);
-}
-
-.btn-primary:hover {
-  background-color: var(--primary-focus);
-  border-color: var(--primary-focus);
-}
-
-.btn-secondary {
-  background-color: var(--secondary);
-  border-color: var(--secondary);
-  color: var(--secondary-content);
-}
-
-.btn-secondary:hover {
-  background-color: var(--secondary-focus);
-  border-color: var(--secondary-focus);
-}
-
-/* Amélioration de la navigation */
-.breadcrumb {
-  padding: 0.75rem 1rem;
-  background-color: var(--base-200);
-  border-radius: 0.5rem;
-}
-
-/* Styles pour les notifications */
-.alert {
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
-
-/* Amélioration des formulaires */
-.form-control {
-  margin-bottom: 1rem;
-}
-
-.input, .textarea, .select {
-  border-radius: 0.5rem;
-  border: 1px solid var(--base-300);
-  transition: all 0.2s ease;
-}
-
-.input:focus, .textarea:focus, .select:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.1);
-}
-
-/* Amélioration des cartes de tableau de bord */
+/* ============================
+   Dashboard & KPI
+   ============================ */
 .dashboard-card {
   background-color: var(--base-100);
-  border-radius: 1rem;
+  border-radius: 1.5rem;
   padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow);
 }
 
-/* Amélioration des indicateurs KPI */
 .kpi-card {
-  border-radius: 1rem;
+  border-radius: 1.5rem;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
 }
 
 .kpi-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ============================
+   Utilitaires
+   ============================ */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.dark .glass {
+  background: rgba(26, 26, 46, 0.7);
+}
+
+/* Scrollbar personnalisée */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--base-200);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--base-300);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* ============================
+   Responsive - Tablettes
+   ============================ */
+@media (min-width: 640px) and (max-width: 1024px) {
+  .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  
+  .card {
+    padding: 1.25rem;
+  }
+}
+
+/* ============================
+   Styles d'impression
+   ============================ */
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+  
+  .no-print,
+  .sidebar,
+  .navbar,
+  .btn,
+  .modal {
+    display: none !important;
+  }
+  
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+    break-inside: avoid;
+  }
+  
+  .print-full-width {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+  
+  @page {
+    margin: 2cm;
+  }
+}
+
+/* ============================
+   Alerts et notifications
+   ============================ */
+.alert {
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.breadcrumb {
+  padding: 0.75rem 1rem;
+  background-color: var(--base-200);
+  border-radius: 0.5rem;
 }

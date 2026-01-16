@@ -68,14 +68,69 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
 
   // Fonction pour obtenir les éléments de menu en fonction du type d'utilisateur
   const getMenuItems = () => {
-    const baseItems = [
-      { icon: <LayoutDashboard size={20} />, label: 'Bureau', path: '/' },
+    const baseItems: any[] = [
+      // 'Bureau' moved to dynamic checks
       { icon: <User size={20} />, label: 'Mon Compte', path: '/mon-compte' },
     ];
+
+    // GESTION DES INVITÉS et UTILISATEURS DÉLÉGUÉS (GUESTS)
+    if (userProfile?.isGuest || (userProfile?.role && !['admin', 'proprietaire', 'gestionnaire'].includes(userProfile.role))) {
+        let dynamicItems = [...baseItems];
+        const perms = userProfile?.permissions || {};
+
+        // Bureau (Dashboard) - ALWAYS visible for all users
+        dynamicItems.unshift({ icon: <LayoutDashboard size={20} />, label: 'Bureau', path: '/' });
+
+        // 1. Biens Immobiliers (palette "Biens Immobiliers")
+        if (perms.biens_read) {
+            dynamicItems.push({ icon: <Building2 size={20} />, label: 'Biens', path: '/biens' });
+        }
+
+        // 2. Locataires (palette "Locataires")
+        if (perms.locataires_read) {
+            dynamicItems.push(
+                { icon: <Users size={20} />, label: 'Locataires', path: '/locataires' },
+                { icon: <FileText size={20} />, label: 'Locations', path: '/locations' }
+            );
+        }
+
+        // 3. Propriétaires (palette "Propriétaires")
+        if (perms.owners_read) {
+            dynamicItems.push({ icon: <Users size={20} />, label: 'Propriétaires', path: '/proprietaires' });
+        }
+
+        // 4. Comptabilité (palette "Comptabilité")
+        if (perms.finance_read) {
+            dynamicItems.push(
+                { icon: <Wallet size={20} />, label: 'Finances', path: '/finances' },
+                { icon: <FileText size={20} />, label: 'Quittances', path: '/quittances' }
+            );
+            // Mobile Money for validation permission
+            if (perms.finance_validate) {
+                dynamicItems.push({ icon: <CreditCard size={20} />, label: 'Mobile Money', path: '/mobile-money' });
+            }
+        }
+
+        // 5. Contrats (palette "Contrats")
+        if (perms.contrats_read) {
+            dynamicItems.push({ icon: <FileText size={20} />, label: 'Contrats', path: '/contrats' });
+        }
+
+        // 6. Documents (palette "Documents")
+        if (perms.documents_read) {
+            dynamicItems.push(
+                { icon: <FolderOpen size={20} />, label: 'Documents', path: '/documents' },
+                { icon: <BarChart3 size={20} />, label: 'Rapports', path: '/rapports' }
+            );
+        }
+
+        return dynamicItems;
+    }
 
     if (userProfile?.userType === 'locataire') {
       // Menu spécifique pour les locataires
       return [
+        { icon: <LayoutDashboard size={20} />, label: 'Bureau', path: '/' },
         ...baseItems,
         { icon: <FileText size={20} />, label: 'Mes Contrats', path: '/contrats' },
         { icon: <FolderOpen size={20} />, label: 'Mes Documents', path: '/documents' },
@@ -86,9 +141,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
     } else if (userProfile?.userType === 'proprietaire') {
       // Menu spécifique pour les propriétaires
       return [
+        { icon: <LayoutDashboard size={20} />, label: 'Bureau', path: '/' },
         ...baseItems,
         { icon: <Building2 size={20} />, label: 'Mes Biens', path: '/biens' },
         { icon: <Users size={20} />, label: 'Mes Locataires', path: '/locataires' },
+        { icon: <FileText size={20} />, label: 'Mes Locations', path: '/locations' },
         { icon: <Briefcase size={20} />, label: 'Mon Équipe', path: '/equipe' },
         { icon: <Calendar size={20} />, label: 'Calendrier', path: '/calendrier' },
         { icon: <FileText size={20} />, label: 'Mes Contrats', path: '/contrats' },
@@ -104,10 +161,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
     } else if (userProfile?.userType === 'gestionnaire') {
       // Menu spécifique pour les gestionnaires
       return [
+        { icon: <LayoutDashboard size={20} />, label: 'Bureau', path: '/' },
         ...baseItems,
         { icon: <Users size={20} />, label: 'Propriétaires', path: '/proprietaires' },
         { icon: <Building2 size={20} />, label: 'Biens', path: '/biens' },
         { icon: <Users size={20} />, label: 'Locataires', path: '/locataires' },
+        { icon: <FileText size={20} />, label: 'Locations', path: '/locations' },
         { icon: <Calendar size={20} />, label: 'Calendrier', path: '/calendrier' },
         { icon: <FileText size={20} />, label: 'Contrats', path: '/contrats' },
         { icon: <Wallet size={20} />, label: 'Finances', path: '/finances' },
@@ -122,21 +181,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
       ];
     }
 
-    // Par défaut, retourner le menu complet
+    // Par défaut (Admin, Propriétaire, Gestionnaire FULL ACCESS), retourner le menu complet
+    // Note: On ajoute 'Bureau' explicitement car on l'a retiré de baseItems
     return [
-      ...baseItems,
-      { icon: <Users size={20} />, label: 'Propriétaires', path: '/proprietaires' },
-      { icon: <Building2 size={20} />, label: 'Biens', path: '/biens' },
-      { icon: <Users size={20} />, label: 'Locataires', path: '/locataires' },
-      { icon: <FileText size={20} />, label: 'Contrats', path: '/contrats' },
-      { icon: <Wallet size={20} />, label: 'Finances', path: '/finances' },
-      { icon: <Wrench size={20} />, label: 'Interventions', path: '/interventions' },
-      { icon: <CreditCard size={20} />, label: 'Mobile Money', path: '/mobile-money' },
-      { icon: <FolderOpen size={20} />, label: 'Documents', path: '/documents' },
-      { icon: <FileText size={20} />, label: 'Quittances', path: '/quittances' },
-      { icon: <BarChart3 size={20} />, label: 'Rapports', path: '/rapports' },
-      { icon: <Bell size={20} />, label: 'Alertes', path: '/alertes' },
-      { icon: <Settings size={20} />, label: 'Paramètres', path: '/parametres' },
+        { icon: <LayoutDashboard size={20} />, label: 'Bureau', path: '/' },
+        ...baseItems
     ];
   };
 

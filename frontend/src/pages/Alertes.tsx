@@ -34,6 +34,8 @@ import { getNotifications, markAsRead, markAllAsRead } from '../api/notification
 import type { AppNotification } from '../api/notificationApi';
 import { getAlerts } from '../api/alertApi';
 import type { Alert } from '../api/alertApi';
+import { getNotificationSettings, updateNotificationSettings } from '../api/notificationApi';
+import type { NotificationSetting } from '../api/notificationApi';
 
 const Alertes: React.FC = () => {
   const navigate = useNavigate();
@@ -47,25 +49,22 @@ const Alertes: React.FC = () => {
   const [alertes, setAlertes] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Mock Params for now
-  const [parametres] = useState([
-    {
-        id: 1,
-        nom: 'Rappel de loyer',
-        description: 'Rappel automatique 3 jours avant la date d\'échéance',
-        type: 'Paiement',
-        actif: true,
-        canal: ['Email', 'WhatsApp']
-      },
-      {
-        id: 2,
-        nom: 'Alerte intervention',
-        description: 'Notification en cas de panne ou besoin d\'intervention',
-        type: 'Intervention',
-        actif: true,
-        canal: ['Email', 'SMS', 'WhatsApp']
-      }
-  ]);
+  const [parametres, setParametres] = useState<NotificationSetting[]>([]);
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  const ALERT_TYPE_LABELS: Record<string, { label: string, desc: string }> = {
+    'PAYMENT_REMINDER': { label: 'Rappel de loyer', desc: 'Notification avant la date d\'échéance' },
+    'LEASE_EXPIRY': { label: 'Fin de bail', desc: 'Alerte quand un contrat arrive à terme' },
+    'INTERVENTION': { label: 'Interventions', desc: 'Nouvelles demandes ou mises à jour' },
+    'DOCUMENT_SIGNED': { label: 'Documents signés', desc: 'Confirmation de signature électronique' }
+  };
+
+  const DEFAULT_SETTINGS: NotificationSetting[] = [
+    { alert_type: 'PAYMENT_REMINDER', channel_email: true, channel_whatsapp: false, channel_sms: false },
+    { alert_type: 'LEASE_EXPIRY', channel_email: true, channel_whatsapp: false, channel_sms: false },
+    { alert_type: 'INTERVENTION', channel_email: true, channel_whatsapp: false, channel_sms: false },
+    { alert_type: 'DOCUMENT_SIGNED', channel_email: true, channel_whatsapp: false, channel_sms: false }
+  ];
 
   const [alerteForm, setAlerteForm] = useState({
     reference: '', titre: '', description: '', destinataire: 'Gestionnaire', type: 'Paiement', priorite: 'Moyenne', frequence: 'Mensuelle', dateEcheance: '', canal: ['Email']
@@ -77,21 +76,75 @@ const Alertes: React.FC = () => {
 
   const fetchData = async () => {
       setLoading(true);
+      
+      // Independent fetches to prevent one blocking others
+      const fetchNotifications = async () => {
+          try {
+              const notifsData = await getNotifications();
+              setNotifications(notifsData.notifications || []);
+              setUnreadCount(notifsData.unreadCount || 0);
+          } catch (error) {
+              console.error("Erreur notifications", error);
+          }
+      };
+
+      const fetchAlerts = async () => {
+          try {
+              const alertsData = await getAlerts();
+              setAlertes(Array.isArray(alertsData) ? alertsData : []);
+          } catch (error) {
+              console.error("Erreur alertes", error);
+          }
+      };
+
+      const fetchSettings = async () => {
+          try {
+              const settingsData = await getNotificationSettings();
+              if (!settingsData || settingsData.length === 0) {
+                  setParametres(DEFAULT_SETTINGS);
+              } else {
+                  setParametres(settingsData);
+              }
+          } catch (error) {
+              console.error("Erreur paramètres", error);
+              setParametres(DEFAULT_SETTINGS); // Fallback to default on error
+          }
+      };
+
       try {
-          // Fetch Notifications
-          const notifsData = await getNotifications();
-          setNotifications(notifsData.notifications);
-          setUnreadCount(notifsData.unreadCount);
-
-          // Fetch Alerts
-          const alertsData = await getAlerts();
-          setAlertes(alertsData);
-
+          await Promise.allSettled([
+              fetchNotifications(),
+              fetchAlerts(),
+              fetchSettings()
+          ]);
       } catch (error) {
-          console.error("Erreur chargement données", error);
-          toast.error("Erreur lors du chargement des alertes");
+          console.error("Erreur globale fetchData", error);
+          toast.error("Erreur lors du chargement des données");
       } finally {
           setLoading(false);
+      }
+  };
+
+  const handleToggleSetting = async (alertType: string, channel: 'email' | 'whatsapp' | 'sms') => {
+      const updated = parametres.map(p => {
+          if (p.alert_type === alertType) {
+              return { 
+                  ...p, 
+                  [`channel_${channel}`]: !p[`channel_${channel}` as keyof NotificationSetting] 
+              };
+          }
+          return p;
+      });
+      setParametres(updated);
+      
+      try {
+          setSavingSettings(true);
+          await updateNotificationSettings(updated);
+          toast.success('Paramètres mis à jour');
+      } catch (error) {
+          toast.error('Erreur lors de la sauvegarde');
+      } finally {
+          setSavingSettings(false);
       }
   };
 
@@ -349,19 +402,48 @@ const Alertes: React.FC = () => {
             {activeTab === 'parametres' && (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {parametres.map(param => (
-                        <Card key={param.id} className="hover:shadow-lg transition-all border border-gray-200">
+                        <Card key={param.alert_type} className="hover:shadow-lg transition-all border border-gray-200">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="p-2 bg-gray-100 rounded-lg">
-                                    <Settings size={20} className="text-gray-600"/>
+                                    <Bell size={20} className="text-gray-600"/>
                                 </div>
-                                <input type="checkbox" className="toggle toggle-primary" checked={param.actif} readOnly />
+                                {savingSettings && <span className="loading loading-spinner loading-xs text-primary"></span>}
                             </div>
-                            <h3 className="font-bold text-lg text-gray-800 mb-2">{param.nom}</h3>
-                            <p className="text-sm text-gray-500 mb-4 h-10">{param.description}</p>
-                            <div className="flex flex-wrap gap-2">
-                                {param.canal.map(c => (
-                                    <span key={c} className="badge badge-ghost badge-sm">{c}</span>
-                                ))}
+                            <h3 className="font-bold text-lg text-gray-800 mb-2">
+                                {ALERT_TYPE_LABELS[param.alert_type]?.label || param.alert_type}
+                            </h3>
+                            <p className="text-sm text-gray-500 mb-4 h-10">
+                                {ALERT_TYPE_LABELS[param.alert_type]?.desc || 'Paramètres de notification'}
+                            </p>
+                            
+                            <div className="space-y-4 pt-4 border-t border-gray-100">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="font-medium text-gray-700">Email</span>
+                                    <input 
+                                        type="checkbox" 
+                                        className="toggle toggle-primary toggle-sm" 
+                                        checked={param.channel_email}
+                                        onChange={() => handleToggleSetting(param.alert_type, 'email')}
+                                    />
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="font-medium text-gray-700">WhatsApp</span>
+                                    <input 
+                                        type="checkbox" 
+                                        className="toggle toggle-success toggle-sm" 
+                                        checked={param.channel_whatsapp}
+                                        onChange={() => handleToggleSetting(param.alert_type, 'whatsapp')}
+                                    />
+                                </div>
+                                <div className="flex justify-between items-center text-sm opacity-50 cursor-not-allowed">
+                                    <span className="font-medium text-gray-700">SMS (Bientôt)</span>
+                                    <input 
+                                        type="checkbox" 
+                                        className="toggle toggle-sm" 
+                                        checked={param.channel_sms}
+                                        disabled
+                                    />
+                                </div>
                             </div>
                         </Card>
                     ))}

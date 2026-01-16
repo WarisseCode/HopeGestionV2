@@ -1,15 +1,15 @@
 // frontend/src/pages/ProprietaireDashboard.tsx
-import React from 'react';
+import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Building2, 
   Home, 
   Wallet, 
   AlertCircle, 
   Eye, 
-  Search, 
-  Plus,
-  MoreVertical,
-  Users
+  Users,
+  Download,
+  RefreshCw
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import { motion } from 'framer-motion';
@@ -23,17 +23,24 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer,
-  Legend
+  ResponsiveContainer
 } from 'recharts';
 import { useUser } from '../contexts/UserContext';
-import { KPICard, QuickActions, ActivityFeed, UpcomingEvents } from '../components/dashboard';
-import type { Activity } from '../components/dashboard/ActivityFeed';
+import { 
+  KPICard, 
+  QuickActions, 
+  UpcomingEvents,
+  PeriodFilter,
+  DashboardSkeleton
+} from '../components/dashboard';
 import type { UpcomingEvent } from '../components/dashboard/UpcomingEvents';
+import type { Period } from '../components/dashboard/PeriodFilter';
 import Button from '../components/ui/Button';
 
 const ProprietaireDashboard: React.FC = () => {
   const { user, stats, loading } = useUser();
+  const navigate = useNavigate();
+  const [period, setPeriod] = useState<Period>('30d');
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -48,27 +55,29 @@ const ProprietaireDashboard: React.FC = () => {
     visible: { y: 0, opacity: 1 }
   };
 
-  // Mock Data
-  const revenusData = [
-    { name: 'Jan', revenus: 400000, depenses: 24000 },
-    { name: 'Fév', revenus: 300000, depenses: 13980 },
-    { name: 'Mar', revenus: 200000, depenses: 98000 },
-    { name: 'Avr', revenus: 278000, depenses: 39080 },
-    { name: 'Mai', revenus: 189000, depenses: 48000 },
-    { name: 'Juin', revenus: 239000, depenses: 38000 },
-    { name: 'Juil', revenus: 349000, depenses: 43000 },
-  ];
+  // Mock Data - filtered by period
+  const revenusData = useMemo(() => {
+    const baseData = [
+      { name: 'Jan', revenus: 400000, depenses: 24000 },
+      { name: 'Fév', revenus: 300000, depenses: 13980 },
+      { name: 'Mar', revenus: 200000, depenses: 98000 },
+      { name: 'Avr', revenus: 278000, depenses: 39080 },
+      { name: 'Mai', revenus: 189000, depenses: 48000 },
+      { name: 'Juin', revenus: 239000, depenses: 38000 },
+      { name: 'Juil', revenus: 349000, depenses: 43000 },
+    ];
+    
+    switch (period) {
+      case '7d': return baseData.slice(-2);
+      case '30d': return baseData.slice(-3);
+      case '90d': return baseData.slice(-5);
+      default: return baseData;
+    }
+  }, [period]);
 
   const occupationData = [
     { name: 'Occupé', value: stats?.tauxOccupation || 83, color: '#3f51b5' },
     { name: 'Vacant', value: 100 - (stats?.tauxOccupation || 83), color: '#e2e8f0' },
-  ];
-
-  // Activités récentes
-  const activities: Activity[] = [
-    { id: 1, type: 'payment', title: 'Paiement reçu', description: 'Loyer décembre - Apt A01', time: 'Il y a 2h' },
-    { id: 2, type: 'reminder', title: 'Rappel de paiement', description: 'Loyer novembre - Apt B02', time: 'Il y a 5h' },
-    { id: 3, type: 'alert', title: 'Fuite d\'eau', description: 'Résidence La Paix, Apt B02', time: 'Hier' },
   ];
 
   // Événements à venir
@@ -82,12 +91,13 @@ const ProprietaireDashboard: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-base-100">
-        <div className="loading loading-spinner loading-lg text-primary"></div>
-      </div>
-    );
+    return <DashboardSkeleton type="proprietaire" />;
   }
+
+  // Calculate totals for the period
+  const totalRevenus = revenusData.reduce((sum, d) => sum + d.revenus, 0);
+  const totalDepenses = revenusData.reduce((sum, d) => sum + d.depenses, 0);
+  const revenuNet = totalRevenus - totalDepenses;
 
   return (
     <motion.div 
@@ -100,22 +110,50 @@ const ProprietaireDashboard: React.FC = () => {
       <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
-            Espace Propriétaire <span className="text-secondary">.</span>
+            {user?.nom || 'Propriétaire'} <span className="text-secondary">.</span>
           </h1>
           <p className="text-base-content/60 font-medium mt-1">
             Bonjour {user?.nom || 'Propriétaire'}, voici la performance de votre patrimoine.
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
-             <div className="relative group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
-                <input 
-                    type="text" 
-                    placeholder="Recherche..." 
-                    className="input input-sm h-10 pl-10 bg-base-100 border-base-200 focus:border-primary w-64 rounded-full shadow-sm"
-                />
+        <div className="flex items-center gap-3 flex-wrap">
+            {/* Period Filter */}
+            <PeriodFilter value={period} onChange={setPeriod} compact />
+
+            {/* Export Button */}
+            <Button variant="ghost" className="gap-2">
+              <Download size={16} />
+              Exporter
+            </Button>
+        </div>
+      </motion.div>
+
+      {/* Financial Summary Banner */}
+      <motion.div variants={itemVariants}>
+        <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+          {/* Decorative background pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -translate-y-1/2 translate-x-1/3"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full translate-y-1/2 -translate-x-1/4"></div>
+          </div>
+          
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <p className="text-white/80 text-sm font-medium">Revenu net sur la période</p>
+              <p className="text-3xl font-bold">{formatCurrency(revenuNet)}</p>
             </div>
+            <div className="flex gap-6">
+              <div className="text-center bg-white/10 rounded-xl px-4 py-2 backdrop-blur-sm">
+                <p className="text-white/80 text-xs font-medium">Revenus bruts</p>
+                <p className="text-lg font-bold">{formatCurrency(totalRevenus)}</p>
+              </div>
+              <div className="text-center bg-white/10 rounded-xl px-4 py-2 backdrop-blur-sm">
+                <p className="text-white/80 text-xs font-medium">Charges</p>
+                <p className="text-lg font-bold">-{formatCurrency(totalDepenses)}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </motion.div>
 
@@ -168,6 +206,9 @@ const ProprietaireDashboard: React.FC = () => {
                             <h3 className="text-xl font-bold text-gray-800">Performance Financière</h3>
                             <p className="text-sm text-gray-500">Revenus locatifs bruts vs charges</p>
                         </div>
+                        <Button variant="ghost" size="sm" className="gap-1">
+                          <RefreshCw size={14} />
+                        </Button>
                     </div>
                     <div className="h-[350px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -204,7 +245,7 @@ const ProprietaireDashboard: React.FC = () => {
                         <Building2 size={20} className="text-primary" />
                         Vos Propriétés
                     </h3>
-                    <Button variant="ghost" className="text-primary btn-sm hover:bg-primary/5">
+                    <Button variant="ghost" className="text-primary btn-sm hover:bg-primary/5" onClick={() => navigate('/dashboard/biens')}>
                         Détails Complets <Eye size={16} className="ml-1" />
                     </Button>
                 </div>

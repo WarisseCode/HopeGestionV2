@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { Pool } from 'pg';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
-import { pool } from '../index';
+import pool from '../db/database';
 
 const router = Router();
 
@@ -82,7 +82,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
 
         // 3. Plaintes / Tickets ouverts
         const ticketsQuery = `
-            SELECT t.id, t.titre, t.description, t.priorite, t.created_at
+            SELECT t.id, t.titre, t.description, t.priorite, t.date_creation
             FROM tickets t
             WHERE t.statut = 'ouvert'
         `;
@@ -98,7 +98,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
                     destinataire: 'Technicien/Gestionnaire',
                     type: 'Intervention',
                     priorite: row.priorite === 'Urgent' ? 'Urgente' : row.priorite,
-                    dateCreation: row.created_at,
+                    dateCreation: row.date_creation,
                     statut: 'Active',
                     link: '/interventions' // Or alertes/tickets
                 });

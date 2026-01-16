@@ -3,9 +3,10 @@ const router = express.Router();
 
 import { pool } from '../index';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
+import permissions from '../middleware/permissionMiddleware';
 
 // GET /api/paiements - Liste des paiements
-router.get('/', async (req: AuthenticatedRequest, res) => {
+router.get('/', permissions.canRead('finance'), async (req: AuthenticatedRequest, res) => {
     try {
         const userId = req.userId;
         const userRole = req.userRole;
@@ -44,7 +45,7 @@ router.get('/', async (req: AuthenticatedRequest, res) => {
 });
 
 // POST /api/paiements - Enregistrer un paiement
-router.post('/', async (req: AuthenticatedRequest, res) => {
+router.post('/', permissions.canWrite('finance'), async (req: AuthenticatedRequest, res) => {
     try {
         const { lease_id, montant, type, mode_paiement, date_paiement, reference_transaction } = req.body;
         

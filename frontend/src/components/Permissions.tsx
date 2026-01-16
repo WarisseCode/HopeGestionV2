@@ -14,7 +14,7 @@ interface PermissionRow {
     can_validate: boolean;
 }
 
-const MODULES = ['dashboard', 'biens', 'locataires', 'owners', 'finance', 'users'];
+const MODULES = ['biens', 'locataires', 'owners', 'finance', 'contrats', 'documents', 'users'];
 const ROLES = ['gestionnaire', 'manager', 'comptable', 'agent_recouvreur']; 
 
 const Permissions: React.FC = () => {
@@ -91,6 +91,8 @@ const Permissions: React.FC = () => {
             case 'biens': return 'Biens Immobiliers';
             case 'locataires': return 'Locataires';
             case 'finance': return 'Comptabilité';
+            case 'contrats': return 'Contrats';
+            case 'documents': return 'Documents';
             default: return module.charAt(0).toUpperCase() + module.slice(1);
         }
     };

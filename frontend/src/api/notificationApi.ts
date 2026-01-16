@@ -31,10 +31,40 @@ export async function markAsRead(id: number): Promise<void> {
     });
 }
 
+export interface NotificationSetting {
+    id?: number;
+    alert_type: string;
+    channel_email: boolean;
+    channel_whatsapp: boolean;
+    channel_sms: boolean;
+}
+
 export async function markAllAsRead(): Promise<void> {
     const token = getToken();
     await fetch(`${API_URL}/read-all`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
     });
+}
+
+export async function getNotificationSettings(): Promise<NotificationSetting[]> {
+    const token = getToken();
+    const response = await fetch(`${API_URL}/settings`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error('Erreur chargement paramètres');
+    return await response.json();
+}
+
+export async function updateNotificationSettings(settings: NotificationSetting[]): Promise<void> {
+    const token = getToken();
+    const response = await fetch(`${API_URL}/settings`, {
+        method: 'PUT',
+        headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ settings })
+    });
+    if (!response.ok) throw new Error('Erreur sauvegarde paramètres');
 }

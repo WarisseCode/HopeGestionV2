@@ -1,5 +1,6 @@
 // frontend/src/pages/Biens.tsx
-import React, { useState, useEffect } from 'react';
+// Version améliorée avec recherche fonctionnelle, filtres, pagination et skeleton loaders
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Building2, 
   Home, 
@@ -8,64 +9,287 @@ import {
   Eye, 
   Trash2, 
   MapPin,
-  Search,
-  Filter,
-  ArrowRight,
   Image,
-  CheckCircle2
+  ArrowRight,
+  LayoutGrid,
+  List,
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
+import Modal from '../components/ui/Modal';
+import Select from '../components/ui/Select';
+import SearchInput from '../components/ui/SearchInput';
+import FilterPanel from '../components/ui/FilterPanel';
+import type { FilterConfig, FilterValues } from '../components/ui/FilterPanel';
+import SkeletonLoader from '../components/ui/SkeletonLoader';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getImmeubles, getLots } from '../api/bienApi';
-import type { Immeuble, Lot } from '../api/bienApi';
+import { getImmeubles, getLots, saveImmeuble, saveLot, deleteImmeuble, deleteLot } from '../api/propertyApi';
+import type { Immeuble, Lot } from '../api/propertyApi';
+import { getProprietaires } from '../api/accountApi';
+import type { Proprietaire } from '../api/accountApi';
+
+// Constants
+const ITEMS_PER_PAGE = 9;
+
+// Placeholder images from Unsplash for properties without photos
+const PLACEHOLDER_IMAGES = [
+  'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&q=80', // Apartment building
+  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&q=80', // Modern house
+  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400&q=80', // Luxury villa
+  'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400&q=80', // Villa pool
+  'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400&q=80', // Classic house
+  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&q=80', // Modern architecture
+  'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&q=80', // White house
+  'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=400&q=80', // Facade
+];
+
+const getPlaceholderImage = (id: number, type?: string): string => {
+  // Use building ID to get consistent image per building
+  const index = id % PLACEHOLDER_IMAGES.length;
+  return PLACEHOLDER_IMAGES[index];
+};
 
 const Biens: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'immeubles' | 'lots'>('immeubles');
-  const [showForm, setShowForm] = useState(false);
-  const [formType, setFormType] = useState<'immeuble' | 'lot'>('immeuble');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showFilters, setShowFilters] = useState(false);
 
+  // Data states
   const [immeubles, setImmeubles] = useState<Immeuble[]>([]);
   const [lots, setLots] = useState<Lot[]>([]);
+  const [proprietaires, setProprietaires] = useState<Proprietaire[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  // Form States (Simplified for UI Demo)
-  const [immeubleForm, setImmeubleForm] = useState({
-    id: 0, nom: '', type: 'Immeuble', proprietaire: '', gestionnaire: '',
-    adresse: '', ville: '', pays: 'Bénin', description: '', nbLots: 1
+  // Search & Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterValues, setFilterValues] = useState<FilterValues>({});
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Modal states
+  const [showImmeubleModal, setShowImmeubleModal] = useState(false);
+  const [showLotModal, setShowLotModal] = useState(false);
+  const [editingImmeuble, setEditingImmeuble] = useState<Partial<Immeuble>>({
+    nom: '', type: 'Immeuble', adresse: '', ville: '', pays: 'Bénin', description: '', owner_id: 0, photo: ''
+  });
+  const [editingLot, setEditingLot] = useState<Partial<Lot>>({
+    reference: '', type: 'Appartement', building_id: 0, etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: ''
   });
 
-  const [lotForm, setLotForm] = useState({
-    id: 0, immeuble: '', reference: '', type: 'Appartement', etage: '',
-    superficie: 0, nbPieces: 1, loyer: 0, charges: 0, prixVente: 0,
-    modePaiement: 'comptant', description: ''
-  });
+  // Filter configurations
+  const immeubleFilters: FilterConfig[] = [
+    {
+      id: 'type',
+      type: 'select',
+      label: 'Type',
+      options: [
+        { value: 'Immeuble', label: 'Immeuble' },
+        { value: 'Résidence', label: 'Résidence' },
+        { value: 'Villa', label: 'Villa' },
+        { value: 'Maison', label: 'Maison' },
+        { value: 'Commerce', label: 'Commerce' },
+      ]
+    },
+    {
+      id: 'ville',
+      type: 'select',
+      label: 'Ville',
+      options: [] // Will be dynamically populated
+    },
+    {
+      id: 'statut',
+      type: 'select',
+      label: 'Statut',
+      options: [
+        { value: 'Actif', label: 'Actif' },
+        { value: 'Inactif', label: 'Inactif' },
+      ]
+    }
+  ];
+
+  const lotFilters: FilterConfig[] = [
+    {
+      id: 'type',
+      type: 'select',
+      label: 'Type',
+      options: [
+        { value: 'Appartement', label: 'Appartement' },
+        { value: 'Studio', label: 'Studio' },
+        { value: 'Chambre', label: 'Chambre' },
+        { value: 'Boutique', label: 'Boutique' },
+        { value: 'Bureau', label: 'Bureau' },
+      ]
+    },
+    {
+      id: 'statut',
+      type: 'select',
+      label: 'Statut',
+      options: [
+        { value: 'libre', label: 'Libre' },
+        { value: 'occupe', label: 'Occupé' },
+        { value: 'reserve', label: 'Réservé' },
+      ]
+    },
+    {
+      id: 'loyer',
+      type: 'range',
+      label: 'Loyer (FCFA)',
+      min: 0,
+      max: 500000
+    }
+  ];
+
+  // Fetch data
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [immeublesData, lotsData, propsData] = await Promise.all([
+        getImmeubles(),
+        getLots(),
+        getProprietaires()
+      ]);
+      setImmeubles(immeublesData);
+      setLots(lotsData);
+      setProprietaires(propsData);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Erreur lors du chargement des données');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // Simulate loading for smoother transition
-        setTimeout(async () => {
-          const [immeublesData, lotsData] = await Promise.all([getImmeubles(), getLots()]);
-          setImmeubles(immeublesData);
-          setLots(lotsData);
-          setLoading(false);
-        }, 600);
-      } catch (err: any) {
-        setError(err.message || 'Erreur lors du chargement des données');
-        setLoading(false);
-      }
-    };
     fetchData();
-  }, []);
+  }, [fetchData]);
+
+  // Reset page when filters/search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterValues, activeTab]);
+
+  // Filtered data
+  const filteredImmeubles = useMemo(() => {
+    return immeubles.filter(immeuble => {
+      // Search
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = 
+          immeuble.nom?.toLowerCase().includes(query) ||
+          immeuble.adresse?.toLowerCase().includes(query) ||
+          immeuble.ville?.toLowerCase().includes(query) ||
+          immeuble.type?.toLowerCase().includes(query);
+        if (!matchesSearch) return false;
+      }
+      
+      // Filters
+      if (filterValues.type && immeuble.type !== filterValues.type) return false;
+      if (filterValues.ville && immeuble.ville !== filterValues.ville) return false;
+      if (filterValues.statut && immeuble.statut !== filterValues.statut) return false;
+      
+      return true;
+    });
+  }, [immeubles, searchQuery, filterValues]);
+
+  const filteredLots = useMemo(() => {
+    return lots.filter(lot => {
+      // Search
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = 
+          lot.reference?.toLowerCase().includes(query) ||
+          lot.immeuble?.toLowerCase().includes(query) ||
+          lot.type?.toLowerCase().includes(query);
+        if (!matchesSearch) return false;
+      }
+      
+      // Filters
+      if (filterValues.type && lot.type !== filterValues.type) return false;
+      if (filterValues.statut && lot.statut !== filterValues.statut) return false;
+      if (filterValues.loyer) {
+        const range = filterValues.loyer as { min?: number; max?: number };
+        if (range.min !== undefined && lot.loyer < range.min) return false;
+        if (range.max !== undefined && lot.loyer > range.max) return false;
+      }
+      
+      return true;
+    });
+  }, [lots, searchQuery, filterValues]);
+
+  // Pagination
+  const currentData = activeTab === 'immeubles' ? filteredImmeubles : filteredLots;
+  const totalPages = Math.ceil(currentData.length / ITEMS_PER_PAGE);
+  const paginatedData = currentData.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  // Handlers
+  const handleSaveImmeuble = async () => {
+    try {
+      setError(null);
+      if (!editingImmeuble.owner_id) {
+        throw new Error('Veuillez sélectionner un propriétaire');
+      }
+      await saveImmeuble(editingImmeuble);
+      setSuccess('Immeuble enregistré avec succès');
+      setShowImmeubleModal(false);
+      setEditingImmeuble({ nom: '', type: 'Immeuble', adresse: '', ville: '', pays: 'Bénin', description: '', owner_id: 0, photo: '' });
+      fetchData();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleSaveLot = async () => {
+    try {
+      setError(null);
+      if (!editingLot.building_id) {
+        throw new Error('Veuillez sélectionner un immeuble');
+      }
+      await saveLot(editingLot);
+      setSuccess('Lot enregistré avec succès');
+      setShowLotModal(false);
+      setEditingLot({ reference: '', type: 'Appartement', building_id: 0, etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: '' });
+      fetchData();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleDeleteImmeuble = async (id: number) => {
+    if (!window.confirm('Voulez-vous vraiment supprimer cet immeuble ?')) return;
+    try {
+      await deleteImmeuble(id);
+      setSuccess('Immeuble supprimé');
+      fetchData();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleDeleteLot = async (id: number) => {
+    if (!window.confirm('Voulez-vous vraiment supprimer ce lot ?')) return;
+    try {
+      await deleteLot(id);
+      setSuccess('Lot supprimé');
+      fetchData();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+    visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
   };
 
   const itemVariants = {
@@ -73,17 +297,67 @@ const Biens: React.FC = () => {
     visible: { y: 0, opacity: 1 }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-full min-h-[400px]">
-        <div className="loading loading-spinner loading-lg text-primary"></div>
+  // Skeleton loader for grid
+  const GridSkeleton = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      {[1, 2, 3, 4, 5, 6].map(i => (
+        <div key={i} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden animate-pulse">
+          <SkeletonLoader variant="rectangular" height={192} />
+          <div className="p-5 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <SkeletonLoader variant="rectangular" height={60} className="rounded-xl" />
+              <SkeletonLoader variant="rectangular" height={60} className="rounded-xl" />
+            </div>
+            <SkeletonLoader variant="text" width="60%" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  // Skeleton loader for table
+  const TableSkeleton = () => (
+    <Card className="border-none shadow-xl bg-white overflow-hidden p-0">
+      <div className="overflow-x-auto">
+        <table className="table w-full">
+          <thead className="bg-gray-50/50">
+            <tr>
+              {['Référence', 'Type', 'Immeuble', 'Loyer', 'Statut', 'Actions'].map(h => (
+                <th key={h} className="py-4 text-xs uppercase font-bold text-gray-400">
+                  <SkeletonLoader variant="text" width={80} />
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[1, 2, 3, 4, 5].map(i => (
+              <tr key={i} className="border-b border-gray-100">
+                {[1, 2, 3, 4, 5, 6].map(j => (
+                  <td key={j} className="py-4">
+                    <SkeletonLoader variant="text" width={j === 6 ? 60 : 100} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
+    </Card>
+  );
+
+  // Dynamically populate city filter options
+  const dynamicImmeubleFilters = useMemo(() => {
+    const cities = [...new Set(immeubles.map(i => i.ville).filter(Boolean))];
+    return immeubleFilters.map(f => 
+      f.id === 'ville' 
+        ? { ...f, options: cities.map(c => ({ value: c, label: c })) }
+        : f
     );
-  }
+  }, [immeubles]);
 
   return (
     <motion.div 
-      className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto"
+      className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -98,21 +372,24 @@ const Biens: React.FC = () => {
             Gérez vos immeubles, lots et disponibilités.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative group hidden md:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
-            <input 
-              type="text" 
-              placeholder="Rechercher un bien..." 
-              className="input input-sm h-10 pl-10 bg-white border-gray-200 focus:border-primary w-64 rounded-full shadow-sm transition-all focus:w-72"
-            />
-          </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <SearchInput 
+            placeholder="Rechercher un bien..."
+            value={searchQuery}
+            onChange={setSearchQuery}
+            className="w-64"
+          />
           <Button 
             variant="primary" 
-            className="rounded-full px-6 h-10 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all font-semibold"
+            className="rounded-full px-6 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all font-semibold"
             onClick={() => {
-              setFormType(activeTab === 'immeubles' ? 'immeuble' : 'lot');
-              setShowForm(true);
+              if (activeTab === 'immeubles') {
+                setEditingImmeuble({ nom: '', type: 'Immeuble', adresse: '', ville: '', pays: 'Bénin', description: '', owner_id: 0, photo: '' });
+                setShowImmeubleModal(true);
+              } else {
+                setEditingLot({ reference: '', type: 'Appartement', building_id: 0, etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: '' });
+                setShowLotModal(true);
+              }
             }}
           >
             <Plus size={18} className="mr-2" />
@@ -121,11 +398,16 @@ const Biens: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Tabs & Filters */}
-      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-center bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
+      {/* Alerts */}
+      {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
+      {success && <Alert variant="success" onClose={() => setSuccess(null)}>{success}</Alert>}
+
+      {/* Tabs & Filters Bar */}
+      <motion.div variants={itemVariants} className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
+        {/* Tabs */}
         <div className="flex p-1 bg-gray-100/50 rounded-xl">
           <button
-            onClick={() => setActiveTab('immeubles')}
+            onClick={() => { setActiveTab('immeubles'); setFilterValues({}); }}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
               activeTab === 'immeubles' 
                 ? 'bg-white text-primary shadow-md' 
@@ -134,9 +416,10 @@ const Biens: React.FC = () => {
           >
             <Building2 size={18} />
             Immeubles
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-200 text-xs">{immeubles.length}</span>
           </button>
           <button
-            onClick={() => setActiveTab('lots')}
+            onClick={() => { setActiveTab('lots'); setFilterValues({}); }}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
               activeTab === 'lots' 
                 ? 'bg-white text-primary shadow-md' 
@@ -145,206 +428,399 @@ const Biens: React.FC = () => {
           >
             <Home size={18} />
             Lots
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-200 text-xs">{lots.length}</span>
           </button>
         </div>
         
-        <div className="flex items-center gap-2 px-2 mt-4 sm:mt-0">
-          <Button variant="ghost" className="btn-sm font-medium text-gray-500 hover:text-gray-700">
-            <Filter size={16} className="mr-2" />
+        {/* Right side controls */}
+        <div className="flex items-center gap-3">
+          {/* View mode toggle */}
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <button 
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <LayoutGrid size={18} />
+            </button>
+            <button 
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <List size={18} />
+            </button>
+          </div>
+
+          {/* Filter toggle */}
+          <Button 
+            variant={showFilters ? 'primary' : 'ghost'} 
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className={showFilters ? '' : 'text-gray-500'}
+          >
+            {showFilters ? <X size={16} className="mr-1" /> : null}
             Filtres
+            {Object.keys(filterValues).length > 0 && (
+              <span className="ml-2 w-5 h-5 rounded-full bg-primary text-white text-xs flex items-center justify-center">
+                {Object.keys(filterValues).length}
+              </span>
+            )}
           </Button>
-          <div className="h-6 w-px bg-gray-200 mx-2"></div>
+
+          <div className="h-6 w-px bg-gray-200"></div>
+          
           <span className="text-sm font-semibold text-gray-500">
-            {activeTab === 'immeubles' ? `${immeubles.length} Immeubles` : `${lots.length} Lots`}
+            {currentData.length} résultats
           </span>
         </div>
       </motion.div>
 
+      {/* Filter Panel */}
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <FilterPanel
+              filters={activeTab === 'immeubles' ? dynamicImmeubleFilters : lotFilters}
+              values={filterValues}
+              onChange={setFilterValues}
+              onClear={() => setFilterValues({})}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Content Area */}
       <AnimatePresence mode="wait">
-        {showForm ? (
+        {loading ? (
           <motion.div
-            key="form"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
-            <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
-                <div className="flex justify-between items-center mb-6 pb-6 border-b border-gray-100">
-                    <h2 className="text-xl font-bold text-gray-800">
-                        {formType === 'immeuble' ? 'Nouvel Immeuble' : 'Nouveau Lot'}
-                    </h2>
-                    <Button variant="ghost" onClick={() => setShowForm(false)} className="btn-circle btn-sm">
-                        <Trash2 size={18} className="text-gray-400" />
-                    </Button>
-                </div>
-                
-                {/* Simplified Form Content matching previously existing fields but styled */}
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {formType === 'immeuble' ? (
-                        <>
-                             <div className="col-span-1 md:col-span-2 flex justify-center mb-6">
-                                <div className="w-full h-48 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors group">
-                                    <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-sm mb-3 group-hover:scale-110 transition-transform">
-                                        <Image className="text-gray-400 group-hover:text-primary" size={24} />
-                                    </div>
-                                    <p className="text-sm font-medium text-gray-500">Ajouter une photo de couverture</p>
-                                    <p className="text-xs text-gray-400 mt-1">PNG, JPG jusqu'à 5MB</p>
-                                </div>
-                            </div>
-
-                            <Input label="Nom de l'immeuble" placeholder="Ex: Résidence La Paix" value={immeubleForm.nom} onChange={(e) => setImmeubleForm({...immeubleForm, nom: e.target.value})} />
-                            
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Type</label>
-                                <select className="select select-bordered w-full focus:border-primary focus:ring-2 ring-primary/20 transition-all bg-gray-50" value={immeubleForm.type} onChange={(e) => setImmeubleForm({...immeubleForm, type: e.target.value})}>
-                                    <option>Immeuble</option>
-                                    <option>Résidence</option>
-                                    <option>Villa</option>
-                                    <option>Commerce</option>
-                                </select>
-                            </div>
-
-                            <Input label="Adresse" placeholder="Quartier, Rue" value={immeubleForm.adresse} onChange={(e) => setImmeubleForm({...immeubleForm, adresse: e.target.value})} />
-                            <div className="grid grid-cols-2 gap-4">
-                                <Input label="Ville" placeholder="Cotonou" value={immeubleForm.ville} onChange={(e) => setImmeubleForm({...immeubleForm, ville: e.target.value})} />
-                                <Input label="Pays" placeholder="Bénin" value={immeubleForm.pays} onChange={(e) => setImmeubleForm({...immeubleForm, pays: e.target.value})} />
-                            </div>
-
-                            <div className="md:col-span-2">
-                                <Input label="Description" placeholder="Description courte..." value={immeubleForm.description} onChange={(e) => setImmeubleForm({...immeubleForm, description: e.target.value})} className="h-24" />
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            {/* Lot Form Fields */}
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Immeuble de rattachement</label>
-                                <select className="select select-bordered w-full bg-gray-50" value={lotForm.immeuble} onChange={(e) => setLotForm({...lotForm, immeuble: e.target.value})}>
-                                    <option value="">Choisir un immeuble...</option>
-                                    {immeubles.map(i => <option key={i.id} value={i.id}>{i.nom}</option>)}
-                                </select>
-                            </div>
-                            <Input label="Référence Lot" placeholder="Ex: A01" value={lotForm.reference} onChange={(e) => setLotForm({...lotForm, reference: e.target.value})} />
-                            
-                             <div className="grid grid-cols-2 gap-4">
-                                <Input label="Loyer (FCFA)" type="number" value={lotForm.loyer} onChange={(e) => setLotForm({...lotForm, loyer: parseFloat(e.target.value)})} />
-                                <Input label="Charges (FCFA)" type="number" value={lotForm.charges} onChange={(e) => setLotForm({...lotForm, charges: parseFloat(e.target.value)})} />
-                             </div>
-                        </>
-                    )}
-                 </div>
-
-                 <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
-                    <Button variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
-                    <Button variant="primary" onClick={() => setShowForm(false)}>Enregistrer</Button>
-                 </div>
-            </Card>
+            {viewMode === 'grid' ? <GridSkeleton /> : <TableSkeleton />}
           </motion.div>
         ) : (
           <motion.div
-            key="list"
+            key="content"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
           >
-             {activeTab === 'immeubles' ? (
-                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {immeubles.map((immeuble) => (
-                        <div key={immeuble.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all group">
-                            <div className="h-48 bg-gray-200 relative overflow-hidden">
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
-                                <span className={`absolute top-4 right-4 z-20 badge border-none text-white font-bold ${immeuble.statut === 'Actif' ? 'bg-green-500' : 'bg-orange-500'}`}>
-                                    {immeuble.statut}
-                                </span>
-                                {/* Mock Image Placeholder */}
-                                <div className="w-full h-full bg-gray-300 flex items-center justify-center text-gray-500">
-                                    <Building2 size={48} className="opacity-50" />
-                                </div>
-                                <div className="absolute bottom-4 left-4 z-20 text-white">
-                                    <h3 className="text-xl font-bold">{immeuble.nom}</h3>
-                                    <p className="text-sm opacity-90 flex items-center gap-1"><MapPin size={14}/> {immeuble.ville}</p>
-                                </div>
-                            </div>
-                            <div className="p-5">
-                                <div className="grid grid-cols-2 gap-4 mb-4">
-                                    <div className="p-3 bg-gray-50 rounded-xl">
-                                        <p className="text-xs text-gray-400 font-bold uppercase">Lots</p>
-                                        <p className="font-bold text-gray-800 text-lg flex items-center gap-2">
-                                            {immeuble.nbLots} 
-                                            <span className="text-xs font-normal text-gray-400">unités</span>
-                                        </p>
-                                    </div>
-                                     <div className="p-3 bg-gray-50 rounded-xl">
-                                        <p className="text-xs text-gray-400 font-bold uppercase">Occupation</p>
-                                        <div className="flex items-center gap-2">
-                                             <div className="radial-progress text-primary text-[10px] font-bold" style={{"--value": immeuble.occupation, "--size": "2rem"} as any}>
-                                                {immeuble.occupation}%
-                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                                    <span className="text-xs text-gray-400 font-mono">ID: #{immeuble.id.toString().padStart(4, '0')}</span>
-                                    <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/5">
-                                        Gérer <ArrowRight size={16} className="ml-1" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                 </div>
-             ) : (
-                <Card className="border-none shadow-xl bg-white overflow-hidden p-0">
-                    <div className="overflow-x-auto">
-                        <table className="table w-full">
-                            <thead className="bg-gray-50/50">
-                                <tr>
-                                    <th className="py-4 pl-6 text-xs uppercase font-bold text-gray-400 tracking-wider">Référence</th>
-                                    <th className="py-4 text-xs uppercase font-bold text-gray-400 tracking-wider">Type</th>
-                                    <th className="py-4 text-xs uppercase font-bold text-gray-400 tracking-wider">Immeuble</th>
-                                    <th className="py-4 text-xs uppercase font-bold text-gray-400 tracking-wider">Loyer</th>
-                                    <th className="py-4 text-xs uppercase font-bold text-gray-400 tracking-wider">Statut</th>
-                                    <th className="py-4 pr-6 text-right text-xs uppercase font-bold text-gray-400 tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {lots.map((lot) => (
-                                    <tr key={lot.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer">
-                                        <td className="pl-6 font-bold text-gray-800">{lot.reference}</td>
-                                        <td><span className="badge bg-blue-50 text-blue-600 border-none font-medium">{lot.type}</span></td>
-                                        <td className="text-gray-600">{lot.immeuble}</td>
-                                        <td className="font-mono font-medium text-gray-700">{lot.loyer.toLocaleString()} F</td>
-                                        <td>
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                                                lot.statut === 'Libre' ? 'bg-green-100 text-green-700' :
-                                                lot.statut === 'Loué' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
-                                            }`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${
-                                                     lot.statut === 'Libre' ? 'bg-green-500' :
-                                                     lot.statut === 'Loué' ? 'bg-blue-500' : 'bg-orange-500'
-                                                }`}></span>
-                                                {lot.statut}
-                                            </span>
-                                        </td>
-                                        <td className="pr-6 text-right">
-                                            <div className="flex justify-end gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Button variant="ghost" size="sm" className="btn-square btn-xs"><Edit3 size={14} /></Button>
-                                                <Button variant="ghost" size="sm" className="btn-square btn-xs text-error"><Trash2 size={14} /></Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+            {activeTab === 'immeubles' ? (
+              viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {paginatedData.length === 0 ? (
+                    <div className="col-span-full text-center py-12 text-gray-400">
+                      <Building2 size={48} className="mx-auto mb-4 opacity-50" />
+                      <p className="font-medium">Aucun immeuble trouvé</p>
+                      <p className="text-sm mt-1">Modifiez vos critères de recherche</p>
                     </div>
+                  ) : (
+                    (paginatedData as Immeuble[]).map((immeuble) => (
+                      <div key={immeuble.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all group">
+                        <div className="h-48 bg-gray-200 relative overflow-hidden">
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
+                          <span className={`absolute top-4 right-4 z-20 badge border-none text-white font-bold ${immeuble.statut === 'Actif' ? 'bg-green-500' : 'bg-orange-500'}`}>
+                            {immeuble.statut || 'Actif'}
+                          </span>
+                          {immeuble.photo ? (
+                            <img src={immeuble.photo} alt={immeuble.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          ) : (
+                            <img src={getPlaceholderImage(immeuble.id, immeuble.type)} alt={immeuble.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          )}
+                          <div className="absolute bottom-4 left-4 z-20 text-white">
+                            <h3 className="text-xl font-bold">{immeuble.nom}</h3>
+                            <p className="text-sm opacity-90 flex items-center gap-1"><MapPin size={14}/> {immeuble.ville}</p>
+                          </div>
+                        </div>
+                        <div className="p-5">
+                          <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div className="p-3 bg-gray-50 rounded-xl">
+                              <p className="text-xs text-gray-400 font-bold uppercase">Lots</p>
+                              <p className="font-bold text-gray-800 text-lg">
+                                {immeuble.nbLots || 0}
+                              </p>
+                            </div>
+                            <div className="p-3 bg-gray-50 rounded-xl">
+                              <p className="text-xs text-gray-400 font-bold uppercase">Propriétaire</p>
+                              <p className="font-medium text-gray-700 text-sm truncate">
+                                {immeuble.owner_name || 'Non assigné'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                            <div className="flex gap-1">
+                              <button 
+                                onClick={() => { setEditingImmeuble(immeuble); setShowImmeubleModal(true); }}
+                                className="btn btn-ghost btn-xs btn-square"
+                              >
+                                <Edit3 size={14} />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteImmeuble(immeuble.id)}
+                                className="btn btn-ghost btn-xs btn-square text-error"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                            <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/5">
+                              Détails <ArrowRight size={16} className="ml-1" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              ) : (
+                // List view for immeubles
+                <Card className="border-none shadow-xl bg-white overflow-hidden p-0">
+                  <div className="overflow-x-auto">
+                    <table className="table w-full">
+                      <thead className="bg-gray-50/50">
+                        <tr>
+                          <th className="py-4 pl-6">Nom</th>
+                          <th className="py-4">Type</th>
+                          <th className="py-4">Ville</th>
+                          <th className="py-4">Propriétaire</th>
+                          <th className="py-4">Lots</th>
+                          <th className="py-4">Statut</th>
+                          <th className="py-4 pr-6 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {(paginatedData as Immeuble[]).map((immeuble) => (
+                          <tr key={immeuble.id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="pl-6 font-bold text-gray-800">{immeuble.nom}</td>
+                            <td><span className="badge bg-blue-50 text-blue-600 border-none">{immeuble.type}</span></td>
+                            <td className="text-gray-600">{immeuble.ville}</td>
+                            <td className="text-gray-600">{immeuble.owner_name || '-'}</td>
+                            <td className="font-mono">{immeuble.nbLots || 0}</td>
+                            <td>
+                              <span className={`badge ${immeuble.statut === 'Actif' ? 'badge-success' : 'badge-warning'}`}>
+                                {immeuble.statut || 'Actif'}
+                              </span>
+                            </td>
+                            <td className="pr-6 text-right">
+                              <div className="flex justify-end gap-1">
+                                <button onClick={() => { setEditingImmeuble(immeuble); setShowImmeubleModal(true); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>
+                                <button onClick={() => handleDeleteImmeuble(immeuble.id)} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </Card>
-             )}
+              )
+            ) : (
+              // Lots view
+              <Card className="border-none shadow-xl bg-white overflow-hidden p-0">
+                <div className="overflow-x-auto">
+                  <table className="table w-full">
+                    <thead className="bg-gray-50/50">
+                      <tr>
+                        <th className="py-4 pl-6">Référence</th>
+                        <th className="py-4">Type</th>
+                        <th className="py-4">Immeuble</th>
+                        <th className="py-4">Loyer</th>
+                        <th className="py-4">Statut</th>
+                        <th className="py-4 pr-6 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {(paginatedData as Lot[]).length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="text-center py-12 text-gray-400">
+                            Aucun lot trouvé
+                          </td>
+                        </tr>
+                      ) : (
+                        (paginatedData as Lot[]).map((lot) => (
+                          <tr key={lot.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer">
+                            <td className="pl-6 font-bold text-gray-800">{lot.reference}</td>
+                            <td><span className="badge bg-blue-50 text-blue-600 border-none font-medium">{lot.type}</span></td>
+                            <td className="text-gray-600">{lot.immeuble}</td>
+                            <td className="font-mono font-medium text-gray-700">{lot.loyer?.toLocaleString()} FCFA</td>
+                            <td>
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                                lot.statut === 'libre' ? 'bg-green-100 text-green-700' :
+                                lot.statut === 'occupe' || lot.statut === 'occupé' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                  lot.statut === 'libre' ? 'bg-green-500' :
+                                  lot.statut === 'occupe' || lot.statut === 'occupé' ? 'bg-blue-500' : 'bg-orange-500'
+                                }`}></span>
+                                {lot.statut || 'libre'}
+                              </span>
+                            </td>
+                            <td className="pr-6 text-right">
+                              <div className="flex justify-end gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => { setEditingLot(lot); setShowLotModal(true); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>
+                                <button onClick={() => handleDeleteLot(lot.id)} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-8">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="btn btn-ghost btn-sm btn-circle disabled:opacity-40"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`btn btn-sm btn-circle ${
+                      currentPage === page 
+                        ? 'btn-primary' 
+                        : 'btn-ghost'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="btn btn-ghost btn-sm btn-circle disabled:opacity-40"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Immeuble Modal */}
+      <Modal
+        isOpen={showImmeubleModal}
+        onClose={() => setShowImmeubleModal(false)}
+        title={editingImmeuble.id ? 'Modifier Immeuble' : 'Nouvel Immeuble'}
+        size="lg"
+        footer={
+          <div className="flex gap-3 w-full">
+            <Button variant="ghost" onClick={() => setShowImmeubleModal(false)} className="flex-1">Annuler</Button>
+            <Button variant="primary" onClick={handleSaveImmeuble} className="flex-1">Enregistrer</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <Select
+            label="Propriétaire"
+            value={editingImmeuble.owner_id}
+            onChange={(e) => setEditingImmeuble({...editingImmeuble, owner_id: parseInt(e.target.value)})}
+            placeholder="Sélectionner un propriétaire"
+            options={proprietaires.map(p => ({
+              value: p.id,
+              label: p.type === 'individual' ? `${p.nom} ${p.prenom}` : p.nom
+            }))}
+            required
+          />
+          <Input 
+            label="Nom de l'immeuble" 
+            value={editingImmeuble.nom} 
+            onChange={(e) => setEditingImmeuble({...editingImmeuble, nom: e.target.value})}
+            required
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Type"
+              value={editingImmeuble.type}
+              onChange={(e) => setEditingImmeuble({...editingImmeuble, type: e.target.value})}
+              options={[
+                { value: 'Maison', label: 'Maison' },
+                { value: 'Immeuble', label: 'Immeuble' },
+                { value: 'Résidence', label: 'Résidence' },
+                { value: 'Commerce', label: 'Commerce' }
+              ]}
+            />
+            <Input label="Ville" value={editingImmeuble.ville} onChange={(e) => setEditingImmeuble({...editingImmeuble, ville: e.target.value})} />
+          </div>
+          <Input label="Adresse" value={editingImmeuble.adresse} onChange={(e) => setEditingImmeuble({...editingImmeuble, adresse: e.target.value})} />
+          <Input 
+            label="Photo URL" 
+            value={editingImmeuble.photo || ''} 
+            onChange={(e) => setEditingImmeuble({...editingImmeuble, photo: e.target.value})} 
+            placeholder="https://example.com/image.jpg"
+          />
+        </div>
+      </Modal>
+
+      {/* Lot Modal */}
+      <Modal
+        isOpen={showLotModal}
+        onClose={() => setShowLotModal(false)}
+        title={editingLot.id ? 'Modifier Lot' : 'Nouveau Lot'}
+        size="lg"
+        footer={
+          <div className="flex gap-3 w-full">
+            <Button variant="ghost" onClick={() => setShowLotModal(false)} className="flex-1">Annuler</Button>
+            <Button variant="primary" onClick={handleSaveLot} className="flex-1">Enregistrer</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <Select
+            label="Immeuble de rattachement"
+            value={editingLot.building_id}
+            onChange={(e) => setEditingLot({...editingLot, building_id: parseInt(e.target.value)})}
+            placeholder="Sélectionner un immeuble"
+            options={immeubles.map(b => ({
+              value: b.id,
+              label: `${b.nom} (${b.owner_name || 'Sans propriétaire'})`
+            }))}
+            required
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Référence (ex: A01)" value={editingLot.reference} onChange={(e) => setEditingLot({...editingLot, reference: e.target.value})} />
+            <Select
+              label="Type"
+              value={editingLot.type}
+              onChange={(e) => setEditingLot({...editingLot, type: e.target.value})}
+              options={[
+                { value: 'Appartement', label: 'Appartement' },
+                { value: 'Studio', label: 'Studio' },
+                { value: 'Chambre', label: 'Chambre' },
+                { value: 'Boutique', label: 'Boutique' },
+                { value: 'Bureau', label: 'Bureau' }
+              ]}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Loyer (FCFA)" type="number" value={editingLot.loyer} onChange={(e) => setEditingLot({...editingLot, loyer: parseFloat(e.target.value)})} />
+            <Input label="Charges (FCFA)" type="number" value={editingLot.charges} onChange={(e) => setEditingLot({...editingLot, charges: parseFloat(e.target.value)})} />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <Input label="Étage" value={editingLot.etage} onChange={(e) => setEditingLot({...editingLot, etage: e.target.value})} />
+            <Input label="Surface (m²)" type="number" value={editingLot.superficie} onChange={(e) => setEditingLot({...editingLot, superficie: parseFloat(e.target.value)})} />
+            <Input label="Nb Pièces" type="number" value={editingLot.nbPieces} onChange={(e) => setEditingLot({...editingLot, nbPieces: parseInt(e.target.value)})} />
+          </div>
+        </div>
+      </Modal>
     </motion.div>
   );
 };

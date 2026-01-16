@@ -85,7 +85,7 @@ export class CronService {
                 );
 
                 if (exists.rowCount === 0) {
-                    await NotificationService.send(userId, title, message, 'warning');
+                    await NotificationService.send(userId, title, message, 'warning', 'PAYMENT_REMINDER');
                     console.log(`[CRON] Sent Late Payment Alert for Lease ${lease.id} to User ${userId}`);
                 }
             }
@@ -126,7 +126,7 @@ export class CronService {
                  
                  const userId = lease.owner_id;
 
-                 await NotificationService.send(userId, title, message, 'info');
+                 await NotificationService.send(userId, title, message, 'info', 'LEASE_EXPIRY');
                  console.log(`[CRON] Sent Expiration Alert for Lease ${lease.id} to User ${userId}`);
             }
 

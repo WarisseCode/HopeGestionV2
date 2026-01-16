@@ -78,6 +78,7 @@ interface UserProfile {
         email: string;
         userType: string;
         role: string;
+        isGuest?: boolean;
     };
 }
 
@@ -89,7 +90,7 @@ export async function getProfile(): Promise<UserProfile> {
         throw new Error('Aucun token d\'authentification trouve');
     }
     
-    const data = await apiCall<UserProfile>(`${BASE_URL}/profil`, {
+    const data = await apiCall<UserProfile>(`${BASE_URL}/auth/profile`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',

@@ -33,18 +33,34 @@ router.get('/proprietaires', async (req: AuthenticatedRequest, res: Response) =>
 
 // GET /api/compte/utilisateurs : Récupérer la liste des utilisateurs
 router.get('/utilisateurs', async (req: AuthenticatedRequest, res: Response) => {
-    // Vérification : Seuls les admins peuvent accéder à la liste des utilisateurs
-    if (req.userRole !== 'admin') {
+    // Vérification : Admins, gestionnaires et propriétaires peuvent accéder à la liste des utilisateurs
+    if (!['admin', 'gestionnaire', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
     try {
-        const query = `
-            SELECT id, nom, '' as prenom, telephone, email, role, photo_url as photo, statut
-            FROM users
-            ORDER BY nom ASC
-        `;
-        const result = await db.query(query);
+        let query: string;
+        let queryParams: any[] = [];
+
+        if (req.userRole === 'admin') {
+            // Admin sees all users
+            query = `
+                SELECT id, nom, '' as prenom, telephone, email, role, photo_url as photo, statut, created_by
+                FROM users
+                ORDER BY nom ASC
+            `;
+        } else {
+            // Gestionnaire/Proprietaire see only users they created
+            query = `
+                SELECT id, nom, '' as prenom, telephone, email, role, photo_url as photo, statut, created_by
+                FROM users
+                WHERE created_by = $1 OR id = $1
+                ORDER BY nom ASC
+            `;
+            queryParams = [req.userId];
+        }
+        
+        const result = await db.query(query, queryParams);
         res.status(200).json({ utilisateurs: result.rows });
     } catch (error) {
         console.error('Erreur récupération utilisateurs:', error);
@@ -82,30 +98,29 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
 
     try {
         const cleanPhone = req.body.phone ? req.body.phone.replace(/[^\d+]/g, '') : null;
-        const cleanMobileMoney = req.body.mobile_money ? req.body.mobile_money.replace(/[^\d+]/g, '') : null;
+        const cleanMobileMoney = req.body.mobile_money_number ? req.body.mobile_money_number.replace(/[^\d+]/g, '') : null;
 
-        // Insérer le propriétaire
+        // Insérer le propriétaire (schema matches ownerRoutes.ts)
         const newOwner = await db.query(
             `INSERT INTO owners (
-                name, type, contact_info, phone, email, address, 
-                company_name, rccm_number, mobile_money, 
-                management_mode, delegation_start_date, delegation_end_date
-            ) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
+                type, name, first_name, phone, phone_secondary, email,
+                address, city, country, id_number, photo, mobile_money_number, management_mode
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
             RETURNING *`,
             [
+                req.body.type || 'individual',
                 req.body.name || req.body.company_name, // Nom ou Raison sociale
-                req.body.type,
-                req.body.contact_info || '',
+                req.body.first_name || '',
                 cleanPhone,
+                req.body.phone_secondary || null,
                 req.body.email || '',
                 req.body.address || '',
-                req.body.company_name,
-                req.body.rccm_number,
+                req.body.city || '',
+                req.body.country || 'Bénin',
+                req.body.id_number || null,
+                req.body.photo || null,
                 cleanMobileMoney,
-                req.body.management_mode || 'direct',
-                req.body.delegation_start_date || null,
-                req.body.delegation_end_date || null
+                req.body.management_mode || 'direct'
             ]
         );
         
@@ -114,7 +129,7 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
         // Lier à l'utilisateur qui crée (si ce n'est pas un admin pur qui crée pour les autres)
         // Pour simplification, on lie toujours celui qui crée
         await db.query(
-            `INSERT INTO owner_user (user_id, owner_id) VALUES ($1, $2)`,
+            `INSERT INTO owner_user (user_id, owner_id, role, is_active, start_date) VALUES ($1, $2, 'owner', true, CURRENT_DATE)`,
             [req.userId, ownerId]
         );
 
@@ -187,7 +202,7 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
 
 // POST /api/compte/utilisateurs : Créer ou mettre à jour un utilisateur
 router.post('/utilisateurs', async (req: AuthenticatedRequest, res: Response) => {
-    if (req.userRole !== 'admin') {
+    if (!['admin', 'gestionnaire', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
@@ -204,13 +219,12 @@ router.post('/utilisateurs', async (req: AuthenticatedRequest, res: Response) =>
             `;
             result = await db.query(query, [nom, prenoms, telephone, email, role, photo, statut, id]);
         } else {
-            // Pour la création d'utilisateur, on devrait normalement hasher le mot de passe
-            // Mais ici on utilise le mot de passe fourni ou un par défaut pour la démo
+            // Pour la création d'utilisateur, enregistrer qui a créé cet utilisateur
             const query = `
-                INSERT INTO users (nom, prenom, telephone, email, role, photo, statut, mot_de_passe)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
+                INSERT INTO users (nom, prenom, telephone, email, role, photo, statut, mot_de_passe, created_by)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
             `;
-            result = await db.query(query, [nom, prenoms, telephone, email, role, photo, statut || 'Actif', mot_de_passe || 'password123']);
+            result = await db.query(query, [nom, prenoms, telephone, email, role, photo, statut || 'Actif', mot_de_passe || 'password123', req.userId]);
         }
 
         await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
@@ -287,15 +301,15 @@ router.delete('/proprietaires/:id', async (req: AuthenticatedRequest, res: Respo
     }
 });
 
-// DELETE /api/compte/utilisateurs/:id : Soft delete (suspendre) un utilisateur
-router.delete('/utilisateurs/:id', async (req: AuthenticatedRequest, res: Response) => {
-    if (req.userRole !== 'admin') {
+// PATCH /api/compte/utilisateurs/:id/suspend : Soft delete (suspendre) un utilisateur
+router.patch('/utilisateurs/:id/suspend', async (req: AuthenticatedRequest, res: Response) => {
+    if (!['admin', 'gestionnaire', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
     try {
         const { id } = req.params;
-        await db.query('UPDATE users SET statut = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', ['Suspendu', id]);
+        await db.query('UPDATE users SET statut = $1 WHERE id = $2', ['Suspendu', id]);
         
         await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
             [req.userId, 'SUSPEND_USER', 'COMPTE', `Utilisateur ID: ${id}`]);
@@ -307,15 +321,61 @@ router.delete('/utilisateurs/:id', async (req: AuthenticatedRequest, res: Respon
     }
 });
 
+// DELETE /api/compte/utilisateurs/:id : HARD DELETE (supprimer définitivement)
+router.delete('/utilisateurs/:id', async (req: AuthenticatedRequest, res: Response) => {
+    if (req.userRole !== 'admin') {
+        // Only admin can hard delete, or maybe gestionnaire too? Let's restrict to admin/gestionnaire for now
+        // Assuming user wants validation for hard delete
+         if (!['admin', 'gestionnaire', 'proprietaire'].includes(req.userRole || '')) {
+            return res.status(403).json({ message: 'Accès refusé.' });
+        }
+    }
+
+    const client = await db.connect();
+    try {
+        await client.query('BEGIN');
+        const { id } = req.params;
+
+        // 1. Remove assignments first (foreign key constraints)
+        await client.query('DELETE FROM user_owner_assignments WHERE user_id = $1', [id]);
+        
+        // 2. Remove from owner_user if existing
+        await client.query('DELETE FROM owner_user WHERE user_id = $1', [id]);
+
+        // 3. Remove user
+        await client.query('DELETE FROM users WHERE id = $1', [id]);
+        
+        await client.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
+            [req.userId, 'DELETE_USER', 'COMPTE', `Utilisateur ID: ${id} (Supprimé définitivement)`]);
+
+        await client.query('COMMIT');
+        res.status(200).json({ message: 'Utilisateur supprimé définitivement' });
+    } catch (error: any) {
+        await client.query('ROLLBACK');
+        console.error('Erreur suppression utilisateur:', error);
+        
+        // Handle Foreign Key Constraint (RESTRICT)
+        if (error.code === '23001' || error.constraint === 'leases_lot_id_fkey') {
+           return res.status(400).json({ 
+               message: 'Impossible de supprimer cet utilisateur : Il possède des biens liés à des contrats de location actifs. Veuillez d\'abord résilier les baux concernés.' 
+           });
+        }
+
+        res.status(500).json({ message: 'Erreur serveur lors de la suppression.' });
+    } finally {
+        client.release();
+    }
+});
+
 // PATCH /api/compte/utilisateurs/:id/reactivate : Réactiver un utilisateur
 router.patch('/utilisateurs/:id/reactivate', async (req: AuthenticatedRequest, res: Response) => {
-    if (req.userRole !== 'admin') {
+    if (!['admin', 'gestionnaire', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
     try {
         const { id } = req.params;
-        await db.query('UPDATE users SET statut = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', ['Actif', id]);
+        await db.query('UPDATE users SET statut = $1 WHERE id = $2', ['Actif', id]);
         
         await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
             [req.userId, 'REACTIVATE_USER', 'COMPTE', `Utilisateur ID: ${id}`]);

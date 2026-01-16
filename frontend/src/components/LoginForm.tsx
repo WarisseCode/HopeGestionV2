@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { loginUser } from '../api/authApi';
-import { Lock, ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
+import { accountApi } from '../api/accountApi';
+import { Lock, ArrowLeft, Loader2, Eye, EyeOff, Key, Mail } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
@@ -14,8 +15,10 @@ interface LoginFormProps {
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onGoBackToHome, onNavigateToSignup }) => {
+    const [loginMode, setLoginMode] = useState<'email' | 'key'>('email');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [accessKey, setAccessKey] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -26,15 +29,23 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onGoBackToHome, o
         setLoading(true);
 
         try {
-            await loginUser(email, password);
+            if (loginMode === 'email') {
+                await loginUser(email, password);
+            } else {
+                // loginWithKey now handles token storage and auth-change event internally
+                await accountApi.loginWithKey(accessKey);
+            }
             onLoginSuccess();
-            // alert(`Connexion réussie !`); // Removed alert for better UX
         } catch (err: any) {
             setError(err.message || 'Échec de la connexion. Veuillez vérifier vos identifiants.');
         } finally {
             setLoading(false);
         }
+    // Duplicate block removed
     };
+    
+    // ... rest of component
+
 
     const handleGoogleLogin = () => {
         // Simulation pour le moment
@@ -57,6 +68,24 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onGoBackToHome, o
                     <h2 className="text-2xl font-bold text-base-content">Connexion</h2>
                     <p className="text-base-content/60 mt-1">Heureux de vous revoir !</p>
                 </div>
+                
+                {/* Mode Toggle */}
+                <div className="flex bg-base-200 p-1 rounded-lg mb-6">
+                    <button
+                        type="button"
+                        onClick={() => setLoginMode('email')}
+                        className={`flex-1 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-all ${loginMode === 'email' ? 'bg-white shadow text-primary' : 'text-base-content/60 hover:text-base-content'}`}
+                    >
+                        <Mail size={16} /> Email
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setLoginMode('key')}
+                        className={`flex-1 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-all ${loginMode === 'key' ? 'bg-white shadow text-primary' : 'text-base-content/60 hover:text-base-content'}`}
+                    >
+                        <Key size={16} /> Clé d'accès
+                    </button>
+                </div>
 
                 {error && (
                     <Alert variant="error" className="mb-6">
@@ -65,37 +94,57 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onGoBackToHome, o
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <Input
-                        label="Adresse Email"
-                        type="email"
-                        placeholder="email@exemple.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        autoFocus
-                    />
+                    {loginMode === 'email' ? (
+                        <>
+                            <Input
+                                label="Adresse Email"
+                                type="email"
+                                placeholder="email@exemple.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                autoFocus
+                            />
 
-                    <Input
-                        label="Mot de passe"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        endIcon={
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="text-base-content/60 hover:text-base-content cursor-pointer"
-                            >
-                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                            </button>
-                        }
-                        required
-                    />
-
-                    <div className="flex justify-end">
-                        <a href="#" onClick={handleForgotPassword} className="text-sm text-primary hover:text-primary-focus font-medium">Mot de passe oublié ?</a>
-                    </div>
+                            <Input
+                                label="Mot de passe"
+                                type={showPassword ? "text" : "password"}
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                endIcon={
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="text-base-content/60 hover:text-base-content cursor-pointer"
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                }
+                                required
+                            />
+                            
+                            <div className="flex justify-end">
+                                <a href="#" onClick={handleForgotPassword} className="text-sm text-primary hover:text-primary-focus font-medium">Mot de passe oublié ?</a>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="py-4">
+                            <Input
+                                label="Clé d'accès invité"
+                                type="text"
+                                placeholder="GUEST-XXXX-YYYY"
+                                value={accessKey}
+                                onChange={(e) => setAccessKey(e.target.value.toUpperCase())}
+                                required
+                                autoFocus
+                                className="font-mono text-center tracking-wider"
+                            />
+                            <p className="text-xs text-base-content/60 mt-2 text-center">
+                                Entrez la clé fournie par votre gestionnaire.
+                            </p>
+                        </div>
+                    )}
 
                     <Button 
                         type="submit" 

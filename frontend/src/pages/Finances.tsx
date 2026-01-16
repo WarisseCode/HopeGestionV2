@@ -3,19 +3,15 @@ import React, { useState, useEffect } from 'react';
 import { 
   Wallet, 
   Plus, 
-  Edit3, 
   Eye, 
   Trash2, 
   Calendar, 
-  Home,
-  Users,
   TrendingUp,
   TrendingDown,
   FileText,
   Download,
   Filter,
   BarChart3,
-  PieChart,
   Search,
   ArrowUpRight,
   ArrowDownRight
@@ -24,49 +20,45 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import { motion, AnimatePresence } from 'framer-motion';
-import { KPICard } from '../components/dashboard'; // Reusing premium components
+import { KPICard } from '../components/dashboard';
 import { 
   AreaChart, 
   Area, 
-  BarChart,
-  Bar,
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer,
-  Cell
+  ResponsiveContainer
 } from 'recharts';
-import { getPaiements, getDepenses, getPaiementStats, getDepenseStats, savePaiement, saveDepense, getPaiementHistory, getDepenseHistory } from '../api/financeApi';
-import type { Paiement, Depense } from '../api/financeApi';
+import { financeApi } from '../api/financeApi';
+import type { Payment } from '../api/financeApi';
 import { getLocataires, getLocataireDetails } from '../api/locataireApi';
 import type { Locataire } from '../api/locataireApi';
-import { getImmeubles } from '../api/propertyApi';
-import type { Immeuble } from '../api/propertyApi';
 
 const Finances: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'paiements' | 'depenses' | 'rapports'>('paiements');
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<'paiement' | 'depense'>('paiement');
 
-  const [paiements, setPaiements] = useState<Paiement[]>([]);
-  const [depenses, setDepenses] = useState<Depense[]>([]);
+  const [paiements, setPaiements] = useState<Payment[]>([]);
   const [stats, setStats] = useState({ revenus: 0, depenses: 0, benefice: 0 });
   const [loading, setLoading] = useState(true);
 
   // Selectors Data
   const [locataires, setLocataires] = useState<Locataire[]>([]);
-  const [immeubles, setImmeubles] = useState<Immeuble[]>([]);
 
-  // Chart Data
-  const [revenusData, setRevenusData] = useState<any[]>([]);
+  // Chart Data (Mock for now, will implement real history later)
+  const [revenusData, setRevenusData] = useState<any[]>([
+      { mois: 'Jan', montant: 0 }, { mois: 'Fév', montant: 0 }, { mois: 'Mar', montant: 0 }
+  ]);
 
   const [paiementForm, setPaiementForm] = useState({
-    reference: '', locataireId: '', lot: '', date: '', type: 'Loyer', montant: 0, modePaiement: 'Mobile Money', statut: 'En attente', fichier: null
-  });
-
-  const [depenseForm, setDepenseForm] = useState({
-    reference: '', fournisseur: '', type: 'Électricité', date: '', montant: 0, statut: 'En attente', fichier: null, buildingId: ''
+    locataireId: '',
+    date: new Date().toISOString().split('T')[0],
+    type: 'loyer',
+    montant: 0,
+    modePaiement: 'especes',
+    reference: ''
   });
 
   useEffect(() => {
@@ -76,57 +68,21 @@ const Finances: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [pData, dData, pStats, dStats, locs, imms, pHist, dHist] = await Promise.all([
-        getPaiements(),
-        getDepenses(),
-        getPaiementStats(),
-        getDepenseStats(),
-        getLocataires(),
-        getImmeubles(),
-        getPaiementHistory(),
-        getDepenseHistory()
+      // Load only payments and stats for now (Expenses backend not ready)
+      const [pData, pStats, locs] = await Promise.all([
+        financeApi.getPayments(),
+        financeApi.getStats(),
+        getLocataires('Locataire')
       ]);
       
-      setPaiements(pData.map(p => ({
-        ...p,
-        locataire: p.tenant_name ? `${p.tenant_name} ${p.tenant_surname}` : 'Inconnu',
-        lot: p.ref_lot ? `${p.ref_lot} - ${p.building_name}` : 'N/A'
-      } as any)));
-
-      setDepenses(dData.map(d => ({
-        ...d,
-        fournisseur: d.supplier_name,
-        type: d.category
-      } as any)));
+      setPaiements(pData);
+      setLocataires(locs);
 
       setStats({
-        revenus: parseInt(pStats.mois as any) || 0,
-        depenses: parseInt(dStats.mois as any) || 0,
-        benefice: (parseInt(pStats.mois as any) || 0) - (parseInt(dStats.mois as any) || 0)
+        revenus: pStats.encashed_month,
+        depenses: 0, // Placeholder
+        benefice: pStats.encashed_month - 0
       });
-
-      setLocataires(locs);
-      setImmeubles(imms);
-
-      // Processing Chart Data
-      // Create a map to merge data by month
-      const chartMap = new Map<string, { mois: string, montant: number, depenses: number }>();
-      
-      pHist.forEach(p => {
-          if(!chartMap.has(p.mois)) chartMap.set(p.mois, { mois: p.mois, montant: 0, depenses: 0 });
-          const item = chartMap.get(p.mois)!;
-          item.montant = parseInt(p.total);
-      });
-
-      dHist.forEach(d => {
-           if(!chartMap.has(d.mois)) chartMap.set(d.mois, { mois: d.mois, montant: 0, depenses: 0 });
-           const item = chartMap.get(d.mois)!;
-           item.depenses = parseInt(d.total);
-      });
-      
-      // If empty, providing dummy data for visual confirmation if needed, OR just setting it empty.
-      // Let's rely on the mapped data.
-      setRevenusData(Array.from(chartMap.values()));
 
     } catch (error) {
       console.error("Erreur chargement finances:", error);
@@ -143,36 +99,34 @@ const Finances: React.FC = () => {
                   return;
               }
               const details = await getLocataireDetails(parseInt(paiementForm.locataireId));
-              const leaseId = details.baux && details.baux.length > 0 ? details.baux[0].id : null;
+              // Find active lease
+              const activeLease = details.baux.find((b: any) => b.statut === 'actif');
+              const leaseId = activeLease ? activeLease.id : (details.baux.length > 0 ? details.baux[0].id : null);
 
               if (!leaseId) {
                   alert("Ce locataire n'a pas de bail actif");
                   return;
               }
 
-              await savePaiement({
+              await financeApi.createPayment({
                   lease_id: leaseId,
-                  montant: paiementForm.montant,
+                  amount: paiementForm.montant,
                   type: paiementForm.type,
-                  mode_paiement: paiementForm.modePaiement,
-                  date_paiement: paiementForm.date || new Date().toISOString(),
-                  reference_transaction: paiementForm.reference
+                  payment_method: paiementForm.modePaiement,
+                  payment_date: paiementForm.date || new Date().toISOString(),
+                  reference: paiementForm.reference
               });
+              
+              alert("Paiement enregistré avec succès !");
           } else {
-               await saveDepense({
-                  amount: depenseForm.montant,
-                  category: depenseForm.type,
-                  description: depenseForm.reference, // mapping reference to description
-                  supplier_name: depenseForm.fournisseur,
-                  date_expense: depenseForm.date || new Date().toISOString(),
-                  building_id: depenseForm.buildingId ? parseInt(depenseForm.buildingId) : undefined
-              });
+              alert("Gestion des dépenses bientôt disponible");
+              return;
           }
           setShowForm(false);
           fetchData(); // Refresh data
-      } catch (error) {
+      } catch (error: any) {
           console.error("Erreur lors de la soumission:", error);
-          alert("Erreur lors de l'enregistrement");
+          alert(error.message || "Erreur lors de l'enregistrement");
       }
   };
 
@@ -184,6 +138,10 @@ const Finances: React.FC = () => {
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1 }
+  };
+
+  const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(amount);
   };
 
   return (
@@ -200,24 +158,20 @@ const Finances: React.FC = () => {
             Finance & Comptabilité <span className="text-primary">.</span>
           </h1>
           <p className="text-gray-500 font-medium mt-1">
-            Suivi des flux financiers, trésorerie et facturation.
+            Suivi des flux financiers (Paiements & Recettes)
           </p>
         </div>
         <div className="flex items-center gap-3">
-             <div className="relative group hidden md:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
-                <input type="text" placeholder="Rechercher une transaction..." className="input input-sm h-10 pl-10 bg-white border-gray-200 focus:border-primary w-64 rounded-full shadow-sm transition-all focus:w-72" />
-            </div>
            <Button 
             variant="primary" 
             className="rounded-full px-6 h-10 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all font-semibold"
             onClick={() => {
-              setFormType(activeTab === 'paiements' || activeTab === 'rapports' ? 'paiement' : 'depense');
+              setFormType('paiement');
               setShowForm(true);
             }}
           >
             <Plus size={18} className="mr-2" />
-            Nouvelle Opération
+            Encaisser un paiement
           </Button>
         </div>
       </motion.div>
@@ -241,24 +195,9 @@ const Finances: React.FC = () => {
                 }`}
             >
                 <ArrowUpRight size={18} className="text-red-500"/>
-                Dépenses
-            </button>
-             <button
-                onClick={() => setActiveTab('rapports')}
-                className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'rapports' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
-                }`}
-            >
-                <BarChart3 size={18} />
-                Rapports & Analyses
+                Dépenses (Bientôt)
             </button>
         </div>
-         <div className="flex items-center gap-2 px-2 mt-4 sm:mt-0">
-             <Button variant="ghost" className="btn-sm font-medium text-gray-500 hover:text-gray-700">
-                 <Filter size={16} className="mr-2" />
-                 Filtres
-             </Button>
-         </div>
       </motion.div>
 
       {/* Content */}
@@ -270,81 +209,59 @@ const Finances: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
              >
-                <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
+                <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm max-w-2xl mx-auto">
                      <div className="flex justify-between items-center mb-6 pb-6 border-b border-gray-100">
                         <h2 className="text-xl font-bold text-gray-800">
-                            {formType === 'paiement' ? 'Encaisser un paiement' : 'Enregistrer une dépense'}
+                            Encaisser un paiement
                         </h2>
                         <Button variant="ghost" onClick={() => setShowForm(false)} className="btn-circle btn-sm">
                             <Trash2 size={18} className="text-gray-400" />
                         </Button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {formType === 'paiement' ? (
-                            <>
-                                <Input label="Référence" placeholder="Auto-généré" value={paiementForm.reference} onChange={(e) => setPaiementForm({...paiementForm, reference: e.target.value})} />
-                                <Input label="Montant (FCFA)" type="number" value={paiementForm.montant} onChange={(e) => setPaiementForm({...paiementForm, montant: parseFloat(e.target.value)})} />
+                    <div className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Locataire</label>
+                            <select className="select select-bordered w-full bg-gray-50 p-2 border rounded-lg" value={paiementForm.locataireId} onChange={(e) => setPaiementForm({...paiementForm, locataireId: e.target.value})}>
+                                <option value="">Choisir un locataire...</option>
+                                {locataires.map(l => (
+                                    <option key={l.id} value={l.id}>{l.prenoms} {l.nom}</option>
+                                ))}
+                            </select>
+                        </div>
                                 
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Locataire</label>
-                                    <select className="select select-bordered w-full bg-gray-50" value={paiementForm.locataireId} onChange={(e) => setPaiementForm({...paiementForm, locataireId: e.target.value})}>
-                                        <option value="">Choisir un locataire...</option>
-                                        {locataires.map(l => (
-                                            <option key={l.id} value={l.id}>{l.nom} {l.prenoms}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                 
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Type</label>
-                                    <select className="select select-bordered w-full bg-gray-50" value={paiementForm.type} onChange={(e) => setPaiementForm({...paiementForm, type: e.target.value})}>
-                                        <option>Loyer</option>
-                                        <option>Charges</option>
-                                        <option>Caution</option>
-                                    </select>
-                                </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <Input label="Montant (FCFA)" type="number" value={paiementForm.montant} onChange={(e) => setPaiementForm({...paiementForm, montant: parseFloat(e.target.value)})} />
+                            <Input label="Date" type="date" value={paiementForm.date} onChange={(e) => setPaiementForm({...paiementForm, date: e.target.value})} />
+                        </div>
 
-                                <Input label="Date" type="date" value={paiementForm.date} onChange={(e) => setPaiementForm({...paiementForm, date: e.target.value})} />
-                                
-                                <div className="md:col-span-2">
-                                     <label className="block text-sm font-bold text-gray-700 mb-2">Preuve de paiement</label>
-                                     <div className="h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 hover:border-primary transition-all">
-                                         <p className="text-sm">Glisser-déposer un reçu ou cliquer pour parcourir</p>
-                                     </div>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                {/* Depense Form */}
-                                <Input label="Référence" placeholder="Auto-généré" value={depenseForm.reference} onChange={(e) => setDepenseForm({...depenseForm, reference: e.target.value})} />
-                                <Input label="Montant (FCFA)" type="number" value={depenseForm.montant} onChange={(e) => setDepenseForm({...depenseForm, montant: parseFloat(e.target.value)})} />
-                                <Input label="Fournisseur" value={depenseForm.fournisseur} onChange={(e) => setDepenseForm({...depenseForm, fournisseur: e.target.value})} />
-                                
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Catégorie</label>
-                                    <select className="select select-bordered w-full bg-gray-50" value={depenseForm.type} onChange={(e) => setDepenseForm({...depenseForm, type: e.target.value})}>
-                                        <option>Électricité</option>
-                                        <option>Eau</option>
-                                        <option>Maintenance</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Immeuble (Optionnel)</label>
-                                    <select className="select select-bordered w-full bg-gray-50" value={depenseForm.buildingId} onChange={(e) => setDepenseForm({...depenseForm, buildingId: e.target.value})}>
-                                        <option value="">Général / Aucun</option>
-                                        {immeubles.map(i => (
-                                            <option key={i.id} value={i.id}>{i.nom}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </>
-                        )}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Type</label>
+                                <select className="select select-bordered w-full bg-gray-50 p-2 border rounded-lg" value={paiementForm.type} onChange={(e) => setPaiementForm({...paiementForm, type: e.target.value})}>
+                                    <option value="loyer">Loyer</option>
+                                    <option value="charges">Charges</option>
+                                    <option value="caution">Caution</option>
+                                    <option value="autre">Autre</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Mode Paiement</label>
+                                <select className="select select-bordered w-full bg-gray-50 p-2 border rounded-lg" value={paiementForm.modePaiement} onChange={(e) => setPaiementForm({...paiementForm, modePaiement: e.target.value})}>
+                                    <option value="especes">Espèces</option>
+                                    <option value="mobile_money">Mobile Money</option>
+                                    <option value="virement">Virement</option>
+                                    <option value="cheque">Chèque</option>
+                                </select>
+                            </div>
+                        </div>
+
+                         <Input label="Référence / Notes" placeholder="Ex: Chèque n°123" value={paiementForm.reference} onChange={(e) => setPaiementForm({...paiementForm, reference: e.target.value})} />
                     </div>
 
                     <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
                         <Button variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
-                        <Button variant="primary" onClick={handleSubmit}>Confirmer</Button>
+                        <Button variant="primary" onClick={handleSubmit}>Enregistrer</Button>
                     </div>
                 </Card>
              </motion.div>
@@ -357,108 +274,85 @@ const Finances: React.FC = () => {
                 className="space-y-8"
              >
                 {/* KPIs */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <KPICard 
                         icon={Wallet} 
-                        label="Total Revenus" 
-                        value={`${stats.revenus.toLocaleString()} F`} 
+                        label="Total Encaissé (Mois)" 
+                        value={formatCurrency(stats.revenus)} 
                         color="green" 
-                        trend={{ value: "+12%", label: "ce mois", positive: true }} 
+                        trend={{ value: "+100%", label: "depuis début", positive: true }} 
                     />
                      <KPICard 
                         icon={TrendingDown} 
                         label="Total Dépenses" 
-                        value={`${stats.depenses.toLocaleString()} F`} 
+                        value={formatCurrency(stats.depenses)} 
                         color="orange" 
-                        trend={{ value: "-5%", label: "vs N-1", positive: true }} 
                     />
                     <KPICard 
                         icon={TrendingUp} 
                         label="Bénéfice Net" 
-                        value={`${stats.benefice.toLocaleString()} F`} 
+                        value={formatCurrency(stats.benefice)} 
                         color="blue" 
-                    />
-                     <KPICard 
-                        icon={FileText} 
-                        label="En Attente" 
-                        value="230k F" 
-                        color="orange" 
-                        trend={{ value: "3", label: "factures", positive: false }} 
                     />
                 </div>
 
-                {activeTab === 'rapports' ? (
-                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                         <Card className="border-none shadow-xl bg-white">
-                             <h3 className="font-bold text-gray-800 mb-6">Évolution Mensuelle</h3>
-                             <div className="h-64">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={revenusData}>
-                                        <defs>
-                                            <linearGradient id="colorRevenusFin" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                                            </linearGradient>
-                                            <linearGradient id="colorDepensesFin" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
-                                                <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
-                                        <XAxis dataKey="mois" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                                        <Tooltip />
-                                        <Area type="monotone" dataKey="montant" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenusFin)" name="Revenus" />
-                                        <Area type="monotone" dataKey="depenses" stroke="#ef4444" strokeWidth={3} fillOpacity={1} fill="url(#colorDepensesFin)" name="Dépenses" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                             </div>
-                         </Card>
-                     </div>
-                ) : (
-                    /* Table View for Paiements or Depenses */
+                {activeTab === 'paiements' ? (
+                    /* Table View for Paiements */
                     <Card className="border-none shadow-xl bg-white overflow-hidden p-0">
                          <div className="overflow-x-auto">
-                            <table className="table w-full">
+                            <table className="table w-full text-left">
                                 <thead className="bg-gray-50/50">
                                     <tr>
-                                        <th className="py-4 pl-6">Référence</th>
-                                        <th>{activeTab === 'paiements' ? 'Locataire / Lot' : 'Fournisseur / Type'}</th>
-                                        <th>Date</th>
-                                        <th>Montant</th>
-                                        <th>Statut</th>
-                                        <th className="pr-6 text-right">Actions</th>
+                                        <th className="py-4 pl-6 font-semibold">Référence</th>
+                                        <th className="py-4 font-semibold">Locataire / Bail</th>
+                                        <th className="py-4 font-semibold">Date</th>
+                                        <th className="py-4 font-semibold">Montant</th>
+                                        <th className="py-4 font-semibold">Mode</th>
+                                        <th className="py-4 pr-6 text-right font-semibold">Statut</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {(activeTab === 'paiements' ? paiements : depenses).map((item: any) => (
+                                    {paiements.map((item) => (
                                         <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                                            <td className="pl-6 font-medium text-gray-800">{item.reference || 'REF-' + item.id}</td>
-                                            <td>
-                                                <div className="font-bold text-gray-700">{activeTab === 'paiements' ? item.locataire : item.fournisseur}</div>
-                                                <div className="text-xs text-gray-400">{activeTab === 'paiements' ? item.lot : item.type}</div>
+                                            <td className="pl-6 py-3 font-medium text-gray-800">
+                                                P-00{item.id}<br/>
+                                                <span className="text-xs text-gray-500">{item.type}</span>
                                             </td>
-                                            <td className="text-gray-500">{item.date_paiement ? new Date(item.date_paiement).toLocaleDateString() : (item.date_expense ? new Date(item.date_expense).toLocaleDateString() : 'N/A')}</td>
-                                            <td className={`font-mono font-bold ${activeTab === 'paiements' ? 'text-green-600' : 'text-red-600'}`}>
-                                                {activeTab === 'paiements' ? '+' : '-'}{parseInt(item.montant || item.amount).toLocaleString()} F
+                                            <td className="py-3">
+                                                <div className="font-bold text-gray-700">{item.locataire_prenoms} {item.locataire_nom}</div>
+                                                <div className="text-xs text-gray-400">{item.reference_bail}</div>
                                             </td>
-                                            <td>
-                                                <span className={`badge ${item.statut === 'Validé' || item.statut === 'Payé' ? 'badge-success' : 'badge-warning'} gap-1 font-bold`}>
+                                            <td className="py-3 text-gray-500">{new Date(item.payment_date).toLocaleDateString()}</td>
+                                            <td className="py-3 font-mono font-bold text-green-600">
+                                                {formatCurrency(parseFloat(item.amount as any))}
+                                            </td>
+                                            <td className="py-3">
+                                                <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs capitalize">
+                                                    {item.payment_method?.replace('_', ' ')}
+                                                </span>
+                                            </td>
+                                            <td className="pr-6 py-3 text-right">
+                                                <span className={`badge ${item.statut === 'valide' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'} px-2 py-1 rounded-full text-xs font-bold capitalize`}>
                                                     {item.statut}
                                                 </span>
                                             </td>
-                                            <td className="pr-6 text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    <Button variant="ghost" size="sm" className="btn-square btn-xs"><Eye size={14} /></Button>
-                                                    <Button variant="ghost" size="sm" className="btn-square btn-xs"><Download size={14} /></Button>
-                                                </div>
-                                            </td>
                                         </tr>
                                     ))}
+                                    {paiements.length === 0 && (
+                                        <tr>
+                                            <td colSpan={6} className="text-center py-8 text-gray-500">Aucun paiement enregistré</td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                          </div>
                     </Card>
+                ) : (
+                    <div className="text-center py-12 bg-white rounded-xl shadow-sm">
+                        <TrendingDown size={48} className="mx-auto text-gray-300 mb-4" />
+                        <h3 className="text-xl font-medium text-gray-800">Module Dépenses</h3>
+                        <p className="text-gray-500 mt-2">Ce module sera disponible très prochainement.</p>
+                    </div>
                 )}
              </motion.div>
         )}

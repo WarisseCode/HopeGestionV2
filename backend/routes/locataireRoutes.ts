@@ -2,6 +2,7 @@ import express from 'express';
 import pool from '../db/database';
 import { protect } from '../middleware/authMiddleware';
 import { AuditService } from '../services/AuditService';
+import permissions from '../middleware/permissionMiddleware';
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ const getManagedOwnerId = async (userId: number): Promise<number | null> => {
 };
 
 // GET /api/locataires - Liste des locataires
-router.get('/', protect, async (req: any, res) => {
+router.get('/', protect, permissions.canRead('locataires'), async (req: any, res) => {
     try {
         const userId = req.user.id;
         const ownerId = await getManagedOwnerId(userId);

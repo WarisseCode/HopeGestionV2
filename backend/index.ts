@@ -2,6 +2,7 @@
 
 // Importations de base
 import express, { Request, Response } from 'express';
+import path from 'path';
 //import cors from 'cors';
 import * as dotenv from 'dotenv';
 import { Pool } from 'pg'; 
@@ -31,14 +32,8 @@ import { protect, AuthenticatedRequest } from './middleware/authMiddleware';
 dotenv.config();
 
 // Configuration de la Base de Données
-export const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-});
+import sharedPool from './db/database';
+export const pool = sharedPool;
 
 const app = express();
 const PORT = process.env.PORT || 5000; 
@@ -55,13 +50,17 @@ pool.connect()
 
 import cors from 'cors';    
 // --- 1. Middleware essentiels ---
-app.use(express.json()); 
+app.use(express.json({ limit: '10mb' })); 
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); 
 app.use(cors({
     origin: true, // Allow all origins temporarily for debugging
     credentials: true, 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Servir les fichiers uploadés
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // --- 2. Routes de l'API ---
 // Routes d'authentification (Publiques)
@@ -103,6 +102,14 @@ app.use('/api/permissions', protect, permissionRoutes);
 // Routes User-Owner Assignments (Affectation)
 import userAssignmentRoutes from './routes/userAssignmentRoutes';
 app.use('/api/user-assignments', protect, userAssignmentRoutes);
+
+// Routes Locations/Baux
+import leaseRoutes from './routes/leaseRoutes';
+app.use('/api/locations', protect, leaseRoutes);
+
+// Routes Finances
+import financeRoutes from './routes/financeRoutes';
+app.use('/api/finances', protect, financeRoutes);
 
 // Route Test Protégée (pour validation rapide de 'protect')
 // Route Test Protégée (pour validation rapide de 'protect')

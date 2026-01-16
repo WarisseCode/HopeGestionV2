@@ -9,8 +9,35 @@ export interface UserProfile {
   id: number;
   nom: string;
   email: string;
-  userType: string; // Relaxed type to avoid TS2345
+  userType: string;
   role: string;
+  isGuest?: boolean;
+  permissions?: {
+      // Biens Immobiliers
+      biens_read: boolean;
+      biens_write: boolean;
+      // Locataires
+      locataires_read: boolean;
+      locataires_write: boolean;
+      // Propriétaires
+      owners_read: boolean;
+      owners_write: boolean;
+      // Comptabilité
+      finance_read: boolean;
+      finance_write: boolean;
+      finance_validate: boolean;
+      // Contrats
+      contrats_read: boolean;
+      contrats_write: boolean;
+      // Documents
+      documents_read: boolean;
+      documents_write: boolean;
+      // Utilisateurs
+      users_read: boolean;
+      users_write: boolean;
+      // Global delete
+      can_delete: boolean;
+  };
 }
 
 export interface DashboardStats {

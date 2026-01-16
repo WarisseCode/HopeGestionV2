@@ -66,7 +66,7 @@ const Proprietaires: React.FC = () => {
     try {
       const response = await fetch('/api/owners', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('userToken')}`
         }
       });
       const data = await response.json();
@@ -94,7 +94,7 @@ const Proprietaires: React.FC = () => {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('userToken')}`
         },
         body: JSON.stringify(formData)
       });
@@ -140,7 +140,7 @@ const Proprietaires: React.FC = () => {
       const response = await fetch(`/api/owners/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('userToken')}`
         }
       });
 

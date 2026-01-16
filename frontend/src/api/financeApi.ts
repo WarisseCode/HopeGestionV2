@@ -1,147 +1,120 @@
 // frontend/src/api/financeApi.ts
 import { getToken } from './authApi';
-import { API_URL as BASE_URL } from '../config';
 
-// Interfaces pour les données financières
-export interface Paiement {
-  id: number;
-  reference?: string;
-  lease_id?: number;
-  date_paiement: string;
-  type: string;
-  montant: number;
-  mode_paiement: string;
-  statut?: string;
-  reference_transaction?: string;
-  tenant_name?: string;
-  tenant_surname?: string;
-  ref_lot?: string;
-  building_name?: string;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+export interface Payment {
+    id: number;
+    lease_id: number;
+    schedule_id?: number;
+    amount: number;
+    payment_date: string;
+    payment_method: string;
+    reference?: string;
+    type: string;
+    statut: string;
+    description?: string;
+    created_at: string;
+    // Joined fields
+    reference_bail: string;
+    locataire_nom: string;
+    locataire_prenoms: string;
+    proprietaire_nom: string;
 }
 
-export interface Depense {
-  id: number;
-  building_id?: number;
-  lot_id?: number;
-  description: string;
-  category: string;
-  date_expense: string;
-  amount: number;
-  supplier_name: string;
-  proof_url?: string;
-  building_name?: string;
-  ref_lot?: string;
-  owner_name?: string;
+export interface CreatePaymentData {
+    lease_id: number;
+    schedule_id?: number;
+    amount: number;
+    payment_date: string;
+    payment_method: string;
+    reference?: string;
+    type: string;
+    description?: string;
 }
 
 export interface FinanceStats {
-    mois: number;
-    annee: number;
+    encashed_month: number;
+    pending_total: number;
 }
 
-// === PAIEMENTS ===
+// Legacy interfaces mapping (to avoid breaking Finances.tsx immediately if not updated)
+export type Paiement = Payment;
+export interface Depense { id: number; amount: number; description: string; date: string; } // Placeholder
 
-export async function getPaiements(): Promise<Paiement[]> {
-  const token = getToken();
-  if (!token) throw new Error('Non authentifié');
+export const financeApi = {
+    // Get payments list
+    getPayments: async (filters?: { 
+        lease_id?: number; 
+        start_date?: string; 
+        end_date?: string;
+        statut?: string;
+        type?: string;
+    }): Promise<Payment[]> => {
+        const token = getToken();
+        if (!token) throw new Error('Non authentifié');
+        
+        let url = `${API_URL}/finances`;
+        const params = new URLSearchParams();
+        if (filters?.lease_id) params.append('lease_id', filters.lease_id.toString());
+        if (filters?.start_date) params.append('start_date', filters.start_date);
+        if (filters?.end_date) params.append('end_date', filters.end_date);
+        if (filters?.statut) params.append('statut', filters.statut);
+        if (filters?.type) params.append('type', filters.type);
+        if (params.toString()) url += `?${params.toString()}`;
 
-  const response = await fetch(`${BASE_URL}/paiements`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
+        const res = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Erreur chargement paiements');
+        const data = await res.json();
+        return data.payments;
     },
-  });
 
-  if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-  return await response.json();
-}
-
-export async function savePaiement(paiement: Partial<Paiement>): Promise<Paiement> {
-  const token = getToken();
-  if (!token) throw new Error('Non authentifié');
-
-  const response = await fetch(`${BASE_URL}/paiements`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
+    // Record new payment
+    createPayment: async (data: CreatePaymentData): Promise<Payment> => {
+        const token = getToken();
+        if (!token) throw new Error('Non authentifié');
+        
+        const res = await fetch(`${API_URL}/finances`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || 'Erreur enregistrement paiement');
+        }
+        return await res.json();
     },
-    body: JSON.stringify(paiement),
-  });
 
-  if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-  return await response.json();
-}
-
-export async function getPaiementStats(): Promise<FinanceStats> {
-    const token = getToken();
-    if (!token) throw new Error('Non authentifié');
-  
-    const response = await fetch(`${BASE_URL}/paiements/stats`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-  
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-}
-
-// === DEPENSES ===
-
-export async function getDepenses(): Promise<Depense[]> {
-  const token = getToken();
-  if (!token) throw new Error('Non authentifié');
-
-  const response = await fetch(`${BASE_URL}/depenses`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-
-  if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-  return await response.json();
-}
-
-export async function saveDepense(depense: Partial<Depense>): Promise<Depense> {
-  const token = getToken();
-  if (!token) throw new Error('Non authentifié');
-
-  const response = await fetch(`${BASE_URL}/depenses`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
+    // Get finance stats
+    getStats: async (): Promise<FinanceStats> => {
+        const token = getToken();
+        if (!token) throw new Error('Non authentifié');
+        
+        const res = await fetch(`${API_URL}/finances/stats`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Erreur chargement statistiques');
+        return await res.json();
     },
-    body: JSON.stringify(depense),
-  });
 
-  if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-  return await response.json();
-}
+    // Get receipt data
+    getReceipt: async (id: number): Promise<any> => {
+        const token = getToken();
+        if (!token) throw new Error('Non authentifié');
+        
+        const res = await fetch(`${API_URL}/finances/receipt/${id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Erreur chargement quittance');
+        const data = await res.json();
+        return data.receipt;
+    }
+};
 
-export async function getDepenseStats(): Promise<FinanceStats> {
-    const token = getToken();
-    if (!token) throw new Error('Non authentifié');
-  
-    const response = await fetch(`${BASE_URL}/depenses/stats`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-  
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-}
-
-export async function getPaiementHistory(): Promise<{ mois: string, mois_num: number, total: string }[]> {
-    const token = getToken();
-    const response = await fetch(`${BASE_URL}/paiements/history`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!response.ok) throw new Error('Erreur historique paiements');
-    return await response.json();
-}
-
-export async function getDepenseHistory(): Promise<{ mois: string, mois_num: number, total: string }[]> {
-    const token = getToken();
-    const response = await fetch(`${BASE_URL}/depenses/history`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!response.ok) throw new Error('Erreur historique depenses');
-    return await response.json();
-}
+export default financeApi;
