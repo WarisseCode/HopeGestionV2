@@ -1,6 +1,3 @@
-
-import { pool } from '../index'; // Adjust path if needed, might need register TS or run with ts-node
-// Actually importing from index might start server. Better to import pool from db/database.
 import pool from '../db/database';
 
 async function listUsers() {
