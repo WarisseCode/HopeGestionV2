@@ -244,8 +244,9 @@ const verifyToken = (req: any, res: any, next: any) => {
 router.get('/profile', verifyToken, async (req: any, res) => {
     try {
         const userId = req.user.id;
+        // Only use basic columns that exist in production
         const result = await pool.query(
-            `SELECT id, nom, user_type, role, email, telephone, is_guest 
+            `SELECT id, nom, user_type, role, email, telephone 
              FROM users WHERE id = $1`,
             [userId]
         );
@@ -439,7 +440,7 @@ router.get('/profile', verifyToken, async (req: any, res) => {
                 telephone: user.telephone,
                 role: user.role,
                 userType: user.user_type,
-                isGuest: user.is_guest || false,
+                isGuest: false, // Column doesn't exist in production yet
                 photo_url: null, // Column doesn't exist in production yet
                 preferences: {}, // Column doesn't exist in production yet
                 permissions  // <-- Now included!
