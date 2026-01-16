@@ -76,7 +76,7 @@ const AdminFinances: React.FC = () => {
             <option value="quarter">Ce Trimestre</option>
             <option value="year">Cette Année</option>
           </select>
-          <Button variant="outline">
+          <Button variant="ghost">
             <Download size={16} className="mr-2" /> Rapport
           </Button>
         </div>
@@ -170,7 +170,7 @@ const AdminFinances: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((tx) => (
+              {transactions.map((tx: any) => (
                 <tr key={tx.id} className="hover:bg-base-200/50">
                   <td className="font-medium">{tx.type}</td>
                   <td>{tx.user}</td>
