@@ -28,16 +28,17 @@ const RouteProtection: React.FC<RouteProtectionProps> = ({ allowedUserTypes, chi
         // Récupérer le profil de l'utilisateur
         const profile = await getProfile();
         let userType = profile.user.userType;
+        const userRole = profile.user.role;
         
-        // GUEST HANDLING: Treat guests as gestionnaire for routing purposes
-        // (Actual permission restrictions happen at the action level)
+        // GUEST HANDLING
         const isGuest = profile.user.isGuest || profile.user.role === 'guest';
         if (isGuest) {
-          userType = 'gestionnaire'; // Guests navigate like their issuer
+          userType = 'gestionnaire'; 
         }
 
         // Vérifier si l'utilisateur a accès à cette route
-        if (allowedUserTypes.includes(userType)) {
+        // "admin" role has access to EVERYTHING if allowedUserTypes includes 'admin'
+        if (allowedUserTypes.includes(userType) || (userRole === 'admin' && allowedUserTypes.includes('admin'))) {
           setHasAccess(true);
         } else {
           // Rediriger vers l'espace approprié selon le type d'utilisateur

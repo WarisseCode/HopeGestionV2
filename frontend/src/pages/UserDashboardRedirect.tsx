@@ -12,8 +12,11 @@ const UserDashboardRedirect: React.FC = () => {
         const profile = await getProfile();
         const userType = profile.user.userType;
         const isGuest = profile.user.isGuest || profile.user.role === 'guest'; // Check guest flag
+        const role = profile.user.role;
 
-        if (isGuest) {
+        if (role === 'admin' || userType === 'admin') {
+            navigate('/admin');
+        } else if (isGuest) {
              // Guests access the issuer's dashboard (typically gestionnaire/proprietaire view)
              // For now, default to gestionnaire dashboard as they are delegating access
              navigate('/dashboard/gestionnaire'); 

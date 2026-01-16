@@ -14,7 +14,12 @@ import RouteProtection from './components/RouteProtection';
 import PermissionGate from './components/PermissionGate';
 import HomePage from './HomePage';
 import DashboardLayout from './layout/DashboardLayout'; // Import Layout
+import AdminLayout from './layout/AdminLayout';
 import UserSpecificLayout from './layout/UserSpecificLayout';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminAgencies from './pages/admin/AdminAgencies';
+import AdminFinances from './pages/admin/AdminFinances';
 import { getToken, logoutUser } from './api/authApi'; 
 import CustomThemeProvider from './theme/Theme';
 import { UserProvider } from './contexts/UserContext';
@@ -107,7 +112,29 @@ const App: React.FC = () => {
                     <Route path="/a-propos" element={<AboutPage />} />
                     <Route path="/biens-disponibles" element={<BiensPublicsPage />} />
                     
-                    {/* Routes protégées */}
+                    {/* Routes protégées - ADMIN */}
+                    <Route 
+                        path="/admin/*" 
+                        element={
+                            <ProtectedRoute>
+                                <UserProvider>
+                                    <RouteProtection allowedUserTypes={['admin']}>
+                                        <AdminLayout onLogout={handleLogout}>
+                                            <Routes>
+                                                <Route index element={<AdminDashboard />} />
+                                                <Route path="users" element={<AdminUsers />} />
+                                                <Route path="agencies" element={<AdminAgencies />} />
+                                                <Route path="finances" element={<AdminFinances />} />
+                                                <Route path="*" element={<Navigate to="/admin" replace />} />
+                                            </Routes>
+                                        </AdminLayout>
+                                    </RouteProtection>
+                                </UserProvider>
+                            </ProtectedRoute>
+                        } 
+                    />
+
+                    {/* Routes protégées - DASHBOARD */}
                     <Route 
                         path="/dashboard/*" 
                         element={
