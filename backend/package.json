@@ -6,10 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/index.js",
-    "build": "tsc",
+    "build": "node --max-old-space-size=256 ./node_modules/typescript/bin/tsc",
     "dev": "nodemon index.ts",
     "migrate": "ts-node scripts/runMigration.ts",
-    "migrate-prod": "npm run build && node dist/scripts/runMigration.js"
+    "migrate-prod": "node dist/scripts/runMigration.js"
   },
   "keywords": [],
   "author": "",
