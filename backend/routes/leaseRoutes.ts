@@ -15,7 +15,7 @@ dotenv.config();
 const router = Router();
 import pool from '../db/database';
 
-// GET /api/locations - Liste des baux
+// GET /api/locations - Liste des baux/contrats
 router.get('/', permissions.canRead('locataires'), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { statut, owner_id } = req.query;
@@ -36,6 +36,9 @@ router.get('/', permissions.canRead('locataires'), async (req: AuthenticatedRequ
                 l.jour_echeance,
                 l.duree_contrat,
                 l.contrat_genere,
+                l.type_contrat,
+                l.prix_vente,
+                l.conditions_particulieres,
                 l.created_at,
                 t.nom as locataire_nom,
                 t.prenoms as locataire_prenoms,
@@ -87,7 +90,7 @@ router.get('/', permissions.canRead('locataires'), async (req: AuthenticatedRequ
     }
 });
 
-// GET /api/locations/:id - Détails d'un bail
+// GET /api/locations/:id - Détails d'un bail/contrat
 router.get('/:id', permissions.canRead('locataires'), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { id } = req.params;
@@ -115,7 +118,7 @@ router.get('/:id', permissions.canRead('locataires'), async (req: AuthenticatedR
         `, [id]);
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Bail non trouvé' });
+            return res.status(404).json({ message: 'Contrat non trouvé' });
         }
 
         // Get payment schedule if exists
@@ -134,13 +137,14 @@ router.get('/:id', permissions.canRead('locataires'), async (req: AuthenticatedR
     }
 });
 
-// POST /api/locations - Créer un bail
+// POST /api/locations - Créer un contrat (Affectation)
 router.post('/', permissions.canWrite('locataires'), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const {
             tenant_id,
             lot_id,
             owner_id,
+            type_contrat = 'location', // par défaut
             date_debut,
             date_fin,
             duree_contrat,
@@ -152,57 +156,84 @@ router.post('/', permissions.canWrite('locataires'), async (req: AuthenticatedRe
             type_paiement,
             jour_echeance,
             penalite_retard,
-            tolerance_jours
+            tolerance_jours,
+            // Nouveaux champs pour Vente/Autre
+            prix_vente,
+            apport_initial,
+            modalite_paiement,
+            date_expiration,
+            conditions_particulieres
         } = req.body;
 
-        // Validate required fields
-        if (!tenant_id || !lot_id || !owner_id || !date_debut || !loyer_mensuel) {
-            return res.status(400).json({ message: 'Champs obligatoires manquants' });
+        // Validate required fields based on type
+        if (!tenant_id || !lot_id || !owner_id || !date_debut) {
+            return res.status(400).json({ message: 'Champs obligatoires manquants (Client, Lot, Propriétaire, Date début)' });
         }
 
-        // Check if lot is already occupied
+        if (type_contrat === 'location' && !loyer_mensuel) {
+            return res.status(400).json({ message: 'Le loyer est requis pour une location' });
+        }
+
+        if (type_contrat === 'vente' && !prix_vente) {
+             return res.status(400).json({ message: 'Le prix de vente est requis pour une vente' });
+        }
+
+        // Check if lot is already occupied/reserved
         const lotCheck = await pool.query(
-            "SELECT id FROM leases WHERE lot_id = $1 AND statut = 'actif'",
+            "SELECT id FROM leases WHERE lot_id = $1 AND statut IN ('actif', 'signe')",
             [lot_id]
         );
         if (lotCheck.rows.length > 0) {
-            return res.status(400).json({ message: 'Ce lot est déjà occupé par un bail actif' });
+            return res.status(400).json({ message: 'Ce lot a déjà une affectation active' });
         }
 
-        // Generate reference
+        // Generate reference based on type
         const refResult = await pool.query("SELECT COUNT(*) FROM leases");
         const count = parseInt(refResult.rows[0].count) + 1;
-        const reference_bail = `BAIL-${new Date().getFullYear()}-${String(count).padStart(4, '0')}`;
+        const prefix = type_contrat === 'vente' ? 'VTE' : type_contrat === 'reservation' ? 'RES' : 'BAIL';
+        const reference_bail = `${prefix}-${new Date().getFullYear()}-${String(count).padStart(4, '0')}`;
 
-        // Insert lease
+        // Insert lease/contract
         const result = await pool.query(`
             INSERT INTO leases (
-                tenant_id, lot_id, owner_id, reference_bail,
+                tenant_id, lot_id, owner_id, reference_bail, type_contrat,
                 date_debut, date_fin, duree_contrat, loyer_actuel,
                 caution, avance, charges_mensuelles, devise,
                 type_paiement, jour_echeance, penalite_retard, tolerance_jours,
+                prix_vente, apport_initial, modalite_paiement, date_expiration, conditions_particulieres,
                 statut, gestionnaire_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'actif', $17)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, 'actif', $23)
             RETURNING *
         `, [
-            tenant_id, lot_id, owner_id, reference_bail,
-            date_debut, date_fin || null, duree_contrat || 12, loyer_mensuel,
+            tenant_id, lot_id, owner_id, reference_bail, type_contrat,
+            date_debut, date_fin || null, duree_contrat || 12, loyer_mensuel || 0,
             caution || 0, avance || 0, charges_mensuelles || 0, devise || 'XOF',
             type_paiement || 'classique', jour_echeance || 1, penalite_retard || 0, tolerance_jours || 0,
+            prix_vente || null, apport_initial || null, modalite_paiement || null, date_expiration || null, conditions_particulieres || null,
             req.userId
         ]);
 
-        // Update lot status
-        await pool.query("UPDATE lots SET statut = 'loue' WHERE id = $1", [lot_id]);
+        // Determine new lot status
+        let newLotStatus = 'loue';
+        if (type_contrat === 'vente') newLotStatus = 'vendu';
+        if (type_contrat === 'reservation') newLotStatus = 'reserve';
 
-        // Generate payment schedule if type is echelonne
+        // Update lot status
+        await pool.query("UPDATE lots SET statut = $1 WHERE id = $2", [newLotStatus, lot_id]);
+
+        // Generate payment schedule if type is echelonne AND duration is set
+        // Works for both rent (duree_contrat) and sale (if we map terms similarly)
         if (type_paiement === 'echelonne' && duree_contrat) {
-            await generatePaymentSchedule(result.rows[0].id, date_debut, duree_contrat, loyer_mensuel, jour_echeance);
+            const amount = type_contrat === 'vente' 
+                ? (prix_vente - (apport_initial || 0)) / duree_contrat // Simple linear calculation for sale
+                : loyer_mensuel;
+                
+            await generatePaymentSchedule(result.rows[0].id, date_debut, duree_contrat, amount, jour_echeance);
         }
 
         res.status(201).json(result.rows[0]);
     } catch (error) {
-        console.error('Error creating lease:', error);
+        console.error('Error creating contract:', error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });

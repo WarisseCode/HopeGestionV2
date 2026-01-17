@@ -15,7 +15,8 @@ import {
   List,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  UserPlus
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -27,11 +28,15 @@ import SearchInput from '../components/ui/SearchInput';
 import FilterPanel from '../components/ui/FilterPanel';
 import type { FilterConfig, FilterValues } from '../components/ui/FilterPanel';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
+import ImmeubleForm from '../components/biens/ImmeubleForm';
+import LotForm from '../components/biens/LotForm';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getImmeubles, getLots, saveImmeuble, saveLot, deleteImmeuble, deleteLot } from '../api/propertyApi';
-import type { Immeuble, Lot } from '../api/propertyApi';
+import { getImmeubles, getLots, saveImmeuble, saveLot, deleteImmeuble, deleteLot } from '../api/bienApi';
+import type { Immeuble, Lot } from '../api/bienApi';
 import { getProprietaires } from '../api/accountApi';
 import type { Proprietaire } from '../api/accountApi';
+import AssignmentForm from '../components/biens/AssignmentForm';
+
 
 // Constants
 const ITEMS_PER_PAGE = 9;
@@ -83,6 +88,8 @@ const Biens: React.FC = () => {
   const [editingLot, setEditingLot] = useState<Partial<Lot>>({
     reference: '', type: 'Appartement', building_id: 0, etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: ''
   });
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [activeAssignmentLot, setActiveAssignmentLot] = useState<Lot | null>(null);
 
   // Filter configurations
   const immeubleFilters: FilterConfig[] = [
@@ -551,7 +558,7 @@ const Biens: React.FC = () => {
                             <div className="p-3 bg-gray-50 rounded-xl">
                               <p className="text-xs text-gray-400 font-bold uppercase">Propriétaire</p>
                               <p className="font-medium text-gray-700 text-sm truncate">
-                                {immeuble.owner_name || 'Non assigné'}
+                                {immeuble.proprietaire || 'Non assigné'}
                               </p>
                             </div>
                           </div>
@@ -586,27 +593,34 @@ const Biens: React.FC = () => {
                     <table className="table w-full">
                       <thead className="bg-gray-50/50">
                         <tr>
-                          <th className="py-4 pl-6">Nom</th>
-                          <th className="py-4">Type</th>
+                          <th className="py-4 pl-6">Photo</th>
+                          <th className="py-4">Nom</th>
                           <th className="py-4">Ville</th>
-                          <th className="py-4">Propriétaire</th>
-                          <th className="py-4">Lots</th>
-                          <th className="py-4">Statut</th>
+                          <th className="py-4">Nb Lots</th>
+                          <th className="py-4">Occupation</th>
                           <th className="py-4 pr-6 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {(paginatedData as Immeuble[]).map((immeuble) => (
                           <tr key={immeuble.id} className="hover:bg-gray-50/50 transition-colors">
-                            <td className="pl-6 font-bold text-gray-800">{immeuble.nom}</td>
-                            <td><span className="badge bg-blue-50 text-blue-600 border-none">{immeuble.type}</span></td>
+                            <td className="pl-6">
+                                <div className="avatar h-12 w-16 rounded cursor-pointer overflow-hidden relative shadow-sm" onClick={() => { setEditingImmeuble(immeuble); setShowImmeubleModal(true); }}>
+                                    <img 
+                                        src={immeuble.photo || (immeuble.photos && immeuble.photos.length > 0 ? immeuble.photos[0] : getPlaceholderImage(immeuble.id, immeuble.type))} 
+                                        alt={immeuble.nom}
+                                        className="h-full w-full object-cover transition-transform hover:scale-110"
+                                    />
+                                </div>
+                            </td>
+                            <td className="font-bold text-gray-800">{immeuble.nom}</td>
                             <td className="text-gray-600">{immeuble.ville}</td>
-                            <td className="text-gray-600">{immeuble.owner_name || '-'}</td>
                             <td className="font-mono">{immeuble.nbLots || 0}</td>
                             <td>
-                              <span className={`badge ${immeuble.statut === 'Actif' ? 'badge-success' : 'badge-warning'}`}>
-                                {immeuble.statut || 'Actif'}
-                              </span>
+                                <div className="flex items-center gap-2">
+                                    <progress className="progress progress-primary w-20" value={immeuble.occupation || 0} max="100"></progress>
+                                    <span className="text-xs font-bold">{immeuble.occupation || 0}%</span>
+                                </div>
                             </td>
                             <td className="pr-6 text-right">
                               <div className="flex justify-end gap-1">
@@ -628,11 +642,11 @@ const Biens: React.FC = () => {
                   <table className="table w-full">
                     <thead className="bg-gray-50/50">
                       <tr>
-                        <th className="py-4 pl-6">Référence</th>
-                        <th className="py-4">Type</th>
+                        <th className="py-4 pl-6">Photo</th>
+                        <th className="py-4">Référence</th>
                         <th className="py-4">Immeuble</th>
-                        <th className="py-4">Loyer</th>
                         <th className="py-4">Statut</th>
+                        <th className="py-4">Loyer / Prix</th>
                         <th className="py-4 pr-6 text-right">Actions</th>
                       </tr>
                     </thead>
@@ -645,27 +659,59 @@ const Biens: React.FC = () => {
                         </tr>
                       ) : (
                         (paginatedData as Lot[]).map((lot) => (
-                          <tr key={lot.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer">
-                            <td className="pl-6 font-bold text-gray-800">{lot.reference}</td>
-                            <td><span className="badge bg-blue-50 text-blue-600 border-none font-medium">{lot.type}</span></td>
+                          <tr key={lot.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer" onClick={() => { setEditingLot(lot); setShowLotModal(true); }}>
+                            <td className="pl-6">
+                                <div className="avatar h-10 w-16 rounded cursor-pointer overflow-hidden relative shadow-sm">
+                                    <img 
+                                        src={lot.photos && lot.photos.length > 0 ? lot.photos[0] : getPlaceholderImage(lot.id, 'Lot')} 
+                                        alt={lot.reference}
+                                        className="h-full w-full object-cover transition-transform hover:scale-110"
+                                    />
+                                </div>
+                            </td>
+                            <td className="font-bold text-gray-800">{lot.reference}</td>
                             <td className="text-gray-600">{lot.immeuble}</td>
-                            <td className="font-mono font-medium text-gray-700">{lot.loyer?.toLocaleString()} FCFA</td>
                             <td>
                               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
                                 lot.statut === 'libre' ? 'bg-green-100 text-green-700' :
-                                lot.statut === 'occupe' || lot.statut === 'occupé' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                                lot.statut === 'occupe' || lot.statut === 'occupé' || lot.statut === 'loue' ? 'bg-blue-100 text-blue-700' : 
+                                lot.statut === 'vendu' ? 'bg-purple-100 text-purple-700' :
+                                'bg-orange-100 text-orange-700'
                               }`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${
                                   lot.statut === 'libre' ? 'bg-green-500' :
-                                  lot.statut === 'occupe' || lot.statut === 'occupé' ? 'bg-blue-500' : 'bg-orange-500'
+                                  lot.statut === 'occupe' || lot.statut === 'occupé' || lot.statut === 'loue' ? 'bg-blue-500' : 
+                                  lot.statut === 'vendu' ? 'bg-purple-500' :
+                                  'bg-orange-500'
                                 }`}></span>
                                 {lot.statut || 'libre'}
                               </span>
                             </td>
+                            <td className="font-mono font-medium text-gray-700">
+                                {lot.type === 'Vente' || lot.prix_vente ? (
+                                    <span className="text-purple-700">{lot.prix_vente?.toLocaleString()} FCFA (Vente)</span>
+                                ) : (
+                                    <span>{lot.loyer?.toLocaleString()} FCFA/mois</span>
+                                )}
+                            </td>
                             <td className="pr-6 text-right">
                               <div className="flex justify-end gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => { setEditingLot(lot); setShowLotModal(true); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>
-                                <button onClick={() => handleDeleteLot(lot.id)} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>
+                                {(lot.statut === 'libre') && (
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingLot(lot);
+                                      setActiveAssignmentLot(lot);
+                                      setShowAssignmentModal(true);
+                                    }} 
+                                    className="btn btn-ghost btn-xs btn-square text-primary tooltip tooltip-left"
+                                    data-tip="Affecter (Louer/Vendre)"
+                                  >
+                                    <UserPlus size={14} />
+                                  </button>
+                                )}
+                                <button onClick={(e) => { e.stopPropagation(); setEditingLot(lot); setShowLotModal(true); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>
+                                <button onClick={(e) => { e.stopPropagation(); handleDeleteLot(lot.id); }} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>
                               </div>
                             </td>
                           </tr>
@@ -715,111 +761,109 @@ const Biens: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Immeuble Modal */}
+      {/* Immeuble Modal - Nouveau formulaire avec onglets */}
       <Modal
         isOpen={showImmeubleModal}
         onClose={() => setShowImmeubleModal(false)}
         title={editingImmeuble.id ? 'Modifier Immeuble' : 'Nouvel Immeuble'}
-        size="lg"
-        footer={
-          <div className="flex gap-3 w-full">
-            <Button variant="ghost" onClick={() => setShowImmeubleModal(false)} className="flex-1">Annuler</Button>
-            <Button variant="primary" onClick={handleSaveImmeuble} className="flex-1">Enregistrer</Button>
-          </div>
-        }
+        size="xl"
       >
-        <div className="space-y-4">
-          <Select
-            label="Propriétaire"
-            value={editingImmeuble.owner_id}
-            onChange={(e) => setEditingImmeuble({...editingImmeuble, owner_id: parseInt(e.target.value)})}
-            placeholder="Sélectionner un propriétaire"
-            options={proprietaires.map(p => ({
-              value: p.id,
-              label: p.type === 'individual' ? `${p.nom} ${p.prenom}` : p.nom
-            }))}
-            required
-          />
-          <Input 
-            label="Nom de l'immeuble" 
-            value={editingImmeuble.nom} 
-            onChange={(e) => setEditingImmeuble({...editingImmeuble, nom: e.target.value})}
-            required
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <Select
-              label="Type"
-              value={editingImmeuble.type}
-              onChange={(e) => setEditingImmeuble({...editingImmeuble, type: e.target.value})}
-              options={[
-                { value: 'Maison', label: 'Maison' },
-                { value: 'Immeuble', label: 'Immeuble' },
-                { value: 'Résidence', label: 'Résidence' },
-                { value: 'Commerce', label: 'Commerce' }
-              ]}
-            />
-            <Input label="Ville" value={editingImmeuble.ville} onChange={(e) => setEditingImmeuble({...editingImmeuble, ville: e.target.value})} />
-          </div>
-          <Input label="Adresse" value={editingImmeuble.adresse} onChange={(e) => setEditingImmeuble({...editingImmeuble, adresse: e.target.value})} />
-          <Input 
-            label="Photo URL" 
-            value={editingImmeuble.photo || ''} 
-            onChange={(e) => setEditingImmeuble({...editingImmeuble, photo: e.target.value})} 
-            placeholder="https://example.com/image.jpg"
+        <div className="min-h-[500px]">
+          <ImmeubleForm
+            immeuble={editingImmeuble}
+            proprietaires={proprietaires}
+            onSave={async (data) => {
+              await handleSaveImmeuble();
+              // Override with new data if different
+              if (JSON.stringify(data) !== JSON.stringify(editingImmeuble)) {
+                setEditingImmeuble(data);
+                await saveImmeuble(data);
+                await fetchData();
+              }
+              setShowImmeubleModal(false);
+            }}
+            onSaveAndAddLots={async (data) => {
+              await saveImmeuble(data);
+              await fetchData();
+              setShowImmeubleModal(false);
+              // Switch to lots tab and open lot modal
+              setActiveTab('lots');
+              // Find the newly created building and set it for the lot
+              const newBuildings = await getImmeubles();
+              const newBuilding = newBuildings.find(b => b.nom === data.nom);
+              if (newBuilding) {
+                setEditingLot({ 
+                  reference: '', type: 'Appartement', 
+                  building_id: newBuilding.id, 
+                  etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: '' 
+                });
+                setShowLotModal(true);
+              }
+            }}
+            onCancel={() => setShowImmeubleModal(false)}
+            loading={loading}
           />
         </div>
       </Modal>
 
-      {/* Lot Modal */}
+      {/* Lot Modal - Nouveau formulaire avec onglets */}
       <Modal
         isOpen={showLotModal}
         onClose={() => setShowLotModal(false)}
         title={editingLot.id ? 'Modifier Lot' : 'Nouveau Lot'}
-        size="lg"
-        footer={
-          <div className="flex gap-3 w-full">
-            <Button variant="ghost" onClick={() => setShowLotModal(false)} className="flex-1">Annuler</Button>
-            <Button variant="primary" onClick={handleSaveLot} className="flex-1">Enregistrer</Button>
-          </div>
-        }
+        size="xl"
       >
-        <div className="space-y-4">
-          <Select
-            label="Immeuble de rattachement"
-            value={editingLot.building_id}
-            onChange={(e) => setEditingLot({...editingLot, building_id: parseInt(e.target.value)})}
-            placeholder="Sélectionner un immeuble"
-            options={immeubles.map(b => ({
-              value: b.id,
-              label: `${b.nom} (${b.owner_name || 'Sans propriétaire'})`
-            }))}
-            required
+        <div className="min-h-[500px]">
+          <LotForm
+            lot={editingLot}
+            immeubles={immeubles}
+            onSave={async (data) => {
+              await saveLot(data);
+              await fetchData();
+              setShowLotModal(false);
+              setSuccess('Lot enregistré avec succès');
+            }}
+            onStatusChange={async (data, newStatus) => {
+              if (newStatus === 'loue' || newStatus === 'vendu' || newStatus === 'reserve') {
+                // Open Assignment Form instead of direct save
+                setShowLotModal(false); // Close edit modal
+                setEditingLot(data as Lot); // Ensure data is current
+                setActiveAssignmentLot(data as Lot); // Set for assignment
+                setShowAssignmentModal(true);
+              } else {
+                // Direct update for other statuses (e.g. hors_service)
+                await saveLot({ ...data, statut: newStatus });
+                await fetchData();
+                setShowLotModal(false);
+                setSuccess(`Statut du lot modifié: ${newStatus}`);
+              }
+            }}
+            onCancel={() => setShowLotModal(false)}
+            loading={loading}
           />
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Référence (ex: A01)" value={editingLot.reference} onChange={(e) => setEditingLot({...editingLot, reference: e.target.value})} />
-            <Select
-              label="Type"
-              value={editingLot.type}
-              onChange={(e) => setEditingLot({...editingLot, type: e.target.value})}
-              options={[
-                { value: 'Appartement', label: 'Appartement' },
-                { value: 'Studio', label: 'Studio' },
-                { value: 'Chambre', label: 'Chambre' },
-                { value: 'Boutique', label: 'Boutique' },
-                { value: 'Bureau', label: 'Bureau' }
-              ]}
+        </div>
+      </Modal>
+
+      {/* Assignment Modal */}
+      <Modal
+        isOpen={showAssignmentModal}
+        onClose={() => setShowAssignmentModal(false)}
+        title="Nouvelle Affectation"
+        size="xl"
+      >
+        {activeAssignmentLot && (
+          <div className="min-h-[500px]">
+            <AssignmentForm
+              lot={activeAssignmentLot}
+              onSuccess={async () => {
+                 await fetchData();
+                 setShowAssignmentModal(false);
+                 setSuccess('Affectation réussie ! Contrat généré.');
+              }}
+              onCancel={() => setShowAssignmentModal(false)}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Loyer (FCFA)" type="number" value={editingLot.loyer} onChange={(e) => setEditingLot({...editingLot, loyer: parseFloat(e.target.value)})} />
-            <Input label="Charges (FCFA)" type="number" value={editingLot.charges} onChange={(e) => setEditingLot({...editingLot, charges: parseFloat(e.target.value)})} />
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <Input label="Étage" value={editingLot.etage} onChange={(e) => setEditingLot({...editingLot, etage: e.target.value})} />
-            <Input label="Surface (m²)" type="number" value={editingLot.superficie} onChange={(e) => setEditingLot({...editingLot, superficie: parseFloat(e.target.value)})} />
-            <Input label="Nb Pièces" type="number" value={editingLot.nbPieces} onChange={(e) => setEditingLot({...editingLot, nbPieces: parseInt(e.target.value)})} />
-          </div>
-        </div>
+        )}
       </Modal>
     </motion.div>
   );

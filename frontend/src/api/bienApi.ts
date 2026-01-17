@@ -18,6 +18,17 @@ export interface Immeuble {
   description?: string;
   proprietaire?: string;
   gestionnaire?: string;
+  // Nouveaux champs
+  owner_id?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  quartier?: string | null;
+  gestionnaire_id?: number | null;
+  gestionnaire_name?: string | null;
+  photos?: string[];
+  video_url?: string | null;
+  plan_masse_url?: string | null;
+  nombre_etages?: number;
 }
 
 export interface Lot {
@@ -25,13 +36,29 @@ export interface Lot {
   reference: string;
   type: string;
   immeuble: string;
+  building_id?: number;
   etage: string;
+  bloc?: string | null;
   superficie: number;
   nbPieces: number;
   loyer: number;
   charges: number;
   statut: string;
   description: string;
+  // Données locatives
+  periodicite?: string; // mensuel, trimestriel, annuel
+  caution?: number;
+  avance?: number; // nombre de mois
+  // Données de vente
+  prix_vente?: number | null;
+  modalite_vente?: string | null; // comptant, echelonne
+  duree_echelonnement?: number | null; // mois
+  // Médias
+  photos?: string[];
+  date_disponibilite?: string | null;
+  // Owner info
+  owner_id?: number;
+  owner_name?: string;
 }
 
 // Fonction pour récupérer les immeubles

@@ -82,6 +82,14 @@ async function runMigration() {
         const contractsPath = path.join(dbDir, 'migration_contracts.sql');
         const contractsSql = fs.readFileSync(contractsPath, 'utf8');
         await client.query(contractsSql);
+
+        console.log('11/11 Exécution migration_buildings_enhancement...');
+        const buildingsEnhancementPath = path.join(dbDir, 'migrations', 'migration_buildings_enhancement.sql');
+        if (fs.existsSync(buildingsEnhancementPath)) {
+            const buildingsEnhancementSql = fs.readFileSync(buildingsEnhancementPath, 'utf8');
+            await client.query(buildingsEnhancementSql);
+            console.log('   - buildings (ajout: GPS, photos, gestionnaire, quartier)');
+        }
         
         console.log('✅ Migration exécutée avec succès!');
         console.log('\n📊 Tables créées et mises à jour.');

@@ -11,6 +11,7 @@ export interface Location {
     tenant_id: number;
     lot_id: number;
     owner_id: number;
+    type_contrat?: 'location' | 'vente' | 'reservation'; // New field
     date_debut: string;
     date_fin?: string;
     duree_contrat?: number;
@@ -23,6 +24,13 @@ export interface Location {
     jour_echeance: number;
     penalite_retard: number;
     tolerance_jours: number;
+    // Sale / Reservation fields
+    prix_vente?: number;
+    apport_initial?: number;
+    modalite_paiement?: string;
+    date_expiration?: string;
+    conditions_particulieres?: string;
+    
     statut: string;
     contrat_genere: boolean;
     signature_url?: string;
@@ -53,6 +61,7 @@ export interface CreateLocationData {
     tenant_id: number;
     lot_id: number;
     owner_id: number;
+    type_contrat?: 'location' | 'vente' | 'reservation';
     date_debut: string;
     date_fin?: string;
     duree_contrat?: number;
@@ -65,6 +74,12 @@ export interface CreateLocationData {
     jour_echeance?: number;
     penalite_retard?: number;
     tolerance_jours?: number;
+    // New fields
+    prix_vente?: number;
+    apport_initial?: number;
+    modalite_paiement?: string;
+    date_expiration?: string;
+    conditions_particulieres?: string;
 }
 
 export const locationApi = {
