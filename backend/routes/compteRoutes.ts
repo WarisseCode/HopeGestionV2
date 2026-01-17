@@ -45,16 +45,16 @@ router.get('/utilisateurs', async (req: AuthenticatedRequest, res: Response) => 
         if (req.userRole === 'admin') {
             // Admin sees all users
             query = `
-                SELECT id, nom, '' as prenom, telephone, email, role, photo_url as photo, statut, created_by
+                SELECT id, nom, '' as prenom, telephone, email, role, photo_url as photo, statut, created_at
                 FROM users
                 ORDER BY nom ASC
             `;
         } else {
             // Gestionnaire/Proprietaire see only users they created
             query = `
-                SELECT id, nom, '' as prenom, telephone, email, role, photo_url as photo, statut, created_by
+                SELECT id, nom, '' as prenom, telephone, email, role, photo_url as photo, statut, created_at
                 FROM users
-                WHERE created_by = $1 OR id = $1
+                WHERE id = $1
                 ORDER BY nom ASC
             `;
             queryParams = [req.userId];
@@ -219,12 +219,15 @@ router.post('/utilisateurs', async (req: AuthenticatedRequest, res: Response) =>
             `;
             result = await db.query(query, [nom, prenoms, telephone, email, role, photo, statut, id]);
         } else {
-            // Pour la création d'utilisateur, enregistrer qui a créé cet utilisateur
+            // Pour la création d'utilisateur
             const query = `
-                INSERT INTO users (nom, prenom, telephone, email, role, photo, statut, mot_de_passe, created_by)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
+                INSERT INTO users (nom, telephone, email, role, photo_url, statut, password_hash, user_type)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
             `;
-            result = await db.query(query, [nom, prenoms, telephone, email, role, photo, statut || 'Actif', mot_de_passe || 'password123', req.userId]);
+            // Note: We should hash the password properly - using a placeholder for now
+            const bcrypt = require('bcrypt');
+            const hashedPassword = await bcrypt.hash(mot_de_passe || 'TempPassword123!', 10);
+            result = await db.query(query, [nom, telephone, email, role, photo, statut || 'actif', hashedPassword, role || 'gestionnaire']);
         }
 
         await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
