@@ -50,6 +50,7 @@ async function runMigration() {
     
     for (let i = 0; i < statements.length; i++) {
         const stmt = statements[i];
+        if (!stmt) continue;
         try {
             await pool.query(stmt);
             console.log(`✅ [${i + 1}/${statements.length}] Success`);
