@@ -3,11 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    FileText, Plus, Search, Filter, Calendar, User, Home, 
-    MoreVertical, Edit, X, Check, RefreshCw, XCircle, Eye,
-    DollarSign, Clock, AlertTriangle, PenTool as Pen
-} from 'lucide-react';
+import { Eye, Plus, Search, Filter, AlertTriangle, FileText, Check, XCircle, Pen, DollarSign, X, RefreshCw } from 'lucide-react';
+import LocationForm from '../components/locations/LocationForm';
 import locationApi from '../api/locationApi';
 import type { Location, CreateLocationData } from '../api/locationApi';
 import { accountApi } from '../api/accountApi';
@@ -77,16 +74,29 @@ const Locations: React.FC = () => {
         }
     };
 
-    const handleCreate = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleCreate = async (data: CreateLocationData) => {
         try {
-            await locationApi.createLocation(formData);
-            setSuccess("Bail créé avec succès !");
+            await locationApi.createLocation(data);
+            setSuccess('Nouveau bail créé avec succès');
             setShowAddModal(false);
-            loadData();
-            resetForm();
+            // Reset form data if needed or just rely on form unmount
+            setFormData({
+                tenant_id: 0,
+                lot_id: 0,
+                owner_id: 0,
+                date_debut: new Date().toISOString().split('T')[0],
+                duree_contrat: 12,
+                loyer_mensuel: 0,
+                caution: 0,
+                avance: 0,
+                charges_mensuelles: 0,
+                devise: 'XOF',
+                type_paiement: 'classique',
+                jour_echeance: 5
+            });
+            loadData(); // Changed from loadLocations to loadData to match existing function
         } catch (err: any) {
-            setError(err.message || "Erreur lors de la création");
+            setError(err.message);
         }
     };
 
@@ -204,7 +214,7 @@ const Locations: React.FC = () => {
                     <p className="text-gray-500 text-sm">Gérez les contrats de location</p>
                 </div>
                 <button 
-                    onClick={() => setShowAddModal(true)}
+                    onClick={() => { setError(null); setShowAddModal(true); }}
                     className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg hover:bg-primary/90 transition shadow-md"
                 >
                     <Plus size={18} /> Nouveau Bail
@@ -270,7 +280,7 @@ const Locations: React.FC = () => {
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-                            <Clock className="text-orange-600" size={20} />
+                            <AlertTriangle className="text-orange-600" size={20} />
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-gray-800">
@@ -411,198 +421,23 @@ const Locations: React.FC = () => {
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+                            className="bg-white rounded-xl shadow-xl w-full max-w-[95%] md:max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
                         >
-                            <div className="p-6 border-b sticky top-0 bg-white z-10">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="text-xl font-bold">Nouveau Bail</h3>
-                                    <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">
-                                        <X size={24} />
-                                    </button>
-                                </div>
+                            <div className="p-6 border-b sticky top-0 bg-white z-10 flex justify-between items-center">
+                                <h3 className="text-xl font-bold">Nouveau Bail</h3>
+                                <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600 transition">
+                                    <XCircle size={24} />
+                                </button>
                             </div>
-
-                            <form onSubmit={handleCreate} className="p-6 space-y-6">
-                                {/* Parties */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Locataire *</label>
-                                        <select
-                                            className="w-full p-2.5 border rounded-lg bg-white"
-                                            value={formData.tenant_id}
-                                            onChange={e => setFormData({...formData, tenant_id: parseInt(e.target.value)})}
-                                            required
-                                        >
-                                            <option value={0}>Sélectionner un locataire</option>
-                                            {locataires.map((l: any) => (
-                                                <option key={l.id} value={l.id}>{l.prenoms} {l.nom}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Lot *</label>
-                                        <select
-                                            className="w-full p-2.5 border rounded-lg bg-white"
-                                            value={formData.lot_id}
-                                            onChange={e => setFormData({...formData, lot_id: parseInt(e.target.value)})}
-                                            required
-                                        >
-                                            <option value={0}>Sélectionner un lot</option>
-                                            {lots.filter((lot: any) => lot.statut === 'libre').map((lot: any) => (
-                                                <option key={lot.id} value={lot.id}>{lot.reference} - {lot.immeuble}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Propriétaire *</label>
-                                    <select
-                                        className="w-full p-2.5 border rounded-lg bg-white"
-                                        value={formData.owner_id}
-                                        onChange={e => setFormData({...formData, owner_id: parseInt(e.target.value)})}
-                                        required
-                                    >
-                                        <option value={0}>Sélectionner un propriétaire</option>
-                                        {owners.map((o: any) => (
-                                            <option key={o.id} value={o.id}>{o.nom || o.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Dates */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Date début *</label>
-                                        <input
-                                            type="date"
-                                            className="w-full p-2.5 border rounded-lg"
-                                            value={formData.date_debut}
-                                            onChange={e => setFormData({...formData, date_debut: e.target.value})}
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Date fin</label>
-                                        <input
-                                            type="date"
-                                            className="w-full p-2.5 border rounded-lg"
-                                            value={formData.date_fin || ''}
-                                            onChange={e => setFormData({...formData, date_fin: e.target.value})}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Durée (mois)</label>
-                                        <input
-                                            type="number"
-                                            className="w-full p-2.5 border rounded-lg"
-                                            value={formData.duree_contrat}
-                                            onChange={e => setFormData({...formData, duree_contrat: parseInt(e.target.value)})}
-                                            min={1}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Finances */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Loyer mensuel *</label>
-                                        <input
-                                            type="number"
-                                            className="w-full p-2.5 border rounded-lg"
-                                            value={formData.loyer_mensuel}
-                                            onChange={e => setFormData({...formData, loyer_mensuel: parseFloat(e.target.value)})}
-                                            required
-                                            min={0}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Charges mensuelles</label>
-                                        <input
-                                            type="number"
-                                            className="w-full p-2.5 border rounded-lg"
-                                            value={formData.charges_mensuelles}
-                                            onChange={e => setFormData({...formData, charges_mensuelles: parseFloat(e.target.value)})}
-                                            min={0}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Caution</label>
-                                        <input
-                                            type="number"
-                                            className="w-full p-2.5 border rounded-lg"
-                                            value={formData.caution}
-                                            onChange={e => setFormData({...formData, caution: parseFloat(e.target.value)})}
-                                            min={0}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Avance</label>
-                                        <input
-                                            type="number"
-                                            className="w-full p-2.5 border rounded-lg"
-                                            value={formData.avance}
-                                            onChange={e => setFormData({...formData, avance: parseFloat(e.target.value)})}
-                                            min={0}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Payment config */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Devise</label>
-                                        <select
-                                            className="w-full p-2.5 border rounded-lg bg-white"
-                                            value={formData.devise}
-                                            onChange={e => setFormData({...formData, devise: e.target.value})}
-                                        >
-                                            <option value="XOF">XOF (FCFA)</option>
-                                            <option value="EUR">EUR</option>
-                                            <option value="USD">USD</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Type paiement</label>
-                                        <select
-                                            className="w-full p-2.5 border rounded-lg bg-white"
-                                            value={formData.type_paiement}
-                                            onChange={e => setFormData({...formData, type_paiement: e.target.value})}
-                                        >
-                                            <option value="classique">Classique (mensuel)</option>
-                                            <option value="echelonne">Échelonné</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Jour d'échéance</label>
-                                        <input
-                                            type="number"
-                                            className="w-full p-2.5 border rounded-lg"
-                                            value={formData.jour_echeance}
-                                            onChange={e => setFormData({...formData, jour_echeance: parseInt(e.target.value)})}
-                                            min={1}
-                                            max={31}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Actions */}
-                                <div className="flex justify-end gap-3 pt-4 border-t">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowAddModal(false)}
-                                        className="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition"
-                                    >
-                                        Annuler
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-5 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition flex items-center gap-2"
-                                    >
-                                        <Check size={18} /> Créer le bail
-                                    </button>
-                                </div>
-                            </form>
+                            
+                            <LocationForm 
+                                onSubmit={handleCreate}
+                                onCancel={() => setShowAddModal(false)}
+                                locataires={locataires}
+                                lots={lots}
+                                owners={owners}
+                                loading={loading}
+                            />
                         </motion.div>
                     </motion.div>
                 )}

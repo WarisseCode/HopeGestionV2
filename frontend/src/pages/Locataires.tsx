@@ -35,6 +35,7 @@ import SearchInput from '../components/ui/SearchInput';
 import FilterPanel from '../components/ui/FilterPanel';
 import type { FilterConfig, FilterValues } from '../components/ui/FilterPanel';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
+import LocataireForm from '../components/locataires/LocataireForm';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Constants
@@ -485,11 +486,15 @@ const Locataires: React.FC = () => {
                       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary"></div>
                       
                       <div className="flex justify-between items-start mb-4">
-                        <div className={`w-14 h-14 ${getAvatarColor(person.nom)} rounded-full flex items-center justify-center text-white text-xl font-bold ring-4 ring-white shadow-sm`}>
-                          {person.nom?.charAt(0)}{person.prenoms?.charAt(0)}
-                        </div>
-                        <div className={`badge ${person.statut === 'Actif' ? 'badge-success' : 'badge-warning'} gap-1 font-bold pl-1.5 pr-2.5 py-3 h-auto rounded-full`}>
-                          <div className={`w-1.5 h-1.5 rounded-full ${person.statut === 'Actif' ? 'bg-green-800' : 'bg-orange-800'}`}></div>
+                        {person.photo_profil_url ? (
+                          <img src={person.photo_profil_url} alt={person.nom} className="w-14 h-14 rounded-full object-cover ring-4 ring-white shadow-sm" />
+                        ) : (
+                          <div className={`w-14 h-14 ${getAvatarColor(person.nom)} rounded-full flex items-center justify-center text-white text-xl font-bold ring-4 ring-white shadow-sm`}>
+                            {person.nom?.charAt(0)}{person.prenoms?.charAt(0)}
+                          </div>
+                        )}
+                        <div className={`flex items-center gap-1.5 text-xs font-bold ${person.statut === 'Actif' ? 'text-green-600' : 'text-orange-600'} py-2 h-auto`}>
+                          <div className={`w-2 h-2 rounded-full ${person.statut === 'Actif' ? 'bg-green-500' : 'bg-orange-500'}`}></div>
                           {person.statut}
                         </div>
                       </div>
@@ -507,13 +512,13 @@ const Locataires: React.FC = () => {
                       <div className="space-y-2 pt-4 border-t border-gray-50">
                         <div className="flex justify-between items-center text-sm">
                           <span className="text-gray-400 flex items-center gap-1.5"><Home size={14}/> Logement</span>
-                          <span className="font-semibold text-gray-800">{person.lot || '-'}</span>
+                          <span className="font-semibold text-gray-800">{person.lot_nom || person.lot || '-'}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
                           <span className="text-gray-400 flex items-center gap-1.5"><Wallet size={14}/> Loyer</span>
-                          <span className="font-semibold text-primary">{person.loyer ? `${person.loyer.toLocaleString()} F` : '-'}</span>
+                          <span className="font-semibold text-primary">{(person.loyer_actuel || person.loyer) ? `${(person.loyer_actuel || person.loyer)?.toLocaleString()} F` : '-'}</span>
                         </div>
-                        {person.loyer && (
+                        {(person.loyer_actuel || person.loyer) && (
                           <div className="flex justify-between items-center text-sm">
                             <span className="text-gray-400">Paiement</span>
                             <PaymentStatusBadge status={paymentStatus} />
@@ -573,9 +578,13 @@ const Locataires: React.FC = () => {
                           <tr key={person.id} className="hover:bg-gray-50/50 transition-colors group">
                             <td className="pl-6">
                               <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 ${getAvatarColor(person.nom)} rounded-full flex items-center justify-center text-white text-sm font-bold`}>
-                                  {person.nom?.charAt(0)}{person.prenoms?.charAt(0)}
-                                </div>
+                                {person.photo_profil_url ? (
+                                  <img src={person.photo_profil_url} alt={person.nom} className="w-10 h-10 rounded-full object-cover" />
+                                ) : (
+                                  <div className={`w-10 h-10 ${getAvatarColor(person.nom)} rounded-full flex items-center justify-center text-white text-sm font-bold`}>
+                                    {person.nom?.charAt(0)}{person.prenoms?.charAt(0)}
+                                  </div>
+                                )}
                                 <div>
                                   <p className="font-bold text-gray-800">{person.prenoms} {person.nom}</p>
                                 </div>
@@ -583,13 +592,14 @@ const Locataires: React.FC = () => {
                             </td>
                             <td className="font-mono text-sm">{person.telephone_principal}</td>
                             <td className="text-gray-500 text-sm">{person.email || '-'}</td>
-                            <td className="text-gray-600">{person.lot || '-'}</td>
-                            <td className="font-semibold">{person.loyer ? `${person.loyer.toLocaleString()} F` : '-'}</td>
+                            <td className="text-gray-600">{person.lot_nom || person.lot || '-'}</td>
+                            <td className="font-semibold">{(person.loyer_actuel || person.loyer) ? `${(person.loyer_actuel || person.loyer)?.toLocaleString()} F` : '-'}</td>
                             <td><PaymentStatusBadge status={paymentStatus} /></td>
                             <td>
-                              <span className={`badge ${person.statut === 'Actif' ? 'badge-success' : 'badge-warning'}`}>
+                              <div className={`flex items-center gap-1.5 text-sm font-semibold ${person.statut === 'Actif' ? 'text-green-600' : 'text-orange-600'}`}>
+                                <div className={`w-2 h-2 rounded-full ${person.statut === 'Actif' ? 'bg-green-500' : 'bg-orange-500'}`}></div>
                                 {person.statut}
-                              </span>
+                              </div>
                             </td>
                             <td className="pr-6 text-right">
                               <div className="flex justify-end gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
@@ -654,65 +664,50 @@ const Locataires: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Create Modal */}
+      {/* Create/Edit Modal */}
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={locataireForm.typeProfil === 'Acheteur' ? 'Nouvel Acheteur' : 'Nouveau Locataire'}
-        size="lg"
-        footer={
-          <div className="flex gap-3 w-full">
-            <Button variant="ghost" onClick={() => setShowModal(false)} className="flex-1">Annuler</Button>
-            <Button variant="primary" onClick={handleSave} className="flex-1">Enregistrer</Button>
-          </div>
-        }
+        size="xl"
       >
-        <div className="space-y-4">
-          {/* Profile Photo Upload Placeholder */}
-          <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center border-4 border-white shadow-lg relative cursor-pointer group">
-              <User size={28} className="text-gray-400 group-hover:text-primary transition-colors"/>
-              <div className="absolute bottom-0 right-0 bg-primary text-white p-1 rounded-full shadow-md">
-                <Edit3 size={10} />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Select 
-              label="Profil" 
-              value={locataireForm.typeProfil} 
-              onChange={(e) => setLocataireForm({...locataireForm, typeProfil: e.target.value})} 
-              options={[{ value: 'Locataire', label: 'Locataire' }, { value: 'Acheteur', label: 'Acheteur' }]} 
-            />
-            <Select 
-              label="Nationalité" 
-              value={locataireForm.nationalite} 
-              onChange={(e) => setLocataireForm({...locataireForm, nationalite: e.target.value})} 
-              options={[{ value: 'Béninoise', label: 'Béninoise' }, { value: 'Togolaise', label: 'Togolaise' }, { value: 'Autre', label: 'Autre' }]} 
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Nom" placeholder="Nom de famille" value={locataireForm.nom} onChange={(e) => setLocataireForm({...locataireForm, nom: e.target.value})} required />
-            <Input label="Prénoms" placeholder="Prénoms" value={locataireForm.prenoms} onChange={(e) => setLocataireForm({...locataireForm, prenoms: e.target.value})} />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Téléphone (WhatsApp)" placeholder="+229..." value={locataireForm.telephonePrincipal} onChange={(e) => setLocataireForm({...locataireForm, telephonePrincipal: e.target.value})} required />
-            <Input label="Email" placeholder="exemple@email.com" value={locataireForm.email} onChange={(e) => setLocataireForm({...locataireForm, email: e.target.value})} />
-          </div>
-
-          {locataireForm.typeProfil === 'Locataire' && (
-            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4">
-              <h3 className="font-bold text-gray-700 text-sm uppercase">Conditions Financières</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <Input label="Caution (FCFA)" type="number" value={locataireForm.acompte} onChange={(e) => setLocataireForm({...locataireForm, acompte: parseFloat(e.target.value) || 0})} />
-                <Input label="Avance (FCFA)" type="number" value={locataireForm.avance} onChange={(e) => setLocataireForm({...locataireForm, avance: parseFloat(e.target.value) || 0})} />
-              </div>
-            </div>
-          )}
-        </div>
+        <LocataireForm
+          locataire={{
+            type: locataireForm.typeProfil as any,
+            nom: locataireForm.nom,
+            prenoms: locataireForm.prenoms,
+            telephone_principal: locataireForm.telephonePrincipal,
+            telephone_secondaire: locataireForm.telephoneSecondaire,
+            email: locataireForm.email,
+            nationalite: locataireForm.nationalite,
+            type_piece: locataireForm.typePiece,
+            numero_piece: locataireForm.numeroPiece,
+            date_expiration_piece: locataireForm.dateExpiration,
+            mode_paiement_preferentiel: locataireForm.modePaiement,
+            caution: locataireForm.acompte,
+            avance: locataireForm.avance
+          }}
+          onSave={async (data) => {
+            try {
+              setError(null);
+              if (!data.nom || !data.telephone_principal) {
+                throw new Error('Nom et téléphone sont requis');
+              }
+              await createLocataire(data);
+              setSuccess('Profil créé avec succès');
+              setShowModal(false);
+              setLocataireForm({
+                typeProfil: 'Locataire', nom: '', prenoms: '', telephonePrincipal: '', telephoneSecondaire: '',
+                email: '', nationalite: 'Béninoise', typePiece: 'CNI', numeroPiece: '', dateExpiration: '',
+                modePaiement: 'Mobile Money', acompte: 0, avance: 0
+              });
+              fetchData();
+            } catch (err: any) {
+              setError(err.message);
+            }
+          }}
+          onCancel={() => setShowModal(false)}
+        />
       </Modal>
     </motion.div>
   );

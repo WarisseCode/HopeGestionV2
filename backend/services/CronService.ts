@@ -30,7 +30,7 @@ export class CronService {
 
     /**
      * Check for active leases that haven't paid rent for the current month
-     * Triggered if current day > 5 (or custom due date)
+     * Also updates payment_schedules statut to 'retard' for overdue entries
      */
     static async checkLatePayments(force = false) {
         const client = await pool.connect();
@@ -45,6 +45,18 @@ export class CronService {
             }
 
             console.log('🔍 Checking for late payments...');
+
+            // Module V: Update overdue payment_schedules to 'retard'
+            const updateOverdueQuery = `
+                UPDATE payment_schedules 
+                SET statut = 'retard' 
+                WHERE statut = 'en_attente' 
+                AND date_echeance < CURRENT_DATE
+            `;
+            const overdueResult = await client.query(updateOverdueQuery);
+            if (overdueResult.rowCount && overdueResult.rowCount > 0) {
+                console.log(`📛 Marked ${overdueResult.rowCount} schedules as 'retard'`);
+            }
 
             // Find active leases WITHOUT a payment for the current month
             // We verify:

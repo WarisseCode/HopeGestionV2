@@ -71,6 +71,8 @@ export interface CreateLocationData {
     charges_mensuelles?: number;
     devise?: string;
     type_paiement?: string;
+    frequence_paiement?: string; // Module V: mensuel, hebdomadaire, bimensuel
+    nombre_echeances?: number;   // Module V: custom number of installments
     jour_echeance?: number;
     penalite_retard?: number;
     tolerance_jours?: number;
@@ -119,6 +121,8 @@ export const locationApi = {
         const token = getToken();
         if (!token) throw new Error('Non authentifié');
         
+        console.log('Sending payload to API:', JSON.stringify(data, null, 2));
+
         const res = await fetch(`${API_URL}/locations`, {
             method: 'POST',
             headers: { 
@@ -129,6 +133,7 @@ export const locationApi = {
         });
         if (!res.ok) {
             const err = await res.json();
+            console.error('API Error Response:', err);
             throw new Error(err.message || 'Erreur création location');
         }
         return await res.json();

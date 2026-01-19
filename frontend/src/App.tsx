@@ -38,10 +38,12 @@ import Proprietaires from './pages/Proprietaires';
 import LotsPage from './pages/LotsPage';
 import Documents from './pages/Documents';
 import DelegationsPage from './pages/DelegationsPage';
-import LocataireDetailsPage from './pages/LocataireDetailsPage';
+import LocataireDetails from './pages/LocataireDetails';
 import CalendrierPage from './pages/CalendrierPage';
 import AuditLogsPage from './pages/AuditLogsPage';
 import Locations from './pages/Locations';
+import LocationDetails from './pages/LocationDetails';
+import ReservationsList from './pages/ReservationsList';
 // Public marketing pages
 import { 
   FonctionnalitesPage, 
@@ -49,7 +51,8 @@ import {
   LocatairePublicPage, 
   ModulesTransversesPage,
   AboutPage,
-  BiensPublicsPage 
+  BiensPublicsPage,
+  PublicReservation
 } from './pages/public';
 
 type View = 'home' | 'login' | 'dashboard';
@@ -112,6 +115,10 @@ const App: React.FC = () => {
                     <Route path="/a-propos" element={<AboutPage />} />
                     <Route path="/biens-disponibles" element={<BiensPublicsPage />} />
                     
+                    {/* Public Reservation */}
+                    <Route path="/reserver/:lotId" element={<PublicReservation />} />
+
+                    
                     {/* Routes protégées - ADMIN */}
                     <Route 
                         path="/admin/*" 
@@ -146,9 +153,11 @@ const App: React.FC = () => {
                                             <Route path="mon-compte" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<MonCompte />} />} />
                                             <Route path="biens" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Biens />} />} />
                                             <Route path="locataires" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Locataires />} />} />
-                                            <Route path="locataires/:id" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<LocataireDetailsPage />} />} />
+                                            <Route path="locataires/:id" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<LocataireDetails />} />} />
                                             <Route path="calendrier" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<CalendrierPage />} />} />
                                             <Route path="locations" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Locations />} />} />
+                                            <Route path="locations/:id" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<LocationDetails />} />} />
+                                            <Route path="reservations" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<ReservationsList />} />} />
                                             <Route path="contrats" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Contrats />} />} />
                                             <Route path="documents" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Documents />} />} />
                                             <Route path="finances" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Finances />} />} />

@@ -18,7 +18,18 @@ export interface Locataire {
     mode_paiement_preferentiel?: string;
     active_leases?: number; // count from SQL
     created_at?: string;
-    // Display fields from join
+    // Module IV new fields
+    adresse_actuelle?: string;
+    date_expiration_piece?: string;
+    caution?: number;
+    avance?: number;
+    paiement_echelonne?: boolean;
+    // Display fields from LATERAL JOIN
+    lot_nom?: string;      // Active lot reference
+    loyer_actuel?: number; // Active rent amount
+    active_lease_id?: number;
+    bail_statut?: string;
+    // Legacy aliases (for backward compatibility)
     lot?: string;
     loyer?: number;
     paiementEcheance?: boolean;

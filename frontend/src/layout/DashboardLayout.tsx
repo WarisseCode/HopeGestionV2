@@ -20,13 +20,15 @@ import {
   FolderOpen,
   Calendar,
   Briefcase,
-  ShieldCheck
+  ShieldCheck,
+  CalendarCheck
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import ThemeToggle from '../components/ui/ThemeToggle';
 import { getProfile } from '../api/authApi';
 import { getAlerts } from '../api/alertApi';
 import ChatBot from '../components/ChatBot';
+import NotificationBell from '../components/NotificationBell';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -146,6 +148,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
         { icon: <Building2 size={20} />, label: 'Mes Biens', path: '/biens' },
         { icon: <Users size={20} />, label: 'Mes Locataires', path: '/locataires' },
         { icon: <FileText size={20} />, label: 'Mes Locations', path: '/locations' },
+        { icon: <CalendarCheck size={20} />, label: 'Réservations', path: '/reservations' },
         { icon: <Briefcase size={20} />, label: 'Mon Équipe', path: '/equipe' },
         { icon: <Calendar size={20} />, label: 'Calendrier', path: '/calendrier' },
         { icon: <FileText size={20} />, label: 'Mes Contrats', path: '/contrats' },
@@ -167,6 +170,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
         { icon: <Building2 size={20} />, label: 'Biens', path: '/biens' },
         { icon: <Users size={20} />, label: 'Locataires', path: '/locataires' },
         { icon: <FileText size={20} />, label: 'Locations', path: '/locations' },
+        { icon: <CalendarCheck size={20} />, label: 'Réservations', path: '/reservations' },
         { icon: <Calendar size={20} />, label: 'Calendrier', path: '/calendrier' },
         { icon: <FileText size={20} />, label: 'Contrats', path: '/contrats' },
         { icon: <Wallet size={20} />, label: 'Finances', path: '/finances' },
@@ -329,32 +333,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
                 <ThemeToggle />
 
                 {/* Notifications Dropdown */}
-                <div className="dropdown dropdown-end">
-                    <div tabIndex={0} role="button" className="btn btn-ghost btn-circle">
-                        <div className="indicator">
-                            {/* Notifications */}
-                             <div className="btn btn-ghost btn-circle">
-                                <div className="indicator">
-                                    <Bell size={20} />
-                                    <span className="badge badge-xs badge-error indicator-item"></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-80">
-                        <li>
-                            <a className="justify-between">
-                                Loyer reçu - Apt A01
-                                <span className="badge badge-success badge-xs">New</span>
-                            </a>
-                        </li>
-                        <li><a>Fuite d'eau signalée - Apt B02</a></li>
-                        <li><a>Nouveau locataire validé</a></li>
-                        <li className="text-xs text-center pt-2 border-t border-base-200 mt-2 text-primary">
-                            <Link to="/dashboard/alertes">Voir toutes les notifications</Link>
-                        </li>
-                    </ul>
-                </div>
+                <NotificationBell />
 
                 {/* Profile Dropdown */}
                 <div className="dropdown dropdown-end">

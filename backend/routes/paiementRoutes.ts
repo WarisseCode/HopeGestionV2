@@ -44,10 +44,18 @@ router.get('/', permissions.canRead('finance'), async (req: AuthenticatedRequest
     }
 });
 
-// POST /api/paiements - Enregistrer un paiement
+// POST /api/paiements - Enregistrer un paiement (Module V: linked to schedule)
 router.post('/', permissions.canWrite('finance'), async (req: AuthenticatedRequest, res) => {
     try {
-        const { lease_id, montant, type, mode_paiement, date_paiement, reference_transaction } = req.body;
+        const { 
+            lease_id, 
+            montant, 
+            type, 
+            mode_paiement, 
+            date_paiement, 
+            reference_transaction,
+            schedule_id // Module V: Link to specific schedule entry
+        } = req.body;
         
         // 1. Récupérer infos du bail pour owner_id
         const leaseResult = await pool.query('SELECT owner_id FROM leases WHERE id = $1', [lease_id]);
@@ -59,11 +67,40 @@ router.post('/', permissions.canWrite('finance'), async (req: AuthenticatedReque
         // 2. Insérer paiement
         const result = await pool.query(
             `INSERT INTO payments 
-            (lease_id, montant, type, mode_paiement, date_paiement, reference_transaction, owner_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            (lease_id, montant, type, mode_paiement, date_paiement, reference_transaction, owner_id, schedule_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *`,
-            [lease_id, montant, type, mode_paiement, date_paiement || new Date(), reference_transaction || null, owner_id]
+            [lease_id, montant, type, mode_paiement, date_paiement || new Date(), reference_transaction || null, owner_id, schedule_id || null]
         );
+
+        // 3. Module V: Update schedule if linked
+        if (schedule_id) {
+            // Get current schedule info - correct column names: total_amount, amount_paid
+            const scheduleResult = await pool.query(
+                'SELECT total_amount, amount_paid FROM payment_schedules WHERE id = $1',
+                [schedule_id]
+            );
+            
+            if (scheduleResult.rows.length > 0) {
+                const schedule = scheduleResult.rows[0];
+                const newPaid = parseFloat(schedule.amount_paid || 0) + parseFloat(montant);
+                const scheduledAmount = parseFloat(schedule.total_amount);
+                
+                let newStatus = 'partiel';
+                if (newPaid >= scheduledAmount) {
+                    newStatus = 'paye';
+                }
+                
+                await pool.query(
+                    `UPDATE payment_schedules 
+                     SET amount_paid = $1, 
+                         statut = $2, 
+                         date_reglement_final = CASE WHEN $2 = 'paye' THEN CURRENT_DATE ELSE date_reglement_final END
+                     WHERE id = $3`,
+                    [newPaid, newStatus, schedule_id]
+                );
+            }
+        }
 
         res.status(201).json(result.rows[0]);
     } catch (error) {

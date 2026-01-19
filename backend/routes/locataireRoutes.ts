@@ -33,8 +33,20 @@ router.get('/', protect, permissions.canRead('locataires'), async (req: any, res
         const { type, search } = req.query;
         let query = `
             SELECT t.*, 
-                   (SELECT COUNT(*) FROM leases l WHERE l.tenant_id = t.id AND l.statut = 'actif') as active_leases
+                   (SELECT COUNT(*) FROM leases l WHERE l.tenant_id = t.id AND l.statut = 'actif') as active_leases,
+                   al.ref_lot as lot_nom,
+                   al.loyer_mensuel as loyer_actuel,
+                   al.lease_id as active_lease_id,
+                   al.lease_statut as bail_statut
             FROM tenants t 
+            LEFT JOIN LATERAL (
+                SELECT lot.ref_lot, l.loyer_actuel as loyer_mensuel, l.id as lease_id, l.statut as lease_statut
+                FROM leases l
+                JOIN lots lot ON l.lot_id = lot.id
+                WHERE l.tenant_id = t.id AND l.statut = 'actif'
+                ORDER BY l.date_debut DESC
+                LIMIT 1
+            ) al ON true
             WHERE t.owner_id = $1 AND t.statut != 'Archivé'
         `;
         const params: any[] = [ownerId];
@@ -120,18 +132,25 @@ router.post('/', protect, async (req: any, res) => {
 
         const {
             nom, prenoms, email, telephone_principal, telephone_secondaire,
-            nationalite, type_piece, numero_piece, type, mode_paiement_preferentiel
+            nationalite, type_piece, numero_piece, type, mode_paiement_preferentiel,
+            // Module IV new fields
+            adresse_actuelle, date_expiration_piece, photo_profil_url, photo_piece_url,
+            caution, avance, paiement_echelonne
         } = req.body;
 
         const result = await pool.query(
             `INSERT INTO tenants (
                 owner_id, nom, prenoms, email, telephone_principal, telephone_secondaire,
-                nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Actif', $11) 
+                nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel,
+                adresse_actuelle, date_expiration_piece, photo_profil_url, photo_piece_url,
+                caution, avance, paiement_echelonne
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Actif', $11, $12, $13, $14, $15, $16, $17, $18) 
             RETURNING id`,
             [
                 ownerId, nom, prenoms, email, telephone_principal, telephone_secondaire,
-                nationalite, type_piece, numero_piece, type || 'Locataire', mode_paiement_preferentiel
+                nationalite, type_piece, numero_piece, type || 'Locataire', mode_paiement_preferentiel,
+                adresse_actuelle || null, date_expiration_piece || null, photo_profil_url || null, photo_piece_url || null,
+                caution || 0, avance || 0, paiement_echelonne || false
             ]
         );
 
@@ -169,7 +188,10 @@ router.put('/:id', protect, async (req: any, res) => {
 
         const {
             nom, prenoms, email, telephone_principal, telephone_secondaire,
-            nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel
+            nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel,
+            // Module IV new fields
+            adresse_actuelle, date_expiration_piece, photo_profil_url, photo_piece_url,
+            caution, avance, paiement_echelonne
         } = req.body;
 
         await pool.query(
@@ -177,11 +199,15 @@ router.put('/:id', protect, async (req: any, res) => {
                 nom = $1, prenoms = $2, email = $3, telephone_principal = $4, 
                 telephone_secondaire = $5, nationalite = $6, type_piece = $7, 
                 numero_piece = $8, type = $9, statut = $10, mode_paiement_preferentiel = $11,
+                adresse_actuelle = $12, date_expiration_piece = $13, photo_profil_url = $14, photo_piece_url = $15,
+                caution = $16, avance = $17, paiement_echelonne = $18,
                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $12`,
+             WHERE id = $19`,
             [
                 nom, prenoms, email, telephone_principal, telephone_secondaire,
                 nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel,
+                adresse_actuelle || null, date_expiration_piece || null, photo_profil_url || null, photo_piece_url || null,
+                caution || 0, avance || 0, paiement_echelonne || false,
                 tenantId
             ]
         );

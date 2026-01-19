@@ -69,7 +69,16 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // --- 2. Routes de l'API ---
 // Routes d'authentification (Publiques)
+// Routes d'authentification (Publiques)
 app.use('/api/auth', authRoutes);
+
+// Routes Réservations (Public + Protected mix inside)
+import reservationRoutes from './routes/reservationRoutes';
+app.use('/api/reservations', reservationRoutes);
+
+// Routes Publiques (Aucune authentification requise)
+import publicRoutes from './routes/publicRoutes';
+app.use('/api/public', publicRoutes);
 
 // --- Routes Protégées ---
 // Routes Locataires (Nécessite le jeton JWT)
@@ -97,6 +106,10 @@ app.use('/api/mobile-money', protect, mobileMoneyRoutes);
 // Routes Notifications
 import notificationRoutes from './routes/notificationRoutes';
 app.use('/api/notifications', protect, notificationRoutes);
+
+// Routes Tenant Access (Portal Control)
+import tenantAccessRoutes from './routes/tenantAccessRoutes';
+app.use('/api/tenant-access', protect, tenantAccessRoutes);
 // Routes Alertes
 app.use('/api/alertes', protect, alertRoutes);
 

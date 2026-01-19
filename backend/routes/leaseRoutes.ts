@@ -154,9 +154,11 @@ router.post('/', permissions.canWrite('locataires'), async (req: AuthenticatedRe
             charges_mensuelles,
             devise,
             type_paiement,
+            frequence_paiement, // Module V: mensuel, hebdomadaire, bimensuel, personnalise
             jour_echeance,
             penalite_retard,
             tolerance_jours,
+            nombre_echeances, // Module V: for installment count (optional, calculated if not provided)
             // Nouveaux champs pour Vente/Autre
             prix_vente,
             apport_initial,
@@ -199,16 +201,16 @@ router.post('/', permissions.canWrite('locataires'), async (req: AuthenticatedRe
                 tenant_id, lot_id, owner_id, reference_bail, type_contrat,
                 date_debut, date_fin, duree_contrat, loyer_actuel,
                 caution, avance, charges_mensuelles, devise,
-                type_paiement, jour_echeance, penalite_retard, tolerance_jours,
+                type_paiement, frequence_paiement, jour_echeance, penalite_retard, tolerance_jours,
                 prix_vente, apport_initial, modalite_paiement, date_expiration, conditions_particulieres,
                 statut, gestionnaire_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, 'actif', $23)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, 'actif', $24)
             RETURNING *
         `, [
             tenant_id, lot_id, owner_id, reference_bail, type_contrat,
             date_debut, date_fin || null, duree_contrat || 12, loyer_mensuel || 0,
             caution || 0, avance || 0, charges_mensuelles || 0, devise || 'XOF',
-            type_paiement || 'classique', jour_echeance || 1, penalite_retard || 0, tolerance_jours || 0,
+            type_paiement || 'classique', frequence_paiement || 'mensuel', jour_echeance || 1, penalite_retard || 0, tolerance_jours || 0,
             prix_vente || null, apport_initial || null, modalite_paiement || null, date_expiration || null, conditions_particulieres || null,
             req.userId
         ]);
@@ -227,8 +229,10 @@ router.post('/', permissions.canWrite('locataires'), async (req: AuthenticatedRe
             const amount = type_contrat === 'vente' 
                 ? (prix_vente - (apport_initial || 0)) / duree_contrat // Simple linear calculation for sale
                 : loyer_mensuel;
-                
-            await generatePaymentSchedule(result.rows[0].id, date_debut, duree_contrat, amount, jour_echeance);
+            
+            const freq = frequence_paiement || 'mensuel';
+            const numSchedules = nombre_echeances || duree_contrat; // Default to months if not specified
+            await generatePaymentSchedule(result.rows[0].id, date_debut, numSchedules, amount, jour_echeance, freq);
         }
 
         res.status(201).json(result.rows[0]);
@@ -410,19 +414,45 @@ router.post('/:id/sign', permissions.canWrite('locataires'), async (req: Authent
     }
 });
 
-// Helper: Generate payment schedule
-async function generatePaymentSchedule(leaseId: number, startDate: string, months: number, amount: number, dayOfMonth: number) {
+// Helper: Generate payment schedule (Module V: supports multiple frequencies)
+async function generatePaymentSchedule(
+    leaseId: number, 
+    startDate: string, 
+    numInstallments: number, 
+    amount: number, 
+    dayOfMonth: number,
+    frequency: string = 'mensuel'
+) {
     const start = new Date(startDate);
     
-    for (let i = 0; i < months; i++) {
-        const echeanceDate = new Date(start.getFullYear(), start.getMonth() + i, dayOfMonth);
+    for (let i = 0; i < numInstallments; i++) {
+        let echeanceDate: Date;
         
+        switch (frequency) {
+            case 'hebdomadaire': // Weekly
+                echeanceDate = new Date(start);
+                echeanceDate.setDate(start.getDate() + (i * 7));
+                break;
+            case 'bimensuel': // Bi-monthly (every 2 weeks)
+                echeanceDate = new Date(start);
+                echeanceDate.setDate(start.getDate() + (i * 14));
+                break;
+            case 'mensuel':
+            default:
+                echeanceDate = new Date(start.getFullYear(), start.getMonth() + i, dayOfMonth || start.getDate());
+                break;
+        }
+        
+        // Correct column names: due_date, total_amount, description, statut
         await pool.query(`
-            INSERT INTO payment_schedules (lease_id, numero_echeance, date_echeance, montant)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (lease_id, numero_echeance) DO NOTHING
-        `, [leaseId, i + 1, echeanceDate, amount]);
+            INSERT INTO payment_schedules (lease_id, due_date, total_amount, amount_paid, statut, description)
+            VALUES ($1, $2, $3, 0, 'en_attente', $4)
+        `, [leaseId, echeanceDate, amount, `Échéance #${i + 1}`]);
     }
+    
+    // Update next_payment_date on lease
+    const firstPaymentDate = new Date(startDate);
+    await pool.query('UPDATE leases SET next_payment_date = $1 WHERE id = $2', [firstPaymentDate, leaseId]);
 }
 
 export default router;

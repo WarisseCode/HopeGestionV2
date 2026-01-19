@@ -23,6 +23,7 @@ import {
   UpcomingEvents,
   DashboardSkeleton
 } from '../components/dashboard';
+import NotificationBell from '../components/NotificationBell';
 import type { Activity } from '../components/dashboard/ActivityFeed';
 import type { UpcomingEvent } from '../components/dashboard/UpcomingEvents';
 import Button from '../components/ui/Button';
@@ -89,10 +90,7 @@ const LocataireDashboard: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-3">
-             <Button variant="ghost" className="btn-circle relative">
-                <Bell size={20} />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-             </Button>
+             <NotificationBell />
              <div className="text-right hidden md:block">
                 <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Mon Logement</p>
                 <p className="font-bold text-gray-800">{nomLogement}</p>

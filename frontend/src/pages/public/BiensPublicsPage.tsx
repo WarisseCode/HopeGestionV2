@@ -17,14 +17,34 @@ import {
   Share2,
   Navigation,
   Locate,
-  Loader2
+  Loader2,
+  CalendarCheck
 } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import PublicLayout from '../../layout/PublicLayout';
 import Button from '../../components/ui/Button';
-import { mockProperties, getPropertyTypes, getCities, filterProperties } from '../../data/mockProperties';
-import type { PublicProperty } from '../../data/mockProperties';
 import { useGeolocation } from '../../hooks/useGeolocation';
+
+// Property interface matching API response
+interface PublicProperty {
+  id: number;
+  ref_lot: string;
+  type: string;
+  titre: string;
+  description: string;
+  surface: number;
+  loyer: number;
+  pieces: number;
+  chambres: number;
+  sallesBain: number;
+  ville: string;
+  quartier: string;
+  latitude: number;
+  longitude: number;
+  image: string;
+  amenities: string[];
+  disponible: boolean;
+}
 
 const BiensPublicsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -53,15 +73,37 @@ const BiensPublicsPage: React.FC = () => {
     getDirectionsUrl
   } = useGeolocation();
 
-  const types = getPropertyTypes();
-  const cities = getCities();
+  // Fetch properties from API
+  const [properties, setProperties] = useState<PublicProperty[]>([]);
+  const [loadingProperties, setLoadingProperties] = useState(true);
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/public/lots');
+        if (res.ok) {
+          const data = await res.json();
+          setProperties(data);
+        }
+      } catch (err) {
+        console.error('Error fetching properties:', err);
+      } finally {
+        setLoadingProperties(false);
+      }
+    };
+    fetchProperties();
+  }, []);
+
+  // Derive types and cities from fetched data
+  const types = useMemo(() => [...new Set(properties.map(p => p.type))], [properties]);
+  const cities = useMemo(() => [...new Set(properties.map(p => p.ville))], [properties]);
 
   // Handle property URL parameter - scroll to and highlight property from carousel
   useEffect(() => {
     const propertyId = searchParams.get('property');
     if (propertyId) {
       const id = parseInt(propertyId);
-      const property = mockProperties.find(p => p.id === id);
+      const property = properties.find(p => p.id === id);
       
       if (property) {
         // Set the highlighted property for visual feedback
@@ -93,7 +135,7 @@ const BiensPublicsPage: React.FC = () => {
 
   // Filter and sort properties
   const filteredProperties = useMemo(() => {
-    let result = mockProperties.filter(p => {
+    let result = properties.filter(p => {
       if (selectedType && p.type !== selectedType) return false;
       if (selectedCity && p.ville !== selectedCity) return false;
       if (p.loyer < priceRange[0] || p.loyer > priceRange[1]) return false;
@@ -128,7 +170,7 @@ const BiensPublicsPage: React.FC = () => {
     }
 
     return result;
-  }, [selectedType, selectedCity, priceRange, searchQuery, sortBy, maxDistance, permissionGranted, latitude, longitude, calculateDistance]);
+  }, [properties, selectedType, selectedCity, priceRange, searchQuery, sortBy, maxDistance, permissionGranted, latitude, longitude, calculateDistance]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR').format(price);
@@ -367,25 +409,21 @@ const BiensPublicsPage: React.FC = () => {
           </div>
 
           {/* Properties Grid */}
-          <motion.div 
+          <div 
             className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
           >
             {filteredProperties.map((property) => (
-              <motion.div
+              <div
                 key={property.id}
                 ref={(el) => {
                   if (el) propertyRefs.current.set(property.id, el);
                 }}
-                variants={itemVariants}
-                className={`bg-base-100 rounded-2xl overflow-hidden shadow-lg border hover:shadow-2xl transition-all duration-300 group ${
+                className={`bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-200 hover:shadow-2xl transition-all duration-300 group cursor-pointer ${
                   viewMode === 'list' ? 'flex' : ''
                 } ${
                   highlightedPropertyId === property.id 
-                    ? 'border-primary ring-4 ring-primary/30 animate-pulse' 
-                    : 'border-base-200'
+                    ? 'border-blue-500 ring-4 ring-blue-500/30 animate-pulse' 
+                    : ''
                 }`}
                 onClick={() => setSelectedProperty(property)}
               >
@@ -483,18 +521,22 @@ const BiensPublicsPage: React.FC = () => {
 
                   {/* CTA */}
                   <div className="flex gap-2">
-                    <Button variant="primary" className="flex-1 rounded-xl">
-                      <Phone size={16} className="mr-2" />
-                      Contacter
-                    </Button>
+                    <Link 
+                      to={`/reserver/${property.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="btn btn-primary flex-1 rounded-xl gap-2"
+                    >
+                      <CalendarCheck size={16} />
+                      Réserver
+                    </Link>
                     <Button variant="ghost" className="rounded-xl border border-base-300">
-                      <Mail size={16} />
+                      <Phone size={16} />
                     </Button>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
-          </motion.div>
+          </div>
 
           {/* Empty State */}
           {filteredProperties.length === 0 && (
@@ -659,13 +701,16 @@ const BiensPublicsPage: React.FC = () => {
                   )}
                   
                   <div className="flex gap-3">
-                    <Button variant="primary" className="flex-1 rounded-xl py-3">
-                      <Phone size={18} className="mr-2" />
-                      Appeler maintenant
-                    </Button>
+                    <Link 
+                      to={`/reserver/${selectedProperty.id}`}
+                      className="btn btn-primary flex-1 rounded-xl py-3 gap-2"
+                    >
+                      <CalendarCheck size={18} />
+                      Réserver ce bien
+                    </Link>
                     <Button variant="secondary" className="flex-1 rounded-xl py-3 border border-base-300">
-                      <Mail size={18} className="mr-2" />
-                      Envoyer un message
+                      <Phone size={18} className="mr-2" />
+                      Contacter
                     </Button>
                   </div>
                 </div>
