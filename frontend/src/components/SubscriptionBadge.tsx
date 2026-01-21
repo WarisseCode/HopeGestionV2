@@ -41,7 +41,7 @@ const SubscriptionBadge: React.FC = () => {
         }
     };
 
-    const isExpiringSoon = status.days_remaining !== null && status.days_remaining <= 7;
+    const isExpiringSoon = status.days_remaining !== null && status.days_remaining !== undefined && status.days_remaining <= 7;
 
     return (
         <Link 

@@ -103,7 +103,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
             case 0: // Parties & Dates
                 return formData.tenant_id > 0 && formData.lot_id > 0 && formData.owner_id > 0 && !!formData.date_debut;
             case 1: // Financial
-                return formData.duree_contrat > 0 && formData.loyer_mensuel > 0;
+                return (formData.duree_contrat ?? 0) > 0 && (formData.loyer_mensuel ?? 0) > 0;
             case 2: // Payment
                 return true;
             default:
