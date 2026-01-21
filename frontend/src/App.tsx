@@ -44,6 +44,10 @@ import AuditLogsPage from './pages/AuditLogsPage';
 import Locations from './pages/Locations';
 import LocationDetails from './pages/LocationDetails';
 import ReservationsList from './pages/ReservationsList';
+import InventoriesList from './pages/InventoriesList';
+import InventoryForm from './pages/InventoryForm';
+import InventoryDetails from './pages/InventoryDetails';
+import Pricing from './pages/Pricing';
 // Public marketing pages
 import { 
   FonctionnalitesPage, 
@@ -158,6 +162,12 @@ const App: React.FC = () => {
                                             <Route path="locations" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Locations />} />} />
                                             <Route path="locations/:id" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<LocationDetails />} />} />
                                             <Route path="reservations" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<ReservationsList />} />} />
+                                            <Route path="inventories" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoriesList />} />} />
+                                            <Route path="inventaires" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoriesList />} />} />
+                                            <Route path="inventories/new" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoryForm />} />} />
+                                            <Route path="inventaires/new" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoryForm />} />} />
+                                            <Route path="inventories/:id/edit" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoryForm />} />} />
+                                            <Route path="inventories/:id" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoryDetails />} />} />
                                             <Route path="contrats" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Contrats />} />} />
                                             <Route path="documents" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Documents />} />} />
                                             <Route path="finances" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Finances />} />} />
@@ -169,6 +179,7 @@ const App: React.FC = () => {
                                             <Route path="alertes" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Alertes />} />} />
                                             <Route path="mobile-money" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<MobileMoney />} />} />
                                             <Route path="quittances" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Quittances />} />} />
+                                            <Route path="abonnement" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Pricing />} />} />
                                             <Route path="proprietaires" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<Proprietaires />} />} />
                                             <Route path="locataire" element={<LocataireDashboard />} />
                                             <Route path="locataire/*" element={<LocataireDashboard />} />

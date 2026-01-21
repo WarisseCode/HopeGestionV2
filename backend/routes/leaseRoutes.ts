@@ -30,6 +30,7 @@ router.get('/', permissions.canRead('locataires'), async (req: AuthenticatedRequ
                 l.caution,
                 l.avance,
                 l.charges_mensuelles,
+                l.type_charges,
                 l.statut,
                 l.devise,
                 l.type_paiement,
@@ -152,6 +153,7 @@ router.post('/', permissions.canWrite('locataires'), async (req: AuthenticatedRe
             caution,
             avance,
             charges_mensuelles,
+            type_charges, // New field from migration
             devise,
             type_paiement,
             frequence_paiement, // Module V: mensuel, hebdomadaire, bimensuel, personnalise
@@ -200,7 +202,7 @@ router.post('/', permissions.canWrite('locataires'), async (req: AuthenticatedRe
             INSERT INTO leases (
                 tenant_id, lot_id, owner_id, reference_bail, type_contrat,
                 date_debut, date_fin, duree_contrat, loyer_actuel,
-                caution, avance, charges_mensuelles, devise,
+                caution, avance, charges_mensuelles, type_charges, devise,
                 type_paiement, frequence_paiement, jour_echeance, penalite_retard, tolerance_jours,
                 prix_vente, apport_initial, modalite_paiement, date_expiration, conditions_particulieres,
                 statut, gestionnaire_id
@@ -209,7 +211,7 @@ router.post('/', permissions.canWrite('locataires'), async (req: AuthenticatedRe
         `, [
             tenant_id, lot_id, owner_id, reference_bail, type_contrat,
             date_debut, date_fin || null, duree_contrat || 12, loyer_mensuel || 0,
-            caution || 0, avance || 0, charges_mensuelles || 0, devise || 'XOF',
+            caution || 0, avance || 0, charges_mensuelles || 0, type_charges || 'forfaitaire', devise || 'XOF',
             type_paiement || 'classique', frequence_paiement || 'mensuel', jour_echeance || 1, penalite_retard || 0, tolerance_jours || 0,
             prix_vente || null, apport_initial || null, modalite_paiement || null, date_expiration || null, conditions_particulieres || null,
             req.userId
@@ -261,6 +263,7 @@ router.put('/:id', permissions.canWrite('locataires'), async (req: Authenticated
                 date_fin = COALESCE($1, date_fin),
                 loyer_actuel = COALESCE($2, loyer_actuel),
                 charges_mensuelles = COALESCE($3, charges_mensuelles),
+                type_charges = COALESCE($9, type_charges),
                 jour_echeance = COALESCE($4, jour_echeance),
                 penalite_retard = COALESCE($5, penalite_retard),
                 tolerance_jours = COALESCE($6, tolerance_jours),
@@ -268,7 +271,7 @@ router.put('/:id', permissions.canWrite('locataires'), async (req: Authenticated
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = $8
             RETURNING *
-        `, [date_fin, loyer_mensuel, charges_mensuelles, jour_echeance, penalite_retard, tolerance_jours, statut, id]);
+        `, [date_fin, loyer_mensuel, charges_mensuelles, jour_echeance, penalite_retard, tolerance_jours, statut, id, req.body.type_charges]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Bail non trouvé' });

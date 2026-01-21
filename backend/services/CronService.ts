@@ -24,8 +24,15 @@ export class CronService {
              console.log('Running Auto-Job: Check Lease Expirations...');
              await this.checkLeaseExpirations();
         });
+
+        // 3. Subscription Expiration: Every day at 08:00 AM
+        // Marks expired subscriptions and notifies users
+        cron.schedule('0 8 * * *', async () => {
+             console.log('Running Auto-Job: Check Subscription Expirations...');
+             await this.checkSubscriptionExpirations();
+        });
         
-        console.log('✅ Tâches planifiées (09:00 & 10:00).');
+        console.log('✅ Tâches planifiées (08:00, 09:00 & 10:00).');
     }
 
     /**
@@ -144,6 +151,68 @@ export class CronService {
 
         } catch (error) {
              console.error('❌ Error in checkLeaseExpirations:', error);
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Check for expired subscriptions and downgrade to Free plan
+     */
+    static async checkSubscriptionExpirations() {
+        const client = await pool.connect();
+        try {
+            console.log('🔍 Checking for subscription expirations...');
+
+            // 1. Find active subscriptions that have expired
+            const expiredQuery = `
+                UPDATE subscriptions 
+                SET status = 'expired', updated_at = NOW()
+                WHERE status = 'active' 
+                AND end_date IS NOT NULL 
+                AND end_date < NOW()
+                RETURNING user_id, plan_id
+            `;
+            const expiredResult = await client.query(expiredQuery);
+
+            if (expiredResult.rowCount && expiredResult.rowCount > 0) {
+                console.log(`📛 Marked ${expiredResult.rowCount} subscriptions as 'expired'`);
+
+                // Reset users to Free plan
+                const freePlanResult = await client.query(`SELECT id FROM plans WHERE name = 'free' LIMIT 1`);
+                const freePlanId = freePlanResult.rows[0]?.id || 1;
+
+                for (const sub of expiredResult.rows) {
+                    await client.query(`UPDATE users SET current_plan_id = $1 WHERE id = $2`, [freePlanId, sub.user_id]);
+                    
+                    // Send notification
+                    const title = `⚠️ Abonnement Expiré`;
+                    const message = `Votre abonnement a expiré. Vous êtes maintenant sur le plan Gratuit. Renouvelez pour continuer à profiter des fonctionnalités premium.`;
+                    await NotificationService.send(sub.user_id, title, message, 'warning', 'SUBSCRIPTION_EXPIRED');
+                    console.log(`[CRON] Sent Subscription Expiry Alert to User ${sub.user_id}`);
+                }
+            }
+
+            // 2. Send reminder 7 days before expiration
+            const reminderQuery = `
+                SELECT s.user_id, s.end_date, p.display_name
+                FROM subscriptions s
+                JOIN plans p ON s.plan_id = p.id
+                WHERE s.status = 'active' 
+                AND s.end_date IS NOT NULL 
+                AND s.end_date::date = (CURRENT_DATE + INTERVAL '7 days')::date
+            `;
+            const reminderResult = await client.query(reminderQuery);
+
+            for (const sub of reminderResult.rows) {
+                const title = `📅 Abonnement Bientôt Expiré`;
+                const message = `Votre abonnement ${sub.display_name} expire dans 7 jours. Pensez à le renouveler !`;
+                await NotificationService.send(sub.user_id, title, message, 'info', 'SUBSCRIPTION_REMINDER');
+                console.log(`[CRON] Sent Subscription Reminder to User ${sub.user_id}`);
+            }
+
+        } catch (error) {
+            console.error('❌ Error in checkSubscriptionExpirations:', error);
         } finally {
             client.release();
         }

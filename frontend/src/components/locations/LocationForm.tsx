@@ -33,11 +33,13 @@ const LocationForm: React.FC<LocationFormProps> = ({
         lot_id: 0,
         owner_id: 0,
         date_debut: new Date().toISOString().split('T')[0],
+        date_fin: '', // Added
         duree_contrat: 12,
         loyer_mensuel: 0,
         caution: 0,
         avance: 0,
         charges_mensuelles: 0,
+        type_charges: 'forfaitaire', // Added
         devise: 'XOF',
         type_paiement: 'classique',
         jour_echeance: 5,
@@ -60,6 +62,17 @@ const LocationForm: React.FC<LocationFormProps> = ({
             }
         }
     }, [formData.lot_id, lots]);
+
+    // Added: Auto-calc End Date or Duration
+    useEffect(() => {
+        if (formData.date_debut && formData.duree_contrat) {
+            const start = new Date(formData.date_debut);
+            const end = new Date(start);
+            end.setMonth(start.getMonth() + formData.duree_contrat);
+            end.setDate(end.getDate() - 1); // Specific convention: end day before start day next year/month
+            setFormData(prev => ({ ...prev, date_fin: end.toISOString().split('T')[0] }));
+        }
+    }, [formData.date_debut, formData.duree_contrat]);
 
     // Live schedule preview calculation
     useEffect(() => {
@@ -87,10 +100,10 @@ const LocationForm: React.FC<LocationFormProps> = ({
 
     const isStepValid = () => {
         switch (currentStep) {
-            case 0: // Parties
-                return formData.tenant_id > 0 && formData.lot_id > 0 && formData.owner_id > 0;
+            case 0: // Parties & Dates
+                return formData.tenant_id > 0 && formData.lot_id > 0 && formData.owner_id > 0 && !!formData.date_debut;
             case 1: // Financial
-                return formData.date_debut && formData.duree_contrat && formData.loyer_mensuel > 0;
+                return formData.duree_contrat > 0 && formData.loyer_mensuel > 0;
             case 2: // Payment
                 return true;
             default:
@@ -231,15 +244,9 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
-
-                            {/* STEP 2: FINANCIAL */}
-                            {currentStep === 1 && (
-                                <div className="space-y-8">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-3">
-                                            <label className="text-sm font-bold text-gray-700">Date de début</label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4 pt-4 border-t border-gray-100">
+                                        <div className="space-y-4">
+                                            <label className="text-sm font-bold text-gray-700 uppercase tracking-wide">Date de début</label>
                                             <input 
                                                 type="date"
                                                 className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
@@ -247,6 +254,23 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                                 onChange={e => setFormData({...formData, date_debut: e.target.value})}
                                             />
                                         </div>
+                                        <div className="space-y-4">
+                                            <label className="text-sm font-bold text-gray-700 uppercase tracking-wide">Date de fin (Optionnel)</label>
+                                            <input 
+                                                type="date"
+                                                className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                                value={formData.date_fin || ''}
+                                                onChange={e => setFormData({...formData, date_fin: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* STEP 2: FINANCIAL */}
+                            {currentStep === 1 && (
+                                <div className="space-y-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-3">
                                             <label className="text-sm font-bold text-gray-700">Durée (mois)</label>
                                             <input 
@@ -269,14 +293,28 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                                 <DollarSign size={18} className="absolute left-3 top-4 text-gray-400" />
                                             </div>
                                         </div>
-                                        <div className="space-y-3">
-                                            <label className="text-sm font-bold text-gray-700">Charges Mensuelles</label>
-                                            <input 
-                                                type="number"
-                                                className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
-                                                value={formData.charges_mensuelles}
-                                                onChange={e => setFormData({...formData, charges_mensuelles: parseFloat(e.target.value)})}
-                                            />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-3">
+                                                <label className="text-sm font-bold text-gray-700">Type de charges</label>
+                                                <select
+                                                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                                    value={formData.type_charges}
+                                                    onChange={e => setFormData({...formData, type_charges: e.target.value})}
+                                                >
+                                                    <option value="forfaitaire">Forfaitaire</option>
+                                                    <option value="provision">Provision sur charges</option>
+                                                    <option value="reelle">Remboursement au réel</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <label className="text-sm font-bold text-gray-700">Montant Mensuel</label>
+                                                <input 
+                                                    type="number"
+                                                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                                    value={formData.charges_mensuelles}
+                                                    onChange={e => setFormData({...formData, charges_mensuelles: parseFloat(e.target.value)})}
+                                                />
+                                            </div>
                                         </div>
 
                                         <div className="space-y-3">

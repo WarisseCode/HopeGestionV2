@@ -129,6 +129,14 @@ app.use('/api/locations', protect, leaseRoutes);
 import financeRoutes from './routes/financeRoutes';
 app.use('/api/finances', protect, financeRoutes);
 
+// Routes Abonnements (Subscriptions)
+import subscriptionRoutes from './routes/subscriptionRoutes';
+app.use('/api/subscriptions', subscriptionRoutes); // Mix of public (plans) and protected routes
+
+// Routes Webhooks FedaPay (paiements)
+import fedapayWebhookRoutes from './routes/fedapayWebhookRoutes';
+app.use('/api/webhooks/fedapay', fedapayWebhookRoutes);
+
 // Route Test Protégée (pour validation rapide de 'protect')
 // Route Test Protégée (pour validation rapide de 'protect')
 app.get('/api/profil', protect, async (req: AuthenticatedRequest, res: Response) => {

@@ -1,7 +1,7 @@
 // frontend/src/layout/DashboardLayout.tsx
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { 
+import {
   LayoutDashboard, 
   Building2, 
   Users, 
@@ -18,10 +18,22 @@ import {
   BarChart3,
   CreditCard,
   FolderOpen,
-  Calendar,
+  Calendar, 
+  MapPin, 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  Phone,
+  ArrowRight, 
+  RefreshCw, 
+  Filter, 
+  ChevronDown, 
+  ExternalLink, 
+  Building,
+  ClipboardList,
+  CalendarCheck,
   Briefcase,
-  ShieldCheck,
-  CalendarCheck
+  ShieldCheck
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import ThemeToggle from '../components/ui/ThemeToggle';
@@ -29,6 +41,8 @@ import { getProfile } from '../api/authApi';
 import { getAlerts } from '../api/alertApi';
 import ChatBot from '../components/ChatBot';
 import NotificationBell from '../components/NotificationBell';
+import SubscriptionBadge from '../components/SubscriptionBadge';
+import { Crown } from 'lucide-react';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -159,6 +173,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
         { icon: <FileText size={20} />, label: 'Mes Quittances', path: '/quittances' },
         { icon: <BarChart3 size={20} />, label: 'Mes Rapports', path: '/rapports' },
         { icon: <Bell size={20} />, label: 'Mes Alertes', path: '/alertes' },
+        { icon: <Crown size={20} />, label: 'Abonnement', path: '/abonnement' },
         { icon: <Settings size={20} />, label: 'Paramètres', path: '/parametres' },
       ];
     } else if (userProfile?.userType === 'gestionnaire') {
@@ -171,6 +186,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
         { icon: <Users size={20} />, label: 'Locataires', path: '/locataires' },
         { icon: <FileText size={20} />, label: 'Locations', path: '/locations' },
         { icon: <CalendarCheck size={20} />, label: 'Réservations', path: '/reservations' },
+        { icon: <ClipboardList size={20} />, label: 'Inventaires', path: '/inventaires' },
         { icon: <Calendar size={20} />, label: 'Calendrier', path: '/calendrier' },
         { icon: <FileText size={20} />, label: 'Contrats', path: '/contrats' },
         { icon: <Wallet size={20} />, label: 'Finances', path: '/finances' },
@@ -181,6 +197,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
         { icon: <BarChart3 size={20} />, label: 'Rapports', path: '/rapports' },
         { icon: <ShieldCheck size={20} />, label: 'Audit & Sécurité', path: '/audit-logs' },
         { icon: <Bell size={20} />, label: 'Alertes', path: '/alertes' },
+        { icon: <Crown size={20} />, label: 'Abonnement', path: '/abonnement' },
         { icon: <Settings size={20} />, label: 'Paramètres', path: '/parametres' },
       ];
     }
@@ -328,6 +345,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
                       className="bg-transparent border-none outline-none text-sm w-full text-base-content" 
                     />
                 </div>
+
+                {/* Subscription Badge */}
+                <SubscriptionBadge />
 
                 {/* Theme Toggle */}
                 <ThemeToggle />

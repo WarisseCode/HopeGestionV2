@@ -69,6 +69,7 @@ export interface CreateLocationData {
     caution?: number;
     avance?: number;
     charges_mensuelles?: number;
+    type_charges?: string;
     devise?: string;
     type_paiement?: string;
     frequence_paiement?: string; // Module V: mensuel, hebdomadaire, bimensuel

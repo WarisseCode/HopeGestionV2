@@ -90,6 +90,14 @@ async function runMigration() {
             await client.query(buildingsEnhancementSql);
             console.log('   - buildings (ajout: GPS, photos, gestionnaire, quartier)');
         }
+
+        console.log('12/12 Exécution migrations/12_create_subscriptions...');
+        const subscriptionsPath = path.join(process.cwd(), 'migrations', '12_create_subscriptions.sql');
+        if (fs.existsSync(subscriptionsPath)) {
+            const subscriptionsSql = fs.readFileSync(subscriptionsPath, 'utf8');
+            await client.query(subscriptionsSql);
+            console.log('   - plans, subscriptions, subscription_payments créées');
+        }
         
         console.log('✅ Migration exécutée avec succès!');
         console.log('\n📊 Tables créées et mises à jour.');
