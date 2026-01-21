@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/index.js",
-    "build": "node --max-old-space-size=256 ./node_modules/typescript/bin/tsc",
+    "build": "node --max-old-space-size=512 ./node_modules/typescript/bin/tsc",
     "dev": "nodemon index.ts",
     "migrate": "ts-node scripts/runMigration.ts",
     "migrate-prod": "node dist/scripts/runMigration.js"
