@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { getProfile } from '../api/authApi';
@@ -8,6 +8,8 @@ import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
 import { useMobile } from '../hooks/useMobile';
+import { OnboardingTour, useOnboarding } from '../components/ui/OnboardingTour';
+import type { OnboardingStep } from '../components/ui/OnboardingTour';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -20,6 +22,37 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
   const [userProfile, setUserProfile] = useState<any>(null);
   const [alertsCount, setAlertsCount] = useState(0);
   const location = useLocation();
+  
+  // Onboarding tour
+  const { showTour, completeTour, skipTour } = useOnboarding();
+  
+  // Define onboarding steps
+  const onboardingSteps: OnboardingStep[] = useMemo(() => [
+    {
+      target: '',
+      title: '🎉 Bienvenue sur HopeGestion !',
+      description: 'Nous sommes ravis de vous accueillir. Ce guide rapide vous présentera les fonctionnalités clés de la plateforme pour vous aider à démarrer.',
+      placement: 'center',
+    },
+    {
+      target: '#onboarding-sidebar',
+      title: '📋 Navigation Latérale',
+      description: 'Utilisez ce menu pour accéder à tous les modules : Propriétaires, Biens, Locataires, Locations, Finances... Chaque section regroupe les fonctionnalités associées.',
+      placement: 'right',
+    },
+    {
+      target: '#onboarding-header',
+      title: '🔍 Actions Rapides',
+      description: 'Ici vous trouverez la recherche globale, les notifications et l\'accès rapide à votre profil. Restez informé et réactif !',
+      placement: 'bottom',
+    },
+    {
+      target: '#onboarding-main-content',
+      title: '📊 Votre Espace de Travail',
+      description: 'C\'est ici que s\'affiche le contenu principal. Tableaux de bord, listes, formulaires... tout est accessible depuis cet espace central.',
+      placement: 'center',
+    },
+  ], []);
 
   // Reset sidebar open state when mobile state changes
   useEffect(() => {
@@ -64,14 +97,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
     <div className="flex h-screen bg-base-200/50 font-sans text-base-content overflow-hidden">
       
       {/* Sidebar Component */}
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        toggleSidebar={toggleSidebar} 
-        userProfile={userProfile} 
-        onLogout={onLogout}
-        alertsCount={alertsCount}
-        isMobile={isMobile}
-      />
+      <div id="onboarding-sidebar">
+        <Sidebar 
+          isOpen={isSidebarOpen} 
+          toggleSidebar={toggleSidebar} 
+          userProfile={userProfile} 
+          onLogout={onLogout}
+          alertsCount={alertsCount}
+          isMobile={isMobile}
+        />
+      </div>
       
       {/* Mobile Bottom Nav */}
       {isMobile && (
@@ -86,15 +121,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
       <div className="flex-1 flex flex-col h-full overflow-hidden w-full relative">
         
         {/* Header Component */}
-        <Header 
-            toggleSidebar={toggleSidebar}
-            pageTitle={getPageTitle()}
-            userProfile={userProfile}
-            onLogout={onLogout}
-        />
+        <div id="onboarding-header">
+          <Header 
+              toggleSidebar={toggleSidebar}
+              pageTitle={getPageTitle()}
+              userProfile={userProfile}
+              onLogout={onLogout}
+          />
+        </div>
 
         {/* Content Scroll Area */}
-        <main className={`flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scrollbar-thin scrollbar-thumb-base-300 ${isMobile ? 'pb-24' : ''}`}>
+        <main 
+          id="onboarding-main-content"
+          className={`flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scrollbar-thin scrollbar-thumb-base-300 ${isMobile ? 'pb-24' : ''}`}
+        >
            <AnimatePresence mode="wait">
              <motion.div
                key={location.pathname}
@@ -111,6 +151,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
 
       </div>
       <ChatBot />
+      
+      {/* Onboarding Tour */}
+      <OnboardingTour
+        steps={onboardingSteps}
+        onComplete={completeTour}
+        onSkip={skipTour}
+        isOpen={showTour}
+      />
     </div>
   );
 };
