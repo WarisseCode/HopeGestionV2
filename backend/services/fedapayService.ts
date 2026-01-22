@@ -17,6 +17,8 @@ const Customer = require('fedapay').Customer;
 const FEDAPAY_SECRET_KEY = process.env.FEDAPAY_SECRET_KEY || '';
 const FEDAPAY_MODE = process.env.FEDAPAY_MODE || 'sandbox';
 const FEDAPAY_CALLBACK_URL = process.env.FEDAPAY_CALLBACK_URL || 'http://localhost:5000/api/webhooks/fedapay';
+// URL where user is redirected AFTER payment (browser redirect, not webhook)
+const FEDAPAY_RETURN_URL = process.env.FEDAPAY_RETURN_URL || 'http://localhost:5173/dashboard/abonnement';
 
 // Initialize FedaPay SDK
 if (FEDAPAY_SECRET_KEY) {
@@ -162,7 +164,9 @@ class FedaPayService {
                 description: `Abonnement ${request.plan.planName} - HopeGestion`,
                 amount: request.amount,
                 currency: { iso: 'XOF' },
-                callback_url: FEDAPAY_CALLBACK_URL,
+                callback_url: FEDAPAY_CALLBACK_URL,  // Webhook (server-to-server)
+                // Note: return_url is NOT supported in Transaction.create()
+                // FedaPay uses the token.url for redirect, we'll handle return via frontend
                 custom_metadata: {
                     user_id: String(request.userId),
                     plan_id: String(request.plan.planId),
