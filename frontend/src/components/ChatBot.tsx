@@ -249,7 +249,7 @@ const ChatBot: React.FC = () => {
             setIsMinimized(false);
             setHasInteracted(true); 
         }}
-        className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center bg-gradient-to-br from-primary to-secondary hover:scale-110 transition-all duration-300 group"
+        className="fixed bottom-24 md:bottom-6 right-6 z-50 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center bg-gradient-to-br from-primary to-secondary hover:scale-110 transition-all duration-300 group"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         initial={{ scale: 0 }}

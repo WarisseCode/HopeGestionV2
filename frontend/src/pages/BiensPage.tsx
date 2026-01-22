@@ -11,8 +11,10 @@ import { getImmeubles, getLots, saveImmeuble, saveLot, deleteImmeuble, deleteLot
 import type { Immeuble, Lot } from '../api/propertyApi';
 import { getProprietaires } from '../api/accountApi';
 import type { Proprietaire } from '../api/accountApi';
+import { useMobile } from '../hooks/useMobile';
 
 const BiensPage: React.FC = () => {
+  const isMobile = useMobile();
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') === 'lots' ? 'lots' : 'immeubles';
   const [activeTab, setActiveTab] = useState<'immeubles' | 'lots'>(initialTab);
@@ -271,6 +273,42 @@ const BiensPage: React.FC = () => {
 
       {activeTab === 'lots' && (
         <Card title="Liste des Lots">
+          {isMobile ? (
+             <div className="space-y-4">
+               {lots.map(lot => (
+                  <div key={lot.id} className="bg-base-100 p-4 rounded-xl border border-base-200 shadow-sm flex flex-col gap-3">
+                      <div className="flex justify-between items-start">
+                          <div>
+                              <div className="flex items-center gap-2">
+                                  <span className="font-bold text-lg">{lot.reference}</span>
+                                  <span className="badge badge-sm text-xs">{lot.type}</span>
+                              </div>
+                              <div className="text-sm text-base-content/70 mt-1">{lot.immeuble} • Etage {lot.etage}</div>
+                          </div>
+                          <span className={`badge ${lot.statut === 'libre' || !lot.statut ? 'badge-success' : 'badge-neutral'}`}>
+                            {lot.statut || 'libre'}
+                          </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-end border-t border-base-200 pt-3">
+                          <div>
+                              <div className="text-xs text-base-content/50">Loyer</div>
+                              <div className="font-bold text-primary">{lot.loyer?.toLocaleString()} FCFA</div>
+                          </div>
+                          <div className="flex gap-2">
+                              <button onClick={() => { setEditingLot(lot); setShowLotModal(true); }} className="btn btn-sm btn-square btn-ghost border border-base-200">
+                                <Edit3 size={16} />
+                              </button>
+                              <button onClick={() => handleDeleteLot(lot.id)} className="btn btn-sm btn-square btn-ghost text-error border border-base-200">
+                                <Trash2 size={16} />
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+               ))}
+               {lots.length === 0 && <div className="text-center py-8 opacity-50">Aucun lot trouvé</div>}
+             </div>
+          ) : (
           <div className="overflow-x-auto">
             <table className="table w-full">
               <thead>
@@ -295,7 +333,7 @@ const BiensPage: React.FC = () => {
                     </td>
                     <td>{lot.owner_name}</td>
                     <td className="font-mono">{lot.loyer?.toLocaleString()} FCFA</td>
-                    <td><span className={`badge ${lot.statut === 'libre' ? 'badge-success' : 'badge-neutral'}`}>{lot.statut || 'libre'}</span></td>
+                    <td><span className={`badge ${lot.statut === 'libre' || !lot.statut ? 'badge-success' : 'badge-neutral'}`}>{lot.statut || 'libre'}</span></td>
                     <td>
                        <div className="flex gap-2">
                           <button onClick={() => { setEditingLot(lot); setShowLotModal(true); }} className="btn btn-ghost btn-xs"><Edit3 size={14} /></button>
@@ -308,6 +346,7 @@ const BiensPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+          )}
         </Card>
       )}
 

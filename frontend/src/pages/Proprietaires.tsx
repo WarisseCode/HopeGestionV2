@@ -16,6 +16,7 @@ import {
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import { useMobile } from '../hooks/useMobile';
 
 interface Owner {
   id: number;
@@ -38,6 +39,7 @@ interface Owner {
 }
 
 const Proprietaires: React.FC = () => {
+  const isMobile = useMobile();
   const [owners, setOwners] = useState<Owner[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -391,6 +393,63 @@ const Proprietaires: React.FC = () => {
             </Button>
           </div>
         ) : (
+          isMobile ? (
+            <div className="space-y-4">
+              {owners.map((owner) => (
+                <div key={owner.id} className="bg-base-100 p-4 rounded-xl border border-base-200 shadow-sm flex flex-col gap-3">
+                    <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-3">
+                             <div className="avatar placeholder">
+                                <div className="bg-primary/10 text-primary rounded-full w-10 h-10 flex items-center justify-center">
+                                    <Users size={20} />
+                                </div>
+                             </div>
+                             <div>
+                                <div className="font-bold">{owner.name} {owner.first_name}</div>
+                                <div className="text-xs text-base-content/60">{owner.type === 'individual' ? 'Particulier' : 'Société'}</div>
+                             </div>
+                        </div>
+                        <span className={`badge ${
+                            owner.management_mode === 'direct' ? 'badge-primary' : 'badge-secondary'
+                        } badge-sm`}>
+                            {owner.management_mode === 'direct' ? 'Direct' : 'Délégué'}
+                        </span>
+                    </div>
+
+                    <div className="flex flex-col gap-1 text-sm pl-1 border-l-2 border-base-200 ml-2">
+                        <div className="flex items-center gap-2">
+                          <Phone size={14} className="text-base-content/60" />
+                          {owner.phone}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Building2 size={14} className="text-base-content/60" />
+                          <span className="text-base-content/80">{owner.total_properties || 0} Biens</span>
+                          <span className="text-base-content/40">•</span>
+                          <MapPin size={14} className="text-base-content/60" />
+                          <span className="text-base-content/80">{owner.city || 'N/A'}</span>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 border-t border-base-200 pt-2 mt-1">
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(owner)}>
+                          <Edit3 size={16} />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Eye size={16} />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-error"
+                          onClick={() => handleDelete(owner.id)}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                    </div>
+                </div>
+              ))}
+            </div>
+          ) : (
           <div className="overflow-x-auto">
             <table className="table w-full">
               <thead>
@@ -479,6 +538,7 @@ const Proprietaires: React.FC = () => {
               </tbody>
             </table>
           </div>
+          )
         )}
       </Card>
     </div>
