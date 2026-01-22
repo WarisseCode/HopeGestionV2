@@ -1,4 +1,3 @@
-// frontend/src/layout/DashboardLayout.tsx
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
@@ -7,6 +6,8 @@ import { getAlerts } from '../api/alertApi';
 import ChatBot from '../components/ChatBot';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
+import BottomNav from '../components/layout/BottomNav';
+import { useMobile } from '../hooks/useMobile';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -14,10 +15,16 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const isMobile = useMobile();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [alertsCount, setAlertsCount] = useState(0);
   const location = useLocation();
+
+  // Reset sidebar open state when mobile state changes
+  useEffect(() => {
+    setIsSidebarOpen(!isMobile);
+  }, [isMobile]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -63,7 +70,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
         userProfile={userProfile} 
         onLogout={onLogout}
         alertsCount={alertsCount}
+        isMobile={isMobile}
       />
+      
+      {/* Mobile Bottom Nav */}
+      {isMobile && (
+        <BottomNav 
+          toggleSidebar={() => setIsSidebarOpen(true)} // Always open on header click
+          userProfile={userProfile}
+          alertsCount={alertsCount}
+        />
+      )}
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full overflow-hidden w-full relative">
@@ -77,7 +94,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
         />
 
         {/* Content Scroll Area */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scrollbar-thin scrollbar-thumb-base-300">
+        <main className={`flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scrollbar-thin scrollbar-thumb-base-300 ${isMobile ? 'pb-24' : ''}`}>
            <AnimatePresence mode="wait">
              <motion.div
                key={location.pathname}

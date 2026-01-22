@@ -31,7 +31,7 @@ type MenuItem = {
   badge?: number;
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, userProfile, onLogout, alertsCount = 0 }) => {
+const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggleSidebar, userProfile, onLogout, alertsCount = 0, isMobile }) => {
   const location = useLocation();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     "Principal": true,
@@ -192,127 +192,145 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, userProfile, o
   const menuGroups = getMenuGroups();
 
   return (
-    <aside 
-        className={`bg-base-100 shadow-xl z-30 transition-all duration-300 ease-in-out flex flex-col items-stretch
-          ${isOpen ? 'w-72' : 'w-20'} 
-          fixed md:relative h-full border-r border-base-200
-        `}
-      >
-        {/* Logo Area */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-base-200 bg-base-100 shrink-0">
-          {isOpen ? (
-               <img src="/logo.png" alt="Hg" className="h-10 w-auto object-contain" />
-          ) : (
-             <img src="/logo.png" alt="HG" className="h-8 w-8 mx-auto object-contain" />
-          )}
-          <button 
-            onClick={toggleSidebar} 
-            className="p-1.5 rounded-lg hover:bg-base-200 md:hidden"
-          >
-            <X size={20} />
-          </button>
-        </div>
+    <>
+      {/* Mobile Backdrop */}
+      <AnimatePresence>
+        {isMobile && isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={toggleSidebar}
+            className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
+          />
+        )}
+      </AnimatePresence>
 
-        {/* User Profile (Compact) - Only visible when collapsed or at top */}
-        <div className="py-4 px-3 border-b border-base-200 flex items-center gap-3 bg-base-100/50 shrink-0">
-            <div className="avatar placeholder online">
-              <div className="bg-primary/10 text-primary rounded-full w-10 h-10 flex items-center justify-center border border-primary/20">
-                <span className="text-sm font-bold">
-                    {userProfile?.nom?.substring(0, 2).toUpperCase() || 'WG'}
-                </span>
-              </div>
-            </div>
-            {isOpen && (
-                <div className="overflow-hidden flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate text-base-content">{userProfile?.nom || 'Utilisateur'}</p>
-                    <p className="text-xs text-base-content/60 truncate capitalize">{userProfile?.role || 'Membre'}</p>
-                </div>
+      <aside 
+          className={`bg-base-100 shadow-xl z-50 transition-all duration-300 ease-in-out flex flex-col items-stretch 
+            ${isMobile 
+                ? `fixed inset-y-0 left-0 w-72 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}` 
+                : `${isOpen ? 'w-72' : 'w-20'} relative h-full border-r border-base-200`
+            }
+          `}
+        >
+          {/* Logo Area */}
+          <div className="h-16 flex items-center justify-between px-4 border-b border-base-200 bg-base-100 shrink-0">
+            {(isOpen || isMobile) ? (
+                 <img src="/logo.png" alt="Hg" className="h-10 w-auto object-contain" />
+            ) : (
+               <img src="/logo.png" alt="HG" className="h-8 w-8 mx-auto object-contain" />
             )}
-        </div>
+            <button 
+              onClick={toggleSidebar} 
+              className="p-1.5 rounded-lg hover:bg-base-200 md:hidden"
+            >
+              <X size={20} />
+            </button>
+          </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-transparent">
-            {menuGroups.map((group, idx) => (
-                <div key={idx} className="group-section">
-                    {/* Group Title */}
-                    {isOpen && (
-                        <div 
-                            className="flex items-center justify-between px-2 mb-2 cursor-pointer text-xs font-bold text-base-content/40 uppercase tracking-wider hover:text-primary transition-colors"
-                            onClick={() => toggleGroup(group.title)}
-                        >
-                            <span>{group.title}</span>
-                            {expandedGroups[group.title] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                        </div>
-                    )}
-                    
-                   {/* Divider for collapsed view */}
-                   {!isOpen && idx > 0 && <div className="h-px bg-base-200 my-2 mx-2"></div>}
-
-                    {/* Group Items */}
-                    <AnimatePresence initial={false}>
-                        {(isOpen ? expandedGroups[group.title] : true) && (
-                             <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="space-y-1 overflow-hidden"
-                             >
-                                 {group.items.map((item, itemIdx) => (
-                                    <Link 
-                                        key={itemIdx} 
-                                        to={`/dashboard${item.path}`} 
-                                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative
-                                            ${isActive(item.path) 
-                                                ? 'bg-primary/10 text-primary font-medium' 
-                                                : 'text-base-content/70 hover:bg-base-200 hover:text-base-content'
-                                            }
-                                            ${!isOpen && 'justify-center'}
-                                        `}
-                                        title={!isOpen ? item.label : ''}
-                                    >
-                                        <span className={`${isActive(item.path) ? 'text-primary' : 'text-base-content/60 group-hover:text-base-content'}`}>
-                                            {item.icon}
-                                        </span>
-                                        
-                                        {isOpen && (
-                                            <div className="flex-1 flex justify-between items-center">
-                                                <span className="text-sm">{item.label}</span>
-                                                {item.badge && item.badge > 0 && (
-                                                    <span className="flex items-center justify-center min-w-[20px] h-5 rounded-full bg-error text-white text-[10px] font-bold px-1.5">
-                                                        {item.badge}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )}
-                                        
-                                        {/* Active Indicator Bar */}
-                                        {isActive(item.path) && (
-                                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full"></div>
-                                        )}
-                                    </Link>
-                                 ))}
-                             </motion.div>
-                        )}
-                    </AnimatePresence>
+          {/* User Profile (Compact) - Only visible when collapsed or at top */}
+          <div className="py-4 px-3 border-b border-base-200 flex items-center gap-3 bg-base-100/50 shrink-0">
+              <div className="avatar placeholder online">
+                <div className="bg-primary/10 text-primary rounded-full w-10 h-10 flex items-center justify-center border border-primary/20">
+                  <span className="text-sm font-bold">
+                      {userProfile?.nom?.substring(0, 2).toUpperCase() || 'WG'}
+                  </span>
                 </div>
-            ))}
-        </nav>
+              </div>
+              {(isOpen || isMobile) && (
+                  <div className="overflow-hidden flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate text-base-content">{userProfile?.nom || 'Utilisateur'}</p>
+                      <p className="text-xs text-base-content/60 truncate capitalize">{userProfile?.role || 'Membre'}</p>
+                  </div>
+              )}
+          </div>
 
-        {/* Bottom Actions */}
-        <div className="p-4 border-t border-base-200 bg-base-100/50 shrink-0">
-           <button 
-             onClick={onLogout}
-             className={`flex items-center gap-3 px-3 py-2 rounded-lg text-error hover:bg-error/10 w-full transition-colors group
-               ${!isOpen && 'justify-center'}
-             `}
-             title="Déconnexion"
-           >
-             <LogOut size={20} className="group-hover:scale-110 transition-transform" />
-             {isOpen && <span className="font-medium text-sm">Déconnexion</span>}
-           </button>
-        </div>
-      </aside>
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-transparent">
+              {menuGroups.map((group, idx) => (
+                  <div key={idx} className="group-section">
+                      {/* Group Title */}
+                      {(isOpen || isMobile) && (
+                          <div 
+                              className="flex items-center justify-between px-2 mb-2 cursor-pointer text-xs font-bold text-base-content/40 uppercase tracking-wider hover:text-primary transition-colors"
+                              onClick={() => toggleGroup(group.title)}
+                          >
+                              <span>{group.title}</span>
+                              {expandedGroups[group.title] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                          </div>
+                      )}
+                      
+                     {/* Divider for collapsed view */}
+                     {(!isOpen && !isMobile) && idx > 0 && <div className="h-px bg-base-200 my-2 mx-2"></div>}
+
+                      {/* Group Items */}
+                      <AnimatePresence initial={false}>
+                          {((isOpen || isMobile) ? expandedGroups[group.title] : true) && (
+                               <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="space-y-1 overflow-hidden"
+                               >
+                                   {group.items.map((item, itemIdx) => (
+                                      <Link 
+                                          key={itemIdx} 
+                                          to={`/dashboard${item.path}`} 
+                                          onClick={() => isMobile && toggleSidebar()} // Auto-close on mobile
+                                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative
+                                              ${isActive(item.path) 
+                                                  ? 'bg-primary/10 text-primary font-medium' 
+                                                  : 'text-base-content/70 hover:bg-base-200 hover:text-base-content'
+                                              }
+                                              ${(!isOpen && !isMobile) && 'justify-center'}
+                                          `}
+                                          title={(!isOpen && !isMobile) ? item.label : ''}
+                                      >
+                                          <span className={`${isActive(item.path) ? 'text-primary' : 'text-base-content/60 group-hover:text-base-content'}`}>
+                                              {item.icon}
+                                          </span>
+                                          
+                                          {(isOpen || isMobile) && (
+                                              <div className="flex-1 flex justify-between items-center">
+                                                  <span className="text-sm">{item.label}</span>
+                                                  {item.badge && item.badge > 0 && (
+                                                      <span className="flex items-center justify-center min-w-[20px] h-5 rounded-full bg-error text-white text-[10px] font-bold px-1.5">
+                                                          {item.badge}
+                                                      </span>
+                                                  )}
+                                              </div>
+                                          )}
+                                          
+                                          {/* Active Indicator Bar */}
+                                          {isActive(item.path) && (
+                                              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full"></div>
+                                          )}
+                                      </Link>
+                                   ))}
+                               </motion.div>
+                          )}
+                      </AnimatePresence>
+                  </div>
+              ))}
+          </nav>
+
+          {/* Bottom Actions */}
+          <div className="p-4 border-t border-base-200 bg-base-100/50 shrink-0">
+             <button 
+               onClick={onLogout}
+               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-error hover:bg-error/10 w-full transition-colors group
+                 ${(!isOpen && !isMobile) && 'justify-center'}
+               `}
+               title="Déconnexion"
+             >
+               <LogOut size={20} className="group-hover:scale-110 transition-transform" />
+               {(isOpen || isMobile) && <span className="font-medium text-sm">Déconnexion</span>}
+             </button>
+          </div>
+        </aside>
+    </>
   );
 };
 
