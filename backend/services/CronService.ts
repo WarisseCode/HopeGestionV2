@@ -17,7 +17,27 @@ export class CronService {
         cron.schedule('0 */2 * * *', async () => {
              console.log('Running intervention alerts check...');
              await this.checkInterventionAlerts();
+             await this.checkTaskAlerts();
         });
+    }
+
+    static async checkTaskAlerts() {
+        try {
+            const overdueTasks = await pool.query(
+                `SELECT t.id, t.title, t.due_date, u.nom as assigned_name
+                 FROM tasks t
+                 LEFT JOIN users u ON t.assigned_to = u.id
+                 WHERE t.due_date < NOW() 
+                 AND t.status != 'done'`
+            );
+
+            overdueTasks.rows.forEach(task => {
+                console.log(`[ALERTE TÂCHE] Tâche #${task.id} en retard: "${task.title}" (Assigné à: ${task.assigned_name || 'Personne'})`);
+                // TODO: Notification Logic
+            });
+        } catch (error) {
+            console.error('Error checking task alerts:', error);
+        }
     }
 
     static async checkInterventionAlerts() {

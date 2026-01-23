@@ -158,6 +158,13 @@ app.use('/api/providers', protect, providerRoutes);
 app.use('/api/tickets', protect, ticketRoutes);
 app.use('/api/service-contracts', protect, serviceContractRoutes);
 
+// Module XIV - Tâches & Messages
+import taskRoutes from './routes/taskRoutes';
+import messageRoutes from './routes/messageRoutes';
+
+app.use('/api/tasks', protect, taskRoutes);
+app.use('/api/messages', protect, messageRoutes);
+
 // Routes Abonnements (Subscriptions)
 import subscriptionRoutes from './routes/subscriptionRoutes';
 app.use('/api/subscriptions', subscriptionRoutes); // Mix of public (plans) and protected routes

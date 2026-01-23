@@ -6,7 +6,7 @@ import {
   Building2, Users, FileText, Wallet, Settings, Bell, 
   LayoutDashboard, LogOut, X, ChevronDown, ChevronRight,
   CreditCard, FolderOpen, BarChart3, Wrench, ShieldCheck,
-  Calendar, CalendarCheck, ClipboardList, ClipboardCheck, Briefcase, Crown, Notebook
+  Calendar, CalendarCheck, ClipboardList, ClipboardCheck, Briefcase, Crown, Notebook, CheckSquare
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -172,6 +172,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
     if (perms.contrats_read || role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <FileText size={20} />, label: 'Contrats', path: '/contrats' });
     if (perms.documents_read || role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <FolderOpen size={20} />, label: 'Documents', path: '/documents' });
     if (role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <Notebook size={20} />, label: 'Carnet', path: '/carnet' }); // Module XI
+    if (role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <CheckSquare size={20} />, label: 'Tâches', path: '/tasks' }); // Module XIV
     if (role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <Wrench size={20} />, label: 'Interventions', path: '/interventions' });
     if (role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <Calendar size={20} />, label: 'Calendrier', path: '/calendrier' });
     if (role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <BarChart3 size={20} />, label: 'Rapports', path: '/rapports' });
