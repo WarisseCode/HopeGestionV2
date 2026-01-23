@@ -373,7 +373,7 @@ const Interventions: React.FC = () => {
           <p className="text-gray-500">Gestion des maintenances et services</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant="outline" onClick={handleExport} className="gap-2">
+          <Button variant="secondary" onClick={handleExport} className="gap-2">
             <Download size={16} /> Export CSV
           </Button>
           <Button onClick={() => {
@@ -389,7 +389,7 @@ const Interventions: React.FC = () => {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard icon={AlertCircle} label="Urgentes" value={urgentCount.toString()} color="red" />
+        <KPICard icon={AlertCircle} label="Urgentes" value={urgentCount.toString()} color="orange" />
         <KPICard icon={Clock} label="En cours" value={enCoursCount.toString()} color="orange" />
         <KPICard icon={CheckCircle} label="Résolues" value={resoluCount.toString()} color="green" />
         <KPICard icon={Users} label="Prestataires" value={providers.length.toString()} color="purple" />
@@ -520,7 +520,7 @@ const Interventions: React.FC = () => {
                   <td className="p-4 text-right space-x-2">
                     {t.statut !== 'Clos' && (
                       <>
-                        <Button size="sm" variant="outline" onClick={() => { setSelectedTicket(t); setShowRescheduleModal(true); }}>
+                        <Button size="sm" variant="secondary" onClick={() => { setSelectedTicket(t); setShowRescheduleModal(true); }}>
                           <RefreshCw size={14} />
                         </Button>
                         <Button size="sm" onClick={() => { setSelectedTicket(t); setShowCloseModal(true); }}>Clôturer</Button>

@@ -284,7 +284,7 @@ const CalendrierPage: React.FC = () => {
                 <button onClick={() => setViewMode('week')} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'week' ? 'bg-white shadow' : ''}`}>Semaine</button>
                 <button onClick={() => setViewMode('day')} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'day' ? 'bg-white shadow' : ''}`}>Jour</button>
             </div>
-            <Button variant="outline" onClick={() => { setShowSettingsModal(true); fetchSettings(); }}>
+            <Button variant="secondary" onClick={() => { setShowSettingsModal(true); fetchSettings(); }}>
                 <Settings size={18} />
             </Button>
             <Button onClick={() => setShowEventModal(true)}>
