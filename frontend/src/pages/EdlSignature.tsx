@@ -18,7 +18,7 @@ const EdlSignature: React.FC = () => {
     const [locataireSigned, setLocataireSigned] = useState(false);
 
     // Fonction pour effacer
-    const clearSignature = (ref: React.RefObject<SignatureCanvas>, setSigned: (val: boolean) => void) => {
+    const clearSignature = (ref: React.RefObject<SignatureCanvas | null>, setSigned: (val: boolean) => void) => {
         ref.current?.clear();
         setSigned(false);
     };

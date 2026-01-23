@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, FileText, Calculator } from 'lucide-react';
-import { financeApi, TaxSettings } from '../../api/financeApi';
+import { financeApi } from '../../api/financeApi';
+import type { TaxSettings } from '../../api/financeApi';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Eye, Calendar, TrendingUp } from 'lucide-react';
-import { financeApi, Loan } from '../../api/financeApi';
+import { financeApi } from '../../api/financeApi';
+import type { Loan } from '../../api/financeApi';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';

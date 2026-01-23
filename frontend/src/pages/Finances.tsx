@@ -15,7 +15,8 @@ import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { KPICard } from '../components/dashboard';
-import { financeApi, Payment } from '../api/financeApi'; // Updated import
+import { financeApi } from '../api/financeApi';
+import type { Payment } from '../api/financeApi';
 import { getLocataires, getLocataireDetails } from '../api/locataireApi';
 import type { Locataire } from '../api/locataireApi';
 

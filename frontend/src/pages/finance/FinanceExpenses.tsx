@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Filter, FileText, Upload } from 'lucide-react';
 import { format } from 'date-fns';
-import { financeApi, Expense } from '../../api/financeApi';
+import { financeApi } from '../../api/financeApi';
+import type { Expense } from '../../api/financeApi';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
