@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Copy, Save, LayoutTemplate, Variable, ChevronRight } from 'lucide-react';
-import { templateApi, DocumentTemplate } from '../api/templateApi';
+import { templateApi, type DocumentTemplate } from '../api/templateApi';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';

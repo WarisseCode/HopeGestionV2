@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, ArrowRight, Loader } from 'lucide-react';
-import { templateApi, DocumentTemplate } from '../../api/templateApi';
+import { templateApi, type DocumentTemplate } from '../../api/templateApi';
 import { documentApi } from '../../api/documentApi';
-import { getLocations } from '../../api/locationApi';
+import { locationApi } from '../../api/locationApi';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { toast } from 'react-hot-toast';
@@ -38,7 +38,7 @@ const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ onClose, onSucces
         setLoading(true);
         try {
             if (type === 'lease') {
-                const data = await getLocations(); // Assuming this returns leases
+                const data = await locationApi.getLocations(); // Assuming this returns leases
                 setEntities(data);
             }
             // Add other types logic here
