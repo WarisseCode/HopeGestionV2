@@ -80,5 +80,13 @@ export const documentApi = {
             headers: { Authorization: `Bearer ${token}` }
         });
         return response.data;
+    },
+
+    generateDocument: async (data: { templateId: number, entityId: number, type: string }): Promise<Document> => {
+        const token = getToken();
+        const response = await axios.post(`${API_URL}/documents/generate`, data, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
     }
 };

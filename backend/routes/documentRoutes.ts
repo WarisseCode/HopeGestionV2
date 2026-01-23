@@ -157,6 +157,108 @@ router.delete('/:id', permissions.canWrite('documents'), async (req: Authenticat
     }
 });
 
+// POST /api/documents/generate - Generate PDF from Template
+router.post('/generate', permissions.canWrite('documents'), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const { templateId, entityId, type } = req.body; // type = 'lease', 'receipt'
+
+        // 1. Fetch Template
+        const templateRes = await pool.query('SELECT * FROM document_templates WHERE id = $1', [templateId]);
+        if (templateRes.rows.length === 0) return res.status(404).json({ message: 'Modèle introuvable' });
+        const template = templateRes.rows[0];
+
+        // 2. Fetch Data based on Type
+        let data: any = {};
+        if (type === 'lease') {
+            const query = `
+                SELECT 
+                    l.id, l.date_debut, l.date_fin, l.loyer_actuel, l.signature_url,
+                    t.nom as t_nom, t.prenoms as t_prenom, t.telephone_principal as t_tel,
+                    b.adresse as b_adresse, b.type as b_type,
+                    o.name as o_name, o.first_name as o_fname, o.phone as o_phone,
+                    lo.ref_lot
+                FROM leases l
+                JOIN tenants t ON l.tenant_id = t.id
+                JOIN lots lo ON l.lot_id = lo.id
+                LEFT JOIN buildings b ON lo.building_id = b.id
+                LEFT JOIN owners o ON l.owner_id = o.id
+                WHERE l.id = $1
+            `;
+            const dbRes = await pool.query(query, [entityId]);
+            if (dbRes.rows.length === 0) return res.status(404).json({ message: 'Bail introuvable' });
+            const row = dbRes.rows[0];
+            
+            // Map to variables
+            data = {
+                '{{TenantName}}': `${row.t_prenom} ${row.t_nom}`,
+                '{{TenantPhone}}': row.t_tel,
+                '{{OwnerName}}': row.o_name || `${row.o_fname} ${row.o_name}`,
+                '{{OwnerPhone}}': row.o_phone,
+                '{{PropertyAddress}}': row.b_adresse,
+                '{{PropertyType}}': row.b_type,
+                '{{RentAmount}}': row.loyer_actuel,
+                '{{StartDate}}': new Date(row.date_debut).toLocaleDateString('fr-FR'),
+                '{{EndDate}}': row.date_fin ? new Date(row.date_fin).toLocaleDateString('fr-FR') : 'Indéterminée',
+                '{{RefLot}}': row.ref_lot
+            };
+        } else {
+            return res.status(400).json({ message: 'Type de document non supporté pour la génération automatique' });
+        }
+
+        // 3. Replace Variables
+        let content = template.content;
+        Object.keys(data).forEach(key => {
+            content = content.replace(new RegExp(key, 'g'), data[key] || '');
+        });
+
+        // 4. Generate PDF
+        const doc = new PDFDocument({ margin: 50 });
+        const chunks: Buffer[] = [];
+        doc.on('data', chunk => chunks.push(chunk));
+        
+        doc.on('end', async () => {
+            const resultData = Buffer.concat(chunks);
+            
+            // Save logic
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const dir = path.join(uploadDir, `${year}/${month}`);
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+            const fileName = `${template.name.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+            const filePath = path.join(dir, fileName);
+            fs.writeFileSync(filePath, resultData);
+
+            // DB Insert
+            const relativePath = `uploads/${year}/${month}/${fileName}`;
+            const url = `/${relativePath}`;
+            
+            const dbResult = await pool.query(`
+                INSERT INTO documents (
+                    user_id, nom, type, url, taille, categorie, 
+                    entity_type, entity_id, description
+                ) VALUES ($1, $2, 'application/pdf', $3, $4, 'generated', $5, $6, 'Généré automatiquement')
+                RETURNING *
+            `, [req.userId || 1, fileName, url, resultData.length.toString(), type, entityId]);
+
+            res.status(201).json(dbResult.rows[0]);
+        });
+
+        // Write content
+        doc.fontSize(12).text(content, {
+            align: 'justify',
+            lineGap: 4
+        });
+
+        doc.end();
+
+    } catch (error) {
+        console.error('Generation Error:', error);
+        res.status(500).json({ message: 'Erreur génération PDF' });
+    }
+});
+
 // POST /api/documents/generate/lease/:id - Generate lease PDF
 router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req: AuthenticatedRequest, res: Response) => {
     try {

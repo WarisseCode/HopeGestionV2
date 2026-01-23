@@ -131,6 +131,7 @@ import financeRoutes from './routes/financeRoutes';
 import expenseRoutes from './routes/expenseRoutes';
 import loanRoutes from './routes/loanRoutes';
 import taxRoutes from './routes/taxRoutes';
+import templateRoutes from './routes/templateRoutes';
 
 app.use('/api/finances', protect, financeRoutes);
 app.use('/api/expenses', protect, expenseRoutes);
