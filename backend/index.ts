@@ -126,8 +126,24 @@ import leaseRoutes from './routes/leaseRoutes';
 app.use('/api/locations', protect, leaseRoutes);
 
 // Routes Finances
+// Routes Finances
 import financeRoutes from './routes/financeRoutes';
+import expenseRoutes from './routes/expenseRoutes';
+import loanRoutes from './routes/loanRoutes';
+import taxRoutes from './routes/taxRoutes';
+
 app.use('/api/finances', protect, financeRoutes);
+app.use('/api/expenses', protect, expenseRoutes);
+app.use('/api/loans', protect, loanRoutes);
+app.use('/api/tax', protect, taxRoutes);
+
+// Routes Inventaires (États des lieux)
+import inventoryRoutes from './routes/inventoryRoutes';
+app.use('/api/inventories', protect, inventoryRoutes);
+
+// Routes États des Lieux (Inspections juridiques)
+import edlRoutes from './routes/edlRoutes';
+app.use('/api/edl', protect, edlRoutes);
 
 // Routes Abonnements (Subscriptions)
 import subscriptionRoutes from './routes/subscriptionRoutes';

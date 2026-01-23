@@ -1,0 +1,148 @@
+import { Router, Response } from 'express';
+import pool from '../db/database';
+import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
+import permissions from '../middleware/permissionMiddleware';
+import { addMonths, format } from 'date-fns';
+
+const router = Router();
+
+router.use(protect);
+
+// GET /api/loans - List loans
+router.get('/', permissions.canRead('finances'), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const { owner_id } = req.query;
+        let query = `
+            SELECT l.*, 
+                   o.name as owner_name,
+                   b.nom as building_name,
+                   (SELECT COUNT(*) FROM loan_payments WHERE loan_id = l.id AND status = 'paid') as paid_installments,
+                   (SELECT SUM(amount_principal) FROM loan_payments WHERE loan_id = l.id AND status = 'paid') as capital_repaid
+            FROM loans l
+            LEFT JOIN owners o ON l.owner_id = o.id
+            LEFT JOIN buildings b ON l.building_id = b.id
+            WHERE 1=1
+        `;
+        const params: any[] = [];
+        if (owner_id) {
+            query += ` AND l.owner_id = $1`;
+            params.push(owner_id);
+        }
+        query += ` ORDER BY l.start_date DESC`;
+        
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching loans:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// GET /api/loans/:id - Details & Schedule
+router.get('/:id', permissions.canRead('finances'), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        
+        const loanRes = await pool.query('SELECT * FROM loans WHERE id = $1', [id]);
+        if (loanRes.rows.length === 0) return res.status(404).json({ message: 'Prêt non trouvé' });
+        
+        const scheduleRes = await pool.query('SELECT * FROM loan_payments WHERE loan_id = $1 ORDER BY due_date ASC', [id]);
+        
+        res.json({
+            ...loanRes.rows[0],
+            schedule: scheduleRes.rows
+        });
+    } catch (error) {
+        console.error('Error fetching loan details:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// POST /api/loans - Create loan & generate schedule
+router.post('/', permissions.canWrite('finances'), async (req: AuthenticatedRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        
+        const {
+            name, amount, interest_rate, duration_months,
+            start_date, owner_id, building_id, day_of_month
+        } = req.body;
+        
+        // 1. Calculate Monthly Payment (PMT)
+        // r = annual rate / 12 / 100
+        const r = (parseFloat(interest_rate) / 12) / 100;
+        const n = parseInt(duration_months);
+        const P = parseFloat(amount);
+        
+        let monthly_payment = 0;
+        if (r === 0) {
+             monthly_payment = P / n;
+        } else {
+             monthly_payment = (P * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+        }
+        
+        // 2. Insert Loan Header
+        const insertRes = await client.query(`
+            INSERT INTO loans (
+                name, amount, interest_rate, duration_months,
+                start_date, end_date, monthly_payment, payment_day,
+                owner_id, building_id, status
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'active')
+            RETURNING *
+        `, [
+            name, P, interest_rate, n,
+            start_date, addMonths(new Date(start_date), n),
+            monthly_payment, day_of_month || 5,
+            owner_id || null, building_id || null
+        ]);
+        
+        const loan = insertRes.rows[0];
+        
+        // 3. Generate Schedule
+        let remainingBalance = P;
+        let currentDate = new Date(start_date);
+        
+        for (let i = 1; i <= n; i++) {
+            // Interest for this month
+            const interestPart = remainingBalance * r;
+            let principalPart = monthly_payment - interestPart;
+            
+            // Adjust last payment
+            if (i === n) {
+                principalPart = remainingBalance;
+                monthly_payment = principalPart + interestPart;
+            }
+            
+            remainingBalance -= principalPart;
+            if (remainingBalance < 0) remainingBalance = 0;
+            
+            // Set due date (next month)
+            currentDate = addMonths(new Date(start_date), i);
+            
+            await client.query(`
+                INSERT INTO loan_payments (
+                    loan_id, due_date, amount_total, amount_principal, amount_interest, status
+                ) VALUES ($1, $2, $3, $4, $5, 'pending')
+            `, [
+                loan.id,
+                currentDate,
+                monthly_payment,
+                principalPart,
+                interestPart
+            ]);
+        }
+        
+        await client.query('COMMIT');
+        res.status(201).json(loan);
+        
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error creating loan:', error);
+        res.status(500).json({ message: 'Erreur création prêt' });
+    } finally {
+        client.release();
+    }
+});
+
+export default router;

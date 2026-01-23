@@ -6,7 +6,7 @@ import {
   Building2, Users, FileText, Wallet, Settings, Bell, 
   LayoutDashboard, LogOut, X, ChevronDown, ChevronRight,
   CreditCard, FolderOpen, BarChart3, Wrench, ShieldCheck,
-  Calendar, CalendarCheck, ClipboardList, Briefcase, Crown
+  Calendar, CalendarCheck, ClipboardList, ClipboardCheck, Briefcase, Crown
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -151,6 +151,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
     }
     if (role === 'admin' || role === 'gestionnaire') gestionItems.push({ icon: <CalendarCheck size={20} />, label: 'Réservations', path: '/reservations' });
     if (role === 'admin' || role === 'gestionnaire') gestionItems.push({ icon: <ClipboardList size={20} />, label: 'Inventaires', path: '/inventaires' });
+    if (role === 'admin' || role === 'gestionnaire') gestionItems.push({ icon: <ClipboardCheck size={20} />, label: 'États des Lieux', path: '/etats-des-lieux' });
     if ((perms.owners_read || role === 'admin' || role === 'gestionnaire') && type !== 'proprietaire') {
         // Pour un gestionnaire, les proprios sont dans "Clientèle" ou "Gestion"
         gestionItems.push({ icon: <Users size={20} />, label: 'Propriétaires', path: '/proprietaires' }); 

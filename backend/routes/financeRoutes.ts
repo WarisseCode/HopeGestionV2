@@ -174,7 +174,7 @@ router.get('/stats', permissions.canRead('finances'), async (req: AuthenticatedR
         const currentMonth = new Date().getMonth() + 1;
         const currentYear = new Date().getFullYear();
 
-        // Total encashed this month (map montant)
+        // 1. Total encashed this month
         const encashedRes = await pool.query(`
             SELECT SUM(montant) as total 
             FROM payments 
@@ -183,8 +183,15 @@ router.get('/stats', permissions.canRead('finances'), async (req: AuthenticatedR
             AND statut = 'valide'
         `, [currentMonth, currentYear]);
 
-        // Total pending (overdue schedules)
-        // payment_schedules columns: total_amount, amount_paid, status, due_date
+        // 2. Total expenses this month
+        const expensesRes = await pool.query(`
+            SELECT SUM(amount) as total
+            FROM expenses
+            WHERE EXTRACT(MONTH FROM date_expense) = $1
+            AND EXTRACT(YEAR FROM date_expense) = $2
+        `, [currentMonth, currentYear]);
+
+        // 3. Pending
         const pendingRes = await pool.query(`
             SELECT SUM(total_amount - amount_paid) as total
             FROM payment_schedules
@@ -192,8 +199,13 @@ router.get('/stats', permissions.canRead('finances'), async (req: AuthenticatedR
             AND due_date <= CURRENT_DATE
         `);
         
+        const income = parseFloat(encashedRes.rows[0].total || '0');
+        const expenses = parseFloat(expensesRes.rows[0].total || '0');
+
         res.json({
-            encashed_month: parseFloat(encashedRes.rows[0].total || '0'),
+            encashed_month: income,
+            expenses_month: expenses,
+            net_balance: income - expenses,
             pending_total: parseFloat(pendingRes.rows[0].total || '0')
         });
     } catch (error) {

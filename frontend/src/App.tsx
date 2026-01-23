@@ -47,6 +47,10 @@ import ReservationsList from './pages/ReservationsList';
 import InventoriesList from './pages/InventoriesList';
 import InventoryForm from './pages/InventoryForm';
 import InventoryDetails from './pages/InventoryDetails';
+import EdlList from './pages/EdlList';
+import EdlCreate from './pages/EdlCreate';
+import EdlDetails from './pages/EdlDetails';
+import EdlSignature from './pages/EdlSignature';
 import Pricing from './pages/Pricing';
 // Public marketing pages
 import { 
@@ -168,6 +172,10 @@ const App: React.FC = () => {
                                             <Route path="inventaires/new" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoryForm />} />} />
                                             <Route path="inventories/:id/edit" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoryForm />} />} />
                                             <Route path="inventories/:id" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoryDetails />} />} />
+                                            <Route path="etats-des-lieux" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<EdlList />} />} />
+                                            <Route path="etats-des-lieux/nouveau" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<EdlCreate />} />} />
+                                            <Route path="etats-des-lieux/:id" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<EdlDetails />} />} />
+                                            <Route path="etats-des-lieux/:id/signer" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<EdlSignature />} />} />
                                             <Route path="contrats" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Contrats />} />} />
                                             <Route path="documents" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Documents />} />} />
                                             <Route path="finances" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Finances />} />} />
