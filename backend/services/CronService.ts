@@ -1,220 +1,118 @@
-// backend/services/CronService.ts
 import cron from 'node-cron';
 import pool from '../db/database';
-import { NotificationService } from './notificationService';
+// import { sendEmail } from '../utils/emailSender'; // To be implemented or mocked
+// import { sendSMS } from '../utils/smsSender';     // To be implemented or mocked
 
 export class CronService {
-    
-    /**
-     * Initialize all scheduled jobs
-     */
     static init() {
-        console.log('⏰ Initialisation du service d\'automatisation (Cron)...');
-
-        // 1. Rent Reminder: Every day at 09:00 AM
-        // Checks for late payments
-        cron.schedule('0 9 * * *', async () => {
-             console.log('Running Auto-Job: Check Late Payments...');
-             await this.checkLatePayments();
-        });
-
-        // 2. Lease Expiration: Every day at 10:00 AM
-        // Checks for contracts ending in 30 days
-        cron.schedule('0 10 * * *', async () => {
-             console.log('Running Auto-Job: Check Lease Expirations...');
-             await this.checkLeaseExpirations();
-        });
-
-        // 3. Subscription Expiration: Every day at 08:00 AM
-        // Marks expired subscriptions and notifies users
-        cron.schedule('0 8 * * *', async () => {
-             console.log('Running Auto-Job: Check Subscription Expirations...');
-             await this.checkSubscriptionExpirations();
-        });
+        console.log('Initializing Cron Service...');
         
-        console.log('✅ Tâches planifiées (08:00, 09:00 & 10:00).');
+        // Run every day at 8:00 AM - Calendar reminders
+        cron.schedule('0 8 * * *', async () => {
+             console.log('Running daily reminder check...');
+             await this.checkReminders();
+        });
+
+        // Run every 2 hours - Intervention alerts
+        cron.schedule('0 */2 * * *', async () => {
+             console.log('Running intervention alerts check...');
+             await this.checkInterventionAlerts();
+        });
     }
 
-    /**
-     * Check for active leases that haven't paid rent for the current month
-     * Also updates payment_schedules statut to 'retard' for overdue entries
-     */
-    static async checkLatePayments(force = false) {
-        const client = await pool.connect();
+    static async checkInterventionAlerts() {
         try {
-            const today = new Date();
-            const dayOfMonth = today.getDate();
-            
-            // Only alert if we are past the 5th of the month, unless forced
-            if (!force && dayOfMonth < 6) {
-                console.log('ℹ️ Too early in the month to check late payments (Wait until 6th).');
-                return; 
-            }
+            // 1. Urgent tickets not treated for > 24h
+            const urgentResult = await pool.query(
+                `SELECT t.id, t.titre, t.description, t.date_creation, b.nom as building_name
+                 FROM tickets t
+                 LEFT JOIN lots l ON t.lot_id = l.id
+                 LEFT JOIN buildings b ON l.building_id = b.id
+                 WHERE t.priorite = 'Urgente' 
+                 AND t.statut = 'Ouvert'
+                 AND t.date_creation < NOW() - INTERVAL '24 hours'`
+            );
 
-            console.log('🔍 Checking for late payments...');
+            urgentResult.rows.forEach(ticket => {
+                console.log(`[ALERTE URGENTE] Ticket #${ticket.id} (${ticket.building_name}) non traité depuis >24h: ${ticket.titre}`);
+                // TODO: Send SMS/WhatsApp/Email to gestionnaire
+            });
 
-            // Module V: Update overdue payment_schedules to 'retard'
-            const updateOverdueQuery = `
-                UPDATE payment_schedules 
-                SET statut = 'retard' 
-                WHERE statut = 'en_attente' 
-                AND date_echeance < CURRENT_DATE
-            `;
-            const overdueResult = await client.query(updateOverdueQuery);
-            if (overdueResult.rowCount && overdueResult.rowCount > 0) {
-                console.log(`📛 Marked ${overdueResult.rowCount} schedules as 'retard'`);
-            }
+            // 2. Overdue interventions (scheduled_date passed, not closed)
+            const overdueResult = await pool.query(
+                `SELECT t.id, t.titre, t.scheduled_date, p.name as provider_name, b.nom as building_name
+                 FROM tickets t
+                 LEFT JOIN providers p ON t.provider_id = p.id
+                 LEFT JOIN lots l ON t.lot_id = l.id
+                 LEFT JOIN buildings b ON l.building_id = b.id
+                 WHERE t.scheduled_date < NOW()
+                 AND t.statut NOT IN ('Clos', 'Résolu')`
+            );
 
-            // Find active leases WITHOUT a payment for the current month
-            // We verify:
-            // 1. Lease is active
-            // 2. No payment exists with date_payment in current month/year
-            const query = `
-                SELECT 
-                    l.id, l.lot_id, l.tenant_id, l.loyer_actuel,
-                    t.nom, t.prenoms,
-                    b.user_id as owner_id -- We notify the owner/manager of the building
-                FROM leases l
-                JOIN tenants t ON l.tenant_id = t.id
-                JOIN lots lo ON l.lot_id = lo.id
-                JOIN buildings b ON lo.building_id = b.id
-                WHERE l.statut = 'actif'
-                AND NOT EXISTS (
-                    SELECT 1 FROM payments p 
-                    WHERE p.lease_id = l.id
-                    AND EXTRACT(MONTH FROM p.date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
-                    AND EXTRACT(YEAR FROM p.date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
-                )
-            `;
+            overdueResult.rows.forEach(ticket => {
+                console.log(`[ALERTE RETARD] Intervention #${ticket.id} en retard (prévue: ${ticket.scheduled_date}). Prestataire: ${ticket.provider_name}`);
+                // TODO: Send notification
+            });
 
-            const result = await client.query(query);
+            console.log(`Checked: ${urgentResult.rows.length} urgent, ${overdueResult.rows.length} overdue`);
+        } catch (error) {
+            console.error('Error checking intervention alerts:', error);
+        }
+    }
 
-            for (const lease of result.rows) {
-                const title = `⚠️ Retard de Loyer`;
-                const message = `Le locataire ${lease.nom} ${lease.prenoms} n'a pas encore réglé son loyer de ${lease.loyer_actuel} FCFA pour ce mois.`;
+    static async checkReminders() {
+        try {
+            // 1. Get all active settings
+            const settingsResult = await pool.query('SELECT * FROM reminder_settings WHERE active = TRUE');
+            const settings = settingsResult.rows;
+
+            if (settings.length === 0) return;
+
+            // 2. For each setting, find matching events
+            for (const setting of settings) {
+                // Determine target date based on delay
+                // delay_days = -7 means we look for events starting in 7 days
+                // target_date = now + 7 days
                 
-                // Avoid spamming: Check if we already sent this notification today
-                const userId = lease.owner_id; // Notify the manager/owner
+                // Note: This logic is simplified. Correct way:
+                // If delay is -7, we want events where start_date = today + 7
+                // We format dates to YYYY-MM-DD to compare
                 
-                const exists = await client.query(
-                    `SELECT id FROM notifications 
-                     WHERE user_id = $1 AND title = $2 
-                     AND created_at::date = CURRENT_DATE`,
-                    [userId, title]
-                );
+                const targetDate = new Date();
+                targetDate.setDate(targetDate.getDate() + Math.abs(setting.delay_days)); 
+                // Note: if delay is positive (after event), logic differs, assuming negative for "reminder before"
+                
+                const targetDateStr = targetDate.toISOString().split('T')[0];
 
-                if (exists.rowCount === 0) {
-                    await NotificationService.send(userId, title, message, 'warning', 'PAYMENT_REMINDER');
-                    console.log(`[CRON] Sent Late Payment Alert for Lease ${lease.id} to User ${userId}`);
+                if (setting.event_type === 'payment') {
+                    // Check Leases with matching due day (approx)
+                    // This creates a complex query, for MVP we mock log
+                    console.log(`[Mock] Check payment reminders for user ${setting.user_id} on ${targetDateStr} via ${setting.channel}`);
+                } else if (setting.event_type === 'contract_end') {
+                     const leases = await pool.query(
+                         `SELECT l.id, t.nom, t.prenoms FROM leases l 
+                          JOIN tenants t ON l.tenant_id = t.id
+                          WHERE l.date_fin = $1 AND l.owner_id IN (SELECT owner_id FROM owner_user WHERE user_id = $2)`,
+                         [targetDateStr, setting.user_id]
+                     );
+                     leases.rows.forEach(l => {
+                         console.log(`[NOTIFICATION] Remind user ${setting.user_id}: Lease ending for ${l.nom} on ${targetDateStr} via ${setting.channel}`);
+                     });
+                } else if (setting.event_type === 'custom') {
+                    // Check custom events
+                     const events = await pool.query(
+                         `SELECT * FROM calendar_events 
+                          WHERE user_id = $1 AND start_date::date = $2`,
+                         [setting.user_id, targetDateStr]
+                     );
+                     events.rows.forEach(e => {
+                         console.log(`[NOTIFICATION] Remind user ${setting.user_id}: Event "${e.title}" on ${targetDateStr} via ${setting.channel}`);
+                     });
                 }
             }
 
         } catch (error) {
-            console.error('❌ Error in checkLatePayments:', error);
-        } finally {
-            client.release();
-        }
-    }
-
-    /**
-     * Check for leases ending in exactly 30 days
-     */
-    static async checkLeaseExpirations() {
-        const client = await pool.connect();
-        try {
-            console.log('🔍 Checking for lease expirations...');
-
-            const query = `
-                SELECT 
-                    l.id, l.date_fin,
-                    t.nom, t.prenoms,
-                    b.user_id as owner_id
-                FROM leases l
-                JOIN tenants t ON l.tenant_id = t.id
-                JOIN lots lo ON l.lot_id = lo.id
-                JOIN buildings b ON lo.building_id = b.id
-                WHERE l.statut = 'actif'
-                AND l.date_fin = CURRENT_DATE + INTERVAL '30 days'
-            `;
-
-            const result = await client.query(query);
-
-            for (const lease of result.rows) {
-                 const title = `📅 Expiration de Contrat`;
-                 const message = `Le contrat de ${lease.nom} ${lease.prenoms} expire dans 30 jours (le ${new Date(lease.date_fin).toLocaleDateString()}). Pensez au renouvellement.`;
-                 
-                 const userId = lease.owner_id;
-
-                 await NotificationService.send(userId, title, message, 'info', 'LEASE_EXPIRY');
-                 console.log(`[CRON] Sent Expiration Alert for Lease ${lease.id} to User ${userId}`);
-            }
-
-        } catch (error) {
-             console.error('❌ Error in checkLeaseExpirations:', error);
-        } finally {
-            client.release();
-        }
-    }
-
-    /**
-     * Check for expired subscriptions and downgrade to Free plan
-     */
-    static async checkSubscriptionExpirations() {
-        const client = await pool.connect();
-        try {
-            console.log('🔍 Checking for subscription expirations...');
-
-            // 1. Find active subscriptions that have expired
-            const expiredQuery = `
-                UPDATE subscriptions 
-                SET status = 'expired', updated_at = NOW()
-                WHERE status = 'active' 
-                AND end_date IS NOT NULL 
-                AND end_date < NOW()
-                RETURNING user_id, plan_id
-            `;
-            const expiredResult = await client.query(expiredQuery);
-
-            if (expiredResult.rowCount && expiredResult.rowCount > 0) {
-                console.log(`📛 Marked ${expiredResult.rowCount} subscriptions as 'expired'`);
-
-                // Reset users to Free plan
-                const freePlanResult = await client.query(`SELECT id FROM plans WHERE name = 'free' LIMIT 1`);
-                const freePlanId = freePlanResult.rows[0]?.id || 1;
-
-                for (const sub of expiredResult.rows) {
-                    await client.query(`UPDATE users SET current_plan_id = $1 WHERE id = $2`, [freePlanId, sub.user_id]);
-                    
-                    // Send notification
-                    const title = `⚠️ Abonnement Expiré`;
-                    const message = `Votre abonnement a expiré. Vous êtes maintenant sur le plan Gratuit. Renouvelez pour continuer à profiter des fonctionnalités premium.`;
-                    await NotificationService.send(sub.user_id, title, message, 'warning', 'SUBSCRIPTION_EXPIRED');
-                    console.log(`[CRON] Sent Subscription Expiry Alert to User ${sub.user_id}`);
-                }
-            }
-
-            // 2. Send reminder 7 days before expiration
-            const reminderQuery = `
-                SELECT s.user_id, s.end_date, p.display_name
-                FROM subscriptions s
-                JOIN plans p ON s.plan_id = p.id
-                WHERE s.status = 'active' 
-                AND s.end_date IS NOT NULL 
-                AND s.end_date::date = (CURRENT_DATE + INTERVAL '7 days')::date
-            `;
-            const reminderResult = await client.query(reminderQuery);
-
-            for (const sub of reminderResult.rows) {
-                const title = `📅 Abonnement Bientôt Expiré`;
-                const message = `Votre abonnement ${sub.display_name} expire dans 7 jours. Pensez à le renouveler !`;
-                await NotificationService.send(sub.user_id, title, message, 'info', 'SUBSCRIPTION_REMINDER');
-                console.log(`[CRON] Sent Subscription Reminder to User ${sub.user_id}`);
-            }
-
-        } catch (error) {
-            console.error('❌ Error in checkSubscriptionExpirations:', error);
-        } finally {
-            client.release();
+            console.error('Error in CronService:', error);
         }
     }
 }

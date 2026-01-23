@@ -52,6 +52,7 @@ import EdlCreate from './pages/EdlCreate';
 import EdlDetails from './pages/EdlDetails';
 import EdlSignature from './pages/EdlSignature';
 import Pricing from './pages/Pricing';
+import Carnet from './pages/Carnet'; // Module XI
 // Public marketing pages
 import { 
   FonctionnalitesPage, 
@@ -178,6 +179,7 @@ const App: React.FC = () => {
                                             <Route path="etats-des-lieux/:id/signer" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<EdlSignature />} />} />
                                             <Route path="contrats" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Contrats />} />} />
                                             <Route path="documents" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Documents />} />} />
+                                            <Route path="carnet" element={<RouteProtection allowedUserTypes={['gestionnaire', 'admin']} children={<Carnet />} />} />
                                             <Route path="finances" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Finances />} />} />
                                             <Route path="interventions" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Interventions />} />} />
                                             <Route path="equipe" element={<RouteProtection allowedUserTypes={['proprietaire']} children={<DelegationsPage />} />} />

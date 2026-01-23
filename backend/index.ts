@@ -132,11 +132,14 @@ import expenseRoutes from './routes/expenseRoutes';
 import loanRoutes from './routes/loanRoutes';
 import taxRoutes from './routes/taxRoutes';
 import templateRoutes from './routes/templateRoutes';
+import notebookRoutes from './routes/notebookRoutes';
 
 app.use('/api/finances', protect, financeRoutes);
 app.use('/api/expenses', protect, expenseRoutes);
 app.use('/api/loans', protect, loanRoutes);
 app.use('/api/tax', protect, taxRoutes);
+app.use('/api/templates', protect, templateRoutes);
+app.use('/api/carnet', protect, notebookRoutes);
 
 // Routes Inventaires (États des lieux)
 import inventoryRoutes from './routes/inventoryRoutes';
@@ -145,6 +148,15 @@ app.use('/api/inventories', protect, inventoryRoutes);
 // Routes États des Lieux (Inspections juridiques)
 import edlRoutes from './routes/edlRoutes';
 app.use('/api/edl', protect, edlRoutes);
+
+// Module XIII - Interventions
+import providerRoutes from './routes/providerRoutes';
+import ticketRoutes from './routes/ticketRoutes';
+import serviceContractRoutes from './routes/serviceContractRoutes';
+
+app.use('/api/providers', protect, providerRoutes);
+app.use('/api/tickets', protect, ticketRoutes);
+app.use('/api/service-contracts', protect, serviceContractRoutes);
 
 // Routes Abonnements (Subscriptions)
 import subscriptionRoutes from './routes/subscriptionRoutes';
