@@ -201,38 +201,45 @@ const GestionnaireDashboard: React.FC = () => {
     fetchKPIs();
   }, [stats, period, mockKpis]);
 
-  // Simulate chart loading
+
+  // Fetch chart data from API
+  const [chartData, setChartData] = useState<{ name: string; revenus: number; depenses: number }[]>([]);
+  
   useEffect(() => {
-    setIsLoadingChart(true);
-    const timer = setTimeout(() => setIsLoadingChart(false), 800);
-    return () => clearTimeout(timer);
+    const fetchChartData = async () => {
+      setIsLoadingChart(true);
+      const token = getToken();
+      
+      if (!token) {
+        setChartData([{ name: 'N/A', revenus: 0, depenses: 0 }]);
+        setIsLoadingChart(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/dashboard/chart-data?period=${period}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setChartData(data.chartData);
+        }
+      } catch (error) {
+        console.error('Error fetching chart data:', error);
+      } finally {
+        setIsLoadingChart(false);
+      }
+    };
+    
+    fetchChartData();
   }, [period]);
 
-  // Chart Data - memoized based on period
-  const revenusData = useMemo(() => {
-    // In real app, this would be fetched based on period
-    const baseData = [
-      { name: 'Jan', revenus: 1200000, depenses: 240000 },
-      { name: 'Fév', revenus: 1100000, depenses: 139800 },
-      { name: 'Mar', revenus: 1400000, depenses: 150000 },
-      { name: 'Avr', revenus: 1278000, depenses: 390800 },
-      { name: 'Mai', revenus: 1890000, depenses: 480000 },
-      { name: 'Juin', revenus: 2339000, depenses: 380000 },
-      { name: 'Juil', revenus: 2449000, depenses: 430000 },
-    ];
-    
-    // Adjust data based on period for demo
-    switch (period) {
-      case '7d':
-        return baseData.slice(-2);
-      case '30d':
-        return baseData.slice(-3);
-      case '90d':
-        return baseData.slice(-5);
-      default:
-        return baseData;
-    }
-  }, [period]);
+  // Alias for chart
+  const revenusData = chartData;
 
   const occupationData = [
     { name: 'Occupé', value: stats?.tauxOccupation || 85, color: '#6366f1' },

@@ -18,35 +18,58 @@ router.get('/stats/gestionnaire', async (req: AuthenticatedRequest, res: Respons
     }
     
     try {
+        let whereClause = '1=1';
+        let params: any[] = [];
+
+        // Si pas admin, on filtre par les propriétaires assignés
+        if (req.userRole !== 'admin') {
+            const ownersResult = await pool.query(
+                `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
+                [req.userId]
+            );
+            
+            if (ownersResult.rows.length === 0) {
+                // Aucun propriétaire assigné -> stats vides
+                return res.status(200).json({
+                    stats: { totalBiens: 0, totalLots: 0, lotsOccupes: 0, tauxOccupation: 0, revenusMois: 0, impayesEnCours: 0, locatairesActifs: 0 }
+                });
+            }
+
+            const ownerIds = ownersResult.rows.map(r => r.owner_id);
+            whereClause = `owner_id IN (${ownerIds.join(',')})`;
+        }
+
         // Total des bâtiments
-        const buildingsResult = await pool.query('SELECT COUNT(*) FROM buildings');
+        const buildingsResult = await pool.query(`SELECT COUNT(*) FROM buildings WHERE ${whereClause}`);
         const totalBiens = parseInt(buildingsResult.rows[0].count, 10);
 
         // Total des lots
-        const lotsResult = await pool.query('SELECT COUNT(*) FROM lots');
+        const lotsResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE building_id IN (SELECT id FROM buildings WHERE ${whereClause})`);
         const totalLots = parseInt(lotsResult.rows[0].count, 10);
 
         // Lots occupés
-        const occupiedResult = await pool.query("SELECT COUNT(*) FROM lots WHERE statut = 'occupe'");
+        const occupiedResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND building_id IN (SELECT id FROM buildings WHERE ${whereClause})`);
         const lotsOccupes = parseInt(occupiedResult.rows[0].count, 10);
 
         // Taux d'occupation
         const tauxOccupation = totalLots > 0 ? Math.round((lotsOccupes / totalLots) * 100) : 0;
 
-        // Total revenus (paiements du mois en cours)
+        // Total revenus
         const revenusResult = await pool.query(`
             SELECT COALESCE(SUM(montant), 0) as total 
             FROM payments 
-            WHERE EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
+            WHERE owner_id IN (SELECT id FROM owners WHERE ${whereClause.replace(/owner_id/g, 'id')})
+            AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
             AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
         `);
         const revenusMois = parseFloat(revenusResult.rows[0].total) || 0;
 
-        // Impayés (estimation basée sur les contrats actifs sans paiement ce mois)
+        // Impayés
         const impayesResult = await pool.query(`
             SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
             FROM leases l
-            WHERE l.statut = 'actif'
+            WHERE l.owner_id IN (SELECT id FROM owners WHERE ${whereClause.replace(/owner_id/g, 'id')})
+            AND l.statut = 'actif'
             AND NOT EXISTS (
                 SELECT 1 FROM payments p 
                 WHERE p.lease_id = l.id 
@@ -58,7 +81,9 @@ router.get('/stats/gestionnaire', async (req: AuthenticatedRequest, res: Respons
 
         // Locataires actifs
         const tenantsResult = await pool.query(`
-            SELECT COUNT(DISTINCT tenant_id) FROM leases WHERE statut = 'actif'
+            SELECT COUNT(DISTINCT tenant_id) FROM leases 
+            WHERE statut = 'actif' 
+            AND owner_id IN (SELECT id FROM owners WHERE ${whereClause.replace(/owner_id/g, 'id')})
         `);
         const locatairesActifs = parseInt(tenantsResult.rows[0].count, 10);
 
@@ -547,6 +572,116 @@ router.get('/kpi', async (req: AuthenticatedRequest, res: Response) => {
     } catch (error) {
         console.error('Erreur récupération KPIs:', error);
         res.status(500).json({ message: 'Erreur serveur lors de la récupération des KPIs.' });
+    }
+});
+
+// GET /api/dashboard/chart-data : Données pour les graphiques (revenus/dépenses par mois)
+router.get('/chart-data', async (req: AuthenticatedRequest, res: Response) => {
+    const period = (req.query.period as string) || '6m'; // 7d, 30d, 90d, 6m, 1y
+    
+    try {
+        // Déterminer la période
+        let interval: string;
+        
+        switch(period) {
+            case '7d':
+                interval = '7 days';
+                break;
+            case '30d':
+                interval = '30 days';
+                break;
+            case '90d':
+                interval = '90 days';
+                break;
+            case '1y':
+                interval = '1 year';
+                break;
+            default:
+                interval = '6 months';
+        }
+
+        // Revenus par mois (paiements validés)
+        const revenusResult = await pool.query(`
+            SELECT 
+                TO_CHAR(date_paiement, 'Mon') as name,
+                EXTRACT(MONTH FROM date_paiement) as month_num,
+                COALESCE(SUM(montant), 0) as revenus
+            FROM payments
+            WHERE date_paiement >= CURRENT_DATE - INTERVAL '${interval}'
+            AND statut = 'valide'
+            GROUP BY TO_CHAR(date_paiement, 'Mon'), EXTRACT(MONTH FROM date_paiement)
+            ORDER BY month_num
+        `);
+
+        // Dépenses par mois
+        const depensesResult = await pool.query(`
+            SELECT 
+                TO_CHAR(date_depense, 'Mon') as name,
+                EXTRACT(MONTH FROM date_depense) as month_num,
+                COALESCE(SUM(montant), 0) as depenses
+            FROM depenses
+            WHERE date_depense >= CURRENT_DATE - INTERVAL '${interval}'
+            GROUP BY TO_CHAR(date_depense, 'Mon'), EXTRACT(MONTH FROM date_depense)
+            ORDER BY month_num
+        `);
+
+        // Noms des mois en français
+        const monthNames: { [key: number]: string } = {
+            1: 'Jan', 2: 'Fév', 3: 'Mar', 4: 'Avr', 5: 'Mai', 6: 'Juin',
+            7: 'Juil', 8: 'Août', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Déc'
+        };
+
+        // Fusionner revenus et dépenses
+        const dataMap = new Map<number, { name: string; revenus: number; depenses: number }>();
+
+        revenusResult.rows.forEach((row: any) => {
+            const monthNum = parseInt(row.month_num);
+            dataMap.set(monthNum, {
+                name: monthNames[monthNum] || row.name,
+                revenus: parseFloat(row.revenus) || 0,
+                depenses: 0
+            });
+        });
+
+        depensesResult.rows.forEach((row: any) => {
+            const monthNum = parseInt(row.month_num);
+            const existing = dataMap.get(monthNum);
+            if (existing) {
+                existing.depenses = parseFloat(row.depenses) || 0;
+            } else {
+                dataMap.set(monthNum, {
+                    name: monthNames[monthNum] || row.name,
+                    revenus: 0,
+                    depenses: parseFloat(row.depenses) || 0
+                });
+            }
+        });
+
+        // Trier par mois
+        const chartData = Array.from(dataMap.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(([_, data]) => data);
+
+        // Si aucune donnée, retourner tableau vide
+        if (chartData.length === 0) {
+            const now = new Date();
+            const emptyData = [];
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                emptyData.push({
+                    name: monthNames[d.getMonth() + 1] || 'N/A',
+                    revenus: 0,
+                    depenses: 0
+                });
+            }
+            return res.json({ chartData: emptyData, period });
+        }
+
+        res.json({ chartData, period });
+
+    } catch (error) {
+        console.error('Erreur récupération chart-data:', error);
+        res.status(500).json({ message: 'Erreur serveur.' });
     }
 });
 

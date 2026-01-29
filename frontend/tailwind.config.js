@@ -7,28 +7,41 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#eef4ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: '#eef2ff',
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          300: '#a5b4fc',
+          400: '#818cf8',
+          500: '#6366f1',
+          600: '#4f46e5', // Make sure this is the main primary
+          700: '#4338ca',
+          800: '#3730a3',
+          900: '#312e81',
         },
-        secondary: {
-          50: '#fdf2f8',
-          100: '#fce7f3',
-          200: '#fbcfe8',
-          300: '#f9a8d4',
-          400: '#f472b6',
-          500: '#ec4899',
-          600: '#db2777',
-          700: '#be185d',
-          800: '#9d174d',
-          900: '#831843',
+        secondary: { // Keeping Pink/Rose as secondary for alerts/accents or switching to Sky? 
+                     // Let's use Sky as "Accent" and keep Pink as Secondary for variety
+          50: '#f0f9ff',
+          100: '#e0f2fe', // The user liked this Sky
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#0ea5e9',
+          600: '#0284c7',
+          700: '#0369a1',
+          800: '#075985',
+          900: '#0c4a6e',
+        },
+        slate: {
+          50: '#f8fafc', // Main background
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b', 
+          600: '#475569',
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a',
         },
         success: {
           50: '#f0fdf4',
@@ -58,7 +71,6 @@ export default {
           50: '#fef2f2',
           100: '#fee2e2',
           200: '#fecaca',
-          200: '#fecaca',
           300: '#fca5a5',
           400: '#f87171',
           500: '#ef4444',
@@ -69,15 +81,17 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['"Inter"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif'],
-        heading: ['"Plus Jakarta Sans"', '"Inter"', 'system-ui', 'sans-serif'],
+        sans: ['"Inter"', 'system-ui', 'sans-serif'],
+        heading: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        'primary': '0 4px 6px -1px rgba(59, 130, 246, 0.1), 0 2px 4px -1px rgba(59, 130, 246, 0.06)',
-        'secondary': '0 4px 6px -1px rgba(236, 72, 153, 0.1), 0 2px 4px -1px rgba(236, 72, 153, 0.06)',
-        'success': '0 4px 6px -1px rgba(34, 197, 94, 0.1), 0 2px 4px -1px rgba(34, 197, 94, 0.06)',
-        'warning': '0 4px 6px -1px rgba(245, 158, 11, 0.1), 0 2px 4px -1px rgba(245, 158, 11, 0.06)',
-        'error': '0 4px 6px -1px rgba(239, 68, 68, 0.1), 0 2px 4px -1px rgba(239, 68, 68, 0.06)',
+        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+      },
+      borderRadius: {
+        'xl': '1rem',
+        '2xl': '1.5rem',
+        '3xl': '2rem',
       }
     },
   },
@@ -88,19 +102,37 @@ export default {
     themes: [
       {
         hopegestion: {
-          "primary": "#3f51b5",
-          "secondary": "#f50057",
-          "accent": "#673ab7",
-          "neutral": "#3d4451",
+          "primary": "#4f46e5", // Indigo 600
+          "secondary": "#0ea5e9", // Sky 500
+          "accent": "#8b5cf6", // Violet
+          "neutral": "#1e293b", // Slate 800
           "base-100": "#ffffff",
-          "info": "#2196f3",
-          "success": "#4caf50",
-          "warning": "#ff9800",
-          "error": "#f44336",
+          "base-200": "#f8fafc", // Slate 50
+          "info": "#3b82f6",
+          "success": "#22c55e",
+          "warning": "#f59e0b",
+          "error": "#ef4444",
+          "--rounded-box": "1rem", // rounded-2xl
+          "--rounded-btn": "0.5rem", // rounded-lg
         },
       },
-      "light",
-      "dark",
+      {
+        dark: {
+          "primary": "#6366f1", // Indigo 500 (lighter for dark mode)
+          "secondary": "#38bdf8", // Sky 400
+          "accent": "#a78bfa", // Violet 400
+          "neutral": "#94a3b8", // Slate 400
+          "base-100": "#0f172a", // Slate 900 (Main BG)
+          "base-200": "#1e293b", // Slate 800 (Secondary BG)
+          "base-300": "#334155", // Slate 700 (Borders)
+          "info": "#60a5fa",
+          "success": "#4ade80",
+          "warning": "#fbbf24",
+          "error": "#f87171",
+          "--rounded-box": "1rem", 
+          "--rounded-btn": "0.5rem", 
+        },
+      },
     ],
   },
 }

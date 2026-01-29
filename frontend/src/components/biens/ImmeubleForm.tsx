@@ -8,6 +8,7 @@ import {
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import ImageUpload from '../ui/ImageUpload';
 import type { Immeuble } from '../../api/bienApi';
 import type { Proprietaire } from '../../api/accountApi';
 
@@ -59,7 +60,12 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
   }, [immeuble]);
 
   const handleChange = (field: keyof Immeuble, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    console.log(`Field change: ${field} =`, value, typeof value);
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      console.log('New Form Data:', newData, 'Valid?', !!newData.nom && !!newData.owner_id);
+      return newData;
+    });
   };
 
   const handlePhotoAdd = (url: string) => {
@@ -294,27 +300,12 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                 ))}
                 
                 {photoPreviews.length < 10 && (
-                  <label className="border-2 border-dashed border-base-300 rounded-lg h-32 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
-                    <Upload size={24} className="mb-2" />
-                    <span className="text-sm">Ajouter</span>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden"
-                      onChange={(e) => {
-                        // Pour l'instant, on utilise une URL placeholder
-                        // TODO: Implémenter upload réel
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            handlePhotoAdd(reader.result as string);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                    />
-                  </label>
+                  <ImageUpload 
+                    onChange={handlePhotoAdd} 
+                    folder="property"
+                    label=""
+                    className="h-32"
+                  />
                 )}
               </div>
             </div>

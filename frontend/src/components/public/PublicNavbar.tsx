@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import ThemeToggle from '../ui/ThemeToggle';
 
 const PublicNavbar: React.FC = () => {
     const [scrolled, setScrolled] = useState(false);
@@ -53,7 +52,6 @@ const PublicNavbar: React.FC = () => {
             </div>
 
             <div className="navbar-end gap-2">
-                <ThemeToggle />
                 <Link to="/login" className="btn btn-ghost btn-sm md:btn-md">
                     Connexion
                 </Link>

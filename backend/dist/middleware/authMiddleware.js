@@ -63,25 +63,35 @@ const protect = (req, res, next) => {
         // Vérifier que decoded est bien un objet avec les propriétés attendues
         if (typeof decoded === 'object' && decoded !== null && 'id' in decoded && 'role' in decoded) {
             const payload = decoded;
+            console.log(`[AUTH] User authenticated. ID: ${payload.id}, Role: ${payload.role}, IsGuest: ${payload.isGuest || false}`);
             // 3. Ajouter l'ID et le Rôle de l'utilisateur à l'objet requête (req)
             // Les routes futures pourront accéder à ces infos via req.userId et req.userRole.
-            // 3. Ajouter l'ID et le Rôle de l'utilisateur à l'objet requête (req)
             req.userId = payload.id;
             req.userRole = payload.role;
-            // Fix for auditRoutes accessing req.user
+            // Extended user object with guest context
             req.user = {
                 id: payload.id,
                 role: payload.role,
-                userType: payload.userType || 'gestionnaire' // Fallback or fetch from DB if needed
+                userType: payload.userType || 'gestionnaire',
+                // Guest-specific fields
+                isGuest: payload.isGuest || false,
+                issuerId: payload.issuerId || null, // The account context for data access
+                permissions: payload.permissions || null,
+                // Helper: Get the effective owner ID for data queries
+                getEffectiveOwnerId: function () {
+                    return this.isGuest && this.issuerId ? this.issuerId : this.id;
+                }
             };
         }
         else {
+            console.error('[AUTH] Invalid token structure:', decoded);
             return res.status(403).json({ message: 'Accès refusé : Jeton invalide.' });
         }
         // 4. Continuer vers la prochaine fonction (la route demandée)
         next();
     }
     catch (error) {
+        console.error('[AUTH] Token verification failed:', error);
         // Si la vérification échoue (jeton expiré, falsifié, etc.)
         return res.status(403).json({ message: 'Accès refusé : Jeton non valide ou expiré.' });
     }

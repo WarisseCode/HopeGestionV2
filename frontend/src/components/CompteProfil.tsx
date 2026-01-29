@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Camera, Globe, DollarSign, Clock, Save, Lock, MessageCircle, X } from 'lucide-react';
+import { User, Mail, Phone, Camera, Globe, DollarSign, Clock, Save, Lock, MessageCircle, X, Eye, EyeOff } from 'lucide-react';
 import { accountApi } from '../api/accountApi';
 import { motion } from 'framer-motion';
+import ImageUpload from './ui/ImageUpload';
 
 interface UserProfile {
     id: number;
@@ -42,6 +43,7 @@ const CompteProfil: React.FC = () => {
     // Password Modal State
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [passwordData, setPasswordData] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    const [showPassword, setShowPassword] = useState(false);
     const [passwordError, setPasswordError] = useState<string | null>(null);
     const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
@@ -114,6 +116,7 @@ const CompteProfil: React.FC = () => {
                 prenom: formData.prenom,
                 email: formData.email,
                 telephone: formData.telephone,
+                photo_url: profile?.photo_url || '',
                 preferences: preferences
             };
 
@@ -143,7 +146,7 @@ const CompteProfil: React.FC = () => {
 
         try {
             await accountApi.changePassword({ 
-                oldPassword: passwordData.oldPassword, 
+                currentPassword: passwordData.oldPassword, 
                 newPassword: passwordData.newPassword 
             });
             setPasswordSuccess("Mot de passe modifié avec succès !");
@@ -173,10 +176,44 @@ const CompteProfil: React.FC = () => {
                             </div>
                         )}
                     </div>
-                    <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 transition-colors shadow-md">
-                        <Camera size={18} />
-                        <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
+                    {/* Simple clickable overlay for upload */}
+                    <label className="absolute inset-0 cursor-pointer rounded-full bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
+                        <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden"
+                            onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                
+                                // Create FormData and upload
+                                const formDataUpload = new FormData();
+                                formDataUpload.append('file', file);
+                                formDataUpload.append('type', 'avatar');
+                                
+                                try {
+                                    const response = await fetch('http://localhost:5000/api/upload', {
+                                        method: 'POST',
+                                        body: formDataUpload,
+                                    });
+                                    const data = await response.json();
+                                    if (response.ok && data.files?.[0]) {
+                                        const photoUrl = `http://localhost:5000${data.files[0].path}`;
+                                        // Update state immediately
+                                        if (profile) setProfile({ ...profile, photo_url: photoUrl });
+                                        // Save to backend
+                                        await savePhoto(photoUrl);
+                                    }
+                                } catch (err) {
+                                    console.error('Upload error:', err);
+                                    setMessage({ type: 'error', text: "Erreur lors de l'upload" });
+                                }
+                            }}
+                        />
                     </label>
+                    <div className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full pointer-events-none shadow-md z-10">
+                        <Camera size={18} />
+                    </div>
                 </div>
 
                 {/* Info Essentielle */}
@@ -381,38 +418,33 @@ const CompteProfil: React.FC = () => {
                         {passwordSuccess && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm">{passwordSuccess}</div>}
 
                         <form onSubmit={handlePasswordChange} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe actuel</label>
-                                <input 
-                                    type="password" 
-                                    className="w-full p-2 border rounded-lg"
-                                    value={passwordData.oldPassword}
-                                    onChange={e => setPasswordData({...passwordData, oldPassword: e.target.value})}
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nouveau mot de passe</label>
-                                <input 
-                                    type="password" 
-                                    className="w-full p-2 border rounded-lg"
-                                    value={passwordData.newPassword}
-                                    onChange={e => setPasswordData({...passwordData, newPassword: e.target.value})}
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Confirmer le nouveau mot de passe</label>
-                                <input 
-                                    type="password" 
-                                    className="w-full p-2 border rounded-lg"
-                                    value={passwordData.confirmPassword}
-                                    onChange={e => setPasswordData({...passwordData, confirmPassword: e.target.value})}
-                                    required
-                                />
-                            </div>
+                            {[
+                                { label: 'Mot de passe actuel', value: passwordData.oldPassword, key: 'oldPassword' },
+                                { label: 'Nouveau mot de passe', value: passwordData.newPassword, key: 'newPassword' },
+                                { label: 'Confirmer le nouveau mot de passe', value: passwordData.confirmPassword, key: 'confirmPassword' }
+                            ].map((field) => (
+                                <div key={field.key} className="relative">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
+                                    <div className="relative">
+                                        <input 
+                                            type={showPassword ? "text" : "password"}
+                                            className="w-full p-2 border rounded-lg pr-10"
+                                            value={field.value}
+                                            onChange={e => setPasswordData({...passwordData, [field.key]: e.target.value})}
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                        >
+                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
                             
-                            <div className="flex justify-end gap-2 mt-6">
+                            <div className="flex justify-end gap-3 mt-6">
                                 <button 
                                     type="button"
                                     onClick={() => setShowPasswordModal(false)}

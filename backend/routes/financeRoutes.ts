@@ -29,9 +29,14 @@ const SELECT_PAYMENTS_FIELDS = `
     p.owner_id
 `;
 
+import { filterByOwner, buildOwnerWhereClause } from '../middleware/ownerIsolation';
+
 // GET /api/finances - Liste des paiements
-router.get('/', permissions.canRead('finances'), async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', permissions.canRead('finances'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
     try {
+        const ownerIds = (req as any).ownerIds;
+        const whereClause = buildOwnerWhereClause(ownerIds);
+        
         const { lease_id, start_date, end_date, statut, type } = req.query;
 
         let query = `
@@ -46,7 +51,7 @@ router.get('/', permissions.canRead('finances'), async (req: AuthenticatedReques
             JOIN leases l ON p.lease_id = l.id
             JOIN tenants t ON l.tenant_id = t.id
             JOIN owners o ON l.owner_id = o.id
-            WHERE 1=1
+            WHERE ${whereClause.replace(/owner_id/g, 'p.owner_id')}
         `;
         
         const params: any[] = [];

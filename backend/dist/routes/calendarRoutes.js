@@ -110,11 +110,78 @@ router.get('/', authMiddleware_1.protect, async (req, res) => {
                 currentMonth = (0, date_fns_1.addMonths)(currentMonth, 1);
             }
         }
+        // 3. Récupérer les ÉVÉNEMENTS PERSONNALISÉS
+        const customEventsResult = await database_1.default.query(`SELECT * FROM calendar_events 
+             WHERE user_id = $1 
+             AND (start_date BETWEEN $2 AND $3)`, [userId, start, end]);
+        for (const evt of customEventsResult.rows) {
+            events.push({
+                id: `evt_${evt.id}`,
+                title: evt.title,
+                date: evt.start_date,
+                type: 'custom', // ou evt.type
+                details: {
+                    description: evt.description
+                }
+            });
+        }
         res.json({ events });
     }
     catch (error) {
         console.error('Error fetching calendar:', error);
         res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+// POST /api/calendar/events
+router.post('/events', authMiddleware_1.protect, async (req, res) => {
+    try {
+        const { title, description, start_date, end_date, type, is_all_day } = req.body;
+        const result = await database_1.default.query(`INSERT INTO calendar_events (user_id, title, description, start_date, end_date, type, is_all_day)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`, [req.user.id, title, description, start_date, end_date, type, is_all_day || false]);
+        res.status(201).json(result.rows[0]);
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur création événement' });
+    }
+});
+// DELETE /api/calendar/events/:id
+router.delete('/events/:id', authMiddleware_1.protect, async (req, res) => {
+    try {
+        await database_1.default.query('DELETE FROM calendar_events WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+        res.json({ message: 'Événement supprimé' });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Erreur suppression' });
+    }
+});
+// GET /api/calendar/settings
+router.get('/settings', authMiddleware_1.protect, async (req, res) => {
+    try {
+        const result = await database_1.default.query('SELECT * FROM reminder_settings WHERE user_id = $1', [req.user.id]);
+        res.json(result.rows);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Erreur chargement réglages' });
+    }
+});
+// POST /api/calendar/settings
+router.post('/settings', authMiddleware_1.protect, async (req, res) => {
+    try {
+        const { event_type, delay_days, channel, active } = req.body;
+        // Check if exists
+        const existing = await database_1.default.query('SELECT * FROM reminder_settings WHERE user_id = $1 AND event_type = $2', [req.user.id, event_type]);
+        if (existing.rows.length > 0) {
+            const result = await database_1.default.query('UPDATE reminder_settings SET delay_days = $1, channel = $2, active = $3 WHERE user_id = $4 AND event_type = $5 RETURNING *', [delay_days, channel, active, req.user.id, event_type]);
+            res.json(result.rows[0]);
+        }
+        else {
+            const result = await database_1.default.query('INSERT INTO reminder_settings (user_id, event_type, delay_days, channel, active) VALUES ($1, $2, $3, $4, $5) RETURNING *', [req.user.id, event_type, delay_days, channel, active]);
+            res.json(result.rows[0]);
+        }
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Erreur sauvegarde réglages' });
     }
 });
 exports.default = router;

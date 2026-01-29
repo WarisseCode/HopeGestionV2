@@ -7,13 +7,13 @@ const router = Router();
 
 // GET /api/compte/proprietaires : Récupérer la liste des propriétaires
 router.get('/proprietaires', async (req: AuthenticatedRequest, res: Response) => {
-    // Vérification : Seuls les admins et gestionnaires peuvent accéder aux propriétaires
-    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
+    // Vérification : Admins, gestionnaires, managers ET propriétaires peuvent accéder (avec filtre)
+    if (!['admin', 'gestionnaire', 'manager', 'proprietaire', 'owner'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
     try {
-        const query = `
+        let query = `
             SELECT id, type, name as nom, first_name as prenom, phone as telephone, 
                    phone_secondary as "telephoneSecondaire", email, address as adresse, 
                    city as ville, country as pays, id_number as "numeroPiece", 
@@ -21,9 +21,31 @@ router.get('/proprietaires', async (req: AuthenticatedRequest, res: Response) =>
                    mobile_money_coordinates as "mobileMoney", rccm_number as "rccmNumber"
             FROM owners
             WHERE is_active = TRUE
-            ORDER BY name ASC
         `;
-        const result = await db.query(query);
+        const params: any[] = [];
+
+        // Si c'est un propriétaire, on filtre pour ne montrer que son propre compte
+        if (req.userRole === 'proprietaire' || req.userRole === 'owner') {
+            // Trouver l'ID owner lié à cet utilisateur
+            const linkResult = await db.query(
+                `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
+                [req.userId]
+            );
+            
+            if (linkResult.rows.length > 0) {
+                // Filtrer sur les IDs trouvés (un user peut être lié à plusieurs owners en théorie)
+                const ownerIds = linkResult.rows.map(row => row.owner_id);
+                query += ` AND id = ANY($1)`;
+                params.push(ownerIds);
+            } else {
+                // Pas de lien owner trouvé -> liste vide
+                return res.json({ proprietaires: [] });
+            }
+        }
+
+        query += ` ORDER BY name ASC`;
+        
+        const result = await db.query(query, params);
         res.status(200).json({ proprietaires: result.rows });
     } catch (error) {
         console.error('Erreur récupération propriétaires:', error);

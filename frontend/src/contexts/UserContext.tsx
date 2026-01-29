@@ -11,6 +11,7 @@ export interface UserProfile {
   email: string;
   userType: string;
   role: string;
+  photo_url?: string;
   isGuest?: boolean;
   permissions?: {
       // Biens Immobiliers

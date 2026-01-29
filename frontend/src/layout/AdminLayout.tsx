@@ -15,7 +15,6 @@ import {
   Bell
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import ThemeToggle from '../components/ui/ThemeToggle';
 import { getProfile } from '../api/authApi';
 
 interface AdminLayoutProps {
@@ -153,7 +152,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onLogout }) => {
             </div>
 
             <div className="flex items-center gap-4">
-                <ThemeToggle />
                 <div className="indicator">
                     <Bell className="text-base-content/70" />
                     <span className="badge badge-xs badge-error indicator-item"></span>

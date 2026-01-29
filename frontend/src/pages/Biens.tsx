@@ -240,18 +240,29 @@ const Biens: React.FC = () => {
   );
 
   // Handlers
-  const handleSaveImmeuble = async () => {
+  const handleSaveImmeuble = async (data?: Partial<Immeuble>) => {
+    const dataToSave = data || editingImmeuble;
+    
     try {
       setError(null);
-      if (!editingImmeuble.owner_id) {
+      if (!dataToSave.owner_id) {
         throw new Error('Veuillez sélectionner un propriétaire');
       }
-      await saveImmeuble(editingImmeuble);
+      
+      // Ensure numeric fields are numbers
+      const finalData = {
+        ...dataToSave,
+        owner_id: Number(dataToSave.owner_id),
+        nombre_etages: Number(dataToSave.nombre_etages || 1)
+      };
+
+      await saveImmeuble(finalData);
       setSuccess('Immeuble enregistré avec succès');
       setShowImmeubleModal(false);
       setEditingImmeuble({ nom: '', type: 'Immeuble', adresse: '', ville: '', pays: 'Bénin', description: '', owner_id: 0, photo: '' });
       fetchData();
     } catch (err: any) {
+      console.error(err);
       setError(err.message);
     }
   };
@@ -773,36 +784,29 @@ const Biens: React.FC = () => {
             immeuble={editingImmeuble}
             proprietaires={proprietaires}
             onSave={async (data) => {
-              await handleSaveImmeuble();
-              // Override with new data if different
-              if (JSON.stringify(data) !== JSON.stringify(editingImmeuble)) {
-                setEditingImmeuble(data);
-                await saveImmeuble(data);
-                await fetchData();
-              }
-              setShowImmeubleModal(false);
+              await handleSaveImmeuble(data);
             }}
             onSaveAndAddLots={async (data) => {
-              await saveImmeuble(data);
-              await fetchData();
-              setShowImmeubleModal(false);
-              // Switch to lots tab and open lot modal
-              setActiveTab('lots');
-              // Find the newly created building and set it for the lot
-              const newBuildings = await getImmeubles();
-              const newBuilding = newBuildings.find(b => b.nom === data.nom);
-              if (newBuilding) {
-                setEditingLot({ 
-                  reference: '', type: 'Appartement', 
-                  building_id: newBuilding.id, 
-                  etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: '' 
-                });
-                setShowLotModal(true);
-              }
+              await handleSaveImmeuble(data);
+              
+              setTimeout(async () => {
+                  const newBuildings = await getImmeubles();
+                  const newBuilding = newBuildings.find(b => b.nom === data.nom);
+                  
+                  if (newBuilding) {
+                    setActiveTab('lots');
+                    setEditingLot({ 
+                      reference: '', type: 'Appartement', 
+                      building_id: newBuilding.id, 
+                      etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: '' 
+                    });
+                    setTimeout(() => setShowLotModal(true), 100);
+                  }
+              }, 500);
             }}
             onCancel={() => setShowImmeubleModal(false)}
-            loading={loading}
           />
+
         </div>
       </Modal>
 

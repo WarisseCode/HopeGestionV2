@@ -40,9 +40,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.pool = void 0;
 // Importations de base
 const express_1 = __importDefault(require("express"));
+const path_1 = __importDefault(require("path"));
 //import cors from 'cors';
 const dotenv = __importStar(require("dotenv"));
-const pg_1 = require("pg");
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const locataireRoutes_1 = __importDefault(require("./routes/locataireRoutes")); // <--- AJOUT
 const bienRoutes_1 = __importDefault(require("./routes/bienRoutes")); // <--- AJOUT
@@ -63,20 +63,18 @@ const authMiddleware_1 = require("./middleware/authMiddleware");
 // Charger les variables d'environnement
 dotenv.config();
 // Configuration de la Base de Données
-exports.pool = new pg_1.Pool({
-    connectionString: process.env.DATABASE_URL,
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-});
+const database_1 = __importDefault(require("./db/database"));
+exports.pool = database_1.default;
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
+// Auto-seed Super Admin if none exists
+const seedAdmin_1 = require("./scripts/seedAdmin");
 exports.pool.connect()
-    .then(client => {
+    .then(async (client) => {
     console.log('Successfully connected to PostgreSQL!');
     client.release();
+    // Seed Super Admin on first startup
+    await (0, seedAdmin_1.seedSuperAdmin)();
 })
     .catch(err => {
     console.error('Warning: Error connecting to PostgreSQL:', err.stack);
@@ -84,16 +82,26 @@ exports.pool.connect()
 });
 const cors_1 = __importDefault(require("cors"));
 // --- 1. Middleware essentiels ---
-app.use(express_1.default.json());
+app.use(express_1.default.json({ limit: '10mb' }));
+app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
 app.use((0, cors_1.default)({
     origin: true, // Allow all origins temporarily for debugging
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+// Servir les fichiers uploadés
+app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../uploads')));
 // --- 2. Routes de l'API ---
 // Routes d'authentification (Publiques)
+// Routes d'authentification (Publiques)
 app.use('/api/auth', authRoutes_1.default);
+// Routes Réservations (Public + Protected mix inside)
+const reservationRoutes_1 = __importDefault(require("./routes/reservationRoutes"));
+app.use('/api/reservations', reservationRoutes_1.default);
+// Routes Publiques (Aucune authentification requise)
+const publicRoutes_1 = __importDefault(require("./routes/publicRoutes"));
+app.use('/api/public', publicRoutes_1.default);
 // --- Routes Protégées ---
 // Routes Locataires (Nécessite le jeton JWT)
 app.use('/api/locataires', authMiddleware_1.protect, locataireRoutes_1.default); // <--- NOUVELLE LIGNE
@@ -114,8 +122,58 @@ app.use('/api/mobile-money', authMiddleware_1.protect, mobileMoneyRoutes_1.defau
 // Routes Notifications
 const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
 app.use('/api/notifications', authMiddleware_1.protect, notificationRoutes_1.default);
+// Routes Tenant Access (Portal Control)
+const tenantAccessRoutes_1 = __importDefault(require("./routes/tenantAccessRoutes"));
+app.use('/api/tenant-access', authMiddleware_1.protect, tenantAccessRoutes_1.default);
 // Routes Alertes
 app.use('/api/alertes', authMiddleware_1.protect, alertRoutes_1.default);
+// Routes Permissions (Matrice)
+const permissionRoutes_1 = __importDefault(require("./routes/permissionRoutes"));
+app.use('/api/permissions', authMiddleware_1.protect, permissionRoutes_1.default);
+// Routes User-Owner Assignments (Affectation)
+const userAssignmentRoutes_1 = __importDefault(require("./routes/userAssignmentRoutes"));
+app.use('/api/user-assignments', authMiddleware_1.protect, userAssignmentRoutes_1.default);
+// Routes Locations/Baux
+const leaseRoutes_1 = __importDefault(require("./routes/leaseRoutes"));
+app.use('/api/locations', authMiddleware_1.protect, leaseRoutes_1.default);
+// Routes Finances
+// Routes Finances
+const financeRoutes_1 = __importDefault(require("./routes/financeRoutes"));
+const expenseRoutes_1 = __importDefault(require("./routes/expenseRoutes"));
+const loanRoutes_1 = __importDefault(require("./routes/loanRoutes"));
+const taxRoutes_1 = __importDefault(require("./routes/taxRoutes"));
+const templateRoutes_1 = __importDefault(require("./routes/templateRoutes"));
+const notebookRoutes_1 = __importDefault(require("./routes/notebookRoutes"));
+app.use('/api/finances', authMiddleware_1.protect, financeRoutes_1.default);
+app.use('/api/expenses', authMiddleware_1.protect, expenseRoutes_1.default);
+app.use('/api/loans', authMiddleware_1.protect, loanRoutes_1.default);
+app.use('/api/tax', authMiddleware_1.protect, taxRoutes_1.default);
+app.use('/api/templates', authMiddleware_1.protect, templateRoutes_1.default);
+app.use('/api/carnet', authMiddleware_1.protect, notebookRoutes_1.default);
+// Routes Inventaires (États des lieux)
+const inventoryRoutes_1 = __importDefault(require("./routes/inventoryRoutes"));
+app.use('/api/inventories', authMiddleware_1.protect, inventoryRoutes_1.default);
+// Routes États des Lieux (Inspections juridiques)
+const edlRoutes_1 = __importDefault(require("./routes/edlRoutes"));
+app.use('/api/edl', authMiddleware_1.protect, edlRoutes_1.default);
+// Module XIII - Interventions
+const providerRoutes_1 = __importDefault(require("./routes/providerRoutes"));
+const ticketRoutes_1 = __importDefault(require("./routes/ticketRoutes"));
+const serviceContractRoutes_1 = __importDefault(require("./routes/serviceContractRoutes"));
+app.use('/api/providers', authMiddleware_1.protect, providerRoutes_1.default);
+app.use('/api/tickets', authMiddleware_1.protect, ticketRoutes_1.default);
+app.use('/api/service-contracts', authMiddleware_1.protect, serviceContractRoutes_1.default);
+// Module XIV - Tâches & Messages
+const taskRoutes_1 = __importDefault(require("./routes/taskRoutes"));
+const messageRoutes_1 = __importDefault(require("./routes/messageRoutes"));
+app.use('/api/tasks', authMiddleware_1.protect, taskRoutes_1.default);
+app.use('/api/messages', authMiddleware_1.protect, messageRoutes_1.default);
+// Routes Abonnements (Subscriptions)
+const subscriptionRoutes_1 = __importDefault(require("./routes/subscriptionRoutes"));
+app.use('/api/subscriptions', subscriptionRoutes_1.default); // Mix of public (plans) and protected routes
+// Routes Webhooks FedaPay (paiements)
+const fedapayWebhookRoutes_1 = __importDefault(require("./routes/fedapayWebhookRoutes"));
+app.use('/api/webhooks/fedapay', fedapayWebhookRoutes_1.default);
 // Route Test Protégée (pour validation rapide de 'protect')
 // Route Test Protégée (pour validation rapide de 'protect')
 app.get('/api/profil', authMiddleware_1.protect, async (req, res) => {
@@ -141,8 +199,11 @@ app.get('/api/profil', authMiddleware_1.protect, async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur lors de la récupération du profil.' });
     }
 });
-const adminRoutes_1 = __importDefault(require("./routes/adminRoutes"));
-app.use('/api/admin', adminRoutes_1.default);
+const adminRoutes_1 = __importStar(require("./routes/adminRoutes"));
+app.use('/api/admin', authMiddleware_1.protect, adminRoutes_1.default);
+// Public routes for admin invitation (no auth required)
+app.get('/api/admin-invite/check', adminRoutes_1.checkAdminInvite);
+app.post('/api/admin-invite/accept', adminRoutes_1.acceptAdminInvite);
 // --- 3. Test de communication (Endpoint de Ping) ---
 app.get('/api/ping', (req, res) => {
     res.status(200).json({

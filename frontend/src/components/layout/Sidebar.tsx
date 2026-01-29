@@ -210,41 +210,52 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
       </AnimatePresence>
 
       <aside 
-          className={`bg-base-100 shadow-xl z-50 transition-all duration-300 ease-in-out flex flex-col items-stretch 
+          className={`shadow-lg z-50 transition-all duration-300 ease-in-out flex flex-col items-stretch border-r border-slate-200
             ${isMobile 
-                ? `fixed inset-y-0 left-0 w-72 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}` 
-                : `${isOpen ? 'w-72' : 'w-20'} relative h-full border-r border-base-200`
+                ? `fixed inset-y-0 left-0 w-72 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} bg-white` 
+                : `${isOpen ? 'w-72' : 'w-20'} relative h-full bg-white`
             }
           `}
         >
           {/* Logo Area */}
-          <div className="h-16 flex items-center justify-between px-4 border-b border-base-200 bg-base-100 shrink-0">
+          <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100 bg-transparent shrink-0">
             {(isOpen || isMobile) ? (
-                 <img src="/logo.png" alt="Hg" className="h-10 w-auto object-contain" />
+                 <div className="flex items-center gap-2">
+                    <img src="/logo.png" alt="Hg" className="h-10 w-auto object-contain" />
+                    <span className="font-heading font-bold text-xl text-slate-800 tracking-tight">Hope<span className="text-primary-600">Gestion</span></span>
+                 </div>
             ) : (
                <img src="/logo.png" alt="HG" className="h-8 w-8 mx-auto object-contain" />
             )}
             <button 
               onClick={toggleSidebar} 
-              className="p-1.5 rounded-lg hover:bg-base-200 md:hidden"
+              className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors md:hidden"
             >
               <X size={20} />
             </button>
           </div>
 
-          {/* User Profile (Compact) - Only visible when collapsed or at top */}
-          <div className="py-4 px-3 border-b border-base-200 flex items-center gap-3 bg-base-100/50 shrink-0">
+          {/* User Profile (Compact) */}
+          <div className="py-6 px-4 border-b border-slate-100 flex items-center gap-3 bg-transparent shrink-0">
               <div className="avatar placeholder online">
-                <div className="bg-primary/10 text-primary rounded-full w-10 h-10 flex items-center justify-center border border-primary/20">
-                  <span className="text-sm font-bold">
-                      {userProfile?.nom?.substring(0, 2).toUpperCase() || 'WG'}
-                  </span>
+                <div className="bg-primary-50 text-primary-600 rounded-2xl w-12 h-12 flex items-center justify-center border border-primary-100 shadow-sm overflow-hidden">
+                  {userProfile?.photo_url ? (
+                    <img 
+                      src={userProfile.photo_url} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-sm font-bold font-heading">
+                        {userProfile?.nom?.substring(0, 2).toUpperCase() || 'WG'}
+                    </span>
+                  )}
                 </div>
               </div>
               {(isOpen || isMobile) && (
                   <div className="overflow-hidden flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate text-base-content">{userProfile?.nom || 'Utilisateur'}</p>
-                      <p className="text-xs text-base-content/60 truncate capitalize">{userProfile?.role || 'Membre'}</p>
+                      <p className="font-bold text-sm truncate text-slate-800 font-heading">{userProfile?.nom || 'Utilisateur'}</p>
+                      <p className="text-xs text-slate-500 truncate capitalize font-medium">{userProfile?.role || 'Membre'}</p>
                   </div>
               )}
           </div>
@@ -279,36 +290,36 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                                >
                                    {group.items.map((item, itemIdx) => (
                                       <Link 
-                                          key={itemIdx} 
+                                          key={item.path}
                                           to={`/dashboard${item.path}`} 
-                                          onClick={() => isMobile && toggleSidebar()} // Auto-close on mobile
-                                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative
-                                              ${isActive(item.path) 
-                                                  ? 'bg-primary/10 text-primary font-medium' 
-                                                  : 'text-base-content/70 hover:bg-base-200 hover:text-base-content'
-                                              }
-                                              ${(!isOpen && !isMobile) && 'justify-center'}
+                                          onClick={() => isMobile && toggleSidebar()} 
+                                          className={`
+                                            flex items-center gap-3 px-3 py-2.5 mx-2 rounded-xl transition-all duration-200 group relative
+                                            ${isActive(item.path) 
+                                              ? 'bg-primary-50 text-primary-700 font-bold shadow-sm' 
+                                              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'
+                                            }
+                                            ${(!isOpen && !isMobile) ? 'justify-center px-2 mx-1' : ''}
                                           `}
                                           title={(!isOpen && !isMobile) ? item.label : ''}
                                       >
-                                          <span className={`${isActive(item.path) ? 'text-primary' : 'text-base-content/60 group-hover:text-base-content'}`}>
+                                          {isActive(item.path) && (
+                                              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary-600 rounded-r-full" />
+                                          )}
+
+                                          <span className={`${isActive(item.path) ? 'text-primary-600' : 'text-slate-400 group-hover:text-primary-500'} transition-colors`}>
                                               {item.icon}
                                           </span>
                                           
                                           {(isOpen || isMobile) && (
-                                              <div className="flex-1 flex justify-between items-center">
-                                                  <span className="text-sm">{item.label}</span>
+                                              <div className="flex-1 flex justify-between items-center min-w-0">
+                                                  <span className="truncate text-sm">{item.label}</span>
                                                   {item.badge && item.badge > 0 && (
-                                                      <span className="flex items-center justify-center min-w-[20px] h-5 rounded-full bg-error text-white text-[10px] font-bold px-1.5">
+                                                      <span className="flex items-center justify-center min-w-[20px] h-5 rounded-full bg-red-500 text-white text-[10px] font-bold px-1.5 shadow-sm">
                                                           {item.badge}
                                                       </span>
                                                   )}
                                               </div>
-                                          )}
-                                          
-                                          {/* Active Indicator Bar */}
-                                          {isActive(item.path) && (
-                                              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full"></div>
                                           )}
                                       </Link>
                                    ))}

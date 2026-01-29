@@ -6,6 +6,7 @@ import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
+import { filterByOwner, buildOwnerWhereClause } from '../middleware/ownerIsolation';
 import fs from 'fs';
 import path from 'path';
 import { NotificationService } from '../services/notificationService';
@@ -16,9 +17,11 @@ const router = Router();
 import pool from '../db/database';
 
 // GET /api/locations - Liste des baux/contrats
-router.get('/', permissions.canRead('locataires'), async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', permissions.canRead('locataires'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const { statut, owner_id } = req.query;
+        const { statut } = req.query;
+        const ownerIds = (req as any).ownerIds;
+        const ownerWhereClause = buildOwnerWhereClause(ownerIds);
         
         let query = `
             SELECT 
@@ -55,7 +58,7 @@ router.get('/', permissions.canRead('locataires'), async (req: AuthenticatedRequ
             LEFT JOIN lots lot ON l.lot_id = lot.id
             LEFT JOIN buildings b ON lot.building_id = b.id
             LEFT JOIN owners o ON l.owner_id = o.id
-            WHERE 1=1
+            WHERE ${ownerWhereClause.replace(/owner_id/g, 'l.owner_id')}
         `;
         
         const params: any[] = [];
@@ -64,19 +67,6 @@ router.get('/', permissions.canRead('locataires'), async (req: AuthenticatedRequ
         if (statut) {
             query += ` AND l.statut = $${paramIndex}`;
             params.push(statut);
-            paramIndex++;
-        }
-
-        if (owner_id) {
-            query += ` AND l.owner_id = $${paramIndex}`;
-            params.push(owner_id);
-            paramIndex++;
-        }
-
-        // AUTO-FILTER FOR GUEST USERS: Use issuer's data context
-        if (req.user?.isGuest && req.user?.issuerId) {
-            query += ` AND l.owner_id = $${paramIndex}`;
-            params.push(req.user.issuerId);
             paramIndex++;
         }
 

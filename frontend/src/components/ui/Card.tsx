@@ -27,9 +27,9 @@ const Card: React.FC<CardProps> = ({
   headerActions,
 }) => {
   const variantClasses = {
-    elevated: 'bg-white shadow-lg border border-gray-100',
-    outlined: 'bg-white border-2 border-gray-200 shadow-none',
-    flat: 'bg-gray-50 border-none shadow-none',
+    elevated: 'bg-white shadow-soft border border-slate-100',
+    outlined: 'bg-white border border-slate-200 shadow-none',
+    flat: 'bg-slate-50 border-none shadow-none',
   };
 
   const hoverClasses = hoverable 

@@ -1,7 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const index_1 = require("../index");
+const database_1 = __importDefault(require("../db/database"));
 const router = (0, express_1.Router)();
 // GET /api/alertes
 router.get('/', async (req, res) => {
@@ -29,7 +32,7 @@ router.get('/', async (req, res) => {
             )
             AND EXTRACT(DAY FROM CURRENT_DATE) > (COALESCE(l.jour_echeance, 5) + 5)
         `;
-        const lateRes = await index_1.pool.query(latePaymentsQuery);
+        const lateRes = await database_1.default.query(latePaymentsQuery);
         lateRes.rows.forEach(row => {
             alerts.push({
                 id: `late_${row.id}`,
@@ -55,7 +58,7 @@ router.get('/', async (req, res) => {
             AND l.date_fin <= (CURRENT_DATE + INTERVAL '60 days')
             AND l.date_fin >= CURRENT_DATE
         `;
-        const expiringRes = await index_1.pool.query(expiringQuery);
+        const expiringRes = await database_1.default.query(expiringQuery);
         expiringRes.rows.forEach(row => {
             const daysLeft = Math.ceil((new Date(row.date_fin).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
             alerts.push({
@@ -73,13 +76,13 @@ router.get('/', async (req, res) => {
         });
         // 3. Plaintes / Tickets ouverts
         const ticketsQuery = `
-            SELECT t.id, t.titre, t.description, t.priorite, t.created_at
+            SELECT t.id, t.titre, t.description, t.priorite, t.date_creation
             FROM tickets t
             WHERE t.statut = 'ouvert'
         `;
         // Check if tickets table exists first? user Dashboard used it.
         try {
-            const ticketsRes = await index_1.pool.query(ticketsQuery);
+            const ticketsRes = await database_1.default.query(ticketsQuery);
             ticketsRes.rows.forEach(row => {
                 alerts.push({
                     id: `tick_${row.id}`,
@@ -89,7 +92,7 @@ router.get('/', async (req, res) => {
                     destinataire: 'Technicien/Gestionnaire',
                     type: 'Intervention',
                     priorite: row.priorite === 'Urgent' ? 'Urgente' : row.priorite,
-                    dateCreation: row.created_at,
+                    dateCreation: row.date_creation,
                     statut: 'Active',
                     link: '/interventions' // Or alertes/tickets
                 });
@@ -105,7 +108,7 @@ router.get('/', async (req, res) => {
             JOIN buildings b ON l.building_id = b.id
             WHERE l.statut = 'libre' OR l.statut = 'disponible'
         `;
-        const vacantRes = await index_1.pool.query(vacantQuery);
+        const vacantRes = await database_1.default.query(vacantQuery);
         vacantRes.rows.forEach(row => {
             alerts.push({
                 id: `vac_${row.id}`,

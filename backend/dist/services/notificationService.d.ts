@@ -2,7 +2,7 @@ export declare class NotificationService {
     /**
      * Send a notification to a user (DB + External if needed)
      */
-    static send(userId: number, title: string, message: string, type?: 'info' | 'success' | 'warning' | 'error'): Promise<any>;
+    static send(userId: number, title: string, message: string, type?: 'info' | 'success' | 'warning' | 'error', alertType?: string): Promise<any>;
     /**
      * Send a WhatsApp message via provider (Twilio/Meta) or Simulation
      */

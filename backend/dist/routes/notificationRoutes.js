@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const notificationService_1 = require("../services/notificationService");
 const authMiddleware_1 = require("../middleware/authMiddleware");
-const index_1 = require("../index");
+const database_1 = __importDefault(require("../db/database"));
 const router = express_1.default.Router();
 // GET /api/notifications - List all notifications for current user
 router.get('/', authMiddleware_1.protect, async (req, res) => {
@@ -14,9 +14,9 @@ router.get('/', authMiddleware_1.protect, async (req, res) => {
         const userId = req.userId;
         if (!userId)
             return res.status(401).json({ message: 'Non authentifié' });
-        const result = await index_1.pool.query('SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50', [userId]);
+        const result = await database_1.default.query('SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50', [userId]);
         // Count unread
-        const countRes = await index_1.pool.query('SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = FALSE', [userId]);
+        const countRes = await database_1.default.query('SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = FALSE', [userId]);
         res.json({
             notifications: result.rows,
             unreadCount: parseInt(countRes.rows[0].count)
@@ -64,20 +64,41 @@ router.post('/test', authMiddleware_1.protect, async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
-// POST /api/notifications/trigger-automation - Manual Trigger for Cron Jobs
-const CronService_1 = require("../services/CronService");
-router.post('/trigger-automation', async (req, res) => {
+// GET /api/notifications/settings - Fetch user settings
+router.get('/settings', authMiddleware_1.protect, async (req, res) => {
     try {
-        console.log('⚡ Manually triggering automation jobs...');
-        // Force check late payments (bypass date check)
-        await CronService_1.CronService.checkLatePayments(true);
-        // Check lease expirations
-        await CronService_1.CronService.checkLeaseExpirations();
-        res.json({ message: "Automation jobs triggered successfully." });
+        const userId = req.userId;
+        if (!userId)
+            return res.status(401).json({ message: 'Non authentifié' });
+        const result = await database_1.default.query('SELECT * FROM notification_settings WHERE user_id = $1', [userId]);
+        res.json(result.rows);
     }
     catch (error) {
-        console.error('Error triggering automation:', error);
-        res.status(500).json({ message: "Error triggering automation" });
+        console.error('Error fetching notification settings:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+// PUT /api/notifications/settings - Update or create settings
+router.put('/settings', authMiddleware_1.protect, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { settings } = req.body; // Array of { alert_type, channel_email, channel_whatsapp, channel_sms }
+        if (!userId)
+            return res.status(401).json({ message: 'Non authentifié' });
+        for (const s of settings) {
+            await database_1.default.query(`INSERT INTO notification_settings (user_id, alert_type, channel_email, channel_whatsapp, channel_sms, updated_at)
+                 VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+                 ON CONFLICT (user_id, alert_type) DO UPDATE SET
+                 channel_email = EXCLUDED.channel_email,
+                 channel_whatsapp = EXCLUDED.channel_whatsapp,
+                 channel_sms = EXCLUDED.channel_sms,
+                 updated_at = EXCLUDED.updated_at`, [userId, s.alert_type, s.channel_email, s.channel_whatsapp, s.channel_sms]);
+        }
+        res.json({ success: true });
+    }
+    catch (error) {
+        console.error('Error updating notification settings:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
     }
 });
 exports.default = router;

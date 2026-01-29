@@ -2,8 +2,12 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import LoginForm from './components/LoginForm';
 import SignupForm from './components/SignupForm';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import CompleteProfile from './pages/CompleteProfile';
 import AcceptInvite from './pages/AcceptInvite';
 // import Dashboard from './pages/Dashboard'; // Removed as file is deleted
 import LocataireDashboard from './pages/LocataireDashboard';
@@ -107,14 +111,18 @@ const App: React.FC = () => {
     };
 
     return (
-        <CustomThemeProvider>
-            <Router>
+        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+            <CustomThemeProvider>
+                <Router>
                 <Toaster position="top-center" toastOptions={{ duration: 4000, className: 'text-sm font-medium' }} />
                 <Routes>
                     {/* Routes publiques */}
                     <Route path="/" element={<HomePage />} />
                     <Route path="/login" element={<LoginFormWithNavigation />} />
                     <Route path="/signup" element={<SignupFormWithNavigation />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password/:token" element={<ResetPassword />} />
+                    <Route path="/complete-profile" element={<CompleteProfile />} />
                     <Route path="/accept-invite" element={<AcceptInvite />} />
                     
                     {/* Pages marketing publiques */}
@@ -213,6 +221,7 @@ const App: React.FC = () => {
                 </Routes>
             </Router>
         </CustomThemeProvider>
+    </GoogleOAuthProvider>
     );
 };
 

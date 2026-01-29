@@ -3,7 +3,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, Search, Home, ChevronRight, Settings, Crown } from 'lucide-react';
-import ThemeToggle from '../ui/ThemeToggle';
 import NotificationBell from '../NotificationBell';
 import SubscriptionBadge from '../SubscriptionBadge';
 
@@ -67,9 +66,6 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, pageTitle, userProfile, 
             </div>
 
             <div className="h-6 w-px bg-base-300 hidden sm:block"></div>
-
-            {/* Theme Toggle */}
-            <ThemeToggle />
 
             {/* Notifications */}
             <NotificationBell />

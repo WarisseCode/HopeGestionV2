@@ -102,9 +102,70 @@ router.get('/stats/gestionnaire', async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur.' });
     }
 });
+// GET /api/dashboard/stats/manager : Alias pour manager (même logique que gestionnaire)
+router.get('/stats/manager', async (req, res) => {
+    if (!['gestionnaire', 'admin', 'manager'].includes(req.userRole || '')) {
+        return res.status(403).json({ message: 'Accès refusé.' });
+    }
+    try {
+        // Total des bâtiments
+        const buildingsResult = await database_1.default.query('SELECT COUNT(*) FROM buildings');
+        const totalBiens = parseInt(buildingsResult.rows[0].count, 10);
+        // Total des lots
+        const lotsResult = await database_1.default.query('SELECT COUNT(*) FROM lots');
+        const totalLots = parseInt(lotsResult.rows[0].count, 10);
+        // Lots occupés
+        const occupiedResult = await database_1.default.query("SELECT COUNT(*) FROM lots WHERE statut = 'occupe'");
+        const lotsOccupes = parseInt(occupiedResult.rows[0].count, 10);
+        // Taux d'occupation
+        const tauxOccupation = totalLots > 0 ? Math.round((lotsOccupes / totalLots) * 100) : 0;
+        // Total revenus (paiements du mois en cours)
+        const revenusResult = await database_1.default.query(`
+            SELECT COALESCE(SUM(montant), 0) as total 
+            FROM payments 
+            WHERE EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
+            AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
+        `);
+        const revenusMois = parseFloat(revenusResult.rows[0].total) || 0;
+        // Impayés (estimation basée sur les contrats actifs sans paiement ce mois)
+        const impayesResult = await database_1.default.query(`
+            SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
+            FROM leases l
+            WHERE l.statut = 'actif'
+            AND NOT EXISTS (
+                SELECT 1 FROM payments p 
+                WHERE p.lease_id = l.id 
+                AND EXTRACT(MONTH FROM p.date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
+                AND EXTRACT(YEAR FROM p.date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
+            )
+        `);
+        const impayesEnCours = parseFloat(impayesResult.rows[0].total) || 0;
+        // Locataires actifs
+        const tenantsResult = await database_1.default.query(`
+            SELECT COUNT(DISTINCT tenant_id) FROM leases WHERE statut = 'actif'
+        `);
+        const locatairesActifs = parseInt(tenantsResult.rows[0].count, 10);
+        res.status(200).json({
+            stats: {
+                totalBiens,
+                totalLots,
+                lotsOccupes,
+                tauxOccupation,
+                revenusMois,
+                impayesEnCours,
+                locatairesActifs
+            }
+        });
+    }
+    catch (error) {
+        console.error('Erreur récupération stats manager:', error);
+        res.status(500).json({ message: 'Erreur serveur.' });
+    }
+});
 // GET /api/dashboard/stats/proprietaire : Stats filtrées par owner_id
 router.get('/stats/proprietaire', async (req, res) => {
-    if (req.userRole !== 'proprietaire') {
+    // Allow proprietaire and gestionnaire to access this endpoint
+    if (!['proprietaire', 'gestionnaire', 'admin'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     const userId = req.userId;

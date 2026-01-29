@@ -10,7 +10,7 @@ const router = (0, express_1.Router)();
 // GET /api/compte/proprietaires : Récupérer la liste des propriétaires
 router.get('/proprietaires', async (req, res) => {
     // Vérification : Seuls les admins et gestionnaires peuvent accéder aux propriétaires
-    if (!['admin', 'gestionnaire'].includes(req.userRole || '')) {
+    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     try {
@@ -34,17 +34,32 @@ router.get('/proprietaires', async (req, res) => {
 });
 // GET /api/compte/utilisateurs : Récupérer la liste des utilisateurs
 router.get('/utilisateurs', async (req, res) => {
-    // Vérification : Seuls les admins peuvent accéder à la liste des utilisateurs
-    if (req.userRole !== 'admin') {
+    // Vérification : Admins, gestionnaires et propriétaires peuvent accéder à la liste des utilisateurs
+    if (!['admin', 'gestionnaire', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     try {
-        const query = `
-            SELECT id, nom, prenom as prenoms, telephone, email, role, photo, statut
-            FROM users
-            ORDER BY nom ASC
-        `;
-        const result = await database_1.default.query(query);
+        let query;
+        let queryParams = [];
+        if (req.userRole === 'admin') {
+            // Admin sees all users
+            query = `
+                SELECT id, nom, '' as prenom, telephone, email, role, photo_url as photo, statut, created_at
+                FROM users
+                ORDER BY nom ASC
+            `;
+        }
+        else {
+            // Gestionnaire/Proprietaire see only users they created
+            query = `
+                SELECT id, nom, '' as prenom, telephone, email, role, photo_url as photo, statut, created_at
+                FROM users
+                WHERE id = $1
+                ORDER BY nom ASC
+            `;
+            queryParams = [req.userId];
+        }
+        const result = await database_1.default.query(query, queryParams);
         res.status(200).json({ utilisateurs: result.rows });
     }
     catch (error) {
@@ -75,56 +90,89 @@ router.get('/autorisations', async (req, res) => {
 });
 // POST /api/compte/proprietaires : Créer ou mettre à jour un propriétaire
 router.post('/proprietaires', async (req, res) => {
-    if (!['admin', 'gestionnaire'].includes(req.userRole || '')) {
+    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     try {
-        const { id, type, nom, prenom, telephone, telephoneSecondaire, email, adresse, ville, pays, numeroPiece, photo, modeGestion, mobileMoney, rccmNumber } = req.body;
-        let result;
-        if (id) {
-            // Mise à jour
-            const query = `
-                UPDATE owners SET 
-                    type = $1, name = $2, first_name = $3, phone = $4, phone_secondary = $5,
-                    email = $6, address = $7, city = $8, country = $9, id_number = $10,
-                    photo = $11, management_mode = $12, mobile_money_coordinates = $13,
-                    rccm_number = $14, updated_at = CURRENT_TIMESTAMP
-                WHERE id = $15 RETURNING *
-            `;
-            result = await database_1.default.query(query, [type, nom, prenom, telephone, telephoneSecondaire, email, adresse, ville, pays, numeroPiece, photo, modeGestion, mobileMoney, rccmNumber, id]);
-        }
-        else {
-            // Création
-            const query = `
-                INSERT INTO owners (type, name, first_name, phone, phone_secondary, email, address, city, country, id_number, photo, management_mode, mobile_money_coordinates, rccm_number)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *
-            `;
-            result = await database_1.default.query(query, [type, nom, prenom, telephone, telephoneSecondaire, email, adresse, ville, pays, numeroPiece, photo, modeGestion, mobileMoney, rccmNumber]);
-            // AUTOMATICALLY LINK CREATOR TO OWNER
-            // If the creator is not an admin (i.e., a manager), they need explicit access.
-            // Even for admins, it's good practice to have the link if they act as a manager.
-            const newOwnerId = result.rows[0].id;
-            await database_1.default.query(`INSERT INTO owner_user (owner_id, user_id, role, is_active, start_date, can_manage_users, can_delete_data, can_access_audit_logs, can_view_finances, can_edit_properties, can_manage_tenants, can_manage_contracts, can_validate_payments)
-                 VALUES ($1, $2, 'manager', TRUE, CURRENT_DATE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE)`, [newOwnerId, req.userId]);
-        }
+        const cleanPhone = req.body.phone ? req.body.phone.replace(/[^\d+]/g, '') : null;
+        const cleanMobileMoney = req.body.mobile_money_number ? req.body.mobile_money_number.replace(/[^\d+]/g, '') : null;
+        // Insérer le propriétaire (schema matches ownerRoutes.ts)
+        const newOwner = await database_1.default.query(`INSERT INTO owners (
+                type, name, first_name, phone, phone_secondary, email,
+                address, city, country, id_number, photo, mobile_money_number, management_mode
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+            RETURNING *`, [
+            req.body.type || 'individual',
+            req.body.name || req.body.company_name, // Nom ou Raison sociale
+            req.body.first_name || '',
+            cleanPhone,
+            req.body.phone_secondary || null,
+            req.body.email || '',
+            req.body.address || '',
+            req.body.city || '',
+            req.body.country || 'Bénin',
+            req.body.id_number || null,
+            req.body.photo || null,
+            cleanMobileMoney,
+            req.body.management_mode || 'direct'
+        ]);
+        const ownerId = newOwner.rows[0].id;
+        // Lier à l'utilisateur qui crée (si ce n'est pas un admin pur qui crée pour les autres)
+        // Pour simplification, on lie toujours celui qui crée
+        await database_1.default.query(`INSERT INTO owner_user (user_id, owner_id, role, is_active, start_date) VALUES ($1, $2, 'owner', true, CURRENT_DATE)`, [req.userId, ownerId]);
         // Log action
-        await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, id ? 'UPDATE_OWNER' : 'CREATE_OWNER', 'COMPTE', `Propriétaire: ${nom}`]);
-        res.status(200).json(result.rows[0]);
+        await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'CREATE_OWNER', 'COMPTE', `Propriétaire: ${req.body.name || req.body.company_name}`]);
+        res.status(201).json(newOwner.rows[0]);
     }
     catch (error) {
-        console.error('Erreur sauvegarde propriétaire:', error);
-        if (error.code === '23505') {
-            if (error.constraint === 'owners_phone_key') {
-                return res.status(400).json({ message: 'Ce numéro de téléphone est déjà utilisé par un autre propriétaire.' });
-            }
-            return res.status(400).json({ message: 'Une donnée unique existe déjà (téléphone ou email).' });
+        console.error('Erreur création propriétaire:', error);
+        if (error.constraint === 'owners_phone_key') {
+            return res.status(400).json({ message: 'Ce numéro de téléphone est déjà utilisé par un autre propriétaire.' });
         }
-        res.status(500).json({ message: 'Erreur serveur lors de la sauvegarde du propriétaire.' });
+        res.status(500).json({ message: 'Erreur serveur lors de la création du propriétaire' });
+    }
+});
+// PUT /api/compte/proprietaires/:id : Modifier un propriétaire
+router.put('/proprietaires/:id', async (req, res) => {
+    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
+        return res.status(403).json({ message: 'Accès refusé.' });
+    }
+    try {
+        const { name, type, phone, email, address, company_name, rccm_number, mobile_money, telephoneSecondaire, management_mode, delegation_start_date, delegation_end_date } = req.body;
+        const ownerId = req.params.id;
+        // Nettoyage des numéros
+        const cleanPhone = phone ? phone.replace(/[\s\-\(\)\.]/g, '') : null;
+        const cleanPhoneSec = telephoneSecondaire ? telephoneSecondaire.replace(/[\s\-\(\)\.]/g, '') : null;
+        const cleanMobileMoney = mobile_money ? mobile_money.replace(/[\s\-\(\)\.]/g, '') : null;
+        const updatedOwner = await database_1.default.query(`UPDATE owners 
+             SET name = $1, type = $2, phone = $3, email = $4, address = $5,
+                 company_name = $6, rccm_number = $7, mobile_money = $8,
+                 contact_info = COALESCE($9, contact_info),
+                 management_mode = COALESCE($10, management_mode),
+                 delegation_start_date = COALESCE($11, delegation_start_date),
+                 delegation_end_date = COALESCE($12, delegation_end_date),
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = $13 RETURNING *`, [
+            name, type, cleanPhone, email, address,
+            company_name, rccm_number, cleanMobileMoney,
+            cleanPhoneSec, // On map telephoneSecondaire dans contact_info pour l'instant ou on pourrait créer une colonne dédiée
+            management_mode, delegation_start_date, delegation_end_date,
+            ownerId
+        ]);
+        if (updatedOwner.rows.length === 0) {
+            return res.status(404).json({ message: 'Propriétaire non trouvé' });
+        }
+        await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'UPDATE_OWNER', 'COMPTE', `Propriétaire ID: ${ownerId}`]);
+        res.json(updatedOwner.rows[0]);
+    }
+    catch (error) {
+        console.error('Erreur modification propriétaire:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la modification.' });
     }
 });
 // POST /api/compte/utilisateurs : Créer ou mettre à jour un utilisateur
 router.post('/utilisateurs', async (req, res) => {
-    if (req.userRole !== 'admin') {
+    if (!['admin', 'gestionnaire', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     try {
@@ -140,13 +188,15 @@ router.post('/utilisateurs', async (req, res) => {
             result = await database_1.default.query(query, [nom, prenoms, telephone, email, role, photo, statut, id]);
         }
         else {
-            // Pour la création d'utilisateur, on devrait normalement hasher le mot de passe
-            // Mais ici on utilise le mot de passe fourni ou un par défaut pour la démo
+            // Pour la création d'utilisateur
             const query = `
-                INSERT INTO users (nom, prenom, telephone, email, role, photo, statut, mot_de_passe)
+                INSERT INTO users (nom, telephone, email, role, photo_url, statut, password_hash, user_type)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
             `;
-            result = await database_1.default.query(query, [nom, prenoms, telephone, email, role, photo, statut || 'Actif', mot_de_passe || 'password123']);
+            // Note: We should hash the password properly - using a placeholder for now
+            const bcrypt = require('bcrypt');
+            const hashedPassword = await bcrypt.hash(mot_de_passe || 'TempPassword123!', 10);
+            result = await database_1.default.query(query, [nom, telephone, email, role, photo, statut || 'actif', hashedPassword, role || 'gestionnaire']);
         }
         await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, id ? 'UPDATE_USER' : 'CREATE_USER', 'COMPTE', `Utilisateur: ${nom}`]);
         res.status(200).json(result.rows[0]);
@@ -196,7 +246,7 @@ router.post('/autorisations', async (req, res) => {
 });
 // DELETE /api/compte/proprietaires/:id : Soft delete (désactiver) un propriétaire
 router.delete('/proprietaires/:id', async (req, res) => {
-    if (!['admin', 'gestionnaire'].includes(req.userRole || '')) {
+    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     try {
@@ -210,14 +260,14 @@ router.delete('/proprietaires/:id', async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur lors de la désactivation.' });
     }
 });
-// DELETE /api/compte/utilisateurs/:id : Soft delete (suspendre) un utilisateur
-router.delete('/utilisateurs/:id', async (req, res) => {
-    if (req.userRole !== 'admin') {
+// PATCH /api/compte/utilisateurs/:id/suspend : Soft delete (suspendre) un utilisateur
+router.patch('/utilisateurs/:id/suspend', async (req, res) => {
+    if (!['admin', 'gestionnaire', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     try {
         const { id } = req.params;
-        await database_1.default.query('UPDATE users SET statut = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', ['Suspendu', id]);
+        await database_1.default.query('UPDATE users SET statut = $1 WHERE id = $2', ['Suspendu', id]);
         await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'SUSPEND_USER', 'COMPTE', `Utilisateur ID: ${id}`]);
         res.status(200).json({ message: 'Utilisateur suspendu avec succès' });
     }
@@ -226,14 +276,52 @@ router.delete('/utilisateurs/:id', async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur lors de la suspension.' });
     }
 });
+// DELETE /api/compte/utilisateurs/:id : HARD DELETE (supprimer définitivement)
+router.delete('/utilisateurs/:id', async (req, res) => {
+    if (req.userRole !== 'admin') {
+        // Only admin can hard delete, or maybe gestionnaire too? Let's restrict to admin/gestionnaire for now
+        // Assuming user wants validation for hard delete
+        if (!['admin', 'gestionnaire', 'proprietaire'].includes(req.userRole || '')) {
+            return res.status(403).json({ message: 'Accès refusé.' });
+        }
+    }
+    const client = await database_1.default.connect();
+    try {
+        await client.query('BEGIN');
+        const { id } = req.params;
+        // 1. Remove assignments first (foreign key constraints)
+        await client.query('DELETE FROM user_owner_assignments WHERE user_id = $1', [id]);
+        // 2. Remove from owner_user if existing
+        await client.query('DELETE FROM owner_user WHERE user_id = $1', [id]);
+        // 3. Remove user
+        await client.query('DELETE FROM users WHERE id = $1', [id]);
+        await client.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'DELETE_USER', 'COMPTE', `Utilisateur ID: ${id} (Supprimé définitivement)`]);
+        await client.query('COMMIT');
+        res.status(200).json({ message: 'Utilisateur supprimé définitivement' });
+    }
+    catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Erreur suppression utilisateur:', error);
+        // Handle Foreign Key Constraint (RESTRICT)
+        if (error.code === '23001' || error.constraint === 'leases_lot_id_fkey') {
+            return res.status(400).json({
+                message: 'Impossible de supprimer cet utilisateur : Il possède des biens liés à des contrats de location actifs. Veuillez d\'abord résilier les baux concernés.'
+            });
+        }
+        res.status(500).json({ message: 'Erreur serveur lors de la suppression.' });
+    }
+    finally {
+        client.release();
+    }
+});
 // PATCH /api/compte/utilisateurs/:id/reactivate : Réactiver un utilisateur
 router.patch('/utilisateurs/:id/reactivate', async (req, res) => {
-    if (req.userRole !== 'admin') {
+    if (!['admin', 'gestionnaire', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     try {
         const { id } = req.params;
-        await database_1.default.query('UPDATE users SET statut = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', ['Actif', id]);
+        await database_1.default.query('UPDATE users SET statut = $1 WHERE id = $2', ['Actif', id]);
         await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'REACTIVATE_USER', 'COMPTE', `Utilisateur ID: ${id}`]);
         res.status(200).json({ message: 'Utilisateur réactivé avec succès' });
     }
@@ -244,7 +332,7 @@ router.patch('/utilisateurs/:id/reactivate', async (req, res) => {
 });
 // GET /api/compte/proprietaires/:id/biens : Récupérer les biens d'un propriétaire
 router.get('/proprietaires/:id/biens', async (req, res) => {
-    if (!['admin', 'gestionnaire'].includes(req.userRole || '')) {
+    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     try {

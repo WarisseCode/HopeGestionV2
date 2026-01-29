@@ -1,107 +1,86 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React from 'react';
 import { createTheme, ThemeProvider as MUIThemeProvider, CssBaseline } from '@mui/material';
 
-// --- Types ---
-type ThemeMode = 'light' | 'dark';
-
-interface ThemeContextType {
-    mode: ThemeMode;
-    toggleTheme: () => void;
-}
-
-// --- Context ---
-const ThemeContext = createContext<ThemeContextType>({
-    mode: 'light',
-    toggleTheme: () => {},
-});
-
-export const useTheme = () => useContext(ThemeContext);
-
-// --- MUI Theme Definitions ---
-const getMuiTheme = (mode: ThemeMode) => createTheme({
+// --- MUI Theme Definition (Light Mode Only) ---
+const lightTheme = createTheme({
     palette: {
-        mode,
+        mode: 'light',
         primary: {
-            main: '#3f51b5',
-            light: '#6573c3',
-            dark: '#002984',
+            main: '#4f46e5', // Indigo 600
+            light: '#818cf8', 
+            dark: '#3730a3',
             contrastText: '#fff',
         },
         secondary: {
-            main: '#f50057',
+            main: '#0ea5e9', // Sky 500
         },
         background: {
-            default: mode === 'light' ? '#f9fafb' : '#0f172a', 
-            paper: mode === 'light' ? '#ffffff' : '#1e293b',
+            default: '#f8fafc', // Slate 50
+            paper: '#ffffff',
         },
+        text: {
+            primary: '#1e293b', // Slate 800
+            secondary: '#64748b', // Slate 500
+        },
+        divider: 'rgba(0, 0, 0, 0.08)',
     },
     typography: {
         fontFamily: ['"Inter"', '"Plus Jakarta Sans"', 'sans-serif'].join(','),
-        h1: { fontFamily: '"Plus Jakarta Sans", sans-serif' },
-        h2: { fontFamily: '"Plus Jakarta Sans", sans-serif' },
-        h3: { fontFamily: '"Plus Jakarta Sans", sans-serif' },
+        h1: { fontFamily: '"Plus Jakarta Sans", sans-serif', fontWeight: 800 },
+        h2: { fontFamily: '"Plus Jakarta Sans", sans-serif', fontWeight: 700 },
+        h3: { fontFamily: '"Plus Jakarta Sans", sans-serif', fontWeight: 700 },
         h4: { fontFamily: '"Plus Jakarta Sans", sans-serif', fontWeight: 700 },
-        h5: { fontFamily: '"Plus Jakarta Sans", sans-serif' },
-        h6: { fontFamily: '"Plus Jakarta Sans", sans-serif' },
+        h5: { fontFamily: '"Plus Jakarta Sans", sans-serif', fontWeight: 600 },
+        h6: { fontFamily: '"Plus Jakarta Sans", sans-serif', fontWeight: 600 },
         button: {
             textTransform: 'none',
             fontWeight: 600,
+            fontFamily: '"Plus Jakarta Sans", sans-serif',
         }
+    },
+    shape: {
+        borderRadius: 16,
     },
     components: {
         MuiButton: {
             styleOverrides: {
                 root: {
-                    borderRadius: 8,
+                    borderRadius: 12,
                     boxShadow: 'none',
+                    padding: '8px 24px',
+                    '&:hover': {
+                        boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)',
+                    }
                 },
             },
         },
         MuiCard: {
             styleOverrides: {
                 root: {
-                    borderRadius: 12,
-                    boxShadow: mode === 'light' ? '0 4px 10px rgba(0, 0, 0, 0.05)' : '0 4px 10px rgba(0, 0, 0, 0.3)',
+                    borderRadius: 16,
+                    border: '1px solid rgba(226, 232, 240, 0.8)',
+                    boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                    backgroundImage: 'none',
                 }
             }
         },
+        MuiPaper: {
+            styleOverrides: {
+                root: {
+                    backgroundImage: 'none',
+                }
+            }
+        }
     },
 });
 
-// --- Provider ---
+// --- Provider (Simplified - No Theme Toggle) ---
 const CustomThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    // 1. Initialize state from localStorage or system preference
-    const [mode, setMode] = useState<ThemeMode>(() => {
-        const savedMode = localStorage.getItem('theme') as ThemeMode;
-        if (savedMode) return savedMode;
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    });
-
-    // 2. Sync with localStorage and HTML/Body attributes for Tailwind/DaisyUI
-    useEffect(() => {
-        localStorage.setItem('theme', mode);
-        document.documentElement.setAttribute('data-theme', mode === 'light' ? 'hopegestion' : 'dark');
-        
-        if (mode === 'dark') {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    }, [mode]);
-
-    const toggleTheme = () => {
-        setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
-    };
-
-    const muiTheme = getMuiTheme(mode);
-
     return (
-        <ThemeContext.Provider value={{ mode, toggleTheme }}>
-            <MUIThemeProvider theme={muiTheme}>
-                <CssBaseline />
-                {children}
-            </MUIThemeProvider>
-        </ThemeContext.Provider>
+        <MUIThemeProvider theme={lightTheme}>
+            <CssBaseline />
+            {children}
+        </MUIThemeProvider>
     );
 };
 
