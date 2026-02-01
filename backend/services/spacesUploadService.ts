@@ -12,8 +12,8 @@ const spacesEndpoint = new AWS.Endpoint(process.env.SPACES_ENDPOINT || 'fra1.dig
 
 const s3 = new AWS.S3({
     endpoint: spacesEndpoint,
-    accessKeyId: process.env.SPACES_KEY,
-    secretAccessKey: process.env.SPACES_SECRET,
+    accessKeyId: process.env.SPACES_KEY || '',
+    secretAccessKey: process.env.SPACES_SECRET || '',
     region: process.env.SPACES_REGION || 'fra1',
     s3ForcePathStyle: false,
     signatureVersion: 'v4'

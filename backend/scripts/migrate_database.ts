@@ -87,6 +87,10 @@ async function importToProduction(sqlFile?: string) {
         console.log(`📂 Using backup file: ${files[0]}`);
     }
 
+    if (!sqlFile) {
+         throw new Error('No backup file available to import.');
+    }
+
     if (!fs.existsSync(sqlFile)) {
         throw new Error(`Backup file not found: ${sqlFile}`);
     }
