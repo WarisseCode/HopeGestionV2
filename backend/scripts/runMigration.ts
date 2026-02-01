@@ -4,8 +4,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 
-// Charger les variables d'environnement
-dotenv.config();
+// Charger les variables d'environnement seulement en local
+if (process.env.NODE_ENV !== 'production') {
+    dotenv.config();
+}
 
 const dbConfig = process.env.DATABASE_URL 
     ? { 
