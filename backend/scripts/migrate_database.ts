@@ -83,8 +83,13 @@ async function importToProduction(sqlFile?: string) {
             throw new Error('No backup files found. Run export first.');
         }
         
-        sqlFile = path.join(BACKUP_DIR, files[0]);
-        console.log(`📂 Using backup file: ${files[0]}`);
+        const latestFile = files[0];
+        if (!latestFile) {
+            throw new Error('No backup files found. Run export first.');
+        }
+        
+        sqlFile = path.join(BACKUP_DIR, latestFile);
+        console.log(`📂 Using backup file: ${latestFile}`);
     }
 
     if (!sqlFile) {
