@@ -7,15 +7,28 @@ import * as dotenv from 'dotenv';
 // Charger les variables d'environnement
 dotenv.config();
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : { rejectUnauthorized: false } // Force SSL for Render
-});
+const dbConfig = process.env.DATABASE_URL 
+    ? { 
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false } // Always required for Render/Cloud DBs
+      }
+    : {
+        user: process.env.DB_USER,
+        host: process.env.DB_HOST,
+        database: process.env.DB_NAME,
+        password: process.env.DB_PASSWORD,
+        port: parseInt(process.env.DB_PORT || '5432', 10),
+        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
+    };
+
+console.log('🔧 DB Config:', process.env.DATABASE_URL ? 'Using DATABASE_URL' : 'Using individual params');
+if (!process.env.DATABASE_URL) {
+    console.log('   Host:', process.env.DB_HOST);
+    console.log('   User:', process.env.DB_USER);
+    console.log('   DB:', process.env.DB_NAME);
+}
+
+const pool = new Pool(dbConfig);
 
 async function runMigration() {
     const client = await pool.connect();
