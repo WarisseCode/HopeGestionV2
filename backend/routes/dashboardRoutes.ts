@@ -105,42 +105,65 @@ router.get('/stats/gestionnaire', async (req: AuthenticatedRequest, res: Respons
     }
 });
 
-// GET /api/dashboard/stats/manager : Alias pour manager (même logique que gestionnaire)
+// GET /api/dashboard/stats/manager : Stats filtrées par propriétaires assignés
 router.get('/stats/manager', async (req: AuthenticatedRequest, res: Response) => {
     if (!['gestionnaire', 'admin', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     
     try {
+        let whereClause = '1=1';
+        let params: any[] = [];
+
+        // Si pas admin, on filtre par les propriétaires assignés
+        if (req.userRole !== 'admin') {
+            const ownersResult = await pool.query(
+                `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
+                [req.userId]
+            );
+            
+            if (ownersResult.rows.length === 0) {
+                // Aucun propriétaire assigné -> stats vides
+                return res.status(200).json({
+                    stats: { totalBiens: 0, totalLots: 0, lotsOccupes: 0, tauxOccupation: 0, revenusMois: 0, impayesEnCours: 0, locatairesActifs: 0 }
+                });
+            }
+
+            const ownerIds = ownersResult.rows.map(r => r.owner_id);
+            whereClause = `owner_id IN (${ownerIds.join(',')})`;
+        }
+
         // Total des bâtiments
-        const buildingsResult = await pool.query('SELECT COUNT(*) FROM buildings');
+        const buildingsResult = await pool.query(`SELECT COUNT(*) FROM buildings WHERE ${whereClause}`);
         const totalBiens = parseInt(buildingsResult.rows[0].count, 10);
 
         // Total des lots
-        const lotsResult = await pool.query('SELECT COUNT(*) FROM lots');
+        const lotsResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE building_id IN (SELECT id FROM buildings WHERE ${whereClause})`);
         const totalLots = parseInt(lotsResult.rows[0].count, 10);
 
         // Lots occupés
-        const occupiedResult = await pool.query("SELECT COUNT(*) FROM lots WHERE statut = 'occupe'");
+        const occupiedResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND building_id IN (SELECT id FROM buildings WHERE ${whereClause})`);
         const lotsOccupes = parseInt(occupiedResult.rows[0].count, 10);
 
         // Taux d'occupation
         const tauxOccupation = totalLots > 0 ? Math.round((lotsOccupes / totalLots) * 100) : 0;
 
-        // Total revenus (paiements du mois en cours)
+        // Total revenus
         const revenusResult = await pool.query(`
             SELECT COALESCE(SUM(montant), 0) as total 
             FROM payments 
-            WHERE EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
+            WHERE owner_id IN (SELECT id FROM owners WHERE ${whereClause.replace(/owner_id/g, 'id')})
+            AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
             AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
         `);
         const revenusMois = parseFloat(revenusResult.rows[0].total) || 0;
 
-        // Impayés (estimation basée sur les contrats actifs sans paiement ce mois)
+        // Impayés
         const impayesResult = await pool.query(`
             SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
             FROM leases l
-            WHERE l.statut = 'actif'
+            WHERE l.owner_id IN (SELECT id FROM owners WHERE ${whereClause.replace(/owner_id/g, 'id')})
+            AND l.statut = 'actif'
             AND NOT EXISTS (
                 SELECT 1 FROM payments p 
                 WHERE p.lease_id = l.id 
@@ -152,7 +175,9 @@ router.get('/stats/manager', async (req: AuthenticatedRequest, res: Response) =>
 
         // Locataires actifs
         const tenantsResult = await pool.query(`
-            SELECT COUNT(DISTINCT tenant_id) FROM leases WHERE statut = 'actif'
+            SELECT COUNT(DISTINCT tenant_id) FROM leases 
+            WHERE statut = 'actif' 
+            AND owner_id IN (SELECT id FROM owners WHERE ${whereClause.replace(/owner_id/g, 'id')})
         `);
         const locatairesActifs = parseInt(tenantsResult.rows[0].count, 10);
 

@@ -1,0 +1,85 @@
+# Digital Ocean App Platform - app.yaml
+# This file can be used to configure your app via Infrastructure as Code
+
+name: hopegestion
+region: fra
+services:
+  # Backend API Service
+  - name: backend
+    source_dir: /backend
+    github:
+      repo: WarisseCode/HopeGestionV2
+      branch: main
+      deploy_on_push: true
+    build_command: npm install && npm run build
+    run_command: npm start
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    http_port: 8080
+    health_check:
+      http_path: /api/health
+      initial_delay_seconds: 30
+      period_seconds: 10
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "8080"
+      # Database variables (set these in Digital Ocean UI)
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+      - key: JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: FRONTEND_URL
+        scope: RUN_TIME
+      # Spaces configuration
+      - key: SPACES_ENDPOINT
+        value: fra1.digitaloceanspaces.com
+      - key: SPACES_BUCKET
+        value: hopegestion-uploads
+      - key: SPACES_REGION
+        value: fra1
+      - key: SPACES_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: SPACES_SECRET
+        scope: RUN_TIME
+        type: SECRET
+
+  # Frontend Static Site
+  - name: frontend
+    source_dir: /frontend
+    github:
+      repo: WarisseCode/HopeGestionV2
+      branch: main
+      deploy_on_push: true
+    build_command: npm install && npm run build
+    environment_slug: node-js
+    output_dir: /dist
+    routes:
+      - path: /
+      - path: /*
+    envs:
+      - key: VITE_API_URL
+        scope: BUILD_TIME
+
+# Optional: Database (if creating via app.yaml)
+# databases:
+#   - name: hopegestion-db
+#     engine: PG
+#     version: "15"
+#     size: db-s-1vcpu-1gb
+#     num_nodes: 1
+#     production: true
+
+# Optional: Static assets storage
+# static_sites:
+#   - name: uploads
+#     source_dir: /uploads
+#     output_dir: /

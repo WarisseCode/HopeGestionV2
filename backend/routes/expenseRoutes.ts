@@ -2,16 +2,19 @@ import { Router, Response } from 'express';
 import pool from '../db/database';
 import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
+import { filterByOwner, buildOwnerWhereClause } from '../middleware/ownerIsolation';
 
 const router = Router();
 
 // Protect all routes
 router.use(protect);
 
-// GET /api/expenses - List expenses
-router.get('/', permissions.canRead('finances'), async (req: AuthenticatedRequest, res: Response) => {
+// GET /api/expenses - List expenses (filtered by owner)
+router.get('/', permissions.canRead('finances'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { building_id, owner_id, category, start_date, end_date } = req.query;
+        const ownerIds = (req as any).ownerIds;
+        const ownerWhereClause = buildOwnerWhereClause(ownerIds);
         
         let query = `
             SELECT e.*, 
@@ -22,7 +25,7 @@ router.get('/', permissions.canRead('finances'), async (req: AuthenticatedReques
             LEFT JOIN buildings b ON e.building_id = b.id
             LEFT JOIN lots l ON e.lot_id = l.id
             LEFT JOIN expense_categories ep ON e.category = ep.name
-            WHERE 1=1
+            WHERE ${ownerWhereClause.replace(/owner_id/g, 'e.owner_id')}
         `;
         
         const params: any[] = [];

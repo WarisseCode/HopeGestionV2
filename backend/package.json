@@ -9,7 +9,12 @@
     "build": "node --max-old-space-size=512 ./node_modules/typescript/bin/tsc",
     "dev": "nodemon index.ts",
     "migrate": "ts-node scripts/runMigration.ts",
-    "migrate-prod": "node dist/scripts/runMigration.js"
+    "migrate-prod": "node dist/scripts/runMigration.js",
+    "db:export": "ts-node scripts/migrate_database.ts export",
+    "db:import": "ts-node scripts/migrate_database.ts import",
+    "db:backup-prod": "ts-node scripts/migrate_database.ts backup-prod",
+    "db:migrate": "ts-node scripts/migrate_database.ts migrate",
+    "db:full-migration": "ts-node scripts/migrate_database.ts full-migration"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +27,7 @@
     "@types/nodemailer": "^7.0.5",
     "@types/pdfkit": "^0.17.4",
     "@types/uuid": "^10.0.0",
+    "aws-sdk": "^2.1693.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",

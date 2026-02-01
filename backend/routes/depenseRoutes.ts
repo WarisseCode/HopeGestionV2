@@ -3,12 +3,14 @@ const router = express.Router();
 
 import { pool } from '../index';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
+import permissions from '../middleware/permissionMiddleware';
+import { filterByOwner, buildOwnerWhereClause } from '../middleware/ownerIsolation';
 
-// GET /api/depenses - Liste des dépenses
-router.get('/', async (req: AuthenticatedRequest, res) => {
+// GET /api/depenses - Liste des dépenses (filtrées par owner)
+router.get('/', permissions.canRead('finance'), filterByOwner, async (req: AuthenticatedRequest, res) => {
     try {
-        const userId = req.userId;
-        const userRole = req.userRole;
+        const ownerIds = (req as any).ownerIds;
+        const whereClause = buildOwnerWhereClause(ownerIds);
 
         let query = `
             SELECT e.*, 
@@ -19,20 +21,11 @@ router.get('/', async (req: AuthenticatedRequest, res) => {
             LEFT JOIN buildings b ON e.building_id = b.id
             LEFT JOIN lots l ON e.lot_id = l.id
             LEFT JOIN owners o ON e.owner_id = o.id
+            WHERE ${whereClause.replace(/owner_id/g, 'e.owner_id')}
+            ORDER BY e.date_expense DESC LIMIT 100
         `;
-        
-        const params: any[] = [];
 
-        // Filtrage selon le rôle
-        if (userRole === 'proprietaire') {
-             // Propriétaire voit ses dépenses
-             query += ` WHERE e.owner_id = (SELECT id FROM owners WHERE phone = (SELECT telephone FROM users WHERE id = $1))`;
-             params.push(userId);
-        }
-        
-        query += ` ORDER BY e.date_expense DESC LIMIT 100`;
-
-        const result = await pool.query(query, params);
+        const result = await pool.query(query);
         res.json(result.rows);
     } catch (error) {
         console.error('Erreur récupération dépenses:', error);
@@ -71,19 +64,24 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
     }
 });
 
-// GET /api/depenses/stats - Statistiques dépenses
-router.get('/stats', async (req: AuthenticatedRequest, res) => {
+// GET /api/depenses/stats - Statistiques dépenses (filtrées par owner)
+router.get('/stats', permissions.canRead('finance'), filterByOwner, async (req: AuthenticatedRequest, res) => {
     try {
+        const ownerIds = (req as any).ownerIds;
+        const whereClause = buildOwnerWhereClause(ownerIds);
+        
         const depensesMois = await pool.query(`
-            SELECT SUM(amount) as total 
+            SELECT COALESCE(SUM(amount), 0) as total 
             FROM expenses 
             WHERE date_trunc('month', date_expense) = date_trunc('month', CURRENT_DATE)
+            AND ${whereClause.replace(/owner_id/g, 'owner_id')}
         `);
 
         const depensesAnnee = await pool.query(`
-            SELECT SUM(amount) as total 
+            SELECT COALESCE(SUM(amount), 0) as total 
             FROM expenses 
             WHERE date_trunc('year', date_expense) = date_trunc('year', CURRENT_DATE)
+            AND ${whereClause.replace(/owner_id/g, 'owner_id')}
         `);
 
         res.json({
@@ -96,16 +94,20 @@ router.get('/stats', async (req: AuthenticatedRequest, res) => {
     }
 });
 
-// GET /api/depenses/history - Historique sur 6 mois
-router.get('/history', async (req: AuthenticatedRequest, res) => {
+// GET /api/depenses/history - Historique sur 6 mois (filtré par owner)
+router.get('/history', permissions.canRead('finance'), filterByOwner, async (req: AuthenticatedRequest, res) => {
     try {
+        const ownerIds = (req as any).ownerIds;
+        const whereClause = buildOwnerWhereClause(ownerIds);
+        
         const result = await pool.query(`
             SELECT 
                 TO_CHAR(date_expense, 'Mon') as mois,
                 EXTRACT(MONTH FROM date_expense) as mois_num,
-                SUM(amount) as total 
+                COALESCE(SUM(amount), 0) as total 
             FROM expenses 
             WHERE date_expense >= CURRENT_DATE - INTERVAL '6 months'
+            AND ${whereClause.replace(/owner_id/g, 'owner_id')}
             GROUP BY mois, mois_num 
             ORDER BY mois_num
         `);

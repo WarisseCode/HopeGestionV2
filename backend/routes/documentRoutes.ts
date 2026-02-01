@@ -16,6 +16,20 @@ const router = Router();
 // Middleware to log all requests to this router
 import pool from '../db/database';
 
+// Helper function to get owner IDs for current user
+const getManagedOwnerIds = async (userId: number, userRole: string): Promise<number[] | null> => {
+    if (userRole === 'admin') {
+        return null; // Admin sees all
+    }
+    
+    const result = await pool.query(
+        `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
+        [userId]
+    );
+    
+    return result.rows.map(r => r.owner_id);
+};
+
 
 // --- Multer Configuration ---
 const uploadDir = path.join(__dirname, '../../uploads');
@@ -58,13 +72,30 @@ const upload = multer({
 
 // --- Routes ---
 
-// GET /api/documents - List documents
+// GET /api/documents - List documents (filtered by owner)
 router.get('/', permissions.canRead('documents'), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { entity_type, entity_id, categorie } = req.query;
+        const ownerIds = await getManagedOwnerIds(req.userId!, req.userRole!);
+        
+        // Build owner filter based on entity type
+        let ownerFilter = '';
+        if (ownerIds !== null && ownerIds.length > 0) {
+            const ownerIdsList = ownerIds.join(',');
+            ownerFilter = `
+                AND (
+                    (entity_type = 'building' AND entity_id IN (SELECT id FROM buildings WHERE owner_id IN (${ownerIdsList})))
+                    OR (entity_type = 'lot' AND entity_id IN (SELECT l.id FROM lots l JOIN buildings b ON l.building_id = b.id WHERE b.owner_id IN (${ownerIdsList})))
+                    OR (entity_type = 'tenant' AND entity_id IN (SELECT id FROM tenants WHERE owner_id IN (${ownerIdsList})))
+                    OR (entity_type = 'lease' AND entity_id IN (SELECT id FROM leases WHERE owner_id IN (${ownerIdsList})))
+                    OR (entity_type IS NULL OR entity_type NOT IN ('building', 'lot', 'tenant', 'lease'))
+                )
+            `;
+        }
+        
         let query = `
             SELECT * FROM documents 
-            WHERE 1=1
+            WHERE 1=1 ${ownerFilter}
         `;
         const params: any[] = [];
         let paramIndex = 1;

@@ -4,6 +4,7 @@ import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
 import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 import pool from '../db/database';
+import { filterByOwner, buildOwnerWhereClause } from '../middleware/ownerIsolation';
 
 dotenv.config();
 
@@ -98,9 +99,12 @@ router.post('/public', async (req: Request, res: Response) => {
 // --- PROTECTED ROUTES (Manager/Owner) ---
 router.use(protect);
 
-// GET /api/reservations - List all reservations
-router.get('/', async (req: AuthenticatedRequest, res: Response) => {
+// GET /api/reservations - List all reservations (filtered by owner)
+router.get('/', filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
     try {
+        const ownerIds = (req as any).ownerIds;
+        const whereClause = buildOwnerWhereClause(ownerIds);
+        
         const result = await pool.query(`
             SELECT l.*, 
                    t.nom as locataire_nom, t.prenoms as locataire_prenoms, t.telephone_principal,
@@ -110,6 +114,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
             JOIN lots lot ON l.lot_id = lot.id
             JOIN buildings b ON lot.building_id = b.id
             WHERE l.type_contrat = 'reservation'
+            AND ${whereClause.replace(/owner_id/g, 'l.owner_id')}
             ORDER BY l.created_at DESC
         `);
         res.json(result.rows);
@@ -119,14 +124,26 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     }
 });
 
-// POST /api/reservations/:id/validate - Validate or refuse a reservation
-router.post('/:id/validate', async (req: AuthenticatedRequest, res: Response) => {
+// POST /api/reservations/:id/validate - Validate or refuse a reservation (with owner check)
+router.post('/:id/validate', filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { id } = req.params;
         const { statut, commentaire } = req.body;
+        const ownerIds = (req as any).ownerIds;
+        const whereClause = buildOwnerWhereClause(ownerIds);
         
         if (!['actif', 'refuse'].includes(statut)) {
             return res.status(400).json({ message: 'Statut invalide' });
+        }
+
+        // Verify ownership before updating
+        const checkResult = await pool.query(
+            `SELECT id FROM leases WHERE id = $1 AND type_contrat = 'reservation' AND ${whereClause.replace(/owner_id/g, 'owner_id')}`,
+            [id]
+        );
+        
+        if (checkResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Réservation non trouvée' });
         }
 
         // Update reservation status
