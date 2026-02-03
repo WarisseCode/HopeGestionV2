@@ -114,7 +114,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const allowedOrigins = [
     process.env.FRONTEND_URL || 'http://localhost:5173',
     'https://hope-gestion-frontend.onrender.com',
-    // Add production domains here
+    'https://hopegestion.com',
+    'https://www.hopegestion.com'
 ];
 
 app.use(cors({
