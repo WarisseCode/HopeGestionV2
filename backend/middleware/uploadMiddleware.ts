@@ -4,17 +4,15 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs-extra';
 
-const isProduction = process.env.NODE_ENV === 'production';
-
-// Generate unique filename
+// Generate unique filename (without uuid to avoid ESM issues)
 const generateFilename = (file: Express.Multer.File): string => {
     const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
     const ext = path.extname(file.originalname);
     return `${uniqueSuffix}${ext}`;
 };
 
-// Configuration du stockage LOCAL (pour développement)
-const diskStorage = multer.diskStorage({
+// Configuration du stockage sur disque local
+const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         let uploadPath = 'uploads/others';
 
@@ -38,9 +36,6 @@ const diskStorage = multer.diskStorage({
     }
 });
 
-// Configuration du stockage MÉMOIRE (pour production - cloud upload)
-const memoryStorage = multer.memoryStorage();
-
 // Filtre de fichiers
 const fileFilter = (req: any, file: any, cb: any) => {
     const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/gif'];
@@ -57,15 +52,12 @@ const fileFilter = (req: any, file: any, cb: any) => {
     }
 };
 
-// Configuration Multer - utilise mémoire en prod, disque en dev
+// Configuration Multer
 export const upload = multer({
-    storage: isProduction ? memoryStorage : diskStorage,
+    storage: storage,
     fileFilter: fileFilter,
     limits: {
         fileSize: 10 * 1024 * 1024, // 10 MB max
         files: 10 // Max 10 fichiers par upload multiple
     }
 });
-
-// Export pour savoir si on est en mode cloud
-export const isCloudStorage = isProduction;
