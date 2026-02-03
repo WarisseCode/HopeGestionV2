@@ -114,6 +114,14 @@ async function runMigration() {
             await client.query(subscriptionsSql);
             console.log('   - plans, subscriptions, subscription_payments créées');
         }
+
+        console.log('13/13 Exécution migrations/20_fix_leases_complete...');
+        const leasesFixPath = path.join(process.cwd(), 'migrations', '20_fix_leases_complete.sql');
+        if (fs.existsSync(leasesFixPath)) {
+            const leasesFixSql = fs.readFileSync(leasesFixPath, 'utf8');
+            await client.query(leasesFixSql);
+            console.log('   - leases (ajout: owner_id, type_contrat, prix_vente, etc.)');
+        }
         
         console.log('✅ Migration exécutée avec succès!');
         console.log('\n📊 Tables créées et mises à jour.');
