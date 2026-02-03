@@ -35,7 +35,7 @@ ALTER TABLE leases ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT
 ALTER TABLE leases ADD COLUMN IF NOT EXISTS signature_url VARCHAR(255);
 ALTER TABLE leases ADD COLUMN IF NOT EXISTS date_signature_electronique TIMESTAMP;
 
--- Create payment_schedules table if not exists
+-- Create payment_schedules table if not exists (MUST be before indexes)
 CREATE TABLE IF NOT EXISTS payment_schedules (
     id SERIAL PRIMARY KEY,
     lease_id INTEGER NOT NULL REFERENCES leases(id) ON DELETE CASCADE,
@@ -45,14 +45,27 @@ CREATE TABLE IF NOT EXISTS payment_schedules (
     montant_paye DECIMAL(12,2) DEFAULT 0,
     statut VARCHAR(20) DEFAULT 'pending',
     date_paiement DATE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(lease_id, numero_echeance)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_leases_owner_id ON leases(owner_id);
-CREATE INDEX IF NOT EXISTS idx_payment_schedules_lease ON payment_schedules(lease_id);
-CREATE INDEX IF NOT EXISTS idx_payment_schedules_date ON payment_schedules(date_echeance);
-CREATE INDEX IF NOT EXISTS idx_leases_statut ON leases(statut);
-CREATE INDEX IF NOT EXISTS idx_leases_tenant ON leases(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_leases_lot ON leases(lot_id);
+-- Add unique constraint if not exists (using DO block for safety)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'payment_schedules_lease_id_numero_echeance_key'
+    ) THEN
+        ALTER TABLE payment_schedules ADD CONSTRAINT payment_schedules_lease_id_numero_echeance_key 
+        UNIQUE(lease_id, numero_echeance);
+    END IF;
+EXCEPTION WHEN duplicate_object THEN
+    NULL;
+END $$;
+
+-- Indexes for performance (with IF NOT EXISTS equivalent using DO blocks)
+DO $$ BEGIN CREATE INDEX idx_leases_owner_id ON leases(owner_id); EXCEPTION WHEN duplicate_table THEN NULL; END $$;
+DO $$ BEGIN CREATE INDEX idx_payment_schedules_lease ON payment_schedules(lease_id); EXCEPTION WHEN duplicate_table THEN NULL; END $$;
+DO $$ BEGIN CREATE INDEX idx_payment_schedules_date ON payment_schedules(date_echeance); EXCEPTION WHEN duplicate_table THEN NULL; END $$;
+DO $$ BEGIN CREATE INDEX idx_leases_statut ON leases(statut); EXCEPTION WHEN duplicate_table THEN NULL; END $$;
+DO $$ BEGIN CREATE INDEX idx_leases_tenant ON leases(tenant_id); EXCEPTION WHEN duplicate_table THEN NULL; END $$;
+DO $$ BEGIN CREATE INDEX idx_leases_lot ON leases(lot_id); EXCEPTION WHEN duplicate_table THEN NULL; END $$;
