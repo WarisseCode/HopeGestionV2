@@ -46,6 +46,13 @@ const LocationForm: React.FC<LocationFormProps> = ({
         frequence_paiement: 'mensuel',
         nombre_echeances: 12
     });
+
+    // Auto-selection du propriétaire s'il n'y en a qu'un
+    useEffect(() => {
+        if (!formData.owner_id && owners.length === 1) {
+            setFormData(prev => ({ ...prev, owner_id: owners[0].id }));
+        }
+    }, [owners]);
     const [previewSchedule, setPreviewSchedule] = useState<any[]>([]);
 
     // Auto-fill owner/amounts when lot is selected
@@ -231,16 +238,27 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                                 <div className="p-3 bg-white rounded-xl shadow-sm">
                                                     <Home className="text-blue-500" size={24} />
                                                 </div>
-                                                <select
-                                                    className="w-full p-3 bg-transparent font-bold text-blue-900 outline-none border-b border-blue-200 focus:border-blue-500 transition"
-                                                    value={formData.owner_id}
-                                                    onChange={e => setFormData({...formData, owner_id: parseInt(e.target.value)})}
-                                                >
-                                                    <option value={0}>Sélectionner un propriétaire</option>
-                                                    {owners.map(o => (
-                                                        <option key={o.id} value={o.id}>{o.nom || o.name}</option>
-                                                    ))}
-                                                </select>
+                                                {owners.length > 1 ? (
+                                                    <select
+                                                        className="w-full p-3 bg-transparent font-bold text-blue-900 outline-none border-b border-blue-200 focus:border-blue-500 transition"
+                                                        value={formData.owner_id}
+                                                        onChange={e => setFormData({...formData, owner_id: parseInt(e.target.value)})}
+                                                    >
+                                                        <option value={0}>Sélectionner un propriétaire</option>
+                                                        {owners.map(o => (
+                                                            <option key={o.id} value={o.id}>{o.nom || o.name}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : owners.length === 1 ? (
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs text-blue-400 font-bold uppercase tracking-wider">Propriétaire</span>
+                                                        <span className="text-lg font-bold text-blue-900">
+                                                            {owners[0].nom || owners[0].name}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-sm text-red-500">Aucun propriétaire disponible</span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

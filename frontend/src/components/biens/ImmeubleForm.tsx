@@ -61,9 +61,22 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
   const [photoPreviews, setPhotoPreviews] = useState<string[]>(immeuble.photos || []);
 
   useEffect(() => {
-    setFormData(immeuble);
+    const updatedData = {
+      type: 'Immeuble',
+      nombre_etages: 1,
+      statut: 'actif',
+      pays: 'Bénin',
+      ...immeuble
+    };
+
+    // Auto-selection du propriétaire s'il n'y en a qu'un (cas d'un compte propriétaire)
+    if (!updatedData.owner_id && proprietaires.length === 1) {
+      updatedData.owner_id = proprietaires[0].id;
+    }
+
+    setFormData(updatedData);
     setPhotoPreviews(immeuble.photos || []);
-  }, [immeuble]);
+  }, [immeuble, proprietaires]);
 
   const handleChange = (field: keyof Immeuble, value: any) => {
     console.log(`Field change: ${field} =`, value, typeof value);
@@ -170,19 +183,34 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
               <div className="bg-base-50 p-4 rounded-xl border border-base-200">
                 <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">Gestion & Propriétaire</h4>
                 <div className="space-y-4">
-                  <Select
-                    label="Propriétaire *"
-                    value={formData.owner_id?.toString() || ''}
-                    onChange={(e) => handleChange('owner_id', parseInt(e.target.value))}
-                    options={[
-                      { value: '', label: 'Sélectionner un propriétaire' },
-                      ...proprietaires.map(p => ({ 
-                        value: p.id.toString(), 
-                        label: p.type === 'individual' ? `${p.nom} ${p.prenom || ''}` : p.nom 
-                      }))
-                    ]}
-                    className="bg-white"
-                  />
+                  {proprietaires.length > 1 ? (
+                    <Select
+                      label="Propriétaire *"
+                      value={formData.owner_id?.toString() || ''}
+                      onChange={(e) => handleChange('owner_id', parseInt(e.target.value))}
+                      options={[
+                        { value: '', label: 'Sélectionner un propriétaire' },
+                        ...proprietaires.map(p => ({ 
+                          value: p.id.toString(), 
+                          label: p.type === 'individual' ? `${p.nom} ${p.prenom || ''}` : p.nom 
+                        }))
+                      ]}
+                      className="bg-white"
+                    />
+                  ) : proprietaires.length === 1 ? (
+                    <div className="p-3 bg-white border border-base-200 rounded-lg flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">Propriétaire</span>
+                      <span className="text-sm font-bold text-primary">
+                        {proprietaires[0].type === 'individual' 
+                          ? `${proprietaires[0].nom} ${proprietaires[0].prenom || ''}` 
+                          : proprietaires[0].nom}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="alert alert-warning py-2 text-xs">
+                      Aucun propriétaire configuré.
+                    </div>
+                  )}
 
                   {gestionnaires.length > 0 && (
                     <Select

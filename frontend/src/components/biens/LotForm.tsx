@@ -71,10 +71,24 @@ const LotForm: React.FC<LotFormProps> = ({
   const [showVenteFields, setShowVenteFields] = useState(!!lot.prix_vente);
 
   useEffect(() => {
-    setFormData(lot);
+    const updatedData = {
+      type: 'Appartement',
+      nbPieces: 1,
+      periodicite: 'mensuel',
+      statut: 'libre',
+      avance: 1,
+      ...lot
+    };
+
+    // Auto-selection de l'immeuble s'il n'y en a qu'un
+    if (!updatedData.building_id && immeubles.length === 1) {
+      updatedData.building_id = immeubles[0].id;
+    }
+
+    setFormData(updatedData);
     setPhotoPreviews(lot.photos || []);
     setShowVenteFields(!!lot.prix_vente);
-  }, [lot]);
+  }, [lot, immeubles]);
 
   const handleChange = (field: keyof Lot, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -158,19 +172,30 @@ const LotForm: React.FC<LotFormProps> = ({
                 </h4>
                 
                 <div className="space-y-4">
-                  <Select
-                    label="Immeuble de rattachement *"
-                    value={formData.building_id?.toString() || ''}
-                    onChange={(e) => handleChange('building_id', parseInt(e.target.value))}
-                    options={[
-                      { value: '', label: 'Sélectionner un immeuble' },
-                      ...immeubles.map(b => ({ 
-                        value: b.id.toString(), 
-                        label: `${b.nom} (${b.proprietaire || 'Sans propriétaire'})`
-                      }))
-                    ]}
-                    className="bg-white"
-                  />
+                  {immeubles.length > 1 ? (
+                    <Select
+                      label="Immeuble de rattachement *"
+                      value={formData.building_id?.toString() || ''}
+                      onChange={(e) => handleChange('building_id', parseInt(e.target.value))}
+                      options={[
+                        { value: '', label: 'Sélectionner un immeuble' },
+                        ...immeubles.map(b => ({ 
+                          value: b.id.toString(), 
+                          label: `${b.nom} (${b.proprietaire || 'Sans propriétaire'})`
+                        }))
+                      ]}
+                      className="bg-white"
+                    />
+                  ) : immeubles.length === 1 ? (
+                    <div className="p-3 bg-white border border-base-200 rounded-lg flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">Immeuble</span>
+                      <span className="text-sm font-bold text-primary">{immeubles[0].nom}</span>
+                    </div>
+                  ) : (
+                    <div className="alert alert-warning py-2 text-xs">
+                      Aucun immeuble trouvé. Créez d'abord un immeuble.
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <Input
