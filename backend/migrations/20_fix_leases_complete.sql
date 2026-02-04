@@ -48,6 +48,15 @@ CREATE TABLE IF NOT EXISTS payment_schedules (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Ensure all columns exist in payment_schedules if it already existed
+ALTER TABLE payment_schedules ADD COLUMN IF NOT EXISTS lease_id INTEGER;
+ALTER TABLE payment_schedules ADD COLUMN IF NOT EXISTS numero_echeance INTEGER;
+ALTER TABLE payment_schedules ADD COLUMN IF NOT EXISTS date_echeance DATE;
+ALTER TABLE payment_schedules ADD COLUMN IF NOT EXISTS montant DECIMAL(12,2);
+ALTER TABLE payment_schedules ADD COLUMN IF NOT EXISTS montant_paye DECIMAL(12,2) DEFAULT 0;
+ALTER TABLE payment_schedules ADD COLUMN IF NOT EXISTS statut VARCHAR(20) DEFAULT 'pending';
+ALTER TABLE payment_schedules ADD COLUMN IF NOT EXISTS date_paiement DATE;
+
 -- Add unique constraint if not exists (using DO block for safety)
 DO $$
 BEGIN
