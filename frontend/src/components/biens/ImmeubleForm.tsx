@@ -51,7 +51,13 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
   loading = false
 }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'medias' | 'parametres'>('general');
-  const [formData, setFormData] = useState<Partial<Immeuble>>(immeuble);
+  const [formData, setFormData] = useState<Partial<Immeuble>>({
+    type: 'Immeuble',
+    nombre_etages: 1,
+    statut: 'actif',
+    pays: 'Bénin',
+    ...immeuble
+  });
   const [photoPreviews, setPhotoPreviews] = useState<string[]>(immeuble.photos || []);
 
   useEffect(() => {
@@ -305,6 +311,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                     folder="property"
                     label=""
                     className="h-32"
+                    clearOnSuccess={true}
                   />
                 )}
               </div>
@@ -380,6 +387,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
           variant="primary" 
           onClick={() => handleSubmit(false)}
           disabled={loading || !formData.nom || !formData.owner_id}
+          title={!formData.nom || !formData.owner_id ? "Veuillez remplir le nom et sélectionner un propriétaire (onglet Général)" : ""}
         >
           <Save size={16} className="mr-2" />
           {loading ? 'Enregistrement...' : formData.id ? 'Modifier' : 'Enregistrer'}

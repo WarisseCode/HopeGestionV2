@@ -10,6 +10,7 @@ interface ImageUploadProps {
     label?: string;
     folder?: 'property' | 'avatar' | 'document';
     className?: string;
+    clearOnSuccess?: boolean;
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({ 
@@ -17,7 +18,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     onChange, 
     label = "Choisir une image", 
     folder = 'others',
-    className = ""
+    className = "",
+    clearOnSuccess = false
 }) => {
     const [uploading, setUploading] = useState(false);
     const [preview, setPreview] = useState<string | null>(value || null);
@@ -63,7 +65,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             if (response.ok) {
                 const fileUrl = `${API_BASE}${data.files[0].path}`;
                 onChange(fileUrl);
-                setPreview(fileUrl);
+                if (clearOnSuccess) {
+                    setPreview(null);
+                } else {
+                    setPreview(fileUrl);
+                }
             } else {
                 throw new Error(data.message || 'Erreur upload');
             }

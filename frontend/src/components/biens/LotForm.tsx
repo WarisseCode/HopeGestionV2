@@ -8,6 +8,7 @@ import {
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import ImageUpload from '../ui/ImageUpload';
 import type { Lot, Immeuble } from '../../api/bienApi';
 
 interface LotFormProps {
@@ -58,7 +59,14 @@ const LotForm: React.FC<LotFormProps> = ({
   loading = false
 }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'financier' | 'medias' | 'statut'>('general');
-  const [formData, setFormData] = useState<Partial<Lot>>(lot);
+  const [formData, setFormData] = useState<Partial<Lot>>({
+    type: 'Appartement',
+    nbPieces: 1,
+    periodicite: 'mensuel',
+    statut: 'libre',
+    avance: 1,
+    ...lot
+  });
   const [photoPreviews, setPhotoPreviews] = useState<string[]>(lot.photos || []);
   const [showVenteFields, setShowVenteFields] = useState(!!lot.prix_vente);
 
@@ -407,28 +415,13 @@ const LotForm: React.FC<LotFormProps> = ({
                 ))}
                 
                 {photoPreviews.length < 10 && (
-                  <label className="aspect-square border-2 border-dashed border-primary/30 hover:border-primary bg-primary/5 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-primary/10 group">
-                    <div className="bg-white p-3 rounded-full shadow-sm mb-3 group-hover:scale-110 transition-transform">
-                      <Upload size={24} className="text-primary" />
-                    </div>
-                    <span className="text-sm font-medium text-primary">Ajouter une photo</span>
-                    <span className="text-xs text-primary/60 mt-1">MAX 5MB</span>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            handlePhotoAdd(reader.result as string);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                    />
-                  </label>
+                  <ImageUpload 
+                    onChange={handlePhotoAdd} 
+                    folder="property"
+                    label=""
+                    className="aspect-square"
+                    clearOnSuccess={true}
+                  />
                 )}
               </div>
             </div>
@@ -534,6 +527,7 @@ const LotForm: React.FC<LotFormProps> = ({
           variant="primary" 
           onClick={handleSubmit}
           disabled={loading || !formData.reference || !formData.building_id}
+          title={!formData.reference || !formData.building_id ? "Veuillez remplir la référence et sélectionner un immeuble (onglet Général)" : ""}
         >
           <Save size={16} className="mr-2" />
           {loading ? 'Enregistrement...' : formData.id ? 'Modifier' : 'Enregistrer'}
