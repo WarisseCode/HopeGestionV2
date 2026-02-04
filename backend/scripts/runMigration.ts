@@ -138,6 +138,14 @@ async function runMigration() {
             await client.query(paymentsFixSql);
             console.log('   - payments (ajout: schedule_id, description, owner_id)');
         }
+
+        console.log('16/16 Exécution migrations/23_fix_owners_metadata...');
+        const ownersFixPath = path.join(process.cwd(), 'migrations', '23_fix_owners_metadata.sql');
+        if (fs.existsSync(ownersFixPath)) {
+            const ownersFixSql = fs.readFileSync(ownersFixPath, 'utf8');
+            await client.query(ownersFixSql);
+            console.log('   - owners (ajout: company_name, rccm_number, mobile_money_coordinates)');
+        }
         
         console.log('✅ Migration exécutée avec succès!');
         console.log('\n📊 Tables créées et mises à jour.');

@@ -18,7 +18,9 @@ router.get('/proprietaires', async (req: AuthenticatedRequest, res: Response) =>
                    phone_secondary as "telephoneSecondaire", email, address as adresse, 
                    city as ville, country as pays, id_number as "numeroPiece", 
                    photo, management_mode as "modeGestion",
-                   mobile_money_coordinates as "mobileMoney", rccm_number as "rccmNumber"
+                   COALESCE(mobile_money_coordinates, mobile_money_number) as "mobileMoney", 
+                   COALESCE(rccm_number, id_number) as "rccmNumber",
+                   company_name
             FROM owners
             WHERE is_active = TRUE
         `;
@@ -114,7 +116,8 @@ router.get('/autorisations', async (req: AuthenticatedRequest, res: Response) =>
 
 // POST /api/compte/proprietaires : Créer ou mettre à jour un propriétaire
 router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) => {
-    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
+    // Autoriser Admin, Gestionnaire ET Propriétaire à créer
+    if (!['admin', 'gestionnaire', 'manager', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
@@ -171,18 +174,31 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
 
 // PUT /api/compte/proprietaires/:id : Modifier un propriétaire
 router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response) => {
-    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
+    // Autoriser Admin, Gestionnaire ET Propriétaire à modifier (si c'est le sien)
+    if (!['admin', 'gestionnaire', 'manager', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
     try {
+        const ownerId = req.params.id;
+
+        // Si c'est un propriétaire, vérifier qu'il modifie le sien
+        if (req.userRole === 'proprietaire') {
+            const checkLink = await db.query(
+                `SELECT 1 FROM owner_user WHERE user_id = $1 AND owner_id = $2`,
+                [req.userId, ownerId]
+            );
+            if (checkLink.rows.length === 0) {
+                return res.status(403).json({ message: "Vous n'êtes pas autorisé à modifier ce propriétaire." });
+            }
+        }
         const { 
             name, type, phone, email, address, 
             company_name, rccm_number, mobile_money, telephoneSecondaire,
             management_mode, delegation_start_date, delegation_end_date 
         } = req.body;
         
-        const ownerId = req.params.id;
+        // const ownerId = req.params.id; // Removed duplicate declaration
 
         // Nettoyage des numéros
         const cleanPhone = phone ? phone.replace(/[\s\-\(\)\.]/g, '') : null;

@@ -24,7 +24,13 @@ class EmailService {
         // Verify connection configuration
         this.transporter.verify((error, success) => {
             if (error) {
-                console.error('❌ Email service configuration error:', error);
+                console.error('❌ Email service configuration error:', error.message);
+                
+                // 💡 Proactive help for Gmail users
+                if (error.message.includes('534-5.7.9')) {
+                    console.error('💡 TIP: Gmail is blocking the login. You likely need an "App Password" (Mot de passe d\'application).');
+                    console.error('👉 Generate one at: https://myaccount.google.com/apppasswords');
+                }
             } else {
                 console.log('✅ Email service ready');
             }

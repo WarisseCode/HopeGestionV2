@@ -257,7 +257,12 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                                         </span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-sm text-red-500">Aucun propriétaire disponible</span>
+                                                    <div className="flex flex-col items-start gap-1">
+                                                        <span className="text-sm text-red-500 font-bold">Aucun propriétaire disponible</span>
+                                                        <a href="/dashboard/proprietaires" className="text-xs text-primary font-bold hover:underline flex items-center gap-1">
+                                                            <Plus size={12} /> Configurer mon profil propriétaire
+                                                        </a>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
