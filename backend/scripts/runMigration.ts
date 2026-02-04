@@ -122,6 +122,22 @@ async function runMigration() {
             await client.query(leasesFixSql);
             console.log('   - leases (ajout: owner_id, type_contrat, prix_vente, etc.)');
         }
+
+        console.log('14/14 Exécution migrations/21_fix_lots_complete...');
+        const lotsFixPath = path.join(process.cwd(), 'migrations', '21_fix_lots_complete.sql');
+        if (fs.existsSync(lotsFixPath)) {
+            const lotsFixSql = fs.readFileSync(lotsFixPath, 'utf8');
+            await client.query(lotsFixSql);
+            console.log('   - lots (ajout: bloc, caution, prix_vente, etc.)');
+        }
+
+        console.log('15/15 Exécution migrations/22_fix_payments_complete...');
+        const paymentsFixPath = path.join(process.cwd(), 'migrations', '22_fix_payments_complete.sql');
+        if (fs.existsSync(paymentsFixPath)) {
+            const paymentsFixSql = fs.readFileSync(paymentsFixPath, 'utf8');
+            await client.query(paymentsFixSql);
+            console.log('   - payments (ajout: schedule_id, description, owner_id)');
+        }
         
         console.log('✅ Migration exécutée avec succès!');
         console.log('\n📊 Tables créées et mises à jour.');
