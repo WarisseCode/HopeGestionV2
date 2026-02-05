@@ -1,9 +1,10 @@
 // frontend/src/components/biens/ImmeubleForm.tsx
-// Formulaire avancé pour création/modification d'immeubles avec onglets
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Building2, MapPin, Image, Settings, Save, Plus, 
-  Upload, X, Video, FileImage, Trash2, Star
+  Upload, X, Video, FileImage, Trash2, Star, 
+  Check, ArrowRight, ArrowLeft, Users
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -41,6 +42,13 @@ const STATUTS = [
   { value: 'inactif', label: 'Inactif' },
 ];
 
+const STEPS = [
+  { id: 0, title: 'Identité', icon: <Building2 size={20} /> },
+  { id: 1, title: 'Localisation', icon: <MapPin size={20} /> },
+  { id: 2, title: 'Gestion', icon: <Users size={20} /> },
+  { id: 3, title: 'Médias & Paramètres', icon: <Image size={20} /> }
+];
+
 const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
   immeuble,
   proprietaires,
@@ -50,7 +58,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
   onCancel,
   loading = false
 }) => {
-  const [activeTab, setActiveTab] = useState<'general' | 'medias' | 'parametres'>('general');
+  const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<Partial<Immeuble>>({
     type: 'Immeuble',
     nombre_etages: 1,
@@ -62,14 +70,14 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
 
   useEffect(() => {
     const updatedData = {
-      type: 'Immeuble',
-      nombre_etages: 1,
-      statut: 'actif',
-      pays: 'Bénin',
-      ...immeuble
+        type: 'Immeuble',
+        nombre_etages: 1,
+        statut: 'actif',
+        pays: 'Bénin',
+        ...immeuble
     };
 
-    // Auto-selection du propriétaire s'il n'y en a qu'un (cas d'un compte propriétaire)
+    // Auto-selection du propriétaire s'il n'y en a qu'un
     if (!updatedData.owner_id && proprietaires.length === 1) {
       updatedData.owner_id = proprietaires[0].id;
     }
@@ -84,21 +92,17 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
   }, [immeuble, proprietaires]);
 
   const handleChange = (field: keyof Immeuble, value: any) => {
-    console.log(`Field change: ${field} =`, value, typeof value);
-    setFormData(prev => {
-      const newData = { ...prev, [field]: value };
-      console.log('New Form Data:', newData, 'Valid?', !!newData.nom && !!newData.owner_id);
-      return newData;
-    });
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handlePhotoAdd = (url: string) => {
     if (photoPreviews.length < 10) {
+      if (photoPreviews.includes(url)) return;
+      
       const newPhotos = [...photoPreviews, url];
       setPhotoPreviews(newPhotos);
       handleChange('photos', newPhotos);
       
-      // If this is the first photo, make it main
       if (newPhotos.length === 1 || !formData.photo) {
         handleChange('photo', url);
       }
@@ -111,25 +115,45 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
     setPhotoPreviews(newPhotos);
     handleChange('photos', newPhotos);
     
-    // If removed photo was main photo, set the first available as main
-    if (formData.photo === photoToRemove && newPhotos.length > 0) {
-      handleChange('photo', newPhotos[0]);
-    } else if (newPhotos.length === 0) {
-      handleChange('photo', '');
+    if (formData.photo === photoToRemove) {
+        handleChange('photo', newPhotos.length > 0 ? newPhotos[0] : '');
     }
   };
 
   const handleSetMainPhoto = (url: string) => {
-    // Update main photo string
     handleChange('photo', url);
-    
-    // Reorder array: move Main to front
     const otherPhotos = photoPreviews.filter(p => p !== url);
     const newPhotos = [url, ...otherPhotos];
-    
     setPhotoPreviews(newPhotos);
     handleChange('photos', newPhotos);
   };
+
+  const isStepValid = () => {
+    switch (currentStep) {
+      case 0: // Identité
+        return !!formData.nom && !!formData.type;
+      case 1: // Localisation
+        return !!formData.ville;
+      case 2: // Gestion
+        // Owner ID is mandatory
+        return !!formData.owner_id;
+      case 3: // Médias
+        return true;
+      default:
+        return false;
+    }
+  };
+
+  const handleNext = () => {
+    if (isStepValid()) {
+      setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
+    }
+  };
+
+  const handleBack = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 0));
+  };
+
 
   const handleSubmit = async (addLots: boolean = false) => {
     if (addLots && onSaveAndAddLots) {
@@ -139,344 +163,369 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
     }
   };
 
-  const tabs = [
-    { id: 'general', label: 'Général', icon: Building2 },
-    { id: 'medias', label: 'Médias', icon: Image },
-    { id: 'parametres', label: 'Paramètres', icon: Settings },
-  ];
-
   return (
-    <div className="flex flex-col h-full bg-base-100">
-      {/* Elegant Tabs */}
-      <div className="flex items-center gap-6 px-1 border-b border-base-300 mb-6">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            className={`
-              relative pb-3 text-sm font-medium transition-all duration-200 flex items-center gap-2
-              ${activeTab === tab.id 
-                ? 'text-primary border-b-2 border-primary -mb-[1px]' 
-                : 'text-gray-500 hover:text-gray-700'
-              }
-            `}
-            onClick={() => setActiveTab(tab.id as any)}
-          >
-            <tab.icon size={18} className={activeTab === tab.id ? 'text-primary' : 'text-gray-400'} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
+    <div className="flex flex-col flex-1 min-h-0 bg-gray-50/50">
+      {/* Wizard Header */}
+      <div className="flex items-center justify-between px-12 py-6 bg-white border-b border-gray-200">
+        {STEPS.map((step, idx) => {
+            const isActive = idx === currentStep;
+            const isCompleted = idx < currentStep;
 
-      {/* Tab Content with Animation Placeholder */}
-      <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-        {/* Onglet Général */}
-        {activeTab === 'general' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Colonne Gauche - Informations principales */}
-            <div className="space-y-6">
-              <div className="bg-base-50 p-4 rounded-xl border border-base-200">
-                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <Building2 size={16} className="text-primary" />
-                  Identité du bien
-                </h4>
-                
-                <div className="space-y-4">
-                  <Input
-                    label="Nom de l'immeuble *"
-                    value={formData.nom || ''}
-                    onChange={(e) => handleChange('nom', e.target.value)}
-                    placeholder="Ex: Résidence Les Palmiers"
-                    required
-                    className={`bg-white ${!formData.nom ? 'border-error' : ''}`}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Select
-                      label="Type *"
-                      value={formData.type || 'Immeuble'}
-                      onChange={(e) => handleChange('type', e.target.value)}
-                      options={TYPES_IMMEUBLE}
-                      className="bg-white"
-                    />
-                    <Input
-                      label="Nbre d'étages"
-                      type="number"
-                      min={1}
-                      value={formData.nombre_etages || 1}
-                      onChange={(e) => handleChange('nombre_etages', parseInt(e.target.value))}
-                      className="bg-white"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-base-50 p-4 rounded-xl border border-base-200">
-                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">Gestion & Propriétaire</h4>
-                <div className="space-y-4">
-                  {proprietaires.length > 1 ? (
-                    <Select
-                      label="Propriétaire *"
-                      value={formData.owner_id?.toString() || ''}
-                      onChange={(e) => handleChange('owner_id', e.target.value ? parseInt(e.target.value) : 0)}
-                      options={[
-                        { value: '', label: 'Sélectionner un propriétaire' },
-                        ...proprietaires.map(p => ({ 
-                          value: p.id.toString(), 
-                          label: p.type === 'individual' ? `${p.nom} ${p.prenom || ''}` : p.nom 
-                        }))
-                      ]}
-                      className={`bg-white ${!formData.owner_id ? 'border-error' : ''}`}
-                    />
-                  ) : proprietaires.length === 1 ? (
-                    <div className="p-3 bg-white border border-base-200 rounded-lg flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">Propriétaire</span>
-                      <span className="text-sm font-bold text-primary">
-                        {proprietaires[0].type === 'individual' 
-                          ? `${proprietaires[0].nom} ${proprietaires[0].prenom || ''}` 
-                          : proprietaires[0].nom}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="alert alert-warning py-2 text-xs shadow-sm flex flex-col items-start gap-1">
-                      <div className="flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-4 w-4" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                        <span>Aucun propriétaire configuré.</span>
-                      </div>
-                      <a href="/dashboard/proprietaires" className="flex items-center gap-1 text-primary font-bold hover:underline ml-6">
-                        <Plus size={12} /> Créer un profil propriétaire
-                      </a>
-                    </div>
-                  )}
-
-                  {gestionnaires.length > 0 && (
-                    <Select
-                      label="Gestionnaire responsable"
-                      value={formData.gestionnaire_id?.toString() || ''}
-                      onChange={(e) => handleChange('gestionnaire_id', e.target.value ? parseInt(e.target.value) : null)}
-                      options={[
-                        { value: '', label: 'Aucun (géré par le propriétaire)' },
-                        ...gestionnaires.map(g => ({ value: g.id.toString(), label: g.nom }))
-                      ]}
-                      className="bg-white"
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Colonne Droite - Localisation */}
-            <div className="space-y-6">
-              <div className="bg-base-50 p-4 rounded-xl border border-base-200 h-full">
-                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <MapPin size={16} className="text-primary" />
-                  Localisation
-                </h4>
-
-                <div className="space-y-4">
-                  <Input
-                    label="Adresse complète"
-                    value={formData.adresse || ''}
-                    onChange={(e) => handleChange('adresse', e.target.value)}
-                    placeholder="Ex: 123 Rue de la Paix"
-                    className="bg-white"
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      label="Quartier"
-                      value={formData.quartier || ''}
-                      onChange={(e) => handleChange('quartier', e.target.value)}
-                      placeholder="Ex: Akpakpa"
-                      className="bg-white"
-                    />
-                    <Input
-                      label="Ville"
-                      value={formData.ville || ''}
-                      onChange={(e) => handleChange('ville', e.target.value)}
-                      placeholder="Ex: Cotonou"
-                      className={`bg-white ${!formData.ville ? 'border-error' : ''}`}
-                    />
-                  </div>
-
-                  <Input
-                    label="Pays"
-                    value={formData.pays || 'Bénin'}
-                    onChange={(e) => handleChange('pays', e.target.value)}
-                    className="bg-white"
-                  />
-
-                  {/* GPS Card - Enhanced */}
-                  <div className="card bg-white border border-base-200 shadow-sm p-4 mt-4">
-                    <div className="text-xs font-semibold text-gray-500 mb-2 uppercase">Coordonnées GPS</div>
-                    <div className="grid grid-cols-2 gap-3 mb-3">
-                      <Input
-                        label="Latitude"
-                        type="number"
-                        step="any"
-                        value={formData.latitude || ''}
-                        onChange={(e) => handleChange('latitude', parseFloat(e.target.value) || null)}
-                        placeholder="6.3702"
-                        className="input-sm"
-                      />
-                      <Input
-                        label="Longitude"
-                        type="number"
-                        step="any"
-                        value={formData.longitude || ''}
-                        onChange={(e) => handleChange('longitude', parseFloat(e.target.value) || null)}
-                        placeholder="2.3912"
-                        className="input-sm"
-                      />
-                    </div>
+            return (
+                <div key={step.id} className="flex flex-col items-center relative z-10">
+                    <motion.div
+                        initial={false}
+                        animate={{
+                            backgroundColor: isActive || isCompleted ? '#3B82F6' : '#F3F4F6',
+                            color: isActive || isCompleted ? '#FFF' : '#9CA3AF',
+                            scale: isActive ? 1.1 : 1
+                        }}
+                        className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors duration-300 ${
+                            isActive ? 'ring-4 ring-blue-100' : ''
+                        }`}
+                    >
+                        {isCompleted ? <Check size={20} /> : step.icon}
+                    </motion.div>
+                    <span className={`mt-3 text-sm font-bold ${
+                        isActive ? 'text-blue-600' : isCompleted ? 'text-gray-800' : 'text-gray-400'
+                    }`}>
+                        {step.title}
+                    </span>
                     
-                    <div className="bg-base-100 rounded-lg h-32 flex items-center justify-center border border-dashed border-base-300 relative group cursor-pointer hover:bg-base-200 transition-colors">
-                      <div className="text-center">
-                        <MapPin size={24} className="mx-auto text-primary opacity-60 mb-1 group-hover:scale-110 transition-transform" />
-                        <span className="text-xs text-gray-500">Ouvrir la carte</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Onglet Médias */}
-        {activeTab === 'medias' && (
-          <div className="space-y-6">
-            {/* Photos */}
-            <div>
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Image size={18} />
-                Photos ({photoPreviews.length}/10)
-              </h3>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {photoPreviews.map((url, index) => {
-                  const isMain = url === formData.photo || (!formData.photo && index === 0);
-                  return (
-                    <div key={index} className={`relative group rounded-lg overflow-hidden border-2 ${isMain ? 'border-primary' : 'border-transparent'}`}>
-                      <img 
-                        src={url} 
-                        alt={`Photo ${index + 1}`} 
-                        className="w-full h-32 object-cover"
-                        onClick={() => handleSetMainPhoto(url)}
-                      />
-                      
-                      {/* Main Photo Indicator / Action */}
-                      <button
-                        className={`absolute top-2 left-2 btn btn-circle btn-xs ${isMain ? 'btn-primary' : 'btn-ghost bg-black/30 text-white hover:bg-primary hover:text-white'} transition-colors`}
-                        onClick={(e) => { e.stopPropagation(); handleSetMainPhoto(url); }}
-                        title={isMain ? "Photo principale" : "Définir comme principale"}
-                      >
-                        <Star size={12} fill={isMain ? "currentColor" : "none"} />
-                      </button>
-
-                      <button
-                        className="absolute top-2 right-2 btn btn-circle btn-xs btn-error opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => { e.stopPropagation(); handlePhotoRemove(index); }}
-                      >
-                        <X size={12} />
-                      </button>
-                      
-                      {isMain && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-primary/80 text-white text-[10px] uppercase font-bold text-center py-1">
-                          Principale
+                    {idx < STEPS.length - 1 && (
+                        <div className="absolute top-6 left-1/2 w-[calc(100%+4rem)] h-0.5 -z-10 bg-gray-200">
+                            <motion.div 
+                                className="h-full bg-blue-500 origin-left"
+                                initial={{ scaleX: 0 }}
+                                animate={{ scaleX: isCompleted ? 1 : 0 }}
+                                transition={{ duration: 0.4 }}
+                            />
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-                
-                {photoPreviews.length < 10 && (
-                  <ImageUpload 
-                    onChange={handlePhotoAdd} 
-                    folder="property"
-                    label=""
-                    className="h-32"
-                    clearOnSuccess={true}
-                  />
+                    )}
+                </div>
+            );
+        })}
+      </div>
+
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-8">
+        <div className="max-w-3xl mx-auto px-2 pb-12">
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={currentStep}
+                    initial={{ x: 20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: -20, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                >
+                    {/* STEP 1: IDENTITE */}
+                    {currentStep === 0 && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
+                                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                    <Building2 className="text-blue-500" /> Informations générales
+                                </h3>
+                                
+                                <Input
+                                    label="Nom de l'immeuble *"
+                                    value={formData.nom || ''}
+                                    onChange={(e) => handleChange('nom', e.target.value)}
+                                    placeholder="Ex: Résidence Les Palmiers"
+                                    required
+                                    className={`bg-gray-50 border-gray-200 focus:bg-white ${!formData.nom ? 'border-red-200 focus:border-red-500' : ''}`}
+                                />
+
+                                <div className="grid grid-cols-2 gap-6">
+                                    <Select
+                                        label="Type de bien *"
+                                        value={formData.type || 'Immeuble'}
+                                        onChange={(e) => handleChange('type', e.target.value)}
+                                        options={TYPES_IMMEUBLE}
+                                        className="bg-gray-50 border-gray-200 focus:bg-white"
+                                    />
+                                    <Input
+                                        label="Nbre d'étages"
+                                        type="number"
+                                        min={1}
+                                        value={formData.nombre_etages || 1}
+                                        onChange={(e) => handleChange('nombre_etages', parseInt(e.target.value))}
+                                        className="bg-gray-50 border-gray-200 focus:bg-white"
+                                    />
+                                </div>
+                                <div className="form-control">
+                                    <label className="label font-bold text-sm text-gray-700">Description</label>
+                                    <textarea
+                                        className="textarea textarea-bordered h-32 bg-gray-50 border-gray-200 focus:bg-white w-full rounded-xl p-4 text-sm"
+                                        value={formData.description || ''}
+                                        onChange={(e) => handleChange('description', e.target.value)}
+                                        placeholder="Description du bien, équipements, atouts..."
+                                    />
+                                </div>
+                             </div>
+                        </div>
+                    )}
+
+                    {/* STEP 2: LOCALISATION */}
+                    {currentStep === 1 && (
+                        <div className="space-y-6">
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
+                                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                    <MapPin className="text-blue-500" /> Adresse & Coordonnées
+                                </h3>
+                                
+                                <Input
+                                    label="Adresse complète"
+                                    value={formData.adresse || ''}
+                                    onChange={(e) => handleChange('adresse', e.target.value)}
+                                    placeholder="Ex: 123 Rue de la Paix"
+                                    className="bg-gray-50 border-gray-200 focus:bg-white"
+                                />
+
+                                <div className="grid grid-cols-2 gap-6">
+                                    <Input
+                                        label="Quartier"
+                                        value={formData.quartier || ''}
+                                        onChange={(e) => handleChange('quartier', e.target.value)}
+                                        placeholder="Ex: Akpakpa"
+                                        className="bg-gray-50 border-gray-200 focus:bg-white"
+                                    />
+                                    <Input
+                                        label="Ville *"
+                                        value={formData.ville || ''}
+                                        onChange={(e) => handleChange('ville', e.target.value)}
+                                        placeholder="Ex: Cotonou"
+                                        required
+                                        className={`bg-gray-50 border-gray-200 focus:bg-white ${!formData.ville ? 'border-red-200' : ''}`}
+                                    />
+                                </div>
+                                <Input
+                                    label="Pays"
+                                    value={formData.pays || 'Bénin'}
+                                    onChange={(e) => handleChange('pays', e.target.value)}
+                                    className="bg-gray-50 border-gray-200 focus:bg-white"
+                                />
+                                
+                                {/* GPS Section */}
+                                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                                    <div className="text-xs font-bold text-blue-800 uppercase mb-3">Coordonnées GPS (Optionnel)</div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <Input
+                                            label="Latitude"
+                                            type="number"
+                                            step="any"
+                                            value={formData.latitude || ''}
+                                            onChange={(e) => handleChange('latitude', parseFloat(e.target.value) || null)}
+                                            placeholder="6.3702"
+                                            className="bg-white border-blue-200"
+                                        />
+                                        <Input
+                                            label="Longitude"
+                                            type="number"
+                                            step="any"
+                                            value={formData.longitude || ''}
+                                            onChange={(e) => handleChange('longitude', parseFloat(e.target.value) || null)}
+                                            placeholder="2.3912"
+                                            className="bg-white border-blue-200"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* STEP 3: GESTION */}
+                    {currentStep === 2 && (
+                         <div className="space-y-6">
+                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
+                                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                    <Users className="text-blue-500" /> Propriétaire & Gestion
+                                </h3>
+
+                                <div className="space-y-4">
+                                     {proprietaires.length > 1 ? (
+                                        <div className="form-control w-full">
+                                            <label className="label font-bold text-sm text-gray-700">Propriétaire *</label>
+                                            <select
+                                                className={`select select-bordered w-full bg-gray-50 border-gray-200 focus:bg-white h-12 ${!formData.owner_id ? 'select-error' : ''}`}
+                                                value={formData.owner_id || ''}
+                                                onChange={(e) => handleChange('owner_id', e.target.value ? parseInt(e.target.value) : 0)}
+                                            >
+                                                <option value="">Sélectionner un propriétaire</option>
+                                                {proprietaires.map(p => (
+                                                    <option key={p.id} value={p.id}>
+                                                        {p.type === 'individual' ? `${p.nom} ${p.prenom || ''}` : p.nom}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                     ) : proprietaires.length === 1 ? (
+                                         <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between">
+                                            <div>
+                                                <span className="text-xs font-bold text-blue-500 uppercase">Propriétaire assigné</span>
+                                                <div className="font-bold text-blue-900 text-lg">
+                                                    {proprietaires[0].type === 'individual' 
+                                                        ? `${proprietaires[0].nom} ${proprietaires[0].prenom || ''}` 
+                                                        : proprietaires[0].nom}
+                                                </div>
+                                            </div>
+                                            <Check className="text-blue-500" />
+                                         </div>
+                                     ) : (
+                                         <div className="alert alert-error">
+                                             <div className="flex flex-col">
+                                                <span className="font-bold">Aucun propriétaire trouvé.</span>
+                                                <span className="text-xs">Vous devez d'abord créer un profil propriétaire.</span>
+                                             </div>
+                                         </div>
+                                     )}
+
+                                     {gestionnaires.length > 0 && (
+                                         <div className="form-control w-full mt-4">
+                                            <label className="label font-bold text-sm text-gray-700">Gestionnaire (Optionnel)</label>
+                                            <select
+                                                className="select select-bordered w-full bg-gray-50 border-gray-200 focus:bg-white h-12"
+                                                value={formData.gestionnaire_id || ''}
+                                                onChange={(e) => handleChange('gestionnaire_id', e.target.value ? parseInt(e.target.value) : null)}
+                                            >
+                                                <option value="">Géré par le propriétaire</option>
+                                                {gestionnaires.map(g => (
+                                                    <option key={g.id} value={g.id}>{g.nom}</option>
+                                                ))}
+                                            </select>
+                                         </div>
+                                     )}
+                                </div>
+                             </div>
+                         </div>
+                    )}
+
+                    {/* STEP 4: MEDIAS & PARAMETRES */}
+                    {currentStep === 3 && (
+                        <div className="space-y-6">
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
+                                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                    <Image className="text-blue-500" /> Photos & Vidéos
+                                </h3>
+
+                                {/* Photos Grid */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {photoPreviews.map((url, index) => {
+                                        const isMain = url === formData.photo || (!formData.photo && index === 0);
+                                        return (
+                                            <div key={index} className={`relative group rounded-xl overflow-hidden border-2 aspect-square ${isMain ? 'border-blue-500 shadow-md transform scale-[1.02]' : 'border-transparent'}`}>
+                                                <img src={url} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                    <button 
+                                                        onClick={() => handleSetMainPhoto(url)} 
+                                                        className="btn btn-circle btn-sm btn-primary text-white"
+                                                        title="Définir comme principale"
+                                                    >
+                                                        <Star size={14} fill="currentColor" />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handlePhotoRemove(index)} 
+                                                        className="btn btn-circle btn-sm btn-error text-white"
+                                                        title="Supprimer"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                                {isMain && (
+                                                    <div className="absolute bottom-0 w-full bg-blue-500 text-white text-[10px] font-bold text-center py-1 uppercase">
+                                                        Principale
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    {photoPreviews.length < 10 && (
+                                        <ImageUpload 
+                                            onChange={handlePhotoAdd} 
+                                            folder="property" 
+                                            label=""
+                                            className="aspect-square bg-gray-50 border-dashed border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors rounded-xl"
+                                        />
+                                    )}
+                                </div>
+
+                                <div className="divider">Compléments</div>
+
+                                <div className="space-y-4">
+                                    <Input
+                                        label="URL Vidéo (YouTube/Vimeo)"
+                                        value={formData.video_url || ''}
+                                        onChange={(e) => handleChange('video_url', e.target.value)}
+                                        placeholder="https://..."
+                                        className="bg-gray-50 border-gray-200 focus:bg-white"
+                                    />
+                                    <Input
+                                        label="URL Plan de masse"
+                                        value={formData.plan_masse_url || ''}
+                                        onChange={(e) => handleChange('plan_masse_url', e.target.value)}
+                                        placeholder="https://..."
+                                        className="bg-gray-50 border-gray-200 focus:bg-white"
+                                    />
+                                </div>
+                            </div>
+
+                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                    <Settings className="text-blue-500" /> Statut
+                                </h3>
+                                <Select
+                                    label="État du bien"
+                                    value={formData.statut || 'actif'}
+                                    onChange={(e) => handleChange('statut', e.target.value)}
+                                    options={STATUTS}
+                                    className="bg-gray-50 border-gray-200 focus:bg-white"
+                                />
+                             </div>
+                        </div>
+                    )}
+                </motion.div>
+            </AnimatePresence>
+        </div>
+      </div>
+
+       {/* Footer Buttons */}
+       <div className="p-6 bg-white border-t border-gray-200 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative z-20">
+            <button
+                onClick={currentStep === 0 ? onCancel : handleBack}
+                className="px-6 py-3 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition"
+            >
+                {currentStep === 0 ? 'Annuler' : 'Retour'}
+            </button>
+
+            <div className="flex items-center gap-3">
+                {currentStep < STEPS.length - 1 ? (
+                    <button
+                        onClick={handleNext}
+                        disabled={!isStepValid()}
+                        className="px-8 py-3 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 hover:scale-[1.02] transition disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
+                    >
+                        Suivant <ArrowRight size={18} />
+                    </button>
+                ) : (
+                    <>
+                        {!formData.id && onSaveAndAddLots && (
+                            <button
+                                onClick={() => handleSubmit(true)}
+                                disabled={loading}
+                                className="px-6 py-3 rounded-xl bg-blue-100 text-blue-700 text-sm font-bold hover:bg-blue-200 transition disabled:opacity-50 flex items-center gap-2"
+                            >
+                                <Plus size={16} /> Enregistrer & Ajouter Lots
+                            </button>
+                        )}
+                        <button
+                            onClick={() => handleSubmit(false)}
+                            disabled={loading}
+                            className="px-8 py-3 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 hover:shadow-lg hover:shadow-green-500/30 hover:scale-[1.02] transition disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
+                        >
+                            <Save size={18} /> {formData.id ? 'Modifier' : 'Terminer'}
+                        </button>
+                    </>
                 )}
-              </div>
             </div>
-
-            {/* Vidéo */}
-            <div>
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Video size={18} />
-                Vidéo (optionnel)
-              </h3>
-              <Input
-                label="URL de la vidéo"
-                value={formData.video_url || ''}
-                onChange={(e) => handleChange('video_url', e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-              />
-            </div>
-
-            {/* Plan de masse */}
-            <div>
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <FileImage size={18} />
-                Plan de masse (optionnel)
-              </h3>
-              <Input
-                label="URL du plan"
-                value={formData.plan_masse_url || ''}
-                onChange={(e) => handleChange('plan_masse_url', e.target.value)}
-                placeholder="https://..."
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Onglet Paramètres */}
-        {activeTab === 'parametres' && (
-          <div className="space-y-4 max-w-md">
-            <Select
-              label="Statut"
-              value={formData.statut || 'actif'}
-              onChange={(e) => handleChange('statut', e.target.value)}
-              options={STATUTS}
-            />
-            
-            <div className="alert alert-info">
-              <span>
-                Un immeuble inactif ne sera pas affiché dans les listes publiques.
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Footer with buttons */}
-      <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-base-300">
-        <Button variant="ghost" onClick={onCancel} disabled={loading}>
-          Annuler
-        </Button>
-        
-        {!formData.id && onSaveAndAddLots && (
-          <Button 
-            variant="secondary" 
-            onClick={() => handleSubmit(true)}
-            disabled={loading || !formData.nom || !formData.owner_id}
-          >
-            <Plus size={16} className="mr-2" />
-            Enregistrer & Ajouter lots
-          </Button>
-        )}
-        
-        <Button 
-          variant="primary" 
-          onClick={() => handleSubmit(false)}
-          disabled={loading || !formData.nom || !formData.owner_id || !formData.ville}
-          title={!formData.nom || !formData.owner_id ? "Veuillez remplir le nom et sélectionner un propriétaire" : !formData.ville ? "Veuillez renseigner la ville" : ""}
-        >
-          <Save size={16} className="mr-2" />
-          {loading ? 'Enregistrement...' : formData.id ? 'Modifier' : 'Enregistrer'}
-        </Button>
-      </div>
+        </div>
     </div>
   );
 };
