@@ -20,8 +20,8 @@ import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
-import { getImmeubles, getLots, saveLot, deleteLot } from '../api/propertyApi';
-import type { Immeuble, Lot } from '../api/propertyApi';
+import { getImmeubles, getLots, saveLot, deleteLot } from '../api/bienApi';
+import type { Immeuble, Lot } from '../api/bienApi';
 
 const LotsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);

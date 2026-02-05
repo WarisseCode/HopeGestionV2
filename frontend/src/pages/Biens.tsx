@@ -6,10 +6,8 @@ import {
   Home, 
   Plus, 
   Edit3, 
-  Eye, 
   Trash2, 
   MapPin,
-  Image,
   ArrowRight,
   LayoutGrid,
   List,
@@ -20,10 +18,8 @@ import {
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
-import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
 import Modal from '../components/ui/Modal';
-import Select from '../components/ui/Select';
 import SearchInput from '../components/ui/SearchInput';
 import FilterPanel from '../components/ui/FilterPanel';
 import type { FilterConfig, FilterValues } from '../components/ui/FilterPanel';
@@ -53,7 +49,7 @@ const PLACEHOLDER_IMAGES = [
   'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=400&q=80', // Facade
 ];
 
-const getPlaceholderImage = (id: number, type?: string): string => {
+const getPlaceholderImage = (id: number): string => {
   // Use building ID to get consistent image per building
   const index = id % PLACEHOLDER_IMAGES.length;
   return PLACEHOLDER_IMAGES[index];
@@ -256,32 +252,20 @@ const Biens: React.FC = () => {
         nombre_etages: Number(dataToSave.nombre_etages || 1)
       };
 
-      await saveImmeuble(finalData);
+      const savedImmeuble = await saveImmeuble(finalData);
       setSuccess('Immeuble enregistré avec succès');
       setShowImmeubleModal(false);
       setEditingImmeuble({ nom: '', type: 'Immeuble', adresse: '', ville: '', pays: 'Bénin', description: '', owner_id: 0, photo: '' });
       fetchData();
+      return savedImmeuble;
     } catch (err: any) {
       console.error(err);
       setError(err.message);
+      return undefined;
     }
   };
 
-  const handleSaveLot = async () => {
-    try {
-      setError(null);
-      if (!editingLot.building_id) {
-        throw new Error('Veuillez sélectionner un immeuble');
-      }
-      await saveLot(editingLot);
-      setSuccess('Lot enregistré avec succès');
-      setShowLotModal(false);
-      setEditingLot({ reference: '', type: 'Appartement', building_id: 0, etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: '' });
-      fetchData();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
+
 
   const handleDeleteImmeuble = async (id: number) => {
     if (!window.confirm('Voulez-vous vraiment supprimer cet immeuble ?')) return;
@@ -371,7 +355,7 @@ const Biens: React.FC = () => {
         ? { ...f, options: cities.map(c => ({ value: c, label: c })) }
         : f
     );
-  }, [immeubles]);
+  }, [immeubles, immeubleFilters]);
 
   return (
     <motion.div 
@@ -551,7 +535,7 @@ const Biens: React.FC = () => {
                           {immeuble.photo ? (
                             <img src={immeuble.photo} alt={immeuble.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                           ) : (
-                            <img src={getPlaceholderImage(immeuble.id, immeuble.type)} alt={immeuble.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <img src={getPlaceholderImage(immeuble.id)} alt={immeuble.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                           )}
                           <div className="absolute bottom-4 left-4 z-20 text-white">
                             <h3 className="text-xl font-bold">{immeuble.nom}</h3>
@@ -618,7 +602,7 @@ const Biens: React.FC = () => {
                             <td className="pl-6">
                                 <div className="avatar h-12 w-16 rounded cursor-pointer overflow-hidden relative shadow-sm" onClick={() => { setEditingImmeuble(immeuble); setShowImmeubleModal(true); }}>
                                     <img 
-                                        src={immeuble.photo || (immeuble.photos && immeuble.photos.length > 0 ? immeuble.photos[0] : getPlaceholderImage(immeuble.id, immeuble.type))} 
+                                        src={immeuble.photo || (immeuble.photos && immeuble.photos.length > 0 ? immeuble.photos[0] : getPlaceholderImage(immeuble.id))} 
                                         alt={immeuble.nom}
                                         className="h-full w-full object-cover transition-transform hover:scale-110"
                                     />
@@ -674,7 +658,7 @@ const Biens: React.FC = () => {
                             <td className="pl-6">
                                 <div className="avatar h-10 w-16 rounded cursor-pointer overflow-hidden relative shadow-sm">
                                     <img 
-                                        src={lot.photos && lot.photos.length > 0 ? lot.photos[0] : getPlaceholderImage(lot.id, 'Lot')} 
+                                        src={lot.photos && lot.photos.length > 0 ? lot.photos[0] : getPlaceholderImage(lot.id)} 
                                         alt={lot.reference}
                                         className="h-full w-full object-cover transition-transform hover:scale-110"
                                     />
@@ -787,22 +771,18 @@ const Biens: React.FC = () => {
               await handleSaveImmeuble(data);
             }}
             onSaveAndAddLots={async (data) => {
-              await handleSaveImmeuble(data);
+              const savedImmeuble = await handleSaveImmeuble(data);
               
-              setTimeout(async () => {
-                  const newBuildings = await getImmeubles();
-                  const newBuilding = newBuildings.find(b => b.nom === data.nom);
-                  
-                  if (newBuilding) {
-                    setActiveTab('lots');
-                    setEditingLot({ 
-                      reference: '', type: 'Appartement', 
-                      building_id: newBuilding.id, 
-                      etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: '' 
-                    });
-                    setTimeout(() => setShowLotModal(true), 100);
-                  }
-              }, 500);
+              if (savedImmeuble && savedImmeuble.id) {
+                setActiveTab('lots');
+                setEditingLot({ 
+                  reference: '', type: 'Appartement', 
+                  building_id: savedImmeuble.id, 
+                  etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: '' 
+                });
+                // Short timeout just to allow modal transition
+                setTimeout(() => setShowLotModal(true), 100);
+              }
             }}
             onCancel={() => setShowImmeubleModal(false)}
           />

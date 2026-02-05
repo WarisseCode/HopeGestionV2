@@ -76,7 +76,8 @@ export async function getImmeubles(): Promise<Immeuble[]> {
   });
 
   if (!response.ok) {
-    throw new Error(`Erreur: ${response.status}`);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Erreur: ${response.status}`);
   }
 
   const data = await response.json();
@@ -98,7 +99,8 @@ export async function getLots(): Promise<Lot[]> {
   });
 
   if (!response.ok) {
-    throw new Error(`Erreur: ${response.status}`);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Erreur: ${response.status}`);
   }
 
   const data = await response.json();
@@ -122,7 +124,8 @@ export async function saveImmeuble(immeuble: Partial<Immeuble>): Promise<Immeubl
   });
 
   if (!response.ok) {
-    throw new Error(`Erreur: ${response.status}`);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Erreur: ${response.status}`);
   }
 
   return await response.json();
@@ -145,7 +148,8 @@ export async function saveLot(lot: Partial<Lot>): Promise<Lot> {
   });
 
   if (!response.ok) {
-    throw new Error(`Erreur: ${response.status}`);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Erreur: ${response.status}`);
   }
 
   return await response.json();
@@ -167,7 +171,8 @@ export async function deleteImmeuble(id: number): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error(`Erreur: ${response.status}`);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Erreur: ${response.status}`);
   }
 }
 
@@ -187,6 +192,7 @@ export async function deleteLot(id: number): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error(`Erreur: ${response.status}`);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Erreur: ${response.status}`);
   }
 }

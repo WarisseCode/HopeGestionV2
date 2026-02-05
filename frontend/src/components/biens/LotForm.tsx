@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Home, DollarSign, Image, Settings, Save, 
-  Upload, X, Building2, Tag
+  Upload, X, Building2, Tag, Plus
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';

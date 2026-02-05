@@ -148,8 +148,10 @@ router.post('/immeubles', permissions.canWrite('biens'), async (req: Authenticat
     const { 
         id, nom, type, adresse, ville, pays, description, owner_id,
         // Nouveaux champs
+        // Nouveaux champs
         latitude, longitude, quartier, gestionnaire_id, statut,
-        photos, video_url, plan_masse_url, nombre_etages
+        photos, video_url, plan_masse_url, nombre_etages,
+        photo // Main photo
     } = req.body;
 
     if (!owner_id) {
@@ -176,12 +178,14 @@ router.post('/immeubles', permissions.canWrite('biens'), async (req: Authenticat
                  SET nom = $1, type = $2, adresse = $3, ville = $4, pays = $5, description = $6, owner_id = $7,
                      latitude = $8, longitude = $9, quartier = $10, gestionnaire_id = $11, statut = $12,
                      photos = $13, video_url = $14, plan_masse_url = $15, nombre_etages = $16,
+                     photo_url = $17,
                      updated_at = CURRENT_TIMESTAMP
-                 WHERE id = $17
+                 WHERE id = $18
                  RETURNING *`,
                 [nom, type, adresse, ville, pays, description, owner_id,
                  latitude || null, longitude || null, quartier || null, gestionnaire_id || null, statut || 'actif',
                  photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, nombre_etages || 1,
+                 photo || null,
                  id]
             );
 
@@ -194,12 +198,13 @@ router.post('/immeubles', permissions.canWrite('biens'), async (req: Authenticat
             const result = await pool.query(
                 `INSERT INTO buildings (owner_id, nom, type, adresse, ville, pays, description,
                                         latitude, longitude, quartier, gestionnaire_id, statut,
-                                        photos, video_url, plan_masse_url, nombre_etages) 
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) 
+                                        photos, video_url, plan_masse_url, nombre_etages, photo_url) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) 
                  RETURNING *`,
                 [owner_id, nom, type, adresse, ville, pays, description,
                  latitude || null, longitude || null, quartier || null, gestionnaire_id || null, statut || 'actif',
-                 photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, nombre_etages || 1]
+                 photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, nombre_etages || 1,
+                 photo || null]
             );
             res.status(200).json(result.rows[0]);
         }
@@ -295,7 +300,8 @@ router.post('/lots', permissions.canWrite('biens'), async (req: AuthenticatedReq
                  loyer, charges, 
                  periodicite || 'mensuel', caution || 0, avance || 1,
                  prix_vente || null, modalite_vente || null, duree_echelonnement || null,
-                 photos ? JSON.stringify(photos) : '[]', statut || 'libre', date_disponibilite || null,
+
+                 photos || [], statut || 'libre', date_disponibilite || null,
                  description, targetBuildingId, id]
             );
 
@@ -317,7 +323,7 @@ router.post('/lots', permissions.canWrite('biens'), async (req: AuthenticatedReq
                  loyer, charges, 
                  periodicite || 'mensuel', caution || 0, avance || 1,
                  prix_vente || null, modalite_vente || null, duree_echelonnement || null,
-                 photos ? JSON.stringify(photos) : '[]', statut || 'libre', date_disponibilite || null, description]
+                 photos || [], statut || 'libre', date_disponibilite || null, description]
             );
             res.status(200).json(result.rows[0]);
         }
@@ -330,7 +336,7 @@ router.post('/lots', permissions.canWrite('biens'), async (req: AuthenticatedReq
 
 // DELETE /api/biens/immeubles/:id
 router.delete('/immeubles/:id', async (req: AuthenticatedRequest, res: Response) => {
-    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
+    if (!['admin', 'gestionnaire', 'manager', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
@@ -363,7 +369,7 @@ router.delete('/immeubles/:id', async (req: AuthenticatedRequest, res: Response)
 
 // DELETE /api/biens/lots/:id
 router.delete('/lots/:id', async (req: AuthenticatedRequest, res: Response) => {
-     if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
+     if (!['admin', 'gestionnaire', 'manager', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     const lotId = parseInt(req.params.id || '0', 10);

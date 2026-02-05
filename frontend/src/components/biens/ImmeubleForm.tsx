@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, MapPin, Image, Settings, Save, Plus, 
-  Upload, X, Video, FileImage, Trash2 
+  Upload, X, Video, FileImage, Trash2, Star
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -74,6 +74,11 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
       updatedData.owner_id = proprietaires[0].id;
     }
 
+    // Auto-select first photo as main if none selected
+    if (!updatedData.photo && immeuble.photos && immeuble.photos.length > 0) {
+      updatedData.photo = immeuble.photos[0];
+    }
+
     setFormData(updatedData);
     setPhotoPreviews(immeuble.photos || []);
   }, [immeuble, proprietaires]);
@@ -92,11 +97,36 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
       const newPhotos = [...photoPreviews, url];
       setPhotoPreviews(newPhotos);
       handleChange('photos', newPhotos);
+      
+      // If this is the first photo, make it main
+      if (newPhotos.length === 1 || !formData.photo) {
+        handleChange('photo', url);
+      }
     }
   };
 
   const handlePhotoRemove = (index: number) => {
+    const photoToRemove = photoPreviews[index];
     const newPhotos = photoPreviews.filter((_, i) => i !== index);
+    setPhotoPreviews(newPhotos);
+    handleChange('photos', newPhotos);
+    
+    // If removed photo was main photo, set the first available as main
+    if (formData.photo === photoToRemove && newPhotos.length > 0) {
+      handleChange('photo', newPhotos[0]);
+    } else if (newPhotos.length === 0) {
+      handleChange('photo', '');
+    }
+  };
+
+  const handleSetMainPhoto = (url: string) => {
+    // Update main photo string
+    handleChange('photo', url);
+    
+    // Reorder array: move Main to front
+    const otherPhotos = photoPreviews.filter(p => p !== url);
+    const newPhotos = [url, ...otherPhotos];
+    
     setPhotoPreviews(newPhotos);
     handleChange('photos', newPhotos);
   };
@@ -157,7 +187,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                     onChange={(e) => handleChange('nom', e.target.value)}
                     placeholder="Ex: Résidence Les Palmiers"
                     required
-                    className="bg-white"
+                    className={`bg-white ${!formData.nom ? 'border-error' : ''}`}
                   />
 
                   <div className="grid grid-cols-2 gap-4">
@@ -187,7 +217,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                     <Select
                       label="Propriétaire *"
                       value={formData.owner_id?.toString() || ''}
-                      onChange={(e) => handleChange('owner_id', parseInt(e.target.value))}
+                      onChange={(e) => handleChange('owner_id', e.target.value ? parseInt(e.target.value) : 0)}
                       options={[
                         { value: '', label: 'Sélectionner un propriétaire' },
                         ...proprietaires.map(p => ({ 
@@ -195,7 +225,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                           label: p.type === 'individual' ? `${p.nom} ${p.prenom || ''}` : p.nom 
                         }))
                       ]}
-                      className="bg-white"
+                      className={`bg-white ${!formData.owner_id ? 'border-error' : ''}`}
                     />
                   ) : proprietaires.length === 1 ? (
                     <div className="p-3 bg-white border border-base-200 rounded-lg flex items-center justify-between">
@@ -264,7 +294,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                       value={formData.ville || ''}
                       onChange={(e) => handleChange('ville', e.target.value)}
                       placeholder="Ex: Cotonou"
-                      className="bg-white"
+                      className={`bg-white ${!formData.ville ? 'border-error' : ''}`}
                     />
                   </div>
 
@@ -323,21 +353,41 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
               </h3>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {photoPreviews.map((url, index) => (
-                  <div key={index} className="relative group">
-                    <img 
-                      src={url} 
-                      alt={`Photo ${index + 1}`} 
-                      className="w-full h-32 object-cover rounded-lg"
-                    />
-                    <button
-                      className="absolute top-2 right-2 btn btn-circle btn-xs btn-error opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handlePhotoRemove(index)}
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
+                {photoPreviews.map((url, index) => {
+                  const isMain = url === formData.photo || (!formData.photo && index === 0);
+                  return (
+                    <div key={index} className={`relative group rounded-lg overflow-hidden border-2 ${isMain ? 'border-primary' : 'border-transparent'}`}>
+                      <img 
+                        src={url} 
+                        alt={`Photo ${index + 1}`} 
+                        className="w-full h-32 object-cover"
+                        onClick={() => handleSetMainPhoto(url)}
+                      />
+                      
+                      {/* Main Photo Indicator / Action */}
+                      <button
+                        className={`absolute top-2 left-2 btn btn-circle btn-xs ${isMain ? 'btn-primary' : 'btn-ghost bg-black/30 text-white hover:bg-primary hover:text-white'} transition-colors`}
+                        onClick={(e) => { e.stopPropagation(); handleSetMainPhoto(url); }}
+                        title={isMain ? "Photo principale" : "Définir comme principale"}
+                      >
+                        <Star size={12} fill={isMain ? "currentColor" : "none"} />
+                      </button>
+
+                      <button
+                        className="absolute top-2 right-2 btn btn-circle btn-xs btn-error opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => { e.stopPropagation(); handlePhotoRemove(index); }}
+                      >
+                        <X size={12} />
+                      </button>
+                      
+                      {isMain && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-primary/80 text-white text-[10px] uppercase font-bold text-center py-1">
+                          Principale
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 
                 {photoPreviews.length < 10 && (
                   <ImageUpload 
@@ -420,8 +470,8 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
         <Button 
           variant="primary" 
           onClick={() => handleSubmit(false)}
-          disabled={loading || !formData.nom || !formData.owner_id}
-          title={!formData.nom || !formData.owner_id ? "Veuillez remplir le nom et sélectionner un propriétaire (onglet Général)" : ""}
+          disabled={loading || !formData.nom || !formData.owner_id || !formData.ville}
+          title={!formData.nom || !formData.owner_id ? "Veuillez remplir le nom et sélectionner un propriétaire" : !formData.ville ? "Veuillez renseigner la ville" : ""}
         >
           <Save size={16} className="mr-2" />
           {loading ? 'Enregistrement...' : formData.id ? 'Modifier' : 'Enregistrer'}
