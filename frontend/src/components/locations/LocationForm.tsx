@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Users, Home, Calendar, DollarSign, CreditCard, 
-    Check, ArrowRight, ArrowLeft, AlertCircle, Info 
+    Check, ArrowRight, ArrowLeft, AlertCircle, Info, Plus 
 } from 'lucide-react';
 import type { CreateLocationData } from '../../api/locationApi';
 import Alert from '../ui/Alert';
