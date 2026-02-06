@@ -196,7 +196,7 @@ router.post('/', permissions.canWrite('locataires'), async (req: AuthenticatedRe
                 type_paiement, frequence_paiement, jour_echeance, penalite_retard, tolerance_jours,
                 prix_vente, apport_initial, modalite_paiement, date_expiration, conditions_particulieres,
                 statut, gestionnaire_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, 'actif', $24)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, 'actif', $25)
             RETURNING *
         `, [
             tenant_id, lot_id, owner_id, reference_bail, type_contrat,
@@ -387,13 +387,23 @@ router.post('/:id/sign', permissions.canWrite('locataires'), async (req: Authent
         // Notify owner
         if (dbResult.rows.length > 0) {
             const lease = dbResult.rows[0];
-            await NotificationService.send(
-                lease.owner_id, 
-                '✍️ Contrat Signé', 
-                `Le bail ${lease.reference_bail} a été signé électroniquement.`,
-                'success',
-                'DOCUMENT_SIGNED'
+            
+            // Resolve user_id associated with this owner
+            const ownerUserRes = await pool.query(
+                "SELECT user_id FROM owner_user WHERE owner_id = $1 AND is_active = TRUE ORDER BY role = 'owner' DESC LIMIT 1",
+                [lease.owner_id]
             );
+
+            if (ownerUserRes.rows.length > 0) {
+                const userId = ownerUserRes.rows[0].user_id;
+                await NotificationService.send(
+                    userId, 
+                    '✍️ Contrat Signé', 
+                    `Le bail ${lease.reference_bail} a été signé électroniquement.`,
+                    'success',
+                    'DOCUMENT_SIGNED'
+                );
+            }
         }
 
         res.json({ 

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, Plus, Search, Filter, AlertTriangle, FileText, Check, XCircle, Pen, DollarSign, X, RefreshCw } from 'lucide-react';
 import LocationForm from '../components/locations/LocationForm';
 import locationApi from '../api/locationApi';
+import { getLocataires } from '../api/locataireApi';
 import type { Location, CreateLocationData } from '../api/locationApi';
 import { accountApi } from '../api/accountApi';
 import { getLots } from '../api/bienApi';
@@ -56,16 +57,14 @@ const Locations: React.FC = () => {
             setLoading(true);
             const [locationsData, locatairesData, lotsData, ownersData] = await Promise.all([
                 locationApi.getLocations(),
-                fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/locataires`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('userToken')}` }
-                }).then(r => r.json()),
+                getLocataires(),
                 getLots(),
                 accountApi.getProprietaires()
             ]);
             setLocations(locationsData);
-            setLocataires(locatairesData.locataires || locatairesData || []);
-            setLots(lotsData || []);
-            setOwners(ownersData || []);
+            setLocataires(Array.isArray(locatairesData) ? locatairesData : []);
+            setLots(Array.isArray(lotsData) ? lotsData : []);
+            setOwners(Array.isArray(ownersData) ? ownersData : []);
         } catch (err) {
             console.error(err);
             setError("Erreur lors du chargement des données");
@@ -297,7 +296,7 @@ const Locations: React.FC = () => {
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-gray-800">
-                                {formatCurrency(locations.filter(l => l.statut === 'actif').reduce((sum, l) => sum + (l.loyer_mensuel || 0), 0))}
+                                {formatCurrency(locations.filter(l => l.statut === 'actif').reduce((sum, l) => sum + (Number(l.loyer_mensuel) || 0), 0))}
                             </p>
                             <p className="text-xs text-gray-500">Loyers mensuels</p>
                         </div>
