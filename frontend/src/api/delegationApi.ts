@@ -43,7 +43,7 @@ export async function getTeam(): Promise<TeamMember[]> {
 }
 
 // Ajouter un membre
-export async function addTeamMember(email: string, role: string, permissions: Permissions): Promise<void> {
+export async function addTeamMember(email: string, role: string, permissions: Permissions): Promise<any> {
   const token = getToken();
   if (!token) throw new Error('Non authentifié');
 
@@ -60,7 +60,10 @@ export async function addTeamMember(email: string, role: string, permissions: Pe
     const error = await response.json().catch(() => ({}));
     throw new Error(error.message || `Erreur: ${response.status}`);
   }
+  
+  return response.json();
 }
+
 
 // Retirer un membre
 export async function removeTeamMember(targetId: number): Promise<void> {

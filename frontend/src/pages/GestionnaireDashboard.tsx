@@ -202,59 +202,87 @@ const GestionnaireDashboard: React.FC = () => {
   }, [stats, period, mockKpis]);
 
 
-  // Fetch chart data from API
+  // Fetch chart data and other dashboard widgets
   const [chartData, setChartData] = useState<{ name: string; revenus: number; depenses: number }[]>([]);
-  
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [featuredProperties, setFeaturedProperties] = useState<any[]>([]);
+  const [loadingWidgets, setLoadingWidgets] = useState(true);
+
   useEffect(() => {
-    const fetchChartData = async () => {
+    const fetchDashboardData = async () => {
       setIsLoadingChart(true);
+      setLoadingWidgets(true);
       const token = getToken();
       
       if (!token) {
         setChartData([{ name: 'N/A', revenus: 0, depenses: 0 }]);
         setIsLoadingChart(false);
+        setLoadingWidgets(false);
         return;
       }
 
       try {
-        const response = await fetch(`${API_URL}/dashboard/chart-data?period=${period}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setChartData(data.chartData);
+        // 1. Chart Data
+        const chartPromise = fetch(`${API_URL}/dashboard/chart-data?period=${period}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }).then(r => r.json());
+
+        // 2. Activity Feed
+        const activityPromise = fetch(`${API_URL}/dashboard/activity`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        }).then(r => r.json());
+
+        // 3. Featured Properties
+        const propertiesPromise = fetch(`${API_URL}/dashboard/featured-properties`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        }).then(r => r.json());
+
+        const [chartRes, activityRes, propertiesRes] = await Promise.all([
+            chartPromise, 
+            activityPromise, 
+            propertiesPromise
+        ]);
+
+        if (chartRes.chartData) setChartData(chartRes.chartData);
+        if (activityRes.activities) {
+             // Map backend activity to frontend format
+             const mappedActivities = activityRes.activities.map((a: any) => ({
+                 id: a.id,
+                 type: a.type,
+                 title: a.title,
+                 description: a.description,
+                 time: new Date(a.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+             }));
+             setActivities(mappedActivities);
         }
+        if (propertiesRes.properties) setFeaturedProperties(propertiesRes.properties);
+
       } catch (error) {
-        console.error('Error fetching chart data:', error);
+        console.error('Error fetching dashboard widgets:', error);
       } finally {
         setIsLoadingChart(false);
+        setLoadingWidgets(false);
       }
     };
     
-    fetchChartData();
+    fetchDashboardData();
   }, [period]);
 
   // Alias for chart
   const revenusData = chartData;
 
   const occupationData = [
-    { name: 'Occupé', value: stats?.tauxOccupation || 85, color: '#6366f1' },
-    { name: 'Vacant', value: 100 - (stats?.tauxOccupation || 85), color: '#e2e8f0' },
+    { name: 'Occupé', value: stats?.tauxOccupation || 0, color: '#6366f1' },
+    { name: 'Vacant', value: 100 - (stats?.tauxOccupation || 0), color: '#e2e8f0' },
   ];
 
-  const activities: Activity[] = [
-    { id: 1, type: 'payment', title: 'Paiement reçu', description: 'Loyer décembre - Apt A01', time: 'Il y a 2h' },
-    { id: 2, type: 'reminder', title: 'Rappel envoyé', description: 'M. Touré (Retard 5 jours)', time: 'Il y a 5h' },
-    { id: 3, type: 'intervention', title: 'Plomberie', description: 'Réparation fuite Apt B02', time: 'Hier' },
-    { id: 4, type: 'contract', title: 'Nouveau bail', description: 'Résidence La Paix, Apt C04', time: '28 Déc' },
-  ];
-
-  const allKpis = kpis.length > 0 ? kpis : mockKpis;
+  const allKpis = kpis.length > 0 ? kpis : []; // Don't show mock KPIs if empty
   const visibleKpis = showAllKpis ? allKpis : allKpis.slice(0, 4);
+
+  // Financial Banner Values
+  const totalRevenus = kpis.find(k => k.id === 'loyers_encaisses')?.value as number || 0;
+  const totalImpayes = kpis.find(k => k.id === 'loyers_impayes')?.value as number || 0;
+  const revenuNet = Math.max(0, totalRevenus - 0); // Expenses not yet in KPI, assuming 0 for now or fetch separate
 
   // Show full skeleton while user context loads
   if (userLoading) {
@@ -310,22 +338,22 @@ const GestionnaireDashboard: React.FC = () => {
           
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <p className="text-white/80 text-sm font-medium">Performance globale</p>
-              <p className="text-3xl font-bold">{new Intl.NumberFormat('fr-FR').format(4500000 - 150000)} FCFA</p>
-              <p className="text-white/60 text-xs mt-1">Revenu net du mois</p>
+              <p className="text-white/80 text-sm font-medium">Performance globale (Mois)</p>
+              <p className="text-3xl font-bold">{new Intl.NumberFormat('fr-FR').format(revenuNet)} FCFA</p>
+              <p className="text-white/60 text-xs mt-1">Revenu net estimé</p>
             </div>
             <div className="flex gap-4 flex-wrap">
               <div className="text-center bg-white/10 rounded-xl px-4 py-2 backdrop-blur-sm">
                 <p className="text-white/80 text-xs font-medium">Encaissements</p>
-                <p className="text-lg font-bold text-green-300">+{new Intl.NumberFormat('fr-FR').format(4500000)}</p>
+                <p className="text-lg font-bold text-green-300">+{new Intl.NumberFormat('fr-FR').format(totalRevenus)}</p>
               </div>
               <div className="text-center bg-white/10 rounded-xl px-4 py-2 backdrop-blur-sm">
                 <p className="text-white/80 text-xs font-medium">Impayés</p>
-                <p className="text-lg font-bold text-orange-300">{new Intl.NumberFormat('fr-FR').format(150000)}</p>
+                <p className="text-lg font-bold text-orange-300">{new Intl.NumberFormat('fr-FR').format(totalImpayes)}</p>
               </div>
               <div className="text-center bg-white/10 rounded-xl px-4 py-2 backdrop-blur-sm">
                 <p className="text-white/80 text-xs font-medium">Taux occupation</p>
-                <p className="text-lg font-bold">{stats?.tauxOccupation || 85}%</p>
+                <p className="text-lg font-bold">{stats?.tauxOccupation || 0}%</p>
               </div>
             </div>
           </div>
@@ -338,7 +366,7 @@ const GestionnaireDashboard: React.FC = () => {
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold text-gray-800 dark:text-base-content">Indicateurs Stratégiques</span>
                 <span className="px-2 py-0.5 rounded-full bg-gray-100 text-xs font-medium text-gray-500">
-                    {showAllKpis ? '10 metrics' : '4 metrics'}
+                    {showAllKpis ? `${allKpis.length} metrics` : `${Math.min(4, allKpis.length)} metrics`}
                 </span>
               </div>
               
@@ -469,39 +497,42 @@ const GestionnaireDashboard: React.FC = () => {
                     </Button>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Property Card 1 */}
-                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex gap-4 hover:shadow-xl transition-all cursor-pointer group">
-                        <div className="w-24 h-24 rounded-xl bg-gray-200 overflow-hidden relative shrink-0">
-                            <img src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&q=80" alt="Bien" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
-                             <div className="absolute top-1 right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-                        </div>
-                        <div className="flex-1 min-w-0 py-1">
-                            <h4 className="font-bold text-gray-900 truncate">Résidence Les Palmiers</h4>
-                            <p className="text-sm text-gray-500 mb-2">Haie Vive, Cotonou</p>
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-medium bg-blue-50 text-blue-600 px-2 py-1 rounded-lg">8 Appts</span>
-                                <span className="text-sm font-bold text-gray-900">95% Occ.</span>
-                            </div>
-                        </div>
+                {loadingWidgets ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {[1, 2].map(i => (
+                             <div key={i} className="bg-gray-100 rounded-2xl h-32 animate-pulse"></div>
+                        ))}
                     </div>
-
-                    {/* Property Card 2 */}
-                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex gap-4 hover:shadow-xl transition-all cursor-pointer group">
-                        <div className="w-24 h-24 rounded-xl bg-gray-200 overflow-hidden relative shrink-0">
-                            <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&q=80" alt="Bien" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
-                             <div className="absolute top-1 right-1 w-3 h-3 bg-orange-500 border-2 border-white rounded-full"></div>
-                        </div>
-                        <div className="flex-1 min-w-0 py-1">
-                            <h4 className="font-bold text-gray-900 truncate">Villa Saint-Michel</h4>
-                            <p className="text-sm text-gray-500 mb-2">Fidjrossè, Cotonou</p>
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-medium bg-purple-50 text-purple-600 px-2 py-1 rounded-lg">Villa</span>
-                                <span className="text-sm font-bold text-gray-900">En travaux</span>
+                ) : featuredProperties.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {featuredProperties.map(property => (
+                            <div key={property.id} className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex gap-4 hover:shadow-xl transition-all cursor-pointer group" onClick={() => navigate(`/dashboard/biens?id=${property.id}`)}>
+                                <div className="w-24 h-24 rounded-xl bg-gray-200 overflow-hidden relative shrink-0">
+                                    {property.image ? (
+                                        <img src={property.image} alt={property.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                                            <Building2 size={32} />
+                                        </div>
+                                    )}
+                                     <div className={`absolute top-1 right-1 w-3 h-3 border-2 border-white rounded-full ${property.occupancy >= 80 ? 'bg-green-500' : property.occupancy >= 50 ? 'bg-orange-500' : 'bg-red-500'}`}></div>
+                                </div>
+                                <div className="flex-1 min-w-0 py-1">
+                                    <h4 className="font-bold text-gray-900 truncate">{property.name}</h4>
+                                    <p className="text-sm text-gray-500 mb-2 truncate">{property.location}</p>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-medium bg-blue-50 text-blue-600 px-2 py-1 rounded-lg">{property.units} Lots</span>
+                                        <span className="text-sm font-bold text-gray-900">{property.occupancy}% Occ.</span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        ))}
                     </div>
-                </div>
+                ) : (
+                    <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-xl">
+                        Aucun bien en vedette pour le moment
+                    </div>
+                )}
             </motion.div>
         </div>
 
@@ -539,7 +570,7 @@ const GestionnaireDashboard: React.FC = () => {
                         </ResponsiveContainer>
                         {/* Center Text */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <span className="text-3xl font-extrabold text-gray-800">{stats?.tauxOccupation || 85}%</span>
+                            <span className="text-3xl font-extrabold text-gray-800">{stats?.tauxOccupation || 0}%</span>
                             <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Occupé</span>
                         </div>
                     </div>
@@ -555,7 +586,15 @@ const GestionnaireDashboard: React.FC = () => {
                             <MoreVertical size={16} />
                         </Button>
                     </div>
-                    <ActivityFeed activities={activities} />
+                    {loadingWidgets ? (
+                         <div className="space-y-4">
+                             {[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse"></div>)}
+                         </div>
+                    ) : activities.length > 0 ? (
+                        <ActivityFeed activities={activities} />
+                    ) : (
+                        <p className="text-center text-gray-500 py-4">Aucune activité récente</p>
+                    )}
                 </div>
             </motion.div>
             

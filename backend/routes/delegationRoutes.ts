@@ -45,6 +45,7 @@ router.get('/', protect, async (req: any, res) => {
   }
 });
 
+
 // POST /api/delegations - Ajouter un membre par email
 router.post('/', protect, async (req: any, res) => {
   try {
@@ -55,19 +56,39 @@ router.post('/', protect, async (req: any, res) => {
     const ownerId = await getManagedOwnerId(userId);
     if (!ownerId) return res.status(403).json({ message: "Action non autorisée." });
 
-    // 2. Trouver l'utilisateur cible
+    // 2. Trouver l'utilisateur cible OU Créer un nouvel utilisateur
+    let targetUserId: number;
+    let tempPassword = '';
+    let isNewUser = false;
+
     const userCheck = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-    if (userCheck.rows.length === 0) {
-      return res.status(404).json({ message: "Utilisateur non trouvé avec cet email." });
+    
+    if (userCheck.rows.length > 0) {
+      targetUserId = userCheck.rows[0].id;
+    } else {
+      // Utilisateur inexistant -> Création automatique
+      // Générer un mot de passe temporaire : ex "Hg" + 4 caractères hex + "!" => "Hg1a2b!"
+      const randomPart = await import('crypto').then(c => c.randomBytes(3).toString('hex'));
+      tempPassword = `Hg${randomPart}!`;
+      
+      const hashedPassword = await import('bcrypt').then(b => b.hash(tempPassword, 10)); // Dynamic import to ensure module availability
+      
+      const newUser = await pool.query(
+        `INSERT INTO users (nom, email, password, role, user_type, created_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())
+         RETURNING id`,
+        ['Invité', email, hashedPassword, 'user', role === 'manager' ? 'gestionnaire' : 'comptable']
+      );
+      
+      targetUserId = newUser.rows[0].id;
+      isNewUser = true;
     }
-    const targetUserId = userCheck.rows[0].id;
 
     if (targetUserId === userId) {
       return res.status(400).json({ message: "Vous faites déjà partie de l'équipe." });
     }
 
     // 3. Ajouter/Mettre à jour délégation
-    // Permissions par défaut si non fournies
     const perms = permissions || {};
     
     await pool.query(
@@ -89,13 +110,18 @@ router.post('/', protect, async (req: any, res) => {
       ]
     );
 
-    res.status(201).json({ message: "Membre ajouté avec succès." });
+    res.status(201).json({ 
+      message: isNewUser ? "Compte créé et membre ajouté avec succès." : "Membre ajouté avec succès.",
+      tempPassword: isNewUser ? tempPassword : null,
+      isNewUser
+    });
 
   } catch (err: any) {
     console.error(err);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
+
 
 // DELETE /api/delegations/:userId - Retirer un membre
 router.delete('/:targetId', protect, async (req: any, res) => {

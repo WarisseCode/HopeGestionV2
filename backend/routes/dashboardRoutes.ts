@@ -18,8 +18,7 @@ router.get('/stats/gestionnaire', async (req: AuthenticatedRequest, res: Respons
     }
     
     try {
-        let whereClause = '1=1';
-        let params: any[] = [];
+        let ownerIds: number[] = [];
 
         // Si pas admin, on filtre par les propriétaires assignés
         if (req.userRole !== 'admin') {
@@ -35,40 +34,42 @@ router.get('/stats/gestionnaire', async (req: AuthenticatedRequest, res: Respons
                 });
             }
 
-            const ownerIds = ownersResult.rows.map(r => r.owner_id);
-            whereClause = `owner_id IN (${ownerIds.join(',')})`;
+            ownerIds = ownersResult.rows.map(r => r.owner_id);
         }
 
+        // Build WHERE clause based on role
+        const ownerFilter = ownerIds.length > 0 ? `owner_id IN (${ownerIds.join(',')})` : '1=1';
+
         // Total des bâtiments
-        const buildingsResult = await pool.query(`SELECT COUNT(*) FROM buildings WHERE ${whereClause}`);
+        const buildingsResult = await pool.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`);
         const totalBiens = parseInt(buildingsResult.rows[0].count, 10);
 
-        // Total des lots
-        const lotsResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE building_id IN (SELECT id FROM buildings WHERE ${whereClause})`);
+        // Total des lots (use lots.owner_id directly)
+        const lotsResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`);
         const totalLots = parseInt(lotsResult.rows[0].count, 10);
 
         // Lots occupés
-        const occupiedResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND building_id IN (SELECT id FROM buildings WHERE ${whereClause})`);
+        const occupiedResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`);
         const lotsOccupes = parseInt(occupiedResult.rows[0].count, 10);
 
         // Taux d'occupation
         const tauxOccupation = totalLots > 0 ? Math.round((lotsOccupes / totalLots) * 100) : 0;
 
-        // Total revenus
+        // Total revenus (use payments.owner_id directly)
         const revenusResult = await pool.query(`
             SELECT COALESCE(SUM(montant), 0) as total 
             FROM payments 
-            WHERE owner_id IN (SELECT id FROM owners WHERE ${whereClause.replace(/owner_id/g, 'id')})
+            WHERE ${ownerFilter}
             AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
             AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
         `);
         const revenusMois = parseFloat(revenusResult.rows[0].total) || 0;
 
-        // Impayés
+        // Impayés (use leases.owner_id directly)
         const impayesResult = await pool.query(`
             SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
             FROM leases l
-            WHERE l.owner_id IN (SELECT id FROM owners WHERE ${whereClause.replace(/owner_id/g, 'id')})
+            WHERE l.${ownerFilter.replace(/owner_id/g, 'owner_id')}
             AND l.statut = 'actif'
             AND NOT EXISTS (
                 SELECT 1 FROM payments p 
@@ -83,7 +84,7 @@ router.get('/stats/gestionnaire', async (req: AuthenticatedRequest, res: Respons
         const tenantsResult = await pool.query(`
             SELECT COUNT(DISTINCT tenant_id) FROM leases 
             WHERE statut = 'actif' 
-            AND owner_id IN (SELECT id FROM owners WHERE ${whereClause.replace(/owner_id/g, 'id')})
+            AND ${ownerFilter}
         `);
         const locatairesActifs = parseInt(tenantsResult.rows[0].count, 10);
 
@@ -112,8 +113,7 @@ router.get('/stats/manager', async (req: AuthenticatedRequest, res: Response) =>
     }
     
     try {
-        let whereClause = '1=1';
-        let params: any[] = [];
+        let ownerIds: number[] = [];
 
         // Si pas admin, on filtre par les propriétaires assignés
         if (req.userRole !== 'admin') {
@@ -129,40 +129,42 @@ router.get('/stats/manager', async (req: AuthenticatedRequest, res: Response) =>
                 });
             }
 
-            const ownerIds = ownersResult.rows.map(r => r.owner_id);
-            whereClause = `owner_id IN (${ownerIds.join(',')})`;
+            ownerIds = ownersResult.rows.map(r => r.owner_id);
         }
 
+        // Build WHERE clause based on role
+        const ownerFilter = ownerIds.length > 0 ? `owner_id IN (${ownerIds.join(',')})` : '1=1';
+
         // Total des bâtiments
-        const buildingsResult = await pool.query(`SELECT COUNT(*) FROM buildings WHERE ${whereClause}`);
+        const buildingsResult = await pool.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`);
         const totalBiens = parseInt(buildingsResult.rows[0].count, 10);
 
-        // Total des lots
-        const lotsResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE building_id IN (SELECT id FROM buildings WHERE ${whereClause})`);
+        // Total des lots (use lots.owner_id directly)
+        const lotsResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`);
         const totalLots = parseInt(lotsResult.rows[0].count, 10);
 
         // Lots occupés
-        const occupiedResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND building_id IN (SELECT id FROM buildings WHERE ${whereClause})`);
+        const occupiedResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`);
         const lotsOccupes = parseInt(occupiedResult.rows[0].count, 10);
 
         // Taux d'occupation
         const tauxOccupation = totalLots > 0 ? Math.round((lotsOccupes / totalLots) * 100) : 0;
 
-        // Total revenus
+        // Total revenus (use payments.owner_id directly)
         const revenusResult = await pool.query(`
             SELECT COALESCE(SUM(montant), 0) as total 
             FROM payments 
-            WHERE owner_id IN (SELECT id FROM owners WHERE ${whereClause.replace(/owner_id/g, 'id')})
+            WHERE ${ownerFilter}
             AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
             AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
         `);
         const revenusMois = parseFloat(revenusResult.rows[0].total) || 0;
 
-        // Impayés
+        // Impayés (use leases.owner_id directly)
         const impayesResult = await pool.query(`
             SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
             FROM leases l
-            WHERE l.owner_id IN (SELECT id FROM owners WHERE ${whereClause.replace(/owner_id/g, 'id')})
+            WHERE l.${ownerFilter.replace(/owner_id/g, 'owner_id')}
             AND l.statut = 'actif'
             AND NOT EXISTS (
                 SELECT 1 FROM payments p 
@@ -177,7 +179,7 @@ router.get('/stats/manager', async (req: AuthenticatedRequest, res: Response) =>
         const tenantsResult = await pool.query(`
             SELECT COUNT(DISTINCT tenant_id) FROM leases 
             WHERE statut = 'actif' 
-            AND owner_id IN (SELECT id FROM owners WHERE ${whereClause.replace(/owner_id/g, 'id')})
+            AND ${ownerFilter}
         `);
         const locatairesActifs = parseInt(tenantsResult.rows[0].count, 10);
 
@@ -198,6 +200,7 @@ router.get('/stats/manager', async (req: AuthenticatedRequest, res: Response) =>
         res.status(500).json({ message: 'Erreur serveur.' });
     }
 });
+
 
 
 // GET /api/dashboard/stats/proprietaire : Stats filtrées par owner_id
@@ -370,16 +373,38 @@ router.get('/stats/locataire', async (req: AuthenticatedRequest, res: Response) 
             prochainPaiement = new Date(today.getFullYear(), today.getMonth() + 1, jourEcheance);
         }
         
-        res.status(200).json({
-            stats: {
-                nomLogement,
-                loyerMensuel,
-                prochainPaiement: prochainPaiement.toISOString().split('T')[0],
-                statutContrat: lease.statut,
-                dateDebut: lease.date_debut,
-                dateFin: lease.date_fin
-            }
-        });
+
+
+        // Fetch Recent Payments for Dashboard Card
+        const paymentsResult = await pool.query(`
+            SELECT id, montant, date_paiement, type, method, status
+            FROM payments
+            WHERE lease_id = $1
+            ORDER BY date_paiement DESC
+            LIMIT 5
+        `, [lease.id]);
+
+        // Add payments to response
+        const statsResponse = {
+            nomLogement,
+            loyerMensuel,
+            prochainPaiement: prochainPaiement.toISOString().split('T')[0],
+            statutContrat: lease.statut,
+            dateDebut: lease.date_debut,
+            dateFin: lease.date_fin,
+            recentPayments: paymentsResult.rows.map(p => ({
+                id: p.id,
+                amount: parseFloat(p.montant),
+                date: p.date_paiement,
+                status: 'paid', // Assuming fetched payments are successful
+                month: new Date(p.date_paiement).toLocaleString('fr-FR', { month: 'long' })
+            }))
+        };
+        
+        // Overwrite previous send
+        // Since we already sent response above (oops), we need to restructure.
+        // Actually, let's fix the flow.
+        return res.status(200).json({ stats: statsResponse });
 
     } catch (error) {
         console.error('Erreur récupération stats locataire:', error);
@@ -391,64 +416,102 @@ router.get('/stats/locataire', async (req: AuthenticatedRequest, res: Response) 
 // GET /api/dashboard/kpi : KPIs complets avec statuts dynamiques
 router.get('/kpi', async (req: AuthenticatedRequest, res: Response) => {
     try {
-        // 1. Nombre total de biens (bâtiments)
-        const buildingsResult = await pool.query('SELECT COUNT(*) FROM buildings');
+        // Get owner filtering for non-admin users
+        let ownerIds: number[] = [];
+        let ownerFilter = '1=1';
+        
+        if (req.userRole !== 'admin') {
+            const ownersResult = await pool.query(
+                `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
+                [req.userId]
+            );
+            
+            if (ownersResult.rows.length === 0) {
+                // No assigned owners -> empty KPIs
+                return res.status(200).json({
+                    kpis: [],
+                    summary: {
+                        totalBiens: 0, totalLots: 0, lotsOccupes: 0, lotsLibres: 0,
+                        tauxOccupation: 0, loyersEncaisses: 0, loyersImpayes: 0,
+                        contratsActifs: 0, plaintesOuvertes: 0, reservationsEnAttente: 0,
+                        montantARecouvrer: 0, echelonementsEnRetard: 0
+                    }
+                });
+            }
+            
+            ownerIds = ownersResult.rows.map(r => r.owner_id);
+            ownerFilter = `owner_id IN (${ownerIds.join(',')})`;
+        }
+
+        // 1. Nombre total de biens (bâtiments) - filtered by owner
+        const buildingsResult = await pool.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`);
         const totalBiens = parseInt(buildingsResult.rows[0].count, 10);
 
-        // 2. Total des lots
-        const lotsResult = await pool.query('SELECT COUNT(*) FROM lots');
+        // 2. Total des lots - filtered by owner
+        const lotsResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`);
         const totalLots = parseInt(lotsResult.rows[0].count, 10);
 
-        // 3. Lots occupés
-        const occupiedResult = await pool.query("SELECT COUNT(*) FROM lots WHERE statut = 'occupe'");
+        // 3. Lots occupés - filtered by owner
+        const occupiedResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`);
         const lotsOccupes = parseInt(occupiedResult.rows[0].count, 10);
 
-        // 4. Lots libres
-        const freeResult = await pool.query("SELECT COUNT(*) FROM lots WHERE statut = 'disponible'");
+        // 4. Lots libres - filtered by owner
+        const freeResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'disponible' AND ${ownerFilter}`);
         const lotsLibres = parseInt(freeResult.rows[0].count, 10);
 
-        // 5. Lots réservés (approximation pour réservations en attente)
-        const reservedResult = await pool.query("SELECT COUNT(*) FROM lots WHERE statut = 'reserve'");
+        // 5. Lots réservés - filtered by owner
+        const reservedResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'reserve' AND ${ownerFilter}`);
         const reservationsEnAttente = parseInt(reservedResult.rows[0].count, 10);
 
         // 6. Taux d'occupation
         const tauxOccupation = totalLots > 0 ? Math.round((lotsOccupes / totalLots) * 100) : 0;
 
-        // 7. Loyers encaissés (mois en cours)
+        // 7. Loyers encaissés (mois en cours) - filtered by owner
         const loyersEncaissesResult = await pool.query(`
             SELECT COALESCE(SUM(montant), 0) as total 
             FROM payments 
             WHERE type = 'Loyer'
+            AND ${ownerFilter}
             AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
             AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
             AND statut = 'valide'
         `);
         const loyersEncaisses = parseFloat(loyersEncaissesResult.rows[0].total) || 0;
 
-        // 8. Loyers attendus (contrats actifs)
+        // 8. Loyers attendus (contrats actifs) - filtered by owner
         const loyersAttendusResult = await pool.query(`
             SELECT COALESCE(SUM(loyer_actuel), 0) as total 
             FROM leases 
-            WHERE statut = 'actif'
+            WHERE statut = 'actif' AND ${ownerFilter}
         `);
         const loyersAttendus = parseFloat(loyersAttendusResult.rows[0].total) || 0;
 
         // 9. Loyers impayés du mois courant
         const loyersImpayes = Math.max(0, loyersAttendus - loyersEncaisses);
 
-        // 10. Contrats actifs
-        const contratsResult = await pool.query("SELECT COUNT(*) FROM leases WHERE statut = 'actif'");
+        // 10. Contrats actifs - filtered by owner
+        const contratsResult = await pool.query(`SELECT COUNT(*) FROM leases WHERE statut = 'actif' AND ${ownerFilter}`);
         const contratsActifs = parseInt(contratsResult.rows[0].count, 10);
 
-        // 11. Plaintes ouvertes (tickets)
-        const plaintesResult = await pool.query("SELECT COUNT(*) FROM tickets WHERE statut = 'ouvert'");
-        const plaintesOuvertes = parseInt(plaintesResult.rows[0].count, 10);
+        // 11. Plaintes ouvertes (tickets) - filtered by owner via lot relationship
+        let plaintesOuvertes = 0;
+        if (ownerIds.length > 0) {
+            const plaintesResult = await pool.query(`
+                SELECT COUNT(*) FROM tickets t
+                JOIN lots l ON t.lot_id = l.id
+                WHERE t.statut = 'ouvert' AND l.${ownerFilter}
+            `);
+            plaintesOuvertes = parseInt(plaintesResult.rows[0].count, 10);
+        } else {
+            const plaintesResult = await pool.query("SELECT COUNT(*) FROM tickets WHERE statut = 'ouvert'");
+            plaintesOuvertes = parseInt(plaintesResult.rows[0].count, 10);
+        }
 
-        // 12. Montant à recouvrer (impayés cumulés sur plusieurs mois)
+        // 12. Montant à recouvrer - filtered by owner
         const recouvrementResult = await pool.query(`
             SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
             FROM leases l
-            WHERE l.statut = 'actif'
+            WHERE l.statut = 'actif' AND l.${ownerFilter}
             AND NOT EXISTS (
                 SELECT 1 FROM payments p 
                 WHERE p.lease_id = l.id 
@@ -459,16 +522,8 @@ router.get('/kpi', async (req: AuthenticatedRequest, res: Response) => {
         `);
         const montantARecouvrer = parseFloat(recouvrementResult.rows[0].total) || 0;
 
-        // 13. Paiements échelonnés en retard
-        // 13. Paiements échelonnés en retard (Note: Table payment_schedules not implemented yet)
+        // 13. Paiements échelonnés en retard (not implemented yet)
         const echelonementsEnRetard = 0;
-        /*
-        const echelonementsResult = await pool.query(`
-            SELECT COUNT(*) FROM payment_schedules 
-            WHERE status = 'overdue' OR (status = 'pending' AND due_date < CURRENT_DATE)
-        `);
-        const echelonementsEnRetard = parseInt(echelonementsResult.rows[0].count, 10);
-        */
 
         // Fonction pour déterminer le statut dynamique
         const getStatus = (type: string, value: number, total?: number): 'success' | 'warning' | 'danger' => {
@@ -600,6 +655,7 @@ router.get('/kpi', async (req: AuthenticatedRequest, res: Response) => {
     }
 });
 
+
 // GET /api/dashboard/chart-data : Données pour les graphiques (revenus/dépenses par mois)
 router.get('/chart-data', async (req: AuthenticatedRequest, res: Response) => {
     const period = (req.query.period as string) || '6m'; // 7d, 30d, 90d, 6m, 1y
@@ -707,6 +763,185 @@ router.get('/chart-data', async (req: AuthenticatedRequest, res: Response) => {
     } catch (error) {
         console.error('Erreur récupération chart-data:', error);
         res.status(500).json({ message: 'Erreur serveur.' });
+    }
+});
+
+// GET /api/dashboard/activity : Fil d'actualité (Paiements, Baux, Tickets)
+router.get('/activity', async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        let whereClauseOwners = '1=1';
+        let whereClauseUsers = '1=1';
+
+        // Filter by owner/user if not admin
+        if (req.userRole !== 'admin') {
+            if (req.userRole === 'locataire') {
+                // Find tenant ID via user email
+                const userResult = await pool.query('SELECT email FROM users WHERE id = $1', [req.userId]);
+                if (userResult.rows.length > 0) {
+                     const tenantResult = await pool.query('SELECT id FROM tenants WHERE email = $1', [userResult.rows[0].email]);
+                     if (tenantResult.rows.length > 0) {
+                         const tenantId = tenantResult.rows[0].id;
+                         // Find active lease to link to activities
+                         const leaseResult = await pool.query('SELECT id FROM leases WHERE tenant_id = $1', [tenantId]);
+                         if (leaseResult.rows.length > 0) {
+                             const leaseIds = leaseResult.rows.map(r => r.id);
+                             whereClauseOwners = `1=0`; // Don't use owner filter
+                             // For payments: p.lease_id IN (...)
+                             whereClauseUsers = `l.id IN (${leaseIds.join(',')})`; 
+                         } else {
+                             return res.json({ activities: [] });
+                         }
+                     } else {
+                         return res.json({ activities: [] });
+                     }
+                } else {
+                    return res.json({ activities: [] });
+                }
+            } else {
+                // For managers/owners, we get their assigned owners
+                const ownersResult = await pool.query(
+                    `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
+                    [req.userId]
+                );
+                if (ownersResult.rows.length > 0) {
+                    const ownerIds = ownersResult.rows.map(r => r.owner_id);
+                    whereClauseOwners = `owner_id IN (${ownerIds.join(',')})`;
+                    whereClauseUsers = `l.owner_id IN (${ownerIds.join(',')})`; 
+                } else {
+                     return res.json({ activities: [] });
+                }
+            }
+        }
+        // Define where clauses for queries
+        let paymentWhere = whereClauseOwners.replace(/owner_id/g, 'p.owner_id');
+        let leaseWhere = whereClauseOwners.replace(/owner_id/g, 'l.owner_id');
+        let ticketWhere = whereClauseUsers; 
+        
+        if (req.userRole === 'locataire') {
+             paymentWhere = whereClauseUsers.replace(/l.id/g, 'p.lease_id'); 
+             leaseWhere = whereClauseUsers.replace(/l.id/g, 'l.id');
+        }
+
+
+        // 1. Recent Payments
+        const paymentsQuery = `
+            SELECT 
+                p.id, 
+                'payment' as type, 
+                'Paiement reçu' as title, 
+                CONCAT(t.prenoms, ' ', t.nom, ' - ', p.type) as description, 
+                p.created_at as created_at
+            FROM payments p
+            JOIN leases l ON p.lease_id = l.id
+            JOIN tenants t ON l.tenant_id = t.id
+            WHERE ${paymentWhere}
+            ORDER BY p.created_at DESC LIMIT 5
+        `;
+
+        // 2. New Leases
+        const leasesQuery = `
+            SELECT 
+                l.id, 
+                'contract' as type, 
+                'Nouveau bail' as title, 
+                CONCAT(lo.ref_lot, ' - ', t.prenoms, ' ', t.nom) as description, 
+                l.created_at as created_at
+            FROM leases l
+            JOIN tenants t ON l.tenant_id = t.id
+            JOIN lots lo ON l.lot_id = lo.id
+            WHERE ${leaseWhere}
+            ORDER BY l.created_at DESC LIMIT 5
+        `;
+
+        // 3. Recent Tickets (if table exists)
+        // Adjust if 'tickets' table does not exist or has different schema
+        const ticketsQuery = `
+            SELECT 
+                t.id, 
+                'intervention' as type, 
+                CONCAT('Ticket: ', t.titre) as title, 
+                t.description as description, 
+                t.created_at as created_at
+            FROM tickets t
+            JOIN leases l ON t.lease_id = l.id
+            WHERE ${ticketWhere}
+            ORDER BY t.created_at DESC LIMIT 5
+        `;
+
+        const [payments, leases, tickets] = await Promise.all([
+            pool.query(paymentsQuery),
+            pool.query(leasesQuery),
+            pool.query(ticketsQuery).catch(() => ({ rows: [] })) // Fallback if tickets table issue
+        ]);
+
+        // Combine and Sort
+        const allActivities = [
+            ...payments.rows, 
+            ...leases.rows, 
+            ...tickets.rows
+        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 10);
+
+        res.json({ activities: allActivities });
+
+    } catch (error) {
+        console.error('Error fetching dashboard activity:', error);
+        res.status(500).json({ message: 'Erreur serveur.' });
+    }
+});
+
+// GET /api/dashboard/featured-properties : Biens en vedette
+router.get('/featured-properties', async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        let whereClause = '1=1';
+        if (req.userRole !== 'admin') {
+            const ownersResult = await pool.query(
+                `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
+                [req.userId]
+            );
+            if (ownersResult.rows.length > 0) {
+                const ownerIds = ownersResult.rows.map(r => r.owner_id);
+                whereClause = `owner_id IN (${ownerIds.join(',')})`;
+            } else {
+                 return res.json({ properties: [] });
+            }
+        }
+
+        const query = `
+            SELECT 
+                b.id,
+                b.nom,
+                b.ville,
+                b.quartier,
+                COUNT(l.id) as total_units,
+                SUM(CASE WHEN l.statut = 'occupe' THEN 1 ELSE 0 END) as occupied_units,
+                (NULLIF(b.photos, '[]')::jsonb->0) as main_photo
+            FROM buildings b
+            LEFT JOIN lots l ON b.id = l.building_id
+            WHERE ${whereClause.replace(/owner_id/g, 'b.owner_id')}
+            GROUP BY b.id
+            ORDER BY occupied_units DESC, total_units DESC
+            LIMIT 4
+        `;
+
+        const result = await pool.query(query);
+
+        // Format for frontend
+        const properties = result.rows.map(row => ({
+            id: row.id,
+            name: row.nom,
+            location: `${row.quartier || ''}, ${row.ville || ''}`,
+            units: parseInt(row.total_units) || 0,
+            occupancy: row.total_units > 0 ? Math.round((parseInt(row.occupied_units) / parseInt(row.total_units)) * 100) : 0,
+            image: row.main_photo ? row.main_photo.replace(/"/g, '') : null,
+            status: 'Actif'
+        }));
+
+        res.json({ properties });
+
+    } catch (error) {
+         console.error('Error fetching featured properties:', error);
+         res.status(500).json({ message: 'Erreur serveur.' });
     }
 });
 

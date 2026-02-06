@@ -28,9 +28,39 @@ import type { Activity } from '../components/dashboard/ActivityFeed';
 import type { UpcomingEvent } from '../components/dashboard/UpcomingEvents';
 import Button from '../components/ui/Button';
 
+import { getToken } from '../api/authApi';
+import { API_URL } from '../config';
+
 const LocataireDashboard: React.FC = () => {
   const { user, stats, loading } = useUser();
   const navigate = useNavigate();
+  const [activities, setActivities] = React.useState<Activity[]>([]);
+
+  React.useEffect(() => {
+    const fetchActivities = async () => {
+        const token = getToken();
+        if (!token) return;
+        try {
+            const res = await fetch(`${API_URL}/dashboard/activity`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.activities) {
+                const mapped = data.activities.map((a: any) => ({
+                     id: a.id,
+                     type: a.type,
+                     title: a.title,
+                     description: a.description,
+                     time: new Date(a.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+                }));
+                setActivities(mapped);
+            }
+        } catch (e) {
+            console.error("Error fetching activities", e);
+        }
+    };
+    fetchActivities();
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -45,16 +75,9 @@ const LocataireDashboard: React.FC = () => {
     visible: { y: 0, opacity: 1 }
   };
 
-  // Activités récentes
-  const activities: Activity[] = [
-    { id: 1, type: 'payment', title: 'Paiement effectué', description: 'Loyer décembre via Mobile Money', time: 'Il y a 2 jours' },
-    { id: 2, type: 'intervention', title: 'Plomberie', description: 'Réparation fuite terminée', time: 'Il y a 1 semaine' },
-  ];
-
   // Mes événements à venir
   const upcomingEvents: UpcomingEvent[] = [
-    { id: 1, type: 'rent', title: 'Prochain loyer', description: 'Loyer janvier 2025', date: '05 Jan', daysUntil: 8 },
-    { id: 2, type: 'contract', title: 'Renouvellement', description: 'Expiration du bail', date: '28 Mar', daysUntil: 90 },
+    { id: 1, type: 'rent', title: 'Prochain loyer', description: 'Loyer à venir', date: '05 du mois', daysUntil: 8 },
   ];
 
   const formatCurrency = (amount: number) => {
@@ -66,10 +89,15 @@ const LocataireDashboard: React.FC = () => {
   }
 
   // Stats spécifiques au locataire
-  const nomLogement = (stats as any)?.nomLogement || 'Apt A01 - Résidence La Paix';
-  const loyerMensuel = (stats as any)?.loyerMensuel || 80000;
-  const statutContrat = (stats as any)?.statutContrat || 'actif';
-  const joursAvantEcheance = 8;
+  const nomLogement = (stats as any)?.nomLogement || 'Aucun logement';
+  const loyerMensuel = (stats as any)?.loyerMensuel || 0;
+  const statutContrat = (stats as any)?.statutContrat || 'inactif';
+  // Calculate days until next payment
+  const nextPaymentDate = (stats as any)?.prochainPaiement ? new Date((stats as any).prochainPaiement) : new Date();
+  const diffTime = Math.abs(nextPaymentDate.getTime() - new Date().getTime());
+  const joursAvantEcheance = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+  const recentPayments = (stats as any)?.recentPayments || [];
 
   return (
     <motion.div 
@@ -134,19 +162,19 @@ const LocataireDashboard: React.FC = () => {
           label="Loyer Mensuel" 
           value={formatCurrency(loyerMensuel)} 
           color="blue" 
-          trend={{ value: "Payé", label: "Décembre 2024", positive: true }}
+          trend={{ value: "Payé", label: "Dernier Loyer", positive: true }}
         />
         <KPICard 
           icon={FileText} 
           label="Statut du Bail" 
           value={statutContrat === 'actif' ? 'Actif' : 'Inactif'} 
           color="green" 
-          trend={{ value: "90j", label: "restants", positive: true }}
+          trend={{ value: "Valide", label: "Contrat en cours", positive: true }}
         />
         <KPICard 
           icon={Calendar} 
           label="Prochaine Échéance" 
-          value="05 Jan"
+          value={new Date(nextPaymentDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
           color="purple" 
           trend={{ value: `J-${joursAvantEcheance}`, label: "avant retard", positive: joursAvantEcheance > 5 }}
         />
@@ -176,9 +204,11 @@ const LocataireDashboard: React.FC = () => {
                          <div className="flex justify-between items-start">
                              <div>
                                 <h3 className="text-xl font-bold text-gray-900">{nomLogement}</h3>
-                                <p className="text-gray-500">Haie vive, Cotonou • 2ème Étage</p>
+                                <p className="text-gray-500">{(stats as any)?.dateDebut ? `Depuis le ${new Date((stats as any).dateDebut).toLocaleDateString()}` : ''}</p>
                              </div>
-                             <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-bold rounded-full">En règle</span>
+                             <span className={`px-3 py-1 text-sm font-bold rounded-full ${statutContrat === 'actif' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                 {statutContrat === 'actif' ? 'En règle' : 'Inactif'}
+                             </span>
                          </div>
                          
                          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
@@ -188,7 +218,7 @@ const LocataireDashboard: React.FC = () => {
                              </div>
                               <div>
                                  <p className="text-xs text-gray-400 font-semibold uppercase">Début du contrat</p>
-                                 <p className="font-medium">01 Jan 2024</p>
+                                 <p className="font-medium">{(stats as any)?.dateDebut ? new Date((stats as any).dateDebut).toLocaleDateString() : 'N/A'}</p>
                              </div>
                               <div>
                                  <p className="text-xs text-gray-400 font-semibold uppercase">Caution Déposée</p>
@@ -196,7 +226,7 @@ const LocataireDashboard: React.FC = () => {
                              </div>
                               <div>
                                  <p className="text-xs text-gray-400 font-semibold uppercase">Gestionnaire</p>
-                                 <p className="font-medium">M. Paul</p>
+                                 <p className="font-medium">{(stats as any)?.gestionnaire || 'Non assigné'}</p>
                              </div>
                          </div>
 
@@ -228,37 +258,35 @@ const LocataireDashboard: React.FC = () => {
                         </Button>
                     </div>
                     <div className="p-0">
-                        {[
-                          { mois: 'Décembre', date: '05/12/2024', statut: 'paid' },
-                          { mois: 'Novembre', date: '05/11/2024', statut: 'paid' },
-                          { mois: 'Octobre', date: '05/10/2024', statut: 'paid' },
-                        ].map((paiement, idx) => (
+                        {recentPayments.length > 0 ? recentPayments.map((paiement: any, idx: number) => (
                              <div key={idx} className="flex items-center justify-between p-4 px-6 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
                                 <div className="flex items-center gap-4">
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                      paiement.statut === 'paid' ? 'bg-green-50' : 'bg-orange-50'
+                                      paiement.status === 'paid' ? 'bg-green-50' : 'bg-orange-50'
                                     }`}>
                                         <CheckCircle2 size={18} className={
-                                          paiement.statut === 'paid' ? 'text-green-600' : 'text-orange-600'
+                                          paiement.status === 'paid' ? 'text-green-600' : 'text-orange-600'
                                         } />
                                     </div>
                                     <div>
-                                        <p className="font-bold text-gray-800">Loyer {paiement.mois}</p>
-                                        <p className="text-xs text-gray-400">{paiement.date} • Mobile Money</p>
+                                        <p className="font-bold text-gray-800">Loyer {paiement.month}</p>
+                                        <p className="text-xs text-gray-400">{new Date(paiement.date).toLocaleDateString()} • {paiement.method || 'Virement'}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-bold text-gray-900">{formatCurrency(loyerMensuel)}</p>
+                                    <p className="font-bold text-gray-900">{formatCurrency(paiement.amount)}</p>
                                     <span className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-md uppercase tracking-wide ${
-                                      paiement.statut === 'paid' 
+                                      paiement.status === 'paid' 
                                         ? 'bg-green-100 text-green-700' 
                                         : 'bg-orange-100 text-orange-700'
                                     }`}>
-                                      {paiement.statut === 'paid' ? 'Payé' : 'En attente'}
+                                      {paiement.status === 'paid' ? 'Payé' : 'En attente'}
                                     </span>
                                 </div>
                             </div>
-                        ))}
+                        )) : (
+                            <p className="text-center py-8 text-gray-500">Aucun paiement récent.</p>
+                        )}
                     </div>
                 </div>
             </motion.div>

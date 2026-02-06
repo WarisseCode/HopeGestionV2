@@ -30,8 +30,12 @@ const DelegationsPage: React.FC = () => {
   const [targetPermissions, setTargetPermissions] = useState<Permissions>({
     can_view_finances: false,
     can_edit_properties: false,
+    can_edit_properties: false,
     can_manage_tenants: false
   });
+  
+  const [tempPassword, setTempPassword] = useState('');
+  const [createdEmail, setCreatedEmail] = useState('');
 
   const fetchTeam = async () => {
     try {
@@ -54,15 +58,24 @@ const DelegationsPage: React.FC = () => {
     try {
       setError('');
       setSuccess('');
-      await addTeamMember(newEmail, newRole, targetPermissions);
-      setSuccess('Membre ajouté avec succès !');
+      const response = await addTeamMember(newEmail, newRole, targetPermissions);
+      
+      if (response.isNewUser && response.tempPassword) {
+          setCreatedEmail(newEmail);
+          setTempPassword(response.tempPassword);
+          setSuccess('Compte créé et membre ajouté !');
+      } else {
+          setSuccess('Membre ajouté avec succès !');
+      }
+      
       setShowAddModal(false);
-      setNewEmail('');
+      setNewEmail(''); 
       fetchTeam();
     } catch (err: any) {
       setError(err.message || "Erreur lors de l'ajout");
     }
   };
+
 
   const handleRemoveMember = async (id: number, name: string) => {
     if (!window.confirm(`Voulez-vous retirer ${name} de votre équipe ?`)) return;
@@ -266,14 +279,55 @@ const DelegationsPage: React.FC = () => {
              </div>
           </div>
 
+
           <div className="flex justify-end gap-3 pt-4">
              <Button variant="ghost" onClick={() => setShowAddModal(false)}>Annuler</Button>
              <Button variant="primary" onClick={handleAddMember}>Envoyer l'invitation</Button>
           </div>
         </div>
       </Modal>
+
+      {/* Credentials Modal (For new users) */}
+      <Modal
+        isOpen={!!tempPassword}
+        onClose={() => setTempPassword('')}
+        title="Compte créé avec succès"
+      >
+        <div className="space-y-4 pt-2">
+            <div className="alert alert-success shadow-sm">
+                <CheckCircle size={20} />
+                <span>Le collaborateur a été ajouté à votre équipe.</span>
+            </div>
+
+            <p className="text-gray-600">
+                L'utilisateur n'avait pas de compte. Un compte a été créé automatiquement.
+                <br/>
+                <strong>Veuillez lui transmettre ses identifiants :</strong>
+            </p>
+
+            <div className="bg-gray-100 p-4 rounded-xl border border-gray-200 select-all">
+                <div className="grid grid-cols-[80px_1fr] gap-2">
+                    <span className="font-bold text-gray-500">Email :</span>
+                    <span className="font-mono text-gray-900">{createdEmail}</span>
+                    
+                    <span className="font-bold text-gray-500">Mot de passe :</span>
+                    <span className="font-mono text-primary font-bold text-lg">{tempPassword}</span>
+                </div>
+            </div>
+
+            <p className="text-xs text-gray-500 flex items-center gap-1">
+                <AlertTriangle size={12} />
+                Il devra changer ce mot de passe dès sa première connexion.
+            </p>
+
+            <div className="flex justify-end pt-2">
+                <Button variant="primary" onClick={() => setTempPassword('')}>J'ai noté les informations</Button>
+            </div>
+        </div>
+      </Modal>
     </motion.div>
   );
 };
+
 
 export default DelegationsPage;

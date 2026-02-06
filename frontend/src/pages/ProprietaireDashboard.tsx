@@ -12,6 +12,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
 import { motion } from 'framer-motion';
 import { 
   AreaChart, 
@@ -26,21 +27,65 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { useUser } from '../contexts/UserContext';
-import { 
-  KPICard, 
-  QuickActions, 
-  UpcomingEvents,
-  PeriodFilter,
-  DashboardSkeleton
-} from '../components/dashboard';
-import type { UpcomingEvent } from '../components/dashboard/UpcomingEvents';
+import { getToken } from '../api/authApi';
+import { API_URL } from '../config';
+import { ActivityFeed, DashboardSkeleton, PeriodFilter, KPICard, QuickActions, UpcomingEvents } from '../components/dashboard';
+import type { Activity } from '../components/dashboard/ActivityFeed';
 import type { Period } from '../components/dashboard/PeriodFilter';
-import Button from '../components/ui/Button';
+import type { UpcomingEvent } from '../components/dashboard/UpcomingEvents';
 
 const ProprietaireDashboard: React.FC = () => {
   const { user, stats, loading } = useUser();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('30d');
+
+  // New State for Real Data
+  const [chartData, setChartData] = useState<{ name: string; revenus: number; depenses: number }[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [featuredProperties, setFeaturedProperties] = useState<any[]>([]);
+  const [loadingWidgets, setLoadingWidgets] = useState(true);
+
+  // Fetch Dashboard Data
+  React.useEffect(() => {
+    const fetchData = async () => {
+      setLoadingWidgets(true);
+      const token = getToken();
+      if (!token) {
+        setLoadingWidgets(false);
+        return;
+      }
+
+      try {
+        const [chartRes, activityRes, propsRes] = await Promise.all([
+          fetch(`${API_URL}/dashboard/chart-data?period=${period}`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()),
+          fetch(`${API_URL}/dashboard/activity`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()),
+          fetch(`${API_URL}/dashboard/featured-properties`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json())
+        ]);
+
+        if (chartRes.chartData) setChartData(chartRes.chartData);
+        
+        if (activityRes.activities) {
+             const mappedActivities = activityRes.activities.map((a: any) => ({
+                 id: a.id,
+                 type: a.type,
+                 title: a.title,
+                 description: a.description,
+                 time: new Date(a.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+             }));
+             setActivities(mappedActivities);
+        }
+
+        if (propsRes.properties) setFeaturedProperties(propsRes.properties);
+
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoadingWidgets(false);
+      }
+    };
+
+    fetchData();
+  }, [period]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -55,35 +100,21 @@ const ProprietaireDashboard: React.FC = () => {
     visible: { y: 0, opacity: 1 }
   };
 
-  // Mock Data - filtered by period
+  // Chart Data
   const revenusData = useMemo(() => {
-    const baseData = [
-      { name: 'Jan', revenus: 400000, depenses: 24000 },
-      { name: 'Fév', revenus: 300000, depenses: 13980 },
-      { name: 'Mar', revenus: 200000, depenses: 98000 },
-      { name: 'Avr', revenus: 278000, depenses: 39080 },
-      { name: 'Mai', revenus: 189000, depenses: 48000 },
-      { name: 'Juin', revenus: 239000, depenses: 38000 },
-      { name: 'Juil', revenus: 349000, depenses: 43000 },
-    ];
-    
-    switch (period) {
-      case '7d': return baseData.slice(-2);
-      case '30d': return baseData.slice(-3);
-      case '90d': return baseData.slice(-5);
-      default: return baseData;
-    }
-  }, [period]);
+      if (chartData.length > 0) return chartData;
+      return []; 
+  }, [chartData]);
+
 
   const occupationData = [
-    { name: 'Occupé', value: stats?.tauxOccupation || 83, color: '#3f51b5' },
-    { name: 'Vacant', value: 100 - (stats?.tauxOccupation || 83), color: '#e2e8f0' },
+    { name: 'Occupé', value: stats?.tauxOccupation || 0, color: '#3f51b5' },
+    { name: 'Vacant', value: 100 - (stats?.tauxOccupation || 0), color: '#e2e8f0' },
   ];
 
-  // Événements à venir
+  // Événements à venir (Mock for now, or fetch if endpoint available)
   const upcomingEvents: UpcomingEvent[] = [
-    { id: 1, type: 'rent', title: 'Échéance loyer', description: 'Résidence Les Palmiers', date: '02 Jan', daysUntil: 5 },
-    { id: 2, type: 'contract', title: 'Renouvellement', description: 'Apt A02 - Mme Adjo', date: '10 Jan', daysUntil: 13 },
+    { id: 1, type: 'rent', title: 'Échéance loyer', description: 'Prochain cycle de facturation', date: '05 du mois', daysUntil: 5 },
   ];
 
   const formatCurrency = (amount: number) => {
@@ -94,10 +125,11 @@ const ProprietaireDashboard: React.FC = () => {
     return <DashboardSkeleton type="proprietaire" />;
   }
 
-  // Calculate totals for the period
-  const totalRevenus = revenusData.reduce((sum, d) => sum + d.revenus, 0);
-  const totalDepenses = revenusData.reduce((sum, d) => sum + d.depenses, 0);
-  const revenuNet = totalRevenus - totalDepenses;
+  // Calculate totals from Chart Data or Stats
+  // Use stats for consistency if available, otherwise chart sum
+  const totalRevenus = stats?.revenusMois || 0;
+  // const totalDepenses = revenusData.reduce((sum, d) => sum + d.depenses, 0); // Charts might be empty
+  const revenuNet = totalRevenus; // Simplified for now
 
   return (
     <motion.div 
@@ -140,7 +172,7 @@ const ProprietaireDashboard: React.FC = () => {
           
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <p className="text-white/80 text-sm font-medium">Revenu net sur la période</p>
+              <p className="text-white/80 text-sm font-medium">Revenus ce mois</p>
               <p className="text-3xl font-bold">{formatCurrency(revenuNet)}</p>
             </div>
             <div className="flex gap-6">
@@ -149,8 +181,8 @@ const ProprietaireDashboard: React.FC = () => {
                 <p className="text-lg font-bold">{formatCurrency(totalRevenus)}</p>
               </div>
               <div className="text-center bg-white/10 rounded-xl px-4 py-2 backdrop-blur-sm">
-                <p className="text-white/80 text-xs font-medium">Charges</p>
-                <p className="text-lg font-bold">-{formatCurrency(totalDepenses)}</p>
+                <p className="text-white/80 text-xs font-medium">Impayés</p>
+                <p className="text-lg font-bold text-orange-300">{formatCurrency(stats?.impayesEnCours || 0)}</p>
               </div>
             </div>
           </div>
@@ -165,30 +197,30 @@ const ProprietaireDashboard: React.FC = () => {
         <KPICard 
           icon={Building2} 
           label="Patrimoine" 
-          value={stats?.totalBiens || 5} 
+          value={stats?.totalBiens || 0} 
           color="blue" 
-          trend={{ value: "+1", label: "nouvelle acquisition", positive: true }}
+          trend={{ value: "Actifs", label: "biens sous gestion", positive: true }}
         />
         <KPICard 
           icon={Users} 
           label="Taux d'Occupation" 
-          value={`${stats?.tauxOccupation || 83}%`} 
+          value={`${stats?.tauxOccupation || 0}%`} 
           color="green" 
-          trend={{ value: "Stable", label: "vs mois dernier", positive: true }}
+          trend={{ value: "Global", label: "sur tous les lots", positive: true }}
         />
         <KPICard 
           icon={Wallet} 
-          label="Revenus Nette" 
-          value={formatCurrency(stats?.revenusMois || 850000)} 
+          label="Revenus du Mois" 
+          value={formatCurrency(stats?.revenusMois || 0)} 
           color="purple" 
-          trend={{ value: "+5%", label: "performance", positive: true }}
+          trend={{ value: "Encaissé", label: "ce mois-ci", positive: true }}
         />
         <KPICard 
           icon={AlertCircle} 
           label="Impayés" 
           value={formatCurrency(stats?.impayesEnCours || 0)} 
           color="orange" 
-          trend={{ value: "0", label: "Aucun retard majeur", positive: true }}
+          trend={{ value: "Attention", label: "Loyers en retard", positive: false }}
         />
       </motion.div>
 
@@ -218,10 +250,6 @@ const ProprietaireDashboard: React.FC = () => {
                                     <stop offset="5%" stopColor="#3f51b5" stopOpacity={0.3}/>
                                     <stop offset="95%" stopColor="#3f51b5" stopOpacity={0}/>
                                 </linearGradient>
-                                <linearGradient id="colorDepensesProprio" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#f50057" stopOpacity={0.3}/>
-                                    <stop offset="95%" stopColor="#f50057" stopOpacity={0}/>
-                                </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
@@ -231,7 +259,6 @@ const ProprietaireDashboard: React.FC = () => {
                                 formatter={(value: any) => [`${value?.toLocaleString() ?? 0} FCFA`, '']}
                             />
                             <Area type="monotone" dataKey="revenus" stroke="#3f51b5" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenusProprio)" name="Revenus" />
-                            <Area type="monotone" dataKey="depenses" stroke="#f50057" strokeWidth={3} fillOpacity={1} fill="url(#colorDepensesProprio)" name="Dépenses" />
                         </AreaChart>
                         </ResponsiveContainer>
                     </div>
@@ -250,39 +277,38 @@ const ProprietaireDashboard: React.FC = () => {
                     </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                     <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex gap-4 hover:shadow-xl transition-all cursor-pointer group">
-                        <div className="w-24 h-24 rounded-xl bg-gray-200 overflow-hidden relative shrink-0">
-                             <div className="absolute inset-0 bg-blue-500/10 flex items-center justify-center">
-                                <Building2 className="text-blue-500" />
-                             </div>
-                        </div>
-                        <div className="flex-1 min-w-0 py-1">
-                            <h4 className="font-bold text-gray-900 truncate">Résidence La Paix</h4>
-                            <p className="text-sm text-gray-500 mb-2">Haie Vive, Cotonou</p>
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-medium bg-green-50 text-green-600 px-2 py-1 rounded-lg">100% Loué</span>
-                                <span className="text-sm font-bold text-gray-900">12 Lots</span>
-                            </div>
-                        </div>
+                {loadingWidgets ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {[1, 2].map(i => <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse"></div>)}
                     </div>
-
-                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex gap-4 hover:shadow-xl transition-all cursor-pointer group">
-                        <div className="w-24 h-24 rounded-xl bg-gray-200 overflow-hidden relative shrink-0">
-                            <div className="absolute inset-0 bg-orange-500/10 flex items-center justify-center">
-                                <Home className="text-orange-500" />
+                ) : featuredProperties.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {featuredProperties.map(property => (
+                            <div key={property.id} className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex gap-4 hover:shadow-xl transition-all cursor-pointer group" onClick={() => navigate(`/dashboard/biens?id=${property.id}`)}>
+                                <div className="w-24 h-24 rounded-xl bg-gray-200 overflow-hidden relative shrink-0">
+                                    {property.image ? (
+                                        <img src={property.image} alt={property.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                                            <Building2 size={32} />
+                                        </div>
+                                    )}
+                                     <div className={`absolute top-1 right-1 w-3 h-3 border-2 border-white rounded-full ${property.occupancy >= 80 ? 'bg-green-50' : 'bg-orange-50'}`}></div>
+                                </div>
+                                <div className="flex-1 min-w-0 py-1">
+                                    <h4 className="font-bold text-gray-900 truncate">{property.name}</h4>
+                                    <p className="text-sm text-gray-500 mb-2 truncate">{property.location}</p>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-medium bg-blue-50 text-blue-600 px-2 py-1 rounded-lg">{property.units} Lots</span>
+                                        <span className="text-sm font-bold text-gray-900">{property.occupancy}% Occ.</span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex-1 min-w-0 py-1">
-                            <h4 className="font-bold text-gray-900 truncate">Villa Les Cocotiers</h4>
-                            <p className="text-sm text-gray-500 mb-2">Cocotiers, Cotonou</p>
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-medium bg-red-50 text-red-600 px-2 py-1 rounded-lg">Vacant</span>
-                                <span className="text-sm font-bold text-gray-900">1 Lot</span>
-                            </div>
-                        </div>
+                        ))}
                     </div>
-                </div>
+                ) : (
+                    <p className="text-center text-gray-500 py-8 bg-white rounded-xl">Aucune propriété affichée.</p>
+                )}
             </motion.div>
         </div>
 
