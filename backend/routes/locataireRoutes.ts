@@ -37,7 +37,15 @@ router.get('/', protect, permissions.canRead('locataires'), async (req: any, res
                    al.ref_lot as lot_nom,
                    al.loyer_mensuel as loyer_actuel,
                    al.lease_id as active_lease_id,
-                   al.lease_statut as bail_statut
+                   al.lease_statut as bail_statut,
+                   -- Logique de statut de paiement basée sur le dernier paiement
+                   CASE 
+                     WHEN al.lease_id IS NULL THEN 'unknown'
+                     WHEN lp.last_payment_date IS NULL THEN 'pending' -- Jamais payé
+                     WHEN lp.last_payment_date < CURRENT_DATE - INTERVAL '35 days' THEN 'late' -- Retard > 5 jours après fin de mois (approx)
+                     WHEN EXTRACT(MONTH FROM lp.last_payment_date) = EXTRACT(MONTH FROM CURRENT_DATE) THEN 'paid' -- Payé ce mois-ci
+                     ELSE 'pending' -- Pas encore payé ce mois-ci mais pas encore en retard critique
+                   END as payment_status
             FROM tenants t 
             LEFT JOIN LATERAL (
                 SELECT lot.ref_lot, l.loyer_actuel as loyer_mensuel, l.id as lease_id, l.statut as lease_statut
@@ -47,6 +55,11 @@ router.get('/', protect, permissions.canRead('locataires'), async (req: any, res
                 ORDER BY l.date_debut DESC
                 LIMIT 1
             ) al ON true
+            LEFT JOIN LATERAL (
+                SELECT MAX(date_paiement) as last_payment_date
+                FROM payments p
+                WHERE p.lease_id = al.lease_id
+            ) lp ON true
             WHERE t.owner_id = $1 AND t.statut != 'Archivé'
         `;
         const params: any[] = [ownerId];
@@ -137,6 +150,19 @@ router.post('/', protect, async (req: any, res) => {
             adresse_actuelle, date_expiration_piece, photo_profil_url, photo_piece_url,
             caution, avance, paiement_echelonne
         } = req.body;
+
+        // Check for duplicates (Phone or Email) logic for same owner
+        const duplicateCheck = await pool.query(
+            `SELECT id FROM tenants 
+             WHERE owner_id = $1 
+             AND (telephone_principal = $2 OR (email IS NOT NULL AND email != '' AND email = $3))
+             AND statut != 'Archivé'`,
+            [ownerId, telephone_principal, email || '']
+        );
+
+        if (duplicateCheck.rows.length > 0) {
+            return res.status(409).json({ message: "Un locataire avec ce téléphone ou cet email existe déjà." });
+        }
 
         const result = await pool.query(
             `INSERT INTO tenants (

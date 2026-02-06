@@ -65,53 +65,7 @@ const UserSpecificLayout: React.FC<UserSpecificLayoutProps> = ({ children, onLog
     );
   }
 
-  // Pour les utilisateurs autres que locataire, on continue avec le layout standard
-  // Pour les locataires, on pourrait avoir un layout spécifique
-  if (userProfile?.userType === 'locataire') {
-    return (
-      <DashboardLayout onLogout={onLogout}>
-        <div className="bg-base-100 rounded-lg p-6 shadow">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-base-content">Espace Locataire</h2>
-            <span className="badge badge-primary">Locataire</span>
-          </div>
-          {children}
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  // Pour les propriétaires
-  if (userProfile?.userType === 'proprietaire') {
-    return (
-      <DashboardLayout onLogout={onLogout}>
-        <div className="bg-base-100 rounded-lg p-6 shadow">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-base-content">Espace Propriétaire</h2>
-            <span className="badge badge-secondary">Propriétaire</span>
-          </div>
-          {children}
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  // Pour les gestionnaires
-  if (userProfile?.userType === 'gestionnaire') {
-    return (
-      <DashboardLayout onLogout={onLogout}>
-        <div className="bg-base-100 rounded-lg p-6 shadow">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-base-content">Espace Gestionnaire</h2>
-            <span className="badge badge-accent">Gestionnaire</span>
-          </div>
-          {children}
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  // Pour les autres types d'utilisateurs (admin, etc.)
+  // Render standard layout for all users, removing specific "Espace ..." headers
   return (
     <DashboardLayout onLogout={onLogout}>
       {children}

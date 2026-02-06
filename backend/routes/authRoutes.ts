@@ -234,6 +234,7 @@ router.post('/login', async (req, res) => {
         }
 
         // 3. Generate JWT token
+        const expiresIn = process.env.JWT_EXPIRES_IN || '24h';
         const token = jwt.sign(
             { 
                 id: utilisateur.id, 
@@ -241,7 +242,7 @@ router.post('/login', async (req, res) => {
                 userType: utilisateur.user_type || 'gestionnaire'
             },
             JWT_SECRET,
-            { expiresIn: '24h' }  // 24h expiration
+            { expiresIn } as any  // Configurable expiration - cast needed for strict typing
         );
 
         // 🔒 SECURITY: Log successful login

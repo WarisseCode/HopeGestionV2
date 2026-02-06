@@ -57,9 +57,9 @@ type PaymentStatus = 'paid' | 'pending' | 'late' | 'unknown';
 const getPaymentStatus = (locataire: Locataire): PaymentStatus => {
   // In real app, this would come from API
   // For demo, simulate based on ID
-  if (!locataire.loyer) return 'unknown';
-  const statuses: PaymentStatus[] = ['paid', 'paid', 'paid', 'pending', 'late'];
-  return statuses[locataire.id % statuses.length];
+  if (!locataire.loyer_actuel) return 'unknown';
+  // Use status computed by backend if available, otherwise fallback (should not happen with new backend)
+  return (locataire as any).payment_status || 'unknown';
 };
 
 const PaymentStatusBadge: React.FC<{ status: PaymentStatus }> = ({ status }) => {
@@ -306,16 +306,16 @@ const Locataires: React.FC = () => {
             Gérez vos locataires, acheteurs et leurs affectations.
           </p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
           <SearchInput 
             placeholder="Rechercher par nom, tél, email..."
             value={searchQuery}
             onChange={setSearchQuery}
-            className="w-72"
+            className="w-full md:w-72"
           />
           <Button 
             variant="primary" 
-            className="rounded-full px-6 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all font-semibold"
+            className="rounded-full px-6 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all font-semibold whitespace-nowrap"
             onClick={() => {
               setFormType('creation');
               setLocataireForm({ ...locataireForm, typeProfil: activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire' });
