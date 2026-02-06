@@ -30,7 +30,6 @@ const DelegationsPage: React.FC = () => {
   const [targetPermissions, setTargetPermissions] = useState<Permissions>({
     can_view_finances: false,
     can_edit_properties: false,
-    can_edit_properties: false,
     can_manage_tenants: false
   });
   
