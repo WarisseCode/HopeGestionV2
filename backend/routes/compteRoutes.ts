@@ -151,15 +151,24 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
         const ownerId = newOwner.rows[0].id;
         
         // Lier à l'utilisateur qui crée (si ce n'est pas un admin pur qui crée pour les autres)
-        // Pour simplification, on lie toujours celui qui crée
-        await db.query(
-            `INSERT INTO owner_user (user_id, owner_id, role, is_active, start_date) VALUES ($1, $2, 'owner', true, CURRENT_DATE)`,
-            [req.userId, ownerId]
-        );
+        try {
+            await db.query(
+                `INSERT INTO owner_user (user_id, owner_id, role, is_active, start_date) VALUES ($1, $2, 'owner', true, CURRENT_DATE)`,
+                [req.userId, ownerId]
+            );
+        } catch (linkError) {
+            console.error('Erreur liaison owner_user:', linkError);
+            // On continue même si la liaison échoue (non critique pour la création)
+        }
 
         // Log action
-        await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, 'CREATE_OWNER', 'COMPTE', `Propriétaire: ${req.body.name || req.body.company_name}`]);
+        try {
+            await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
+                [req.userId, 'CREATE_OWNER', 'COMPTE', JSON.stringify({ name: req.body.name || req.body.company_name })]);
+        } catch (logError) {
+            console.error('Erreur audit_log:', logError);
+            // On continue même si le log échoue
+        }
 
         res.status(201).json(newOwner.rows[0]);
     } catch (error: any) {
