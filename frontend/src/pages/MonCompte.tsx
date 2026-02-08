@@ -18,7 +18,15 @@ import { useUser } from '../contexts/UserContext';
 
 const MonCompte: React.FC = () => {
   const { user } = useUser(); // Use context
-  const [activeTab, setActiveTab] = useState<'proprietaires' | 'utilisateurs' | 'autorisation' | 'profile'>('proprietaires');
+  
+  // Determine if user is an owner (proprietaire)
+  const isOwner = user?.role === 'proprietaire' || user?.role === 'owner';
+
+  // Set default tab: If owner, skip 'proprietaires' and go to 'utilisateurs' (or 'profile')
+  const [activeTab, setActiveTab] = useState<'proprietaires' | 'utilisateurs' | 'autorisation' | 'profile'>(
+    (user?.role === 'proprietaire' || user?.role === 'owner') ? 'utilisateurs' : 'proprietaires'
+  );
+
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -26,9 +34,14 @@ const MonCompte: React.FC = () => {
   const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
   
   // Check permission for Users tab
-  // Admin/Owner/Gestionnaire usually have full access, but we rely on the backend permissions object which is now standardized for all.
-  // Fallback to role check if permissions object is missing (e.g. legacy or loading issue), but prefer permissions.
-  const showUsersTab = user?.permissions?.users_read || ['admin', 'gestionnaire', 'proprietaire'].includes(user?.role || '');
+  const showUsersTab = user?.permissions?.users_read || ['admin', 'gestionnaire', 'proprietaire', 'owner'].includes(user?.role || '');
+
+  // Effect to correct tab if user role loads late and we are on a forbidden tab
+  React.useEffect(() => {
+     if (isOwner && activeTab === 'proprietaires') {
+         setActiveTab('utilisateurs');
+     }
+  }, [user, isOwner, activeTab]);
 
   return (
     <motion.div 
@@ -42,15 +55,17 @@ const MonCompte: React.FC = () => {
       {/* Tabs */}
      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-center bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
         <div className="flex p-1 bg-gray-100/50 rounded-xl overflow-x-auto">
-             <button
-                onClick={() => setActiveTab('proprietaires')}
-                className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'proprietaires' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
-                }`}
-            >
-                <Building2 size={18} />
-                Propriétaires
-            </button>
+             {!isOwner && (
+                 <button
+                    onClick={() => setActiveTab('proprietaires')}
+                    className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
+                    activeTab === 'proprietaires' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    <Building2 size={18} />
+                    Propriétaires
+                </button>
+             )}
             {showUsersTab && (
                 <button
                     onClick={() => setActiveTab('utilisateurs')}
@@ -85,7 +100,7 @@ const MonCompte: React.FC = () => {
 
       {/* Content */}
       <AnimatePresence mode="wait">
-        {activeTab === 'proprietaires' && (
+        {!isOwner && activeTab === 'proprietaires' && (
             <motion.div 
             key="proprietaires"
             initial={{ opacity: 0 }}

@@ -68,7 +68,7 @@ async function seedData() {
         console.log('Creating Alien Owner (for isolation test)...');
         const alienOwnerRes = await pool.query(`
             INSERT INTO users (nom, email, password_hash, role, user_type, statut, telephone, created_at)
-            VALUES ($1, $2, $3, $4, $4, 'active', '00000003', NOW())
+            VALUES ($1, $2, $3, $4, $4, 'actif', '00000003', NOW())
             RETURNING id, email
         `, ['Alien Owner', 'alien@test.com', passwordHash, 'proprietaire']);
         const alienUser = alienOwnerRes.rows[0];

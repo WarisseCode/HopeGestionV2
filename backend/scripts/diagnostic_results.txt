@@ -1,0 +1,161 @@
+🔍 Connexion à la base de données de production...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 LIENS OWNER_USER EXISTANTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[
+  {
+    "id": 1,
+    "owner_id": 696,
+    "user_id": 30,
+    "role": "owner",
+    "can_view_finances": false,
+    "can_edit_properties": false,
+    "can_manage_tenants": false,
+    "can_manage_contracts": false,
+    "can_validate_payments": false,
+    "start_date": "2026-02-03T23:00:00.000Z",
+    "end_date": null,
+    "is_active": true,
+    "created_at": "2026-02-04T20:58:10.485Z",
+    "updated_at": "2026-02-04T20:58:10.485Z"
+  },
+  {
+    "id": 2,
+    "owner_id": 718,
+    "user_id": 30,
+    "role": "owner",
+    "can_view_finances": false,
+    "can_edit_properties": false,
+    "can_manage_tenants": false,
+    "can_manage_contracts": false,
+    "can_validate_payments": false,
+    "start_date": "2026-02-06T23:00:00.000Z",
+    "end_date": null,
+    "is_active": true,
+    "created_at": "2026-02-07T21:15:25.603Z",
+    "updated_at": "2026-02-07T21:15:25.603Z"
+  }
+]
+
+✅ Total liens actifs: 2
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  UTILISATEURS SANS LIENS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[
+  {
+    "id": 1,
+    "nom": "Waris Gestion",
+    "email": "admin@hope.com",
+    "role": "gestionnaire",
+    "statut": "actif"
+  },
+  {
+    "id": 26,
+    "nom": "Mikael  Jordan",
+    "email": "mikael@hope.com",
+    "role": "proprietaire",
+    "statut": "actif"
+  },
+  {
+    "id": 39,
+    "nom": "AGBETO Blaise",
+    "email": "blaiseagbeto@gmail.com",
+    "role": "proprietaire",
+    "statut": "actif"
+  },
+  {
+    "id": 91,
+    "nom": "Damilaré Ayinla",
+    "email": "damilare@gmail.com",
+    "role": "gestionnaire",
+    "statut": "actif"
+  },
+  {
+    "id": 168,
+    "nom": "KPOHIZOUN Desmond",
+    "email": "desmond.kpo@gmail.com",
+    "role": "gestionnaire",
+    "statut": "actif"
+  },
+  {
+    "id": 205,
+    "nom": "FADEYI Roukayath",
+    "email": "roukayathfadeyi5@gmail.com",
+    "role": "gestionnaire",
+    "statut": "actif"
+  },
+  {
+    "id": 247,
+    "nom": "John Doe",
+    "email": "john@hope.com",
+    "role": "gestionnaire",
+    "statut": "actif"
+  }
+]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🏢 PROPRIÉTAIRES DISPONIBLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[
+  {
+    "id": 1,
+    "name": "OTCHADE",
+    "email": "warissecodeman@gmail.com",
+    "type": "individual",
+    "is_active": true
+  },
+  {
+    "id": 2,
+    "name": "KOFFI",
+    "email": "jean.koffi@example.com",
+    "type": "individual",
+    "is_active": true
+  },
+  {
+    "id": 3,
+    "name": "IMMOBILIER PLUS",
+    "email": "contact@immobilierplus.bj",
+    "type": "company",
+    "is_active": true
+  },
+  {
+    "id": 268,
+    "name": "DEGBO ",
+    "email": " thomasdegbo22@gmail.com",
+    "type": "individual",
+    "is_active": true
+  },
+  {
+    "id": 696,
+    "name": "FAFOLAHAN",
+    "email": "segbedemonique@gmail.com",
+    "type": "individual",
+    "is_active": true
+  },
+  {
+    "id": 718,
+    "name": "FAFOLAHAN",
+    "email": "segbedemonique@gmail.com",
+    "type": "individual",
+    "is_active": true
+  }
+]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📈 RÉSUMÉ GLOBAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[
+  {
+    "total_users_non_admin": "8",
+    "total_owners": "6",
+    "total_links": "2",
+    "users_sans_lien": "7"
+  }
+]
+
+✅ Diagnostic terminé!
+
+⚠️  ACTION REQUISE: Exécutez le script de correction
+   node backend/scripts/runFix.js

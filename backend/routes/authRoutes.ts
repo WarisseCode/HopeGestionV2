@@ -603,6 +603,7 @@ router.post('/invite-user', verifyToken, async (req: any, res) => {
             return res.status(400).json({ message: 'Nom, Téléphone et Rôle sont requis.' });
         }
 
+
         // 1. Créer le compte utilisateur en statut "invited" (ou "inactif" si "invited" n'est pas dans l'enum)
         // On met un hash impossible pour le password temporairement.
         const tempHash = '$2b$10$INVALIDHASHForInvitedUserOnlyXXXXXXXXXXXXXXXXXXXXX'; 

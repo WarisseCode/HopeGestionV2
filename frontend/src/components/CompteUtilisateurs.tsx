@@ -543,10 +543,11 @@ const CompteUtilisateurs: React.FC = () => {
                                     />
                                     <input 
                                         type="email"
-                                        placeholder="Email (Optionnel)" 
+                                        placeholder="Email" 
                                         className="p-2 border rounded-lg w-full"
                                         value={newUser.email}
                                         onChange={e => setNewUser({...newUser, email: e.target.value})}
+                                        required
                                     />
                                     
                                     {creationMode === 'direct' && (

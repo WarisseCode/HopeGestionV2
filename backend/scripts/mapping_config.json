@@ -1,0 +1,116 @@
+{
+  "instructions": "Modifiez ce fichier pour créer les liens. Format: user_id: owner_id",
+  "owners": [
+    {
+      "id": 1,
+      "name": "OTCHADE",
+      "email": "warissecodeman@gmail.com"
+    },
+    {
+      "id": 2,
+      "name": "KOFFI",
+      "email": "jean.koffi@example.com"
+    },
+    {
+      "id": 3,
+      "name": "IMMOBILIER PLUS",
+      "email": "contact@immobilierplus.bj"
+    },
+    {
+      "id": 268,
+      "name": "DEGBO ",
+      "email": " thomasdegbo22@gmail.com"
+    },
+    {
+      "id": 696,
+      "name": "FAFOLAHAN",
+      "email": "segbedemonique@gmail.com"
+    },
+    {
+      "id": 718,
+      "name": "FAFOLAHAN",
+      "email": "segbedemonique@gmail.com"
+    }
+  ],
+  "managers": [
+    {
+      "id": 1,
+      "name": "Waris Gestion",
+      "email": "admin@hope.com",
+      "role": "gestionnaire"
+    },
+    {
+      "id": 26,
+      "name": "Mikael  Jordan",
+      "email": "mikael@hope.com",
+      "role": "proprietaire"
+    },
+    {
+      "id": 39,
+      "name": "AGBETO Blaise",
+      "email": "blaiseagbeto@gmail.com",
+      "role": "proprietaire"
+    },
+    {
+      "id": 91,
+      "name": "Damilaré Ayinla",
+      "email": "damilare@gmail.com",
+      "role": "gestionnaire"
+    },
+    {
+      "id": 168,
+      "name": "KPOHIZOUN Desmond",
+      "email": "desmond.kpo@gmail.com",
+      "role": "gestionnaire"
+    },
+    {
+      "id": 205,
+      "name": "FADEYI Roukayath",
+      "email": "roukayathfadeyi5@gmail.com",
+      "role": "gestionnaire"
+    },
+    {
+      "id": 247,
+      "name": "John Doe",
+      "email": "john@hope.com",
+      "role": "gestionnaire"
+    }
+  ],
+  "links": {
+    "1": {
+      "owner_id": null,
+      "confidence": "manual",
+      "reason": "Aucune correspondance automatique - À définir manuellement"
+    },
+    "26": {
+      "owner_id": null,
+      "confidence": "manual",
+      "reason": "Aucune correspondance automatique - À définir manuellement"
+    },
+    "39": {
+      "owner_id": null,
+      "confidence": "manual",
+      "reason": "Aucune correspondance automatique - À définir manuellement"
+    },
+    "91": {
+      "owner_id": null,
+      "confidence": "manual",
+      "reason": "Aucune correspondance automatique - À définir manuellement"
+    },
+    "168": {
+      "owner_id": null,
+      "confidence": "manual",
+      "reason": "Aucune correspondance automatique - À définir manuellement"
+    },
+    "205": {
+      "owner_id": null,
+      "confidence": "manual",
+      "reason": "Aucune correspondance automatique - À définir manuellement"
+    },
+    "247": {
+      "owner_id": null,
+      "confidence": "manual",
+      "reason": "Aucune correspondance automatique - À définir manuellement"
+    }
+  }
+}
