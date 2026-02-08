@@ -19,8 +19,7 @@ router.get('/proprietaires', async (req: AuthenticatedRequest, res: Response) =>
                    city as ville, country as pays, id_number as "numeroPiece", 
                    photo, management_mode as "modeGestion",
                    mobile_money_number as "mobileMoney", 
-                   id_number as "rccmNumber",
-                   company_name
+                   id_number as "rccmNumber"
             FROM owners
             WHERE is_active = TRUE
         `;
