@@ -135,16 +135,16 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
             [
                 req.body.type || 'individual',
                 req.body.name || req.body.company_name, // Nom ou Raison sociale
-                req.body.first_name || '',
+                req.body.first_name || req.body.prenom || '', // Support both field names
                 cleanPhone,
-                req.body.phone_secondary || null,
+                req.body.phone_secondary || req.body.secondary_phone || null, // Support both field names
                 req.body.email || '',
                 req.body.address || '',
                 req.body.city || '',
                 req.body.country || 'Bénin',
                 req.body.id_number || null,
-                req.body.photo || null,
-                cleanMobileMoney,
+                req.body.photo || req.body.photo_url || null, // Support both field names
+                cleanMobileMoney || (req.body.mobile_money ? req.body.mobile_money.replace(/[^\d+]/g, '') : null), // Support both
                 req.body.management_mode || 'direct'
             ]
         );

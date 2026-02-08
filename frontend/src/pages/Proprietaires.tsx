@@ -17,6 +17,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import { useMobile } from '../hooks/useMobile';
+import { API_URL } from '../config';
 
 interface Owner {
   id: number;
@@ -66,7 +67,7 @@ const Proprietaires: React.FC = () => {
 
   const fetchOwners = async () => {
     try {
-      const response = await fetch('/api/owners', {
+      const response = await fetch(`${API_URL}/owners`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('userToken')}`
         }
@@ -87,8 +88,8 @@ const Proprietaires: React.FC = () => {
 
     try {
       const url = editingOwner 
-        ? `/api/owners/${editingOwner.id}` 
-        : '/api/owners';
+        ? `${API_URL}/owners/${editingOwner.id}` 
+        : `${API_URL}/owners`;
       
       const method = editingOwner ? 'PUT' : 'POST';
 
@@ -139,7 +140,7 @@ const Proprietaires: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`/api/owners/${id}`, {
+      const response = await fetch(`${API_URL}/owners/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('userToken')}`
