@@ -191,34 +191,56 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
                 return res.status(403).json({ message: "Vous n'êtes pas autorisé à modifier ce propriétaire." });
             }
         }
+        // Support multiple field names for backward compatibility
         const { 
             name, type, phone, email, address, 
-            company_name, rccm_number, mobile_money, telephoneSecondaire,
+            company_name, rccm_number, mobile_money, mobile_money_number,
+            telephoneSecondaire, secondary_phone, phone_secondary,
+            first_name, prenom,
             management_mode, delegation_start_date, delegation_end_date 
         } = req.body;
         
-        // const ownerId = req.params.id; // Removed duplicate declaration
-
-        // Nettoyage des numéros
-        const cleanPhone = phone ? phone.replace(/[\s\-\(\)\.]/g, '') : null;
-        const cleanPhoneSec = telephoneSecondaire ? telephoneSecondaire.replace(/[\s\-\(\)\.]/g, '') : null;
-        const cleanMobileMoney = mobile_money ? mobile_money.replace(/[\s\-\(\)\.]/g, '') : null;
+        // Nettoyage des numéros avec support de multiples noms de champs
+        const rawPhone = phone;
+        const cleanPhone = rawPhone ? rawPhone.replace(/[\s\-\(\)\.]/g, '') : null;
+        
+        const rawPhoneSec = phone_secondary || secondary_phone || telephoneSecondaire;
+        const cleanPhoneSec = rawPhoneSec ? rawPhoneSec.replace(/[\s\-\(\)\.]/g, '') : null;
+        
+        const rawMobileMoney = mobile_money_number || mobile_money;
+        const cleanMobileMoney = rawMobileMoney ? rawMobileMoney.replace(/[\s\-\(\)\.]/g, '') : null;
 
         const updatedOwner = await db.query(
             `UPDATE owners 
-             SET name = $1, type = $2, phone = $3, email = $4, address = $5,
-                 company_name = $6, rccm_number = $7, mobile_money = $8,
-                 contact_info = COALESCE($9, contact_info),
-                 management_mode = COALESCE($10, management_mode),
-                 delegation_start_date = COALESCE($11, delegation_start_date),
-                 delegation_end_date = COALESCE($12, delegation_end_date),
+             SET name = COALESCE($1, name), 
+                 type = COALESCE($2, type), 
+                 phone = COALESCE($3, phone), 
+                 email = COALESCE($4, email), 
+                 address = COALESCE($5, address),
+                 first_name = COALESCE($6, first_name),
+                 company_name = COALESCE($7, company_name), 
+                 rccm_number = COALESCE($8, rccm_number), 
+                 mobile_money_number = COALESCE($9, mobile_money_number),
+                 phone_secondary = COALESCE($10, phone_secondary),
+                 management_mode = COALESCE($11, management_mode),
+                 delegation_start_date = COALESCE($12, delegation_start_date),
+                 delegation_end_date = COALESCE($13, delegation_end_date),
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = $13 RETURNING *`,
+             WHERE id = $14 RETURNING *`,
             [
-                name, type, cleanPhone, email, address, 
-                company_name, rccm_number, cleanMobileMoney, 
-                cleanPhoneSec, // On map telephoneSecondaire dans contact_info pour l'instant ou on pourrait créer une colonne dédiée
-                management_mode, delegation_start_date, delegation_end_date,
+                name || company_name, // Support both
+                type, 
+                cleanPhone, 
+                email, 
+                address,
+                first_name || prenom || null, // Support both field names
+                company_name, 
+                rccm_number, 
+                cleanMobileMoney, 
+                cleanPhoneSec,
+                management_mode, 
+                delegation_start_date, 
+                delegation_end_date,
                 ownerId
             ]
         );

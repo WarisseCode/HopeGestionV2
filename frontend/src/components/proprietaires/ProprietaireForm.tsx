@@ -139,7 +139,12 @@ const ProprietaireForm: React.FC<ProprietaireFormProps> = ({
 
   const handleSubmit = async () => {
     if (!isStepValid()) return;
-    await onSave(formData);
+    
+    // Exclude photo_url from payload (base64 too long for varchar(255))
+    // TODO: Implement proper image upload to cloud storage
+    const { photo_url, ...saveData } = formData;
+    
+    await onSave(saveData);
   };
 
   const slideVariants = {

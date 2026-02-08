@@ -11,13 +11,14 @@ import {
   Mail,
   MapPin,
   CreditCard,
-  UserPlus
+  UserPlus,
+  X
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
-import Input from '../components/ui/Input';
 import { useMobile } from '../hooks/useMobile';
-import { API_URL } from '../config';
+import ProprietaireForm from '../components/proprietaires/ProprietaireForm';
+import { accountApi } from '../api/accountApi';
 
 interface Owner {
   id: number;
@@ -46,36 +47,36 @@ const Proprietaires: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingOwner, setEditingOwner] = useState<Owner | null>(null);
 
-  const [formData, setFormData] = useState({
-    type: 'individual' as 'individual' | 'company',
-    name: '',
-    first_name: '',
-    phone: '',
-    phone_secondary: '',
-    email: '',
-    address: '',
-    city: '',
-    country: 'Bénin',
-    id_number: '',
-    mobile_money_number: '',
-    management_mode: 'direct' as 'direct' | 'delegated'
-  });
-
   useEffect(() => {
     fetchOwners();
   }, []);
 
   const fetchOwners = async () => {
     try {
-      const response = await fetch(`${API_URL}/owners`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('userToken')}`
-        }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setOwners(data.owners);
-      }
+      const data = await accountApi.getProprietaires();
+      
+      // Map backend data (French keys) to frontend interface (English keys)
+      const mappedOwners: Owner[] = data.map((o: any) => ({
+        id: o.id,
+        type: o.type,
+        name: o.nom || o.name,
+        first_name: o.prenom || o.first_name,
+        phone: o.telephone || o.phone,
+        phone_secondary: o.telephoneSecondaire || o.phone_secondary,
+        email: o.email,
+        address: o.adresse || o.address,
+        city: o.ville || o.city,
+        country: o.pays || o.country,
+        id_number: o.numeroPiece || o.id_number || o.rccmNumber,
+        photo: o.photo || o.photo_url,
+        mobile_money_number: o.mobileMoney || o.mobile_money_number,
+        management_mode: o.modeGestion || o.management_mode || 'direct',
+        is_active: true,
+        total_properties: o.total_properties || 0,
+        total_lots: o.total_lots || 0
+      }));
+
+      setOwners(mappedOwners);
     } catch (error) {
       console.error('Error fetching owners:', error);
     } finally {
@@ -83,54 +84,8 @@ const Proprietaires: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      const url = editingOwner 
-        ? `${API_URL}/owners/${editingOwner.id}` 
-        : `${API_URL}/owners`;
-      
-      const method = editingOwner ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('userToken')}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setShowForm(false);
-        setEditingOwner(null);
-        resetForm();
-        fetchOwners();
-      }
-    } catch (error) {
-      console.error('Error saving owner:', error);
-    }
-  };
-
   const handleEdit = (owner: Owner) => {
     setEditingOwner(owner);
-    setFormData({
-      type: owner.type,
-      name: owner.name,
-      first_name: owner.first_name || '',
-      phone: owner.phone,
-      phone_secondary: owner.phone_secondary || '',
-      email: owner.email || '',
-      address: owner.address || '',
-      city: owner.city || '',
-      country: owner.country || 'Bénin',
-      id_number: owner.id_number || '',
-      mobile_money_number: owner.mobile_money_number || '',
-      management_mode: owner.management_mode
-    });
     setShowForm(true);
   };
 
@@ -157,23 +112,6 @@ const Proprietaires: React.FC = () => {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      type: 'individual',
-      name: '',
-      first_name: '',
-      phone: '',
-      phone_secondary: '',
-      email: '',
-      address: '',
-      city: '',
-      country: 'Bénin',
-      id_number: '',
-      mobile_money_number: '',
-      management_mode: 'direct'
-    });
-  };
-
   if (loading) {
     return <div className="flex justify-center items-center h-full">Chargement...</div>;
   }
@@ -188,7 +126,6 @@ const Proprietaires: React.FC = () => {
         <Button 
           variant="primary" 
           onClick={() => {
-            resetForm();
             setEditingOwner(null);
             setShowForm(true);
           }}
@@ -248,134 +185,43 @@ const Proprietaires: React.FC = () => {
         </Card>
       </div>
 
-      {/* Formulaire */}
+      {/* Wizard Modal */}
       {showForm && (
-        <Card title={editingOwner ? 'Modifier le propriétaire' : 'Nouveau propriétaire'}>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Type de propriétaire</label>
-                <select 
-                  className="w-full p-3 border border-base-200 rounded-lg bg-base-100"
-                  value={formData.type}
-                  onChange={(e) => setFormData({...formData, type: e.target.value as 'individual' | 'company'})}
-                >
-                  <option value="individual">Personne physique</option>
-                  <option value="company">Personne morale</option>
-                </select>
-              </div>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto relative">
+            {/* Close button */}
+            <button
+              onClick={() => {
+                setShowForm(false);
+                setEditingOwner(null);
+              }}
+              className="absolute top-4 right-4 z-10 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              aria-label="Fermer"
+            >
+              <X size={24} className="text-gray-600" />
+            </button>
 
-              <div>
-                <Input 
-                  label="Nom / Raison sociale" 
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                />
-              </div>
-
-              {formData.type === 'individual' && (
-                <div>
-                  <Input 
-                    label="Prénoms" 
-                    value={formData.first_name}
-                    onChange={(e) => setFormData({...formData, first_name: e.target.value})}
-                  />
-                </div>
-              )}
-
-              <div>
-                <Input 
-                  label="Téléphone principal (WhatsApp)" 
-                  type="tel"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <Input 
-                  label="Téléphone secondaire" 
-                  type="tel"
-                  value={formData.phone_secondary}
-                  onChange={(e) => setFormData({...formData, phone_secondary: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <Input 
-                  label="Email" 
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <Input 
-                  label="Numéro de pièce / RCCM" 
-                  value={formData.id_number}
-                  onChange={(e) => setFormData({...formData, id_number: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <Input 
-                  label="Mobile Money" 
-                  type="tel"
-                  value={formData.mobile_money_number}
-                  onChange={(e) => setFormData({...formData, mobile_money_number: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <Input 
-                  label="Ville" 
-                  value={formData.city}
-                  onChange={(e) => setFormData({...formData, city: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Mode de gestion</label>
-                <select 
-                  className="w-full p-3 border border-base-200 rounded-lg bg-base-100"
-                  value={formData.management_mode}
-                  onChange={(e) => setFormData({...formData, management_mode: e.target.value as 'direct' | 'delegated'})}
-                >
-                  <option value="direct">Gestion directe</option>
-                  <option value="delegated">Gestion déléguée</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-2">
-                <Input 
-                  label="Adresse complète" 
-                  value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <Button 
-                variant="ghost" 
-                type="button"
-                onClick={() => {
+            <ProprietaireForm
+              owner={editingOwner}
+              onSave={async (data) => {
+                try {
+                  await accountApi.saveProprietaire(data);
                   setShowForm(false);
                   setEditingOwner(null);
-                  resetForm();
-                }}
-              >
-                Annuler
-              </Button>
-              <Button variant="primary" type="submit">
-                {editingOwner ? 'Modifier' : 'Créer'}
-              </Button>
-            </div>
-          </form>
-        </Card>
+                  await fetchOwners();
+                } catch (err) {
+                  console.error('Error saving owner:', err);
+                  const errorMessage = err instanceof Error ? err.message : "Erreur lors de l'enregistrement";
+                  alert(errorMessage);
+                }
+              }}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingOwner(null);
+              }}
+            />
+          </div>
+        </div>
       )}
 
       {/* Liste des propriétaires */}
