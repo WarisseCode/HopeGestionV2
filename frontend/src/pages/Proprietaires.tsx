@@ -95,18 +95,8 @@ const Proprietaires: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/owners/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('userToken')}`
-        }
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        fetchOwners();
-      }
+      await accountApi.deleteProprietaire(id);
+      fetchOwners();
     } catch (error) {
       console.error('Error deleting owner:', error);
     }
@@ -202,7 +192,7 @@ const Proprietaires: React.FC = () => {
             </button>
 
             <ProprietaireForm
-              owner={editingOwner}
+              owner={editingOwner || undefined}
               onSave={async (data) => {
                 try {
                   await accountApi.saveProprietaire(data);
