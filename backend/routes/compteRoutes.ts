@@ -18,7 +18,7 @@ router.get('/proprietaires', async (req: AuthenticatedRequest, res: Response) =>
                    phone_secondary as "telephoneSecondaire", email, address as adresse, 
                    city as ville, country as pays, id_number as "numeroPiece", 
                    photo, management_mode as "modeGestion",
-                   COALESCE(mobile_money_coordinates, mobile_money_number) as "mobileMoney", 
+                   mobile_money_number as "mobileMoney", 
                    COALESCE(rccm_number, id_number) as "rccmNumber",
                    company_name
             FROM owners

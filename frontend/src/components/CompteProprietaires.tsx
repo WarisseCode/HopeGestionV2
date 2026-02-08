@@ -148,9 +148,11 @@ const CompteProprietaires: React.FC = () => {
                       await accountApi.saveProprietaire(data);
                       setShowForm(false);
                       setEditingProp({ type: 'individual', management_mode: 'direct', name: '', phone: '', email: '', address: '' });
-                      loadOwners();
-                    } catch (err) {
-                      setError("Erreur lors de l'enregistrement.");
+                      await loadOwners(); // Await to catch potential error
+                      // Success - no error set
+                    } catch (err: any) {
+                      console.error('Error saving owner:', err);
+                      setError(err.message || "Erreur lors de l'enregistrement.");
                     }
                   }}
                   onCancel={() => setShowForm(false)}
