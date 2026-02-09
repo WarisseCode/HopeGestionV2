@@ -3,10 +3,10 @@ const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
 
-// Load environment variables
-dotenv.config(); 
+// Load environment variables correcty from backend directory
+dotenv.config({ path: path.join(__dirname, '.env') });
 
-console.log('=== Migration 25: Fix Tenants Schema ===');
+console.log('=== Migration 27: Reconcile Payments Schema ===');
 
 // Use DATABASE_URL (Render standard) or fallback to individual vars
 const connectionConfig = process.env.DATABASE_URL 
@@ -29,11 +29,15 @@ const pool = new Pool(connectionConfig);
 async function runMigration() {
   const client = await pool.connect();
   try {
-    // Run migration 26 for leases
-    console.log('Running migration 26_fix_leases_module_v.sql...');
-    const sql = fs.readFileSync(path.join(__dirname, 'migrations', '26_fix_leases_module_v.sql'), 'utf8');
+    // Run migration 27 for payments reconciliation
+    console.log('Running migration 27_reconcile_payments_schema.sql...');
+    const migrationPath = path.join(__dirname, 'migrations', '27_reconcile_payments_schema.sql');
+    const sql = fs.readFileSync(migrationPath, 'utf8');
+    
+    // Split by semicolons properly or run as one block since it's a DO block
     const result = await client.query(sql);
-    console.log('✅ Migration completed successfully!');
+    
+    console.log('✅ Migration 27 completed successfully!');
     console.log('Result:', result);
   } catch (err) {
     console.error('❌ Error running migration:', err.message);
