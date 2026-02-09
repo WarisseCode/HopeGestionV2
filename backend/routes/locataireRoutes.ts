@@ -151,13 +151,21 @@ router.post('/', protect, async (req: any, res) => {
             caution, avance, paiement_echelonne
         } = req.body;
 
+        // Sanitize optional fields (empty string -> null)
+        const cleanEmail = email && email.trim() !== '' ? email : null;
+        const cleanStartPhone2 = telephone_secondaire && telephone_secondaire.trim() !== '' ? telephone_secondaire : null;
+        const cleanAddress = adresse_actuelle && adresse_actuelle.trim() !== '' ? adresse_actuelle : null;
+        const cleanExpDate = date_expiration_piece && date_expiration_piece.trim() !== '' ? date_expiration_piece : null;
+        const cleanPhotoProfil = photo_profil_url && photo_profil_url.trim() !== '' ? photo_profil_url : null;
+        const cleanPhotoPiece = photo_piece_url && photo_piece_url.trim() !== '' ? photo_piece_url : null;
+
         // Check for duplicates (Phone or Email) logic for same owner
         const duplicateCheck = await pool.query(
             `SELECT id FROM tenants 
              WHERE owner_id = $1 
              AND (telephone_principal = $2 OR (email IS NOT NULL AND email != '' AND email = $3))
              AND statut != 'Archivé'`,
-            [ownerId, telephone_principal, email || '']
+            [ownerId, telephone_principal, cleanEmail || '']
         );
 
         if (duplicateCheck.rows.length > 0) {
@@ -173,23 +181,27 @@ router.post('/', protect, async (req: any, res) => {
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Actif', $11, $12, $13, $14, $15, $16, $17, $18) 
             RETURNING id`,
             [
-                ownerId, nom, prenoms, email, telephone_principal, telephone_secondaire,
+                ownerId, nom, prenoms, cleanEmail, telephone_principal, cleanStartPhone2,
                 nationalite, type_piece, numero_piece, type || 'Locataire', mode_paiement_preferentiel,
-                adresse_actuelle || null, date_expiration_piece || null, photo_profil_url || null, photo_piece_url || null,
+                cleanAddress, cleanExpDate, cleanPhotoProfil, cleanPhotoPiece,
                 caution || 0, avance || 0, paiement_echelonne || false
             ]
         );
 
-        // Log Creation
-        await AuditService.log({
-            userId: userId,
-            action: 'CREATE_TENANT',
-            entityType: 'TENANT',
-            entityId: result.rows[0].id,
-            details: { nom, prenoms, email },
-            ipAddress: req.ip || 'unknown',
-            userAgent: (req.headers['user-agent'] as string) || 'unknown'
-        });
+        // Log Creation (Silent fail)
+        try {
+            await AuditService.log({
+                userId: userId,
+                action: 'CREATE_TENANT',
+                entityType: 'TENANT',
+                entityId: result.rows[0].id,
+                details: { nom, prenoms, email },
+                ipAddress: req.ip || 'unknown',
+                userAgent: (req.headers['user-agent'] as string) || 'unknown'
+            });
+        } catch (auditError) {
+            console.error('Audit log failed for tenant creation (non-critical):', auditError);
+        }
 
         res.status(201).json({ message: "Locataire créé", id: result.rows[0].id });
 
