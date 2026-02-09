@@ -7,17 +7,24 @@ const dotenv = require('dotenv');
 dotenv.config(); 
 
 console.log('=== Migration 25: Fix Tenants Schema ===');
-console.log('DB_HOST:', process.env.DB_HOST);
-console.log('DB_NAME:', process.env.DB_NAME);
 
-const pool = new Pool({
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'hopegestion',
-  password: process.env.DB_PASSWORD,
-  port: parseInt(process.env.DB_PORT || '5432'),
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
-});
+// Use DATABASE_URL (Render standard) or fallback to individual vars
+const connectionConfig = process.env.DATABASE_URL 
+  ? { 
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    }
+  : {
+      user: process.env.DB_USER || 'postgres',
+      host: process.env.DB_HOST || 'localhost',
+      database: process.env.DB_NAME || 'hopegestion',
+      password: process.env.DB_PASSWORD,
+      port: parseInt(process.env.DB_PORT || '5432'),
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+    };
+
+console.log('Using DATABASE_URL:', !!process.env.DATABASE_URL);
+const pool = new Pool(connectionConfig);
 
 async function runMigration() {
   const client = await pool.connect();
