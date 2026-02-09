@@ -58,8 +58,15 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
     statut: 'Actif'
   });
 
+  // Only populate form data on initial mount OR when editing (locataire has id)
+  // This prevents resetting user input when parent re-renders
+  const didPopulateRef = React.useRef(false);
+  
   useEffect(() => {
-    if (locataire) {
+    // For editing: populate if locataire has an id and we haven't populated yet
+    // For creation: don't populate (use defaults)
+    if (locataire?.id && !didPopulateRef.current) {
+      didPopulateRef.current = true;
       setFormData(prev => ({
         ...prev,
         ...locataire,
@@ -68,7 +75,7 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
           : ''
       }));
     }
-  }, [locataire]);
+  }, [locataire?.id]);
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));

@@ -673,19 +673,7 @@ const Locataires: React.FC = () => {
       >
         <LocataireForm
           locataire={{
-            type: locataireForm.typeProfil as any,
-            nom: locataireForm.nom,
-            prenoms: locataireForm.prenoms,
-            telephone_principal: locataireForm.telephonePrincipal,
-            telephone_secondaire: locataireForm.telephoneSecondaire,
-            email: locataireForm.email,
-            nationalite: locataireForm.nationalite,
-            type_piece: locataireForm.typePiece,
-            numero_piece: locataireForm.numeroPiece,
-            date_expiration_piece: locataireForm.dateExpiration,
-            mode_paiement_preferentiel: locataireForm.modePaiement,
-            caution: locataireForm.acompte,
-            avance: locataireForm.avance
+            type: locataireForm.typeProfil as any
           }}
           onSave={async (data) => {
             try {
