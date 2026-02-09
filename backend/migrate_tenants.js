@@ -29,8 +29,9 @@ const pool = new Pool(connectionConfig);
 async function runMigration() {
   const client = await pool.connect();
   try {
-    console.log('Running migration 25_fix_tenants_schema.sql...');
-    const sql = fs.readFileSync(path.join(__dirname, 'migrations', '25_fix_tenants_schema.sql'), 'utf8');
+    // Run migration 26 for leases
+    console.log('Running migration 26_fix_leases_module_v.sql...');
+    const sql = fs.readFileSync(path.join(__dirname, 'migrations', '26_fix_leases_module_v.sql'), 'utf8');
     const result = await client.query(sql);
     console.log('✅ Migration completed successfully!');
     console.log('Result:', result);
