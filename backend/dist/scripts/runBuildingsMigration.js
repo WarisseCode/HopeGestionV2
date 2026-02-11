@@ -22,4 +22,3 @@ async function runBuildingsMigration() {
     }
 }
 runBuildingsMigration();
-//# sourceMappingURL=runBuildingsMigration.js.map

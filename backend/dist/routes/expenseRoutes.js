@@ -7,13 +7,16 @@ const express_1 = require("express");
 const database_1 = __importDefault(require("../db/database"));
 const authMiddleware_1 = require("../middleware/authMiddleware");
 const permissionMiddleware_1 = __importDefault(require("../middleware/permissionMiddleware"));
+const ownerIsolation_1 = require("../middleware/ownerIsolation");
 const router = (0, express_1.Router)();
 // Protect all routes
 router.use(authMiddleware_1.protect);
-// GET /api/expenses - List expenses
-router.get('/', permissionMiddleware_1.default.canRead('finances'), async (req, res) => {
+// GET /api/expenses - List expenses (filtered by owner)
+router.get('/', permissionMiddleware_1.default.canRead('finances'), ownerIsolation_1.filterByOwner, async (req, res) => {
     try {
         const { building_id, owner_id, category, start_date, end_date } = req.query;
+        const ownerIds = req.ownerIds;
+        const ownerWhereClause = (0, ownerIsolation_1.buildOwnerWhereClause)(ownerIds);
         let query = `
             SELECT e.*, 
                    b.nom as building_name,
@@ -23,7 +26,7 @@ router.get('/', permissionMiddleware_1.default.canRead('finances'), async (req, 
             LEFT JOIN buildings b ON e.building_id = b.id
             LEFT JOIN lots l ON e.lot_id = l.id
             LEFT JOIN expense_categories ep ON e.category = ep.name
-            WHERE 1=1
+            WHERE ${ownerWhereClause.replace(/owner_id/g, 'e.owner_id')}
         `;
         const params = [];
         let pIdx = 1;
@@ -112,4 +115,3 @@ router.delete('/:id', permissionMiddleware_1.default.canWrite('finances'), async
     }
 });
 exports.default = router;
-//# sourceMappingURL=expenseRoutes.js.map

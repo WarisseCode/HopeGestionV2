@@ -168,7 +168,9 @@ router.get('/lots', permissionMiddleware_1.default.canRead('biens'), ownerIsolat
 router.post('/immeubles', permissionMiddleware_1.default.canWrite('biens'), async (req, res) => {
     const { id, nom, type, adresse, ville, pays, description, owner_id, 
     // Nouveaux champs
-    latitude, longitude, quartier, gestionnaire_id, statut, photos, video_url, plan_masse_url, nombre_etages } = req.body;
+    // Nouveaux champs
+    latitude, longitude, quartier, gestionnaire_id, statut, photos, video_url, plan_masse_url, nombre_etages, photo // Main photo
+     } = req.body;
     if (!owner_id) {
         return res.status(400).json({ message: 'Propriétaire (owner_id) est requis.' });
     }
@@ -187,11 +189,13 @@ router.post('/immeubles', permissionMiddleware_1.default.canWrite('biens'), asyn
                  SET nom = $1, type = $2, adresse = $3, ville = $4, pays = $5, description = $6, owner_id = $7,
                      latitude = $8, longitude = $9, quartier = $10, gestionnaire_id = $11, statut = $12,
                      photos = $13, video_url = $14, plan_masse_url = $15, nombre_etages = $16,
+                     photo_url = $17,
                      updated_at = CURRENT_TIMESTAMP
-                 WHERE id = $17
+                 WHERE id = $18
                  RETURNING *`, [nom, type, adresse, ville, pays, description, owner_id,
                 latitude || null, longitude || null, quartier || null, gestionnaire_id || null, statut || 'actif',
                 photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, nombre_etages || 1,
+                photo || null,
                 id]);
             if (result.rows.length === 0) {
                 return res.status(404).json({ message: 'Immeuble non trouvé.' });
@@ -202,11 +206,12 @@ router.post('/immeubles', permissionMiddleware_1.default.canWrite('biens'), asyn
             // Création
             const result = await database_1.default.query(`INSERT INTO buildings (owner_id, nom, type, adresse, ville, pays, description,
                                         latitude, longitude, quartier, gestionnaire_id, statut,
-                                        photos, video_url, plan_masse_url, nombre_etages) 
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) 
+                                        photos, video_url, plan_masse_url, nombre_etages, photo_url)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
                  RETURNING *`, [owner_id, nom, type, adresse, ville, pays, description,
                 latitude || null, longitude || null, quartier || null, gestionnaire_id || null, statut || 'actif',
-                photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, nombre_etages || 1]);
+                photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, nombre_etages || 1,
+                photo || null]);
             res.status(200).json(result.rows[0]);
         }
     }
@@ -269,7 +274,7 @@ router.post('/lots', permissionMiddleware_1.default.canWrite('biens'), async (re
                 loyer, charges,
                 periodicite || 'mensuel', caution || 0, avance || 1,
                 prix_vente || null, modalite_vente || null, duree_echelonnement || null,
-                photos ? JSON.stringify(photos) : '[]', statut || 'libre', date_disponibilite || null,
+                photos || [], statut || 'libre', date_disponibilite || null,
                 description, targetBuildingId, id]);
             if (result.rows.length === 0) {
                 return res.status(404).json({ message: 'Lot non trouvé.' });
@@ -288,7 +293,7 @@ router.post('/lots', permissionMiddleware_1.default.canWrite('biens'), async (re
                 loyer, charges,
                 periodicite || 'mensuel', caution || 0, avance || 1,
                 prix_vente || null, modalite_vente || null, duree_echelonnement || null,
-                photos ? JSON.stringify(photos) : '[]', statut || 'libre', date_disponibilite || null, description]);
+                photos || [], statut || 'libre', date_disponibilite || null, description]);
             res.status(200).json(result.rows[0]);
         }
     }
@@ -299,7 +304,7 @@ router.post('/lots', permissionMiddleware_1.default.canWrite('biens'), async (re
 });
 // DELETE /api/biens/immeubles/:id
 router.delete('/immeubles/:id', async (req, res) => {
-    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
+    if (!['admin', 'gestionnaire', 'manager', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     const immeubleId = parseInt(req.params.id || '0', 10);
@@ -325,7 +330,7 @@ router.delete('/immeubles/:id', async (req, res) => {
 });
 // DELETE /api/biens/lots/:id
 router.delete('/lots/:id', async (req, res) => {
-    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
+    if (!['admin', 'gestionnaire', 'manager', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     const lotId = parseInt(req.params.id || '0', 10);
@@ -348,4 +353,3 @@ router.delete('/lots/:id', async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=bienRoutes.js.map

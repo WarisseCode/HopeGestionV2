@@ -60,4 +60,3 @@ class WhatsAppService {
 exports.WhatsAppService = WhatsAppService;
 // Initialize on load
 WhatsAppService.init();
-//# sourceMappingURL=WhatsAppService.js.map

@@ -39,4 +39,3 @@ async function fixOwnerLinks() {
     }
 }
 fixOwnerLinks();
-//# sourceMappingURL=fixOwnerLink.js.map

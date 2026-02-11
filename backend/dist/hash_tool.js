@@ -13,4 +13,3 @@ bcrypt_1.default.hash(plainPassword, SALT_ROUNDS).then(hash => {
     process.exit();
 });
 // Exécuter: ts-node backend/hash_tool.ts
-//# sourceMappingURL=hash_tool.js.map

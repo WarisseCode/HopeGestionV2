@@ -17,4 +17,3 @@ async function listUsers() {
     }
 }
 listUsers();
-//# sourceMappingURL=list_users.js.map

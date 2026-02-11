@@ -132,4 +132,3 @@ router.get('/lots/:id', async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=publicRoutes.js.map

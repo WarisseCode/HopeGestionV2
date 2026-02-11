@@ -69,4 +69,3 @@ router.get('/transactions', async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=mobileMoneyRoutes.js.map

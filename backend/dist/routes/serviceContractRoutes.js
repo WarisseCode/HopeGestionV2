@@ -74,4 +74,3 @@ router.delete('/:id', authMiddleware_1.protect, async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=serviceContractRoutes.js.map

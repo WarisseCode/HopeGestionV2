@@ -209,4 +209,3 @@ router.delete('/:userId/:ownerId', async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=userAssignmentRoutes.js.map

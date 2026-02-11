@@ -164,4 +164,3 @@ async function main() {
     await createSuperAdmin({ email, password, nom });
 }
 main().catch(console.error);
-//# sourceMappingURL=create_super_admin.js.map

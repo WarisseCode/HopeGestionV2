@@ -42,4 +42,3 @@ router.get('/', authMiddleware_1.protect, async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=auditRoutes.js.map

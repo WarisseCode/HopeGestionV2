@@ -197,4 +197,3 @@ router.put('/:id', async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=inventoryRoutes.js.map
