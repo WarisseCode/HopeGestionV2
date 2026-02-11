@@ -4,7 +4,6 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 //import cors from 'cors';
-import * as dotenv from 'dotenv';
 import { Pool } from 'pg'; 
 import authRoutes from './routes/authRoutes';
 import googleAuthRoutes from './routes/googleAuthRoutes';
@@ -29,8 +28,8 @@ import { protect, AuthenticatedRequest } from './middleware/authMiddleware';
 
 // -------------------------********************-------------------------///
 
-// Charger les variables d'environnement
-dotenv.config();
+// Configuration
+import { JWT_SECRET } from './config/config';
 
 // Configuration de la Base de Données
 import sharedPool from './db/database';
@@ -38,13 +37,6 @@ export const pool = sharedPool;
 
 const app = express();
 const PORT = process.env.PORT || 5000; 
-
-// 🔒 SECURITY: Enforce strong JWT_SECRET
-if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
-    console.error('❌ FATAL SECURITY ERROR: JWT_SECRET must be set in .env and be at least 32 characters long');
-    console.error('   Generate a strong secret: openssl rand -base64 32');
-    process.exit(1); // Stop server startup
-}
 
 console.log('✅ JWT_SECRET validation passed');
 

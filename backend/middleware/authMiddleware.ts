@@ -2,9 +2,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
+import { JWT_SECRET } from '../config/config';
 
 // 1. Définir l'interface pour étendre la requête Express
 // Cela permet d'ajouter 'userId' et 'userRole' à l'objet 'req' après décodage.
@@ -13,8 +11,6 @@ export interface AuthenticatedRequest extends Request {
     userRole?: string;
     user?: any; // Allow object access
 }
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 
 // 2. Fonction principale du middleware
 export const protect = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {

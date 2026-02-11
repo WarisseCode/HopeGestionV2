@@ -5,9 +5,9 @@ import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import pool from '../db/database';
 import { AuditService } from '../services/AuditService';
+import { JWT_SECRET } from '../config/config';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
