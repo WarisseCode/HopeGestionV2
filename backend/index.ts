@@ -3,7 +3,6 @@
 // Importations de base
 import express, { Request, Response } from 'express';
 import path from 'path';
-//import cors from 'cors';
 import { Pool } from 'pg'; 
 import authRoutes from './routes/authRoutes';
 import googleAuthRoutes from './routes/googleAuthRoutes';
