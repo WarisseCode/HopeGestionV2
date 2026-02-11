@@ -20,7 +20,8 @@ import { documentApi, type Document } from '../api/documentApi';
 import DocumentTemplates from './DocumentTemplates';
 import DocumentGenerator from '../components/documents/DocumentGenerator';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+import { API_BASE } from '../config';
+const API_BASE_URL = API_BASE;
 
 const Documents: React.FC = () => {
   // Main Tabs
