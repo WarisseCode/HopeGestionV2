@@ -169,29 +169,6 @@ app.use('/api/reservations', reservationRoutes_1.default);
 // Routes Publiques (Aucune authentification requise)
 const publicRoutes_1 = __importDefault(require("./routes/publicRoutes"));
 app.use('/api/public', publicRoutes_1.default);
-// TEMP FIX ROUTE
-app.get('/api/fix-permissions', async (req, res) => {
-    try {
-        const modules = ['dashboard', 'biens', 'locataires', 'finance', 'users', 'owners', 'documents'];
-        const rolesTarget = ['proprietaire', 'owner', 'Propriétaire'];
-        let count = 0;
-        for (const role of rolesTarget) {
-            for (const module of modules) {
-                await exports.pool.query(`
-                    INSERT INTO permission_matrix (role, module, can_read, can_write, can_delete, can_validate)
-                    VALUES ($1, $2, TRUE, TRUE, TRUE, TRUE)
-                    ON CONFLICT (role, module)
-                    DO UPDATE SET can_read=TRUE, can_write=TRUE, can_delete=TRUE, can_validate=TRUE
-                `, [role, module]);
-                count++;
-            }
-        }
-        res.json({ success: true, message: `Updated ${count} permission entries for owners.` });
-    }
-    catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
 // --- Routes Protégées ---
 // Routes Locataires (Nécessite le jeton JWT)
 app.use('/api/locataires', authMiddleware_1.protect, locataireRoutes_1.default); // <--- NOUVELLE LIGNE
