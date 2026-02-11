@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { accountApi } from '../api/accountApi';
-import { User, Plus, Trash2, Shield, Search, Link2, X, Check, RefreshCw, Ban, Send, MessageCircle, ChevronDown, ChevronUp, Settings, Key, Clock, MoreVertical, Edit3 } from 'lucide-react';
+import { Plus, Trash2, Shield, Link2, X, Check, RefreshCw, Ban, Send, MessageCircle, Settings, Key, Clock, MoreVertical } from 'lucide-react';
 
 import Alert from './ui/Alert';
 import ConfirmModal from './ui/ConfirmModal';
