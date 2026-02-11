@@ -40,52 +40,56 @@ router.get('/stats/gestionnaire', async (req: AuthenticatedRequest, res: Respons
         // Build WHERE clause based on role
         const ownerFilter = ownerIds.length > 0 ? `owner_id IN (${ownerIds.join(',')})` : '1=1';
 
-        // Total des bâtiments
-        const buildingsResult = await pool.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`);
+        // Exécuter les requêtes en parallèle pour améliorer les performances
+        const [
+            buildingsResult,
+            lotsResult,
+            occupiedResult,
+            revenusResult,
+            impayesResult,
+            tenantsResult
+        ] = await Promise.all([
+            // Total des bâtiments
+            pool.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`),
+            // Total des lots (use lots.owner_id directly)
+            pool.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`),
+            // Lots occupés
+            pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`),
+            // Total revenus (use payments.owner_id directly)
+            pool.query(`
+                SELECT COALESCE(SUM(montant), 0) as total
+                FROM payments
+                WHERE ${ownerFilter}
+                AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
+                AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
+            `),
+            // Impayés (use leases.owner_id directly)
+            pool.query(`
+                SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
+                FROM leases l
+                WHERE l.${ownerFilter.replace(/owner_id/g, 'owner_id')}
+                AND l.statut = 'actif'
+                AND NOT EXISTS (
+                    SELECT 1 FROM payments p
+                    WHERE p.lease_id = l.id
+                    AND EXTRACT(MONTH FROM p.date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
+                    AND EXTRACT(YEAR FROM p.date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
+                )
+            `),
+            // Locataires actifs
+            pool.query(`
+                SELECT COUNT(DISTINCT tenant_id) FROM leases
+                WHERE statut = 'actif'
+                AND ${ownerFilter}
+            `)
+        ]);
+
         const totalBiens = parseInt(buildingsResult.rows[0].count, 10);
-
-        // Total des lots (use lots.owner_id directly)
-        const lotsResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`);
         const totalLots = parseInt(lotsResult.rows[0].count, 10);
-
-        // Lots occupés
-        const occupiedResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`);
         const lotsOccupes = parseInt(occupiedResult.rows[0].count, 10);
-
-        // Taux d'occupation
         const tauxOccupation = totalLots > 0 ? Math.round((lotsOccupes / totalLots) * 100) : 0;
-
-        // Total revenus (use payments.owner_id directly)
-        const revenusResult = await pool.query(`
-            SELECT COALESCE(SUM(montant), 0) as total 
-            FROM payments 
-            WHERE ${ownerFilter}
-            AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
-            AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
-        `);
         const revenusMois = parseFloat(revenusResult.rows[0].total) || 0;
-
-        // Impayés (use leases.owner_id directly)
-        const impayesResult = await pool.query(`
-            SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
-            FROM leases l
-            WHERE l.${ownerFilter.replace(/owner_id/g, 'owner_id')}
-            AND l.statut = 'actif'
-            AND NOT EXISTS (
-                SELECT 1 FROM payments p 
-                WHERE p.lease_id = l.id 
-                AND EXTRACT(MONTH FROM p.date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
-                AND EXTRACT(YEAR FROM p.date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
-            )
-        `);
         const impayesEnCours = parseFloat(impayesResult.rows[0].total) || 0;
-
-        // Locataires actifs
-        const tenantsResult = await pool.query(`
-            SELECT COUNT(DISTINCT tenant_id) FROM leases 
-            WHERE statut = 'actif' 
-            AND ${ownerFilter}
-        `);
         const locatairesActifs = parseInt(tenantsResult.rows[0].count, 10);
 
         res.status(200).json({
@@ -135,52 +139,56 @@ router.get('/stats/manager', async (req: AuthenticatedRequest, res: Response) =>
         // Build WHERE clause based on role
         const ownerFilter = ownerIds.length > 0 ? `owner_id IN (${ownerIds.join(',')})` : '1=1';
 
-        // Total des bâtiments
-        const buildingsResult = await pool.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`);
+        // Exécuter les requêtes en parallèle pour améliorer les performances
+        const [
+            buildingsResult,
+            lotsResult,
+            occupiedResult,
+            revenusResult,
+            impayesResult,
+            tenantsResult
+        ] = await Promise.all([
+            // Total des bâtiments
+            pool.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`),
+            // Total des lots (use lots.owner_id directly)
+            pool.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`),
+            // Lots occupés
+            pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`),
+            // Total revenus (use payments.owner_id directly)
+            pool.query(`
+                SELECT COALESCE(SUM(montant), 0) as total
+                FROM payments
+                WHERE ${ownerFilter}
+                AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
+                AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
+            `),
+            // Impayés (use leases.owner_id directly)
+            pool.query(`
+                SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
+                FROM leases l
+                WHERE l.${ownerFilter.replace(/owner_id/g, 'owner_id')}
+                AND l.statut = 'actif'
+                AND NOT EXISTS (
+                    SELECT 1 FROM payments p
+                    WHERE p.lease_id = l.id
+                    AND EXTRACT(MONTH FROM p.date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
+                    AND EXTRACT(YEAR FROM p.date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
+                )
+            `),
+            // Locataires actifs
+            pool.query(`
+                SELECT COUNT(DISTINCT tenant_id) FROM leases
+                WHERE statut = 'actif'
+                AND ${ownerFilter}
+            `)
+        ]);
+
         const totalBiens = parseInt(buildingsResult.rows[0].count, 10);
-
-        // Total des lots (use lots.owner_id directly)
-        const lotsResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`);
         const totalLots = parseInt(lotsResult.rows[0].count, 10);
-
-        // Lots occupés
-        const occupiedResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`);
         const lotsOccupes = parseInt(occupiedResult.rows[0].count, 10);
-
-        // Taux d'occupation
         const tauxOccupation = totalLots > 0 ? Math.round((lotsOccupes / totalLots) * 100) : 0;
-
-        // Total revenus (use payments.owner_id directly)
-        const revenusResult = await pool.query(`
-            SELECT COALESCE(SUM(montant), 0) as total 
-            FROM payments 
-            WHERE ${ownerFilter}
-            AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
-            AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
-        `);
         const revenusMois = parseFloat(revenusResult.rows[0].total) || 0;
-
-        // Impayés (use leases.owner_id directly)
-        const impayesResult = await pool.query(`
-            SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
-            FROM leases l
-            WHERE l.${ownerFilter.replace(/owner_id/g, 'owner_id')}
-            AND l.statut = 'actif'
-            AND NOT EXISTS (
-                SELECT 1 FROM payments p 
-                WHERE p.lease_id = l.id 
-                AND EXTRACT(MONTH FROM p.date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
-                AND EXTRACT(YEAR FROM p.date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
-            )
-        `);
         const impayesEnCours = parseFloat(impayesResult.rows[0].total) || 0;
-
-        // Locataires actifs
-        const tenantsResult = await pool.query(`
-            SELECT COUNT(DISTINCT tenant_id) FROM leases 
-            WHERE statut = 'actif' 
-            AND ${ownerFilter}
-        `);
         const locatairesActifs = parseInt(tenantsResult.rows[0].count, 10);
 
         res.status(200).json({
@@ -232,51 +240,46 @@ router.get('/stats/proprietaire', async (req: AuthenticatedRequest, res: Respons
         
         const ownerId = ownerResult.rows[0].owner_id;
 
-        // Total des bâtiments de ce propriétaire
-        const buildingsResult = await pool.query(
-            'SELECT COUNT(*) FROM buildings WHERE owner_id = $1', 
-            [ownerId]
-        );
+        // Exécuter les requêtes en parallèle pour améliorer les performances
+        const [
+            buildingsResult,
+            lotsResult,
+            occupiedResult,
+            revenusResult,
+            impayesResult
+        ] = await Promise.all([
+            // Total des bâtiments de ce propriétaire
+            pool.query('SELECT COUNT(*) FROM buildings WHERE owner_id = $1', [ownerId]),
+            // Total des lots de ce propriétaire
+            pool.query('SELECT COUNT(*) FROM lots WHERE owner_id = $1', [ownerId]),
+            // Lots occupés
+            pool.query("SELECT COUNT(*) FROM lots WHERE owner_id = $1 AND statut = 'occupe'", [ownerId]),
+            // Revenus du mois pour ce propriétaire
+            pool.query(`
+                SELECT COALESCE(SUM(montant), 0) as total
+                FROM payments
+                WHERE owner_id = $1
+                AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
+                AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
+            `, [ownerId]),
+            // Impayés pour ce propriétaire
+            pool.query(`
+                SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
+                FROM leases l
+                WHERE l.owner_id = $1 AND l.statut = 'actif'
+                AND NOT EXISTS (
+                    SELECT 1 FROM payments p
+                    WHERE p.lease_id = l.id
+                    AND EXTRACT(MONTH FROM p.date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
+                )
+            `, [ownerId])
+        ]);
+
         const totalBiens = parseInt(buildingsResult.rows[0].count, 10);
-
-        // Total des lots de ce propriétaire
-        const lotsResult = await pool.query(
-            'SELECT COUNT(*) FROM lots WHERE owner_id = $1', 
-            [ownerId]
-        );
         const totalLots = parseInt(lotsResult.rows[0].count, 10);
-
-        // Lots occupés
-        const occupiedResult = await pool.query(
-            "SELECT COUNT(*) FROM lots WHERE owner_id = $1 AND statut = 'occupe'", 
-            [ownerId]
-        );
         const lotsOccupes = parseInt(occupiedResult.rows[0].count, 10);
-
-        // Taux d'occupation
         const tauxOccupation = totalLots > 0 ? Math.round((lotsOccupes / totalLots) * 100) : 0;
-
-        // Revenus du mois pour ce propriétaire
-        const revenusResult = await pool.query(`
-            SELECT COALESCE(SUM(montant), 0) as total 
-            FROM payments 
-            WHERE owner_id = $1
-            AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
-            AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
-        `, [ownerId]);
         const revenusMois = parseFloat(revenusResult.rows[0].total) || 0;
-
-        // Impayés pour ce propriétaire
-        const impayesResult = await pool.query(`
-            SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
-            FROM leases l
-            WHERE l.owner_id = $1 AND l.statut = 'actif'
-            AND NOT EXISTS (
-                SELECT 1 FROM payments p 
-                WHERE p.lease_id = l.id 
-                AND EXTRACT(MONTH FROM p.date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
-            )
-        `, [ownerId]);
         const impayesEnCours = parseFloat(impayesResult.rows[0].total) || 0;
 
         res.status(200).json({
@@ -443,83 +446,81 @@ router.get('/kpi', async (req: AuthenticatedRequest, res: Response) => {
             ownerFilter = `owner_id IN (${ownerIds.join(',')})`;
         }
 
-        // 1. Nombre total de biens (bâtiments) - filtered by owner
-        const buildingsResult = await pool.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`);
+        // Exécuter les requêtes en parallèle pour améliorer les performances
+        const [
+            buildingsResult,
+            lotsResult,
+            occupiedResult,
+            freeResult,
+            reservedResult,
+            loyersEncaissesResult,
+            loyersAttendusResult,
+            contratsResult,
+            plaintesResult,
+            recouvrementResult
+        ] = await Promise.all([
+            // 1. Nombre total de biens (bâtiments)
+            pool.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`),
+            // 2. Total des lots
+            pool.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`),
+            // 3. Lots occupés
+            pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`),
+            // 4. Lots libres
+            pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'disponible' AND ${ownerFilter}`),
+            // 5. Lots réservés
+            pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'reserve' AND ${ownerFilter}`),
+            // 7. Loyers encaissés (mois en cours)
+            pool.query(`
+                SELECT COALESCE(SUM(montant), 0) as total
+                FROM payments
+                WHERE type = 'Loyer'
+                AND ${ownerFilter}
+                AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
+                AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
+                AND statut = 'valide'
+            `),
+            // 8. Loyers attendus (contrats actifs)
+            pool.query(`
+                SELECT COALESCE(SUM(loyer_actuel), 0) as total
+                FROM leases
+                WHERE statut = 'actif' AND ${ownerFilter}
+            `),
+            // 10. Contrats actifs
+            pool.query(`SELECT COUNT(*) FROM leases WHERE statut = 'actif' AND ${ownerFilter}`),
+            // 11. Plaintes ouvertes (tickets)
+            ownerIds.length > 0 ?
+                pool.query(`
+                    SELECT COUNT(*) FROM tickets t
+                    JOIN lots l ON t.lot_id = l.id
+                    WHERE t.statut = 'ouvert' AND l.${ownerFilter}
+                `) :
+                pool.query("SELECT COUNT(*) FROM tickets WHERE statut = 'ouvert'"),
+            // 12. Montant à recouvrer
+            pool.query(`
+                SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
+                FROM leases l
+                WHERE l.statut = 'actif' AND l.${ownerFilter}
+                AND NOT EXISTS (
+                    SELECT 1 FROM payments p
+                    WHERE p.lease_id = l.id
+                    AND p.type = 'Loyer'
+                    AND p.statut = 'valide'
+                    AND p.date_paiement >= DATE_TRUNC('month', CURRENT_DATE)
+                )
+            `)
+        ]);
+
         const totalBiens = parseInt(buildingsResult.rows[0].count, 10);
-
-        // 2. Total des lots - filtered by owner
-        const lotsResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`);
         const totalLots = parseInt(lotsResult.rows[0].count, 10);
-
-        // 3. Lots occupés - filtered by owner
-        const occupiedResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`);
         const lotsOccupes = parseInt(occupiedResult.rows[0].count, 10);
-
-        // 4. Lots libres - filtered by owner
-        const freeResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'disponible' AND ${ownerFilter}`);
         const lotsLibres = parseInt(freeResult.rows[0].count, 10);
-
-        // 5. Lots réservés - filtered by owner
-        const reservedResult = await pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'reserve' AND ${ownerFilter}`);
         const reservationsEnAttente = parseInt(reservedResult.rows[0].count, 10);
-
-        // 6. Taux d'occupation
         const tauxOccupation = totalLots > 0 ? Math.round((lotsOccupes / totalLots) * 100) : 0;
-
-        // 7. Loyers encaissés (mois en cours) - filtered by owner
-        const loyersEncaissesResult = await pool.query(`
-            SELECT COALESCE(SUM(montant), 0) as total 
-            FROM payments 
-            WHERE type = 'Loyer'
-            AND ${ownerFilter}
-            AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
-            AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
-            AND statut = 'valide'
-        `);
         const loyersEncaisses = parseFloat(loyersEncaissesResult.rows[0].total) || 0;
-
-        // 8. Loyers attendus (contrats actifs) - filtered by owner
-        const loyersAttendusResult = await pool.query(`
-            SELECT COALESCE(SUM(loyer_actuel), 0) as total 
-            FROM leases 
-            WHERE statut = 'actif' AND ${ownerFilter}
-        `);
         const loyersAttendus = parseFloat(loyersAttendusResult.rows[0].total) || 0;
-
-        // 9. Loyers impayés du mois courant
         const loyersImpayes = Math.max(0, loyersAttendus - loyersEncaisses);
-
-        // 10. Contrats actifs - filtered by owner
-        const contratsResult = await pool.query(`SELECT COUNT(*) FROM leases WHERE statut = 'actif' AND ${ownerFilter}`);
         const contratsActifs = parseInt(contratsResult.rows[0].count, 10);
-
-        // 11. Plaintes ouvertes (tickets) - filtered by owner via lot relationship
-        let plaintesOuvertes = 0;
-        if (ownerIds.length > 0) {
-            const plaintesResult = await pool.query(`
-                SELECT COUNT(*) FROM tickets t
-                JOIN lots l ON t.lot_id = l.id
-                WHERE t.statut = 'ouvert' AND l.${ownerFilter}
-            `);
-            plaintesOuvertes = parseInt(plaintesResult.rows[0].count, 10);
-        } else {
-            const plaintesResult = await pool.query("SELECT COUNT(*) FROM tickets WHERE statut = 'ouvert'");
-            plaintesOuvertes = parseInt(plaintesResult.rows[0].count, 10);
-        }
-
-        // 12. Montant à recouvrer - filtered by owner
-        const recouvrementResult = await pool.query(`
-            SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
-            FROM leases l
-            WHERE l.statut = 'actif' AND l.${ownerFilter}
-            AND NOT EXISTS (
-                SELECT 1 FROM payments p 
-                WHERE p.lease_id = l.id 
-                AND p.type = 'Loyer'
-                AND p.statut = 'valide'
-                AND p.date_paiement >= DATE_TRUNC('month', CURRENT_DATE)
-            )
-        `);
+        const plaintesOuvertes = parseInt(plaintesResult.rows[0].count, 10);
         const montantARecouvrer = parseFloat(recouvrementResult.rows[0].total) || 0;
 
         // 13. Paiements échelonnés en retard (not implemented yet)

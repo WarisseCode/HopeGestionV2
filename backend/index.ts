@@ -4,7 +4,6 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 //import cors from 'cors';
-import * as dotenv from 'dotenv';
 import { Pool } from 'pg'; 
 import authRoutes from './routes/authRoutes';
 import googleAuthRoutes from './routes/googleAuthRoutes';
@@ -29,8 +28,8 @@ import { protect, AuthenticatedRequest } from './middleware/authMiddleware';
 
 // -------------------------********************-------------------------///
 
-// Charger les variables d'environnement
-dotenv.config();
+// Configuration
+import { JWT_SECRET } from './config/config';
 
 // Configuration de la Base de Données
 import sharedPool from './db/database';
@@ -38,13 +37,6 @@ export const pool = sharedPool;
 
 const app = express();
 const PORT = process.env.PORT || 5000; 
-
-// 🔒 SECURITY: Enforce strong JWT_SECRET
-if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
-    console.error('❌ FATAL SECURITY ERROR: JWT_SECRET must be set in .env and be at least 32 characters long');
-    console.error('   Generate a strong secret: openssl rand -base64 32');
-    process.exit(1); // Stop server startup
-}
 
 console.log('✅ JWT_SECRET validation passed');
 
@@ -172,30 +164,6 @@ app.use('/api/reservations', reservationRoutes);
 // Routes Publiques (Aucune authentification requise)
 import publicRoutes from './routes/publicRoutes';
 app.use('/api/public', publicRoutes);
-
-// TEMP FIX ROUTE
-app.get('/api/fix-permissions', async (req, res) => {
-    try {
-        const modules = ['dashboard', 'biens', 'locataires', 'finance', 'users', 'owners', 'documents'];
-        const rolesTarget = ['proprietaire', 'owner', 'Propriétaire'];
-        
-        let count = 0;
-        for (const role of rolesTarget) {
-            for (const module of modules) {
-                await pool.query(`
-                    INSERT INTO permission_matrix (role, module, can_read, can_write, can_delete, can_validate)
-                    VALUES ($1, $2, TRUE, TRUE, TRUE, TRUE)
-                    ON CONFLICT (role, module) 
-                    DO UPDATE SET can_read=TRUE, can_write=TRUE, can_delete=TRUE, can_validate=TRUE
-                `, [role, module]);
-                count++;
-            }
-        }
-        res.json({ success: true, message: `Updated ${count} permission entries for owners.` });
-    } catch (e: any) {
-        res.status(500).json({ error: e.message });
-    }
-});
 
 // --- Routes Protégées ---
 // Routes Locataires (Nécessite le jeton JWT)

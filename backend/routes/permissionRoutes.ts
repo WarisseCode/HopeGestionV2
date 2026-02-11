@@ -1,15 +1,11 @@
 import { Router } from 'express';
 import { Pool } from 'pg';
-import * as dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
-
-dotenv.config();
+import { JWT_SECRET } from '../config/config';
 
 const router = Router();
 
 import pool from '../db/database';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 
 // Middleware d'auth simplifié (à factoriser idéalement)
 const verifyToken = (req: any, res: any, next: any) => {
