@@ -89,6 +89,12 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
       setError('Veuillez sélectionner un locataire ou acheteur.');
       return;
     }
+
+    if (!lot.owner_id) {
+      setError('Erreur: Propriétaire introuvable pour ce lot.');
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
@@ -96,10 +102,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
       await locationApi.createLocation({
         tenant_id: selectedClient.id,
         lot_id: lot.id,
-        owner_id: lot.building_id ? 1 : 1, // TODO: Get owner from building/lot properly. Assuming mocked/context.
-        // Actually lot should have owner_id or building. But my Lot interface might be light.
-        // I'll default to 1 for demo or check if I can get it. locationApi requires owner_id.
-        // Let's assume the user context or we fetch it. For now, I'll pass 1.
+        owner_id: lot.owner_id,
         
         type_contrat: type,
         date_debut: formData.date_debut,
