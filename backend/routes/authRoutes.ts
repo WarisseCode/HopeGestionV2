@@ -10,6 +10,7 @@ import crypto from 'crypto';
 
 import { AuditService } from '../services/AuditService';
 import EmailService from '../services/EmailService';
+import { validatePassword } from '../utils/passwordUtils';
 
 const router = Router();
 
@@ -42,29 +43,10 @@ router.post('/register', async (req, res) => {
         }
 
         // 🔒 SECURITY: Enhanced password validation
-        if (password.length < 8) {
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
             return res.status(400).json({ 
-                message: 'Le mot de passe doit contenir au moins 8 caractères.' 
-            });
-        }
-
-        // Check password complexity
-        const hasUpperCase = /[A-Z]/.test(password);
-        const hasLowerCase = /[a-z]/.test(password);
-        const hasNumber = /\d/.test(password);
-        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-
-        if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-            return res.status(400).json({ 
-                message: 'Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre.' 
-            });
-        }
-
-        // Check for common weak passwords
-        const weakPasswords = ['password123', '12345678', 'azerty123', 'qwerty123', 'admin123'];
-        if (weakPasswords.includes(password.toLowerCase())) {
-            return res.status(400).json({ 
-                message: 'Ce mot de passe est trop commun. Choisissez un mot de passe plus sécurisé.' 
+                message: passwordValidation.message
             });
         }
 
@@ -1144,26 +1126,10 @@ router.post('/reset-password', async (req, res) => {
         }
 
         // 3. Validate new password policy (same as registration)
-        if (newPassword.length < 8) {
+        const passwordValidation = validatePassword(newPassword);
+        if (!passwordValidation.isValid) {
             return res.status(400).json({ 
-                message: 'Le mot de passe doit contenir au moins 8 caractères.' 
-            });
-        }
-
-        const hasUpperCase = /[A-Z]/.test(newPassword);
-        const hasLowerCase = /[a-z]/.test(newPassword);
-        const hasNumber = /\d/.test(newPassword);
-
-        if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-            return res.status(400).json({ 
-                message: 'Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre.' 
-            });
-        }
-
-        const weakPasswords = ['password123', '12345678', 'azerty123', 'qwerty123', 'admin123'];
-        if (weakPasswords.includes(newPassword.toLowerCase())) {
-            return res.status(400).json({ 
-                message: 'Ce mot de passe est trop commun. Choisissez un mot de passe plus sécurisé.' 
+                message: passwordValidation.message
             });
         }
 
