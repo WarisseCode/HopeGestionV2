@@ -1,0 +1,4179 @@
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+                                      Hope Gestion Immobilière
+                                           Cahiers de Charges
+Le cahier de charges est organisé en modules principaux, avec pour chaque module :
+
+    •        Objectif métier
+
+    •        Acteurs concernés (gestionnaire, propriétaire, locataire, agent, partenaire)
+
+    •        Autorisations & droits d’accès (gestionnaire/propriétaire)
+
+    •        Sous-modules fonctionnels
+
+    •        Formulaires détaillés (champs, validations, pièces jointes)
+
+    •        Disposition des boutons (UI/UX)
+
+    •        Flux métier (qui fait quoi, quand, comment)
+
+    •        Adaptation Afrique (Mobile Money, WhatsApp, terrain, multi-propriétaires)
+
+    •        Indications techniques pour développeurs
+
+    •        Technologies recommandées
+
+
+     Modules couverts (alignés Rentila + enrichis Hope)
+    1. I – Mon Compte
+            •   Multi-propriétaire
+            •   Gestion des utilisateurs
+            •   Autorisations & délégations d’accès (granulaire)
+    2. II – Bureau (Dashboard intelligent)
+            •   Indicateurs, alertes, photos dynamiques
+    3. III – Biens
+            •   Immeubles
+            •   Lots (décomposition détaillée, affectation)
+
+
+                                                     1
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+    4. IV – Locataires / Acheteurs
+            •   Accès locataire contrôlé par gestionnaire
+    5. V – Locations
+            •   Paiement classique et échelonné
+    6. VI – Réservations
+            •   À distance, géolocalisées
+    7. VII – Inventaires
+    8. VIII – États des lieux
+            •   Photos, signatures, historiques
+    9. IX – Finances
+            •   Bilan
+            •   Déclaration fiscale
+            •   Prêts
+            •   Trésorerie dynamique
+    10.X – Documents
+            •   Mes documents
+            •   Mes modèles (contrats, quittances…)
+    11.XI – Carnet
+            •   Notes, contacts, suivi terrain
+    12.XII – Agenda
+            •   Échéances, rappels automatiques
+    13.XIII – Interventions
+            •   Maintenance + services connexes
+    14.XIV – Tâches & Messages
+
+
+
+                                                     2
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+            •   Notifications WhatsApp / SMS / Email
+    15.XV – Candidats
+            •   Location / Achat
+    16.XVI – Outils
+            •   Équipements
+            •   Déplacements
+            •   Relevés compteurs
+            •   Envoi de lettres
+    17.XVII – Corbeille
+            •   Archivage et restauration sécurisés
+    18.XVIII- Catalogue géolocalisé public + moteur de recherche GPS
+    19.XIX- Module services connexes (nettoyage, gardiennage, nounou, transport…)
+    20.XX - Module plaintes & demandes (Ticket) depuis l’espace locataire
+    21.XXI – Abonnements ou siuscription
+
+
+NB : Modules transversaux intégrés (Les ajouts clés)
+
+✔ Catalogue géolocalisé public + moteur de recherche GPS
+✔ Module services connexes (nettoyage, gardiennage, nounou, transport…)
+✔ Module plaintes & demandes depuis l’espace locataire
+✔ Recouvrement intelligent avec affectation automatique d’agent auxiliaire
+✔ Gestion des gestionnaires & paramétrage avancé
+✔ Accès locataire supervisé par le gestionnaire
+
+
+Technologies proposées (dans le document)
+    •   Front-end : React / Next.js (PWA mobile-first)
+    •   Back-end : NestJS / Laravel
+
+
+
+                                                     3
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+    •   Base de données : PostgreSQL / MySQL
+    •   Cartographie : Google Maps / Mapbox
+    •   Paiements : Mobile Money (MTN, Moov, Orange), cartes, virement
+    •   Notifications : WhatsApp API, SMS, Email
+    •   Stockage : Cloud sécurisé (AWS / GCP)
+    •   Sécurité : RBAC, chiffrement, isolation multi-agence
+
+
+
+
+                                                     4
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Détails des modules
+I – MON COMPTE
+(Inspiré de Rentila – Adapté au contexte africain)
+OBJECTIF DU MODULE
+Le module « Mon Compte » constitue le noyau de sécurité, de gouvernance et de
+configuration de la plateforme Hope Gestion Immobilière.
+Il permet la gestion multi-propriétaire, la gestion des utilisateurs, ainsi que
+l’attribution granulaire des droits et délégations d’accès.
+Ce module est obligatoire et conditionne l’accès à tous les autres modules (Biens,
+Finances, Locataires, etc.).
+
+
+I.1 – MULTI-PROPRIÉTAIRE
+DESCRIPTION FONCTIONNELLE
+Ce sous-module permet à une agence ou à un gestionnaire principal de gérer
+plusieurs propriétaires distincts au sein d’un même compte, sans mélange de
+données.
+Chaque propriétaire peut posséder plusieurs immeubles, plusieurs lots, des contrats
+distincts et des paramètres financiers propres.
+Le propriétaire peut gérer directement ses biens ou déléguer la gestion à une agence
+ou à un gestionnaire externe.
+ACTEURS CONCERNÉS
+– Administrateur plateforme
+– Administrateur agence
+– Propriétaire
+– Gestionnaire délégué
+RÈGLES DE GESTION
+– Un propriétaire ne voit que ses propres biens, contrats et finances
+– Une agence peut gérer plusieurs propriétaires
+– Un gestionnaire externe peut être rattaché à plusieurs propriétaires
+– Toute délégation est traçable et révocable
+FORMULAIRE : CRÉATION / MODIFICATION D’UN PROPRIÉTAIRE
+
+
+
+                                                     5
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Champs du formulaire
+– Type de propriétaire (Personne physique / Personne morale)
+– Nom ou Raison sociale
+– Prénom (si personne physique)
+– Téléphone principal (WhatsApp prioritaire – obligatoire)
+– Téléphone secondaire (facultatif)
+– Email : affiche automatiquement vue que l’utilisateur l’avait inséré à l’inscription
+– Adresse
+– Ville
+– Pays
+– Numéro de pièce d’identité ou RCCM
+– Photo du propriétaire (facultatif)
+– Coordonnées Mobile Money (optionnel)
+– Mode de gestion (Direct / Délégué)
+Disposition de l’écran
+– Formulaire en deux colonnes sur ordinateur
+– Une colonne sur mobile
+– Onglets : Informations générales | Documents | Paramètres
+Boutons
+– Enregistrer
+– Modifier
+– Désactiver
+– Voir les biens du propriétaire
+Adaptation au contexte africain
+– Téléphone obligatoire comme identifiant principal
+– Intégration WhatsApp
+– Gestion à distance pour propriétaires vivant à l’étranger
+
+
+I.2 – GESTION DES UTILISATEURS
+DESCRIPTION FONCTIONNELLE
+Ce sous-module permet de créer, modifier, activer ou suspendre tous les utilisateurs
+
+
+
+
+                                                     6
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+liés à une agence ou à un propriétaire.
+Chaque utilisateur dispose d’un rôle et de droits spécifiques.
+TYPES D’UTILISATEURS
+– Administrateur agence
+– Gestionnaire interne
+– Gestionnaire externe
+– Agent recouvreur
+– Comptable
+– Propriétaire
+– Locataire / Acheteur
+– Partenaire de services
+FORMULAIRE : CRÉATION D’UN UTILISATEUR
+Champs du formulaire
+– Nom et prénoms
+– Téléphone (identifiant principal)
+– Email (facultatif)
+– Rôle utilisateur
+– Photo
+– Mode de création (Mot de passe direct ou invitation)
+– Affectation (Agence / Propriétaire / Bien)
+Disposition de l’écran
+– Liste des utilisateurs sous forme de tableau
+– Colonne : Photo | Nom | Rôle | Statut | Actions
+Boutons
+– Créer utilisateur
+– Envoyer invitation
+– Suspendre l’accès
+– Réactiver
+FLUX DE CRÉATION
+    1. L’administrateur crée l’utilisateur
+    2. L’utilisateur reçoit une invitation par WhatsApp ou SMS
+
+
+
+                                                     7
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+    3. Il définit son mot de passe
+    4. L’accès est accordé selon les autorisations définies
+
+
+I.3 – AUTORISATIONS & DÉLÉGATIONS D’ACCÈS (GRANULAIRE)
+DESCRIPTION FONCTIONNELLE
+Ce sous-module permet de contrôler précisément les droits de chaque utilisateur sur
+chaque module de la plateforme.
+Il repose sur un système RBAC (Role Based Access Control) complété par des
+permissions personnalisées.
+PRINCIPES
+– Les rôles définissent une base de droits
+– Les permissions peuvent être ajustées utilisateur par utilisateur
+– Les accès peuvent être temporaires ou permanents
+EXEMPLES DE PERMISSIONS
+– Voir les biens
+– Ajouter ou modifier un bien
+– Accéder aux finances
+– Valider un paiement
+– Affecter un agent recouvreur
+– Traiter les plaintes et demandes
+FORMULAIRE : DÉLÉGATION D’ACCÈS
+Champs du formulaire
+– Utilisateur concerné
+– Propriétaire ou agence concernée
+– Liste des modules (cases à cocher)
+– Niveau d’accès (Lecture / Écriture / Suppression / Validation)
+– Date de début
+– Date de fin (optionnelle)
+Disposition de l’écran
+– Tableau de permissions
+
+
+
+                                                     8
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Lignes : Modules
+– Colonnes : Lire | Écrire | Supprimer | Valider
+Boutons
+– Appliquer les autorisations
+– Réinitialiser
+– Révoquer l’accès
+Adaptation au contexte africain
+– Délégation temporaire pour gestion à distance
+– Historique simple et lisible des accès
+– Journal des actions critiques
+
+
+SÉCURITÉ ET CONFORMITÉ
+– Authentification par téléphone + mot de passe
+– Jetons JWT avec rafraîchissement
+– Journalisation des connexions et actions sensibles
+– Isolation stricte des données par agence et propriétaire
+
+
+TECHNOLOGIES RECOMMANDÉES
+Front-end
+– React ou Next.js
+– Tailwind CSS
+– Application mobile-first (PWA)
+Back-end
+– NestJS (Node.js) ou Laravel (PHP)
+– API REST sécurisée
+Base de données
+– PostgreSQL ou MySQL
+– Tables clés : users, roles, permissions, owners, owner_user
+Intégrations locales
+– WhatsApp API
+
+
+
+                                                     9
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– SMS locaux
+– Mobile Money (MTN, Moov, Orange, etc.)
+
+
+RÉSULTAT ATTENDU
+Un module « Mon Compte » robuste, sécurisé et flexible, capable de gérer la
+complexité multi-propriétaire et multi-acteur du marché immobilier africain, tout en
+restant simple et intuitif comme Rentila.
+
+
+II – BUREAU (DASHBOARD INTELLIGENT)
+OBJECTIF DU MODULE
+Le module Bureau est le tableau de bord central de la plateforme.
+Il offre une vue synthétique, visuelle et temps réel de l’activité immobilière :
+finances, biens, locataires, alertes, actions urgentes.
+Il doit permettre au gestionnaire, au propriétaire ou à l’agence de prendre des
+décisions rapides sans parcourir tous les modules.
+Ce module est la page d’accueil après connexion.
+
+
+II.1 – PRINCIPES GÉNÉRAUX DU DASHBOARD
+DESCRIPTION FONCTIONNELLE
+Le Bureau affiche des indicateurs clés personnalisés selon le rôle de l’utilisateur :
+– Administrateur agence
+– Gestionnaire
+– Propriétaire
+– Agent recouvreur
+Chaque utilisateur voit uniquement les données auxquelles il est autorisé.
+CARACTÉRISTIQUES
+– Données en temps réel
+– Photos dynamiques (biens, locataires, agents)
+– Alertes visibles immédiatement
+
+
+
+
+                                                     10
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Navigation rapide vers les modules concernés
+– Responsive (ordinateur, tablette, smartphone)
+
+
+II.2 – INDICATEURS CLÉS (KPI)
+DESCRIPTION
+Les indicateurs permettent de visualiser l’état global de la gestion immobilière.
+INDICATEURS PRINCIPAUX
+– Nombre total de biens
+– Nombre de lots occupés / libres
+– Loyers encaissés (mois en cours)
+– Loyers impayés
+– Taux d’occupation (%)
+– Nombre de contrats actifs
+– Nombre de plaintes ouvertes
+– Nombre de réservations en attente
+– Montant à recouvrer
+– Paiements échelonnés en retard (achat ou location)
+AFFICHAGE
+– Cartes rectangulaires (cards)
+– Icône + chiffre + libellé
+– Couleur dynamique :
+• Vert : normal
+• Orange : attention
+• Rouge : action urgente
+BOUTONS SUR CHAQUE INDICATEUR
+– Voir le détail
+– Accéder au module lié
+
+
+II.3 – ALERTES INTELLIGENTES
+
+
+
+
+                                                     11
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+DESCRIPTION FONCTIONNELLE
+Le système d’alertes informe automatiquement l’utilisateur des actions urgentes à
+traiter.
+TYPES D’ALERTES
+– Loyer arrivé à échéance
+– Loyer en retard
+– Paiement échelonné non honoré
+– Nouvelle plainte ou demande de service
+– Fin de contrat proche
+– Lot devenu libre
+– Intervention en attente
+– Réservation non validée
+DESTINATAIRES DES ALERTES
+– Gestionnaire
+– Propriétaire
+– Agent recouvreur affecté
+– Administrateur agence
+CANAUX
+– Notification dans le dashboard
+– WhatsApp
+– SMS
+– Email (optionnel)
+DISPOSITION
+– Panneau latéral « Alertes »
+– Liste chronologique
+– Badge rouge avec compteur
+BOUTONS
+– Voir
+– Traiter
+– Affecter un agent
+– Marquer comme résolu
+
+
+
+
+                                                     12
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+II.4 – PHOTOS DYNAMIQUES ET VISUELS
+DESCRIPTION FONCTIONNELLE
+Le dashboard affiche automatiquement les photos liées aux éléments sélectionnés.
+ÉLÉMENTS AVEC PHOTOS
+– Biens (immeubles / lots)
+– Locataires
+– Propriétaires
+– Agents recouvreurs
+COMPORTEMENT
+– Sélection d’un élément → affichage immédiat de la photo
+– Photo du bien visible lors d’un impayé ou d’une alerte
+– Photo du locataire visible lors d’un retard ou d’une plainte
+OBJECTIF
+– Réduction des erreurs
+– Identification rapide
+– Présentation claire pour réunions ou visites terrain
+
+
+II.5 – TABLEAU DES ACTIONS RAPIDES
+DESCRIPTION
+Zone centrale permettant d’agir sans quitter le Bureau.
+ACTIONS RAPIDES
+– Ajouter un bien
+– Ajouter un locataire
+– Enregistrer un paiement
+– Affecter un agent recouvreur
+– Créer une intervention
+– Générer une quittance
+– Créer un contrat
+– Voir les impayés
+DISPOSITION
+– Boutons larges avec icônes
+
+
+                                                     13
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Grille 3 x 3 sur desktop
+– Liste verticale sur mobile
+
+
+II.6 – LISTES SYNTHÉTIQUES INTÉGRÉES
+DESCRIPTION
+Le Bureau affiche des mini-listes cliquables.
+LISTES DISPONIBLES
+– Derniers paiements
+– Impayés récents
+– Plaintes en cours
+– Interventions programmées
+– Réservations en attente
+COLONNES TYPiques
+– Photo
+– Nom
+– Bien concerné
+– Statut
+– Action
+BOUTONS
+– Voir tout
+– Détail
+– Traiter
+
+
+II.7 – FORMULAIRES ACCESSIBLES DEPUIS LE BUREAU
+FORMULAIRE : ENREGISTRER UN PAIEMENT RAPIDE
+Champs
+– Locataire
+– Bien / Lot
+– Montant
+– Mode de paiement (Mobile Money, Espèces, Virement)
+
+
+
+                                                     14
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Date
+– Commentaire
+Boutons
+– Enregistrer
+– Générer reçu
+FORMULAIRE : AFFECTER UN AGENT RECOUVREUR
+Champs
+– Impayé concerné
+– Agent recouvreur
+– Zone géographique
+– Date de mission
+Boutons
+– Affecter
+– Notifier l’agent
+FORMULAIRE : CRÉER UNE INTERVENTION
+Champs
+– Bien / Lot
+– Type d’intervention
+– Priorité
+– Prestataire
+– Date souhaitée
+
+
+II.8 – PERSONNALISATION DU DASHBOARD
+DESCRIPTION
+Chaque utilisateur peut personnaliser son Bureau.
+OPTIONS
+– Masquer / afficher des indicateurs
+– Choisir l’ordre des blocs
+– Filtrer par propriétaire ou agence
+– Choisir la période (jour / mois / année)
+
+
+
+
+                                                     15
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+II.9 – ADAPTATION AU CONTEXTE AFRICAIN
+– Priorité au mobile (smartphone)
+– WhatsApp comme canal principal
+– Mobile Money intégré
+– Gestion terrain (agents recouvreurs géolocalisés)
+– Simplicité visuelle (faible débit internet)
+
+
+TECHNOLOGIES RECOMMANDÉES
+FRONT-END
+– React ou Next.js
+– Tailwind CSS
+– Charts : Chart.js ou Recharts
+BACK-END
+– NestJS ou Laravel
+– API REST temps réel
+BASE DE DONNÉES
+– PostgreSQL ou MySQL
+– Tables : paiements, alertes, indicateurs, logs
+TEMPS RÉEL
+– WebSockets ou Firebase
+– Cron jobs pour alertes automatiques
+
+
+RÉSULTAT ATTENDU
+Un Dashboard intelligent, clair et visuel, permettant à tout acteur immobilier africain
+de voir, comprendre et agir immédiatement, à l’image de Rentila, mais enrichi pour
+la réalité locale.
+
+
+III – BIENS
+(Immeubles & Lots – Décomposition détaillée et affectation)
+
+
+
+
+                                                     16
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+OBJECTIF DU MODULE
+Le module Biens permet la gestion complète, structurée et hiérarchisée du
+patrimoine immobilier.
+Il repose sur une décomposition claire : Immeuble → Lots, indispensable pour la
+gestion locative, financière et administrative.
+Ce module alimente directement les modules : Locataires, Locations, Finances,
+Interventions, États des lieux et Catalogue public.
+
+
+III.1 – STRUCTURE GÉNÉRALE DES BIENS
+PRINCIPE DE DÉCOMPOSITION
+– Un propriétaire possède un ou plusieurs immeubles
+– Un immeuble contient un ou plusieurs lots
+– Un lot peut être :
+• loué
+• vendu
+• réservé
+• libre
+• hors service
+RÈGLES DE BASE
+– Aucun lot sans immeuble
+– Toutes les opérations financières sont rattachées à un lot
+– Les documents sont attachés au lot et à l’immeuble
+
+
+III.2 – SOUS-MODULE IMMEUBLES
+DESCRIPTION FONCTIONNELLE
+Ce sous-module permet de créer et gérer les immeubles appartenant à un
+propriétaire ou gérés par une agence.
+INFORMATIONS GÉNÉRALES D’UN IMMEUBLE
+– Nom de l’immeuble
+– Type (Maison, Immeuble collectif, Résidence, Commerce)
+– Propriétaire
+
+
+
+                                                     17
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Gestionnaire responsable
+– Adresse complète
+– Ville / Département / Pays
+– Géolocalisation GPS (latitude / longitude)
+– Nombre total de lots
+– Statut (Actif / Inactif)
+ÉLÉMENTS VISUELS
+– Photos extérieures et intérieures
+– Vidéo (optionnelle)
+– Plan de masse (optionnel)
+
+
+FORMULAIRE : CRÉATION / MODIFICATION D’UN IMMEUBLE
+Champs du formulaire
+– Nom de l’immeuble
+– Type d’immeuble
+– Propriétaire (liste déroulante)
+– Gestionnaire responsable
+– Adresse
+– Ville
+– Pays
+– Coordonnées GPS (auto via carte)
+– Description
+– Téléversement photos / vidéos
+Disposition de l’écran
+– Formulaire en 2 colonnes (desktop)
+– Carte GPS interactive à droite
+– Onglets : Général | Médias | Paramètres
+Boutons
+– Enregistrer
+– Enregistrer & Ajouter des lots
+– Modifier
+– Supprimer (si aucun lot actif)
+
+
+                                                     18
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Adaptation contexte africain
+– Localisation par quartier
+– Saisie simple si GPS indisponible
+– Gestion multi-propriétaires
+
+
+III.3 – SOUS-MODULE LOTS
+DESCRIPTION FONCTIONNELLE
+Le lot est l’unité centrale de gestion.
+Chaque lot représente un logement, un local commercial ou un espace précis au sein
+d’un immeuble.
+TYPES DE LOTS
+– Appartement
+– Studio
+– Chambre
+– Boutique
+– Bureau
+– Dépôt
+– Terrain nu
+
+
+INFORMATIONS D’UN LOT
+Données générales
+– Immeuble de rattachement
+– Référence du lot
+– Type de lot
+– Étage / Bloc
+– Superficie
+– Nombre de pièces
+– Description
+Données locatives
+– Loyer
+– Charges
+
+
+
+                                                     19
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Périodicité de paiement
+– Caution
+– Avance
+Données de vente (si applicable)
+– Prix de vente
+– Modalité de paiement (comptant / échelonné)
+– Durée d’échelonnement
+– Échéancier
+Statut du lot
+– Libre
+– Réservé
+– Loué
+– Vendu
+– Hors service
+
+
+FORMULAIRE : CRÉATION / MODIFICATION D’UN LOT
+Champs du formulaire
+– Immeuble (sélection obligatoire)
+– Référence du lot
+– Type de lot
+– Étage
+– Superficie
+– Nombre de pièces
+– Loyer
+– Charges
+– Prix de vente (si concerné)
+– Mode de paiement
+– Description
+Disposition de l’écran
+– Formulaire en 2 colonnes
+– Photo du lot affichée automatiquement
+– Onglets : Général | Financier | Médias | Statut
+
+
+                                                     20
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Boutons
+– Enregistrer
+– Modifier
+– Mettre en location
+– Mettre en vente
+– Désactiver
+
+
+III.4 – AFFECTATION DES LOTS
+DESCRIPTION FONCTIONNELLE
+Permet d’affecter un lot à un locataire, un acheteur ou une réservation.
+TYPES D’AFFECTATION
+– Location
+– Vente
+– Réservation
+FORMULAIRE : AFFECTATION D’UN LOT
+Champs
+– Lot concerné
+– Type d’affectation
+– Locataire / Acheteur
+– Date de début
+– Date de fin (si location)
+– Conditions particulières
+Boutons
+– Affecter
+– Générer contrat
+– Annuler
+RÈGLES
+– Un lot ne peut avoir qu’une affectation active
+– Toute affectation crée automatiquement un contrat
+
+
+
+
+                                                     21
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+III.5 – VISUALISATION ET LISTES
+LISTE DES IMMEUBLES
+Colonnes
+– Photo
+– Nom
+– Ville
+– Nombre de lots
+– Occupation
+– Actions
+LISTE DES LOTS
+Colonnes
+– Photo
+– Référence
+– Immeuble
+– Statut
+– Loyer / Prix
+– Actions
+PHOTOS DYNAMIQUES
+– Sélection d’un lot → affichage de sa photo
+– Sélection d’un immeuble → affichage global
+
+
+III.6 – LIENS AVEC LES AUTRES MODULES
+– Locataires
+– Locations
+– Réservations
+– États des lieux
+– Inventaires
+– Finances
+– Interventions
+– Catalogue géolocalisé public
+
+
+
+
+                                                     22
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+III.7 – ADAPTATION AU CONTEXTE AFRICAIN
+– Gestion informelle formalisée
+– Paiements Mobile Money
+– Lots sans plan cadastral formel
+– Suivi terrain par agents
+– Géolocalisation simplifiée
+
+
+TECHNOLOGIES RECOMMANDÉES
+FRONT-END
+– React / Next.js
+– Tailwind CSS
+– Carte : Google Maps ou MapBox
+BACK-END
+– NestJS ou Laravel
+– API REST
+BASE DE DONNÉES
+– PostgreSQL / MySQL
+– Tables : buildings, lots, lot_media, lot_status
+
+
+RÉSULTAT ATTENDU
+Un module Biens robuste, clair et hiérarchisé, permettant une gestion immobilière
+professionnelle, transparente et évolutive, à l’image de Rentila mais parfaitement
+adaptée aux réalités africaines.
+
+
+IV – LOCATAIRES / ACHETEURS
+(Accès locataire contrôlé par le gestionnaire)
+OBJECTIF DU MODULE
+Le module Locataires / Acheteurs permet d’enregistrer, suivre et gérer toutes les
+personnes occupantes ou acquérant un bien immobilier.
+Il intègre un accès locataire numérique, strictement contrôlé par le gestionnaire ou
+
+
+                                                     23
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+le propriétaire, permettant la consultation, les paiements, les plaintes et les
+documents, sans accès aux données sensibles de gestion globale.
+Ce module est directement lié aux modules :
+Biens, Locations, Réservations, Finances, États des lieux, Plaintes, Services connexes.
+
+
+IV.1 – PRINCIPES GÉNÉRAUX
+PRINCIPES DE BASE
+– Un locataire ou acheteur est toujours rattaché à un lot précis
+– Un locataire ne peut voir que ses propres informations
+– L’accès numérique du locataire est optionnel et activé par le gestionnaire
+– Un acheteur peut avoir un paiement comptant ou échelonné
+ACTEURS
+– Gestionnaire
+– Propriétaire
+– Locataire
+– Acheteur
+
+
+IV.2 – CRÉATION ET GESTION DES LOCATAIRES / ACHETEURS
+DESCRIPTION FONCTIONNELLE
+Ce sous-module permet de créer un dossier numérique complet pour chaque
+locataire ou acheteur, avec identité, contacts, documents et historique.
+
+
+FORMULAIRE : CRÉATION / MODIFICATION LOCATAIRE / ACHETEUR
+Champs d’identification
+– Type de profil (Locataire / Acheteur)
+– Nom et prénoms
+– Téléphone principal (WhatsApp prioritaire – obligatoire)
+– Téléphone secondaire
+– Email (optionnel)
+
+
+
+
+                                                     24
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Nationalité
+– Adresse actuelle
+Champs administratifs
+– Type de pièce d’identité
+– Numéro de pièce
+– Date d’expiration
+– Téléversement pièce d’identité (photo ou PDF)
+– Photo du locataire
+Champs financiers (lecture pour locataire)
+– Mode de paiement (Mobile Money, Espèces, Virement)
+– Acompte / Caution
+– Avance
+– Paiement échelonné (Oui / Non)
+Disposition de l’écran
+– Formulaire en 2 colonnes (desktop)
+– Une colonne sur mobile
+– Onglets : Identité | Documents | Finances | Accès
+Boutons
+– Enregistrer
+– Modifier
+– Activer accès locataire
+– Désactiver accès locataire
+
+
+IV.3 – ACCÈS LOCATAIRE / ACHETEUR (PORTAIL CLIENT)
+DESCRIPTION FONCTIONNELLE
+Le portail locataire est un espace personnel sécurisé, accessible uniquement après
+validation du gestionnaire.
+ACCÈS AUTORISÉ AU LOCATAIRE
+– Voir son lot et ses photos
+– Voir son contrat
+– Voir ses quittances et reçus
+
+
+
+                                                     25
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Voir son échéancier de paiement
+– Payer en ligne
+– Déposer une plainte ou une demande de service
+– Recevoir des notifications
+ACCÈS INTERDIT AU LOCATAIRE
+– Finances globales
+– Autres locataires
+– Autres biens
+– Paramètres de gestion
+
+
+FORMULAIRE : PARAMÉTRAGE DE L’ACCÈS LOCATAIRE
+Champs
+– Activer accès (Oui / Non)
+– Modules accessibles (cases à cocher)
+• Contrat
+• Paiements
+• Plaintes
+• Services connexes
+– Autoriser paiement en ligne
+– Canal de notification (WhatsApp / SMS / Email)
+Boutons
+– Valider l’accès
+– Suspendre l’accès
+
+
+IV.4 – AFFECTATION LOCATAIRE / ACHETEUR À UN LOT
+DESCRIPTION
+Ce sous-module permet de lier un locataire ou acheteur à un lot précis.
+FORMULAIRE : AFFECTATION
+Champs
+– Locataire / Acheteur
+
+
+
+                                                     26
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Lot concerné
+– Type d’occupation (Location / Vente)
+– Date de début
+– Date de fin (si location)
+– Conditions particulières
+Boutons
+– Affecter
+– Générer contrat
+– Annuler
+RÈGLES
+– Un locataire ne peut occuper qu’un lot actif
+– Toute affectation génère un contrat
+
+
+IV.5 – LISTES ET VISUALISATION
+LISTE DES LOCATAIRES / ACHETEURS
+Colonnes
+– Photo
+– Nom
+– Type (Locataire / Acheteur)
+– Lot
+– Statut
+– Paiement
+– Actions
+ACTIONS RAPIDES
+– Voir fiche
+– Voir contrat
+– Voir paiements
+– Envoyer message
+– Suspendre accès
+PHOTOS DYNAMIQUES
+– Sélection d’un locataire → photo affichée
+– Sélection d’un lot → photo du bien affichée
+
+
+                                                     27
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+
+
+IV.6 – ALERTES ET NOTIFICATIONS
+TYPES D’ALERTES
+– Échéance de loyer proche
+– Retard de paiement
+– Échéance de paiement échelonné
+– Nouvelle plainte
+– Document disponible
+DESTINATAIRES
+– Locataire
+– Gestionnaire
+– Agent recouvreur (si affecté)
+CANAUX
+– Notification interne
+– WhatsApp
+– SMS
+
+
+IV.7 – ADAPTATION AU CONTEXTE AFRICAIN
+– Téléphone comme identifiant principal
+– WhatsApp comme canal principal
+– Mobile Money prioritaire
+– Gestion de locataires sans email
+– Paiements fractionnés fréquents
+– Accès simple et mobile-first
+
+
+TECHNOLOGIES RECOMMANDÉES
+FRONT-END
+– React / Next.js
+– Tailwind CSS
+– PWA mobile-first
+
+
+
+                                                     28
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+BACK-END
+– NestJS ou Laravel
+– API REST sécurisée
+BASE DE DONNÉES
+– PostgreSQL / MySQL
+– Tables : tenants, buyers, tenant_access, tenant_documents
+SÉCURITÉ
+– JWT
+– Contrôle d’accès par rôle
+– Journal des connexions
+
+
+RÉSULTAT ATTENDU
+Un module Locataires / Acheteurs clair, sécurisé et contrôlé, permettant une
+interaction digitale fluide avec les clients tout en conservant une maîtrise totale par le
+gestionnaire, à l’image de Rentila mais optimisé pour l’Afrique.
+
+
+V – LOCATIONS
+(Paiement classique et paiement échelonné)
+OBJECTIF DU MODULE
+Le module Locations permet de gérer l’ensemble du cycle de location d’un lot :
+– contractualisation,
+– facturation des loyers,
+– paiements (classiques et échelonnés),
+– suivi des impayés,
+– renouvellement ou résiliation.
+Il est étroitement lié aux modules :
+Biens, Locataires, Finances, Alertes, États des lieux, Recouvrement.
+
+
+V.1 – PRINCIPES DE GESTION DES LOCATIONS
+
+
+
+
+                                                     29
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+PRINCIPES CLÉS
+– Une location est toujours rattachée à un lot unique
+– Un lot ne peut avoir qu’une location active
+– Les loyers peuvent être payés :
+• de façon classique (mensuelle)
+• de façon échelonnée (hebdomadaire, bimensuelle, personnalisée)
+– Le gestionnaire contrôle l’activation, la suspension et la clôture d’une location
+ACTEURS
+– Gestionnaire
+– Propriétaire
+– Locataire
+– Agent recouvreur
+– Comptable
+
+
+V.2 – CRÉATION D’UNE LOCATION
+DESCRIPTION FONCTIONNELLE
+Ce sous-module permet de créer un contrat de location numérique reliant un
+locataire à un lot, avec les conditions financières et juridiques.
+
+
+FORMULAIRE : CRÉATION / MODIFICATION D’UNE LOCATION
+Champs – Identification
+– Lot concerné
+– Locataire
+– Propriétaire
+– Gestionnaire responsable
+Champs – Période
+– Date de début de location
+– Date de fin (optionnelle)
+– Durée du contrat
+Champs – Conditions financières
+– Loyer mensuel
+
+
+                                                     30
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Caution
+– Avance
+– Charges locatives (optionnelles)
+– Devise
+Champs – Mode de paiement
+– Type de paiement
+• Classique
+• Échelonné
+Disposition de l’écran
+– Formulaire en 2 colonnes
+– Sections repliables
+– Aperçu contrat à droite
+Boutons
+– Enregistrer
+– Générer contrat
+– Activer la location
+
+
+V.3 – PAIEMENT CLASSIQUE (LOYER STANDARD)
+DESCRIPTION
+Le paiement classique correspond au paiement mensuel du loyer à date fixe.
+PARAMÉTRAGE
+– Date d’échéance mensuelle
+– Pénalité de retard (optionnelle)
+– Mode de paiement autorisé
+FORMULAIRE : PARAMÉTRAGE PAIEMENT CLASSIQUE
+Champs
+– Jour d’échéance (1 à 31)
+– Montant mensuel
+– Tolérance de retard (jours)
+– Pénalité (%)
+
+
+
+                                                     31
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Boutons
+– Valider
+– Modifier
+
+
+V.4 – PAIEMENT ÉCHELONNÉ
+DESCRIPTION FONCTIONNELLE
+Ce sous-module permet de fractionner le loyer surtout le paiement d’un bien en cours
+d’achat en plusieurs paiements adaptés au pouvoir d’achat local.
+TYPES D’ÉCHELONNEMENT
+– Hebdomadaire
+– Bimensuel
+– Personnalisé
+FORMULAIRE : PAIEMENT ÉCHELONNÉ
+Champs
+– Montant total du loyer ou d’achat
+– Nombre de tranches
+– Fréquence
+– Date de début
+– Date de fin
+– Montant par tranche (calcul automatique)
+Fonctionnalités
+– Génération automatique de l’échéancier
+– Visualisation calendrier
+– Ajustement manuel possible
+Boutons
+– Générer échéancier
+– Modifier tranches
+– Valider
+
+
+V.5 – SUIVI DES PAIEMENTS ET IMPAYÉS
+
+
+
+                                                     32
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+TABLEAU DE SUIVI
+Colonnes
+– Mois / période
+– Montant dû
+– Montant payé
+– Solde
+– Statut
+Statuts
+– Payé
+– Partiellement payé
+– En retard
+– Impayé
+ACTIONS
+– Enregistrer paiement
+– Relancer locataire/ Acheteur
+– Affecter agent recouvreur
+
+
+V.6 – ALERTES ET RECOUVREMENT
+ALERTES AUTOMATIQUES
+– Échéance proche
+– Retard de paiement
+– Impayé prolongé
+DESTINATAIRES
+– Locataire
+– Gestionnaire
+– Agent recouvreur (automatique si affecté)
+CANAUX
+– Notification interne
+– WhatsApp
+– SMS
+
+
+
+
+                                                     33
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+V.7 – PORTAIL LOCATAIRE (LIEN AVEC LOCATIONS)
+ACCÈS LOCATAIRE
+– Voir échéancier
+– Voir paiements effectués
+– Payer en ligne
+– Télécharger quittances
+RESTRICTIONS
+– Lecture seule des conditions contractuelles
+– Aucune modification autorisée
+
+
+V.8 – ADAPTATION AU CONTEXTE AFRICAIN
+– Paiement fractionné fréquent
+– Mobile Money prioritaire
+– Paiement en espèces enregistré par gestionnaire
+– Connexion instable → mode hors ligne partiel
+– Notifications WhatsApp
+
+
+V.9 – TECHNOLOGIES RECOMMANDÉES
+FRONT-END
+– React / Next.js
+– Tailwind CSS
+– PWA
+BACK-END
+– NestJS ou Laravel
+– API REST
+BASE DE DONNÉES
+– PostgreSQL / MySQL
+– Tables : leases, payments, schedules
+SÉCURITÉ
+– RBAC
+
+
+                                                     34
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Journal des transactions
+– Chiffrement
+
+
+VI – RÉSERVATIONS
+(Réservations à distance, géolocalisées)
+OBJECTIF DU MODULE
+Le module Réservations permet à un locataire ou acheteur potentiel de réserver un
+bien ou un lot à distance, depuis une interface web ou mobile, sans déplacement
+physique immédiat.
+Il facilite la pré-commercialisation, réduit les visites inutiles et sécurise les
+engagements des parties.
+Ce module est connecté aux modules :
+Biens, Lots, Locataires/Acheteurs, Agenda, Paiements, Notifications, Documents.
+
+
+VI.1 – PRINCIPES DE RÉSERVATION
+PRINCIPES CLÉS
+– Une réservation concerne un lot ou un bien précis
+– Une réservation peut être :
+• simple (sans paiement)
+• confirmée (avec acompte)
+– Une réservation a une durée limitée
+– Le gestionnaire ou le propriétaire valide ou rejette la réservation
+ACTEURS
+– Visiteur (non inscrit)
+– Locataire / Acheteur
+– Gestionnaire
+– Propriétaire
+
+
+VI.2 – RÉSERVATION À DISTANCE
+
+
+
+
+                                                     35
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+DESCRIPTION FONCTIONNELLE
+Ce sous-module permet à un utilisateur de réserver un bien sans se déplacer, à partir :
+– de la carte géolocalisée,
+– de la fiche du bien,
+– ou d’un lien partagé.
+
+
+FORMULAIRE : DEMANDE DE RÉSERVATION À DISTANCE
+Affichage
+– Fiche du bien à gauche (photos, prix, localisation)
+– Formulaire à droite
+– Carte GPS intégrée en bas
+Champs
+– Nom & prénom
+– Téléphone (WhatsApp obligatoire)
+– Email (optionnel)
+– Type de projet (Location / Achat)
+– Date souhaitée de prise de possession
+– Message libre
+Boutons
+– Réserver maintenant
+– Annuler
+
+
+VI.3 – RÉSERVATION AVEC ACOMPTE
+DESCRIPTION
+Permet de bloquer un bien pendant une période donnée moyennant un paiement
+partiel.
+
+
+FORMULAIRE : RÉSERVATION AVEC ACOMPTE
+Champs
+– Montant de l’acompte
+
+
+                                                     36
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Mode de paiement
+– Durée de validité de la réservation
+– Conditions d’annulation
+Affichage
+– Résumé financier clair
+– Badge « Bien réservé »
+Boutons
+– Payer et réserver
+– Annuler
+
+
+VI.4 – GÉOLOCALISATION DES RÉSERVATIONS
+DESCRIPTION FONCTIONNELLE
+Chaque réservation est associée à une position géographique précise du bien.
+Fonctionnalités
+– Carte interactive (Google Maps / Mapbox)
+– Calcul de distance entre utilisateur et bien
+– Visualisation des biens réservés par zone
+Utilité
+– Priorisation des visites
+– Organisation des tournées terrain
+– Analyse des zones attractives
+
+
+VI.5 – VALIDATION DE LA RÉSERVATION
+DESCRIPTION
+La réservation n’est effective qu’après validation par le gestionnaire ou le propriétaire.
+
+
+FORMULAIRE : VALIDATION / REFUS DE RÉSERVATION
+Champs
+– Statut (Acceptée / Refusée / En attente)
+
+
+                                                     37
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Commentaire interne
+– Date limite de confirmation
+Boutons
+– Valider
+– Refuser
+– Contacter le client
+Notifications
+– Envoi automatique au client (WhatsApp / SMS)
+
+
+VI.6 – GESTION DES RÉSERVATIONS (BACK-OFFICE)
+TABLEAU DES RÉSERVATIONS
+Colonnes
+– Référence
+– Bien / Lot
+– Client
+– Localisation
+– Statut
+– Date
+Actions
+– Voir détail
+– Confirmer
+– Annuler
+– Transformer en location
+
+
+VI.7 – TRANSFORMATION RÉSERVATION → LOCATION
+DESCRIPTION
+Une réservation validée peut être convertie automatiquement en location active.
+Fonctionnalités
+– Reprise automatique des données
+
+
+
+
+                                                     38
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Génération du contrat
+– Mise à jour du statut du lot
+Bouton
+– Convertir en location
+
+
+VI.8 – ADAPTATION AU CONTEXTE AFRICAIN
+– Réservation depuis l’étranger
+– Paiement d’acompte via Mobile Money
+– Confirmation par WhatsApp
+– Faible débit → formulaires légers
+– Réservation sans email possible
+
+
+VI.9 – TECHNOLOGIES RECOMMANDÉES
+FRONT-END
+– React / Next.js
+– Tailwind CSS
+– Google Maps / Mapbox
+BACK-END
+– NestJS ou Laravel
+– API REST sécurisée
+BASE DE DONNÉES
+– PostgreSQL / MySQL
+– Tables : reservations, reservation_payments
+SÉCURITÉ
+– RBAC
+– Journal des actions
+– Protection anti-double réservation
+
+
+RÉSULTAT ATTENDU
+Un module Réservations fluide, géolocalisé et adapté aux usages africains,
+
+
+                                                     39
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+permettant de réserver un bien à distance en toute sécurité, tout en offrant aux
+gestionnaires une vision claire et centralisée, à l’image de Rentila mais enrichie par la
+géolocalisation.
+
+
+
+
+VII – INVENTAIRES
+(Inventaire des biens et équipements)
+OBJECTIF DU MODULE
+Le module Inventaires permet de recenser, décrire, suivre et historiser tous les
+équipements, mobiliers et éléments physiques associés à un bien ou à un lot.
+Il constitue une base essentielle pour les états des lieux, la gestion des litiges et la
+valorisation des biens.
+Ce module est étroitement lié aux modules :
+Biens, Lots, États des lieux, Documents, Interventions, Plaintes.
+
+
+VII.1 – PRINCIPES DE L’INVENTAIRE
+PRINCIPES CLÉS
+– Un inventaire est toujours rattaché à :
+• un immeuble
+• ou un lot
+– Un inventaire peut être :
+• initial
+• mis à jour
+• archivé
+– Les inventaires sont horodatés et historisés
+– Les photos sont prioritaires pour preuve visuelle
+ACTEURS
+– Gestionnaire
+– Propriétaire
+– Agent terrain
+– Locataire (consultation contrôlée)
+
+
+                                                     40
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+
+
+VII.2 – TYPES D’INVENTAIRES
+Types pris en charge
+– Inventaire mobilier
+– Inventaire équipements
+– Inventaire installations techniques
+– Inventaire général du lot
+Exemples d’éléments
+– Portes
+– Fenêtres
+– Serrures
+– Ventilateurs
+– Climatisation
+– Compteurs
+– Meubles
+– Appareils électroménagers
+
+
+VII.3 – CRÉATION D’UN INVENTAIRE
+DESCRIPTION FONCTIONNELLE
+Permet de créer un inventaire complet d’un lot avant occupation ou lors d’une mise à
+jour.
+
+
+FORMULAIRE : CRÉATION D’INVENTAIRE
+Affichage (UI/UX)
+– En-tête : informations du bien / lot
+– Liste centrale des éléments
+– Bouton flottant d’ajout
+Champs principaux
+– Bien / Lot concerné
+– Type d’inventaire
+
+
+
+                                                     41
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Date de réalisation
+– Réalisé par (nom de l’agent)
+– Commentaire général
+Boutons
+– Ajouter un élément
+– Enregistrer
+– Annuler
+
+
+VII.4 – AJOUT D’UN ÉLÉMENT D’INVENTAIRE
+FORMULAIRE : ÉLÉMENT D’INVENTAIRE
+Champs
+– Catégorie (Menu déroulant)
+– Nom de l’élément
+– État (Neuf / Bon / Moyen / Mauvais)
+– Quantité
+– Description
+– Photo(s) obligatoire(s)
+– Observation
+Affichage
+– Carte par élément
+– Icône + photo visible immédiatement
+Boutons
+– Ajouter
+– Modifier
+– Supprimer
+
+
+VII.5 – INVENTAIRE VISUEL (PHOTOS & PREUVES)
+DESCRIPTION
+Chaque élément doit pouvoir être documenté visuellement.
+
+
+
+
+                                                     42
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Fonctionnalités
+– Upload photo depuis téléphone
+– Compression automatique
+– Affichage galerie
+– Horodatage automatique
+Utilité
+– Réduction des litiges
+– Preuve juridique
+– Transparence avec le locataire
+
+
+VII.6 – CONSULTATION ET HISTORIQUE DES INVENTAIRES
+TABLEAU DES INVENTAIRES
+Colonnes
+– Référence
+– Bien / Lot
+– Type
+– Date
+– Réalisé par
+– Statut
+Actions
+– Voir
+– Modifier
+– Dupliquer
+– Archiver
+
+
+VII.7 – ACCÈS LOCATAIRE CONTRÔLÉ
+DESCRIPTION
+Le locataire peut consulter l’inventaire sans possibilité de modification, selon les
+droits définis.
+
+
+
+
+                                                     43
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Règles
+– Lecture seule
+– Téléchargement PDF autorisé
+– Historique visible
+
+
+VII.8 – ADAPTATION AU CONTEXTE AFRICAIN
+– Utilisation prioritaire du smartphone
+– Photos plutôt que longs textes
+– Fonctionnement hors connexion (PWA)
+– Synchronisation ultérieure
+– Langage simple et visuel
+
+
+VII.9 – LIEN AVEC LES AUTRES MODULES
+– États des lieux : reprise automatique des éléments
+– Plaintes : lien avec élément concerné
+– Interventions : maintenance liée à un équipement
+– Documents : génération automatique PDF
+
+
+VII.10 – TECHNOLOGIES RECOMMANDÉES
+FRONT-END
+– React / Next.js
+– Tailwind CSS
+– PWA Mobile-first
+BACK-END
+– NestJS ou Laravel
+– API REST
+BASE DE DONNÉES
+– PostgreSQL / MySQL
+– Tables : inventories, inventory_items, inventory_photos
+
+
+
+
+                                                     44
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+SÉCURITÉ
+– RBAC
+– Journal d’actions
+– Stockage cloud sécurisé
+
+
+RÉSULTAT ATTENDU
+Un module Inventaires structuré, visuel et juridiquement fiable, permettant une
+gestion claire et transparente des équipements des biens immobiliers, parfaitement
+intégré au cycle location–état des lieux, comme Rentila mais renforcé pour les réalités
+africaines.
+
+
+
+
+VIII – ÉTATS DES LIEUX
+(Entrée – Sortie – Historique)
+OBJECTIF DU MODULE
+Le module États des lieux permet de réaliser, comparer et archiver les états des lieux
+d’entrée et de sortie d’un bien ou lot, avec preuves visuelles, signatures
+électroniques et historique complet.
+Il constitue un élément juridique clé pour la protection du propriétaire, du
+gestionnaire et du locataire.
+Ce module est connecté aux modules :
+Inventaires, Biens, Lots, Locataires, Locations, Documents, Plaintes, Interventions.
+
+
+VIII.1 – TYPES D’ÉTATS DES LIEUX
+Types pris en charge
+– État des lieux d’entrée
+– État des lieux de sortie
+– État des lieux intermédiaire (optionnel)
+
+
+
+
+                                                     45
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Principes
+– Toujours rattaché à un lot
+– Basé sur l’inventaire existant
+– Daté et horodaté
+– Signé par les parties
+
+
+VIII.2 – CRÉATION D’UN ÉTAT DES LIEUX
+DESCRIPTION FONCTIONNELLE
+Permet de réaliser un état des lieux sur le terrain ou à distance à partir d’un
+smartphone ou ordinateur.
+
+
+FORMULAIRE : CRÉATION ÉTAT DES LIEUX
+Affichage (UI/UX)
+– En-tête : bien, lot, locataire
+– Étapes progressives (wizard)
+– Barre de progression
+Étape 1 – Informations générales
+Champs
+– Type d’état des lieux
+– Date
+– Réalisé par
+– Présence du locataire (Oui / Non)
+Boutons
+– Suivant
+– Annuler
+
+
+VIII.3 – ÉTAT DES ÉLÉMENTS (PAR PIÈCE)
+DESCRIPTION
+Chaque pièce du logement est inspectée séparément.
+
+
+
+
+                                                     46
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+FORMULAIRE : ÉVALUATION PAR PIÈCE
+Affichage
+– Liste des pièces à gauche
+– Détails à droite
+– Photos visibles immédiatement
+Champs
+– Pièce
+– Élément (issu de l’inventaire)
+– État (Neuf / Bon / Moyen / Mauvais)
+– Observation
+– Photo(s) obligatoire(s)
+Boutons
+– Ajouter photo
+– Enregistrer
+
+
+VIII.4 – PHOTOS ET PREUVES VISUELLES
+FONCTIONNALITÉS
+– Prise de photo directe via smartphone
+– Horodatage automatique
+– Compression intelligente
+– Galerie par pièce
+Utilité
+– Preuve juridique
+– Réduction des litiges
+– Transparence
+
+
+VIII.5 – SIGNATURES ÉLECTRONIQUES
+DESCRIPTION
+Chaque état des lieux doit être signé par :
+– le gestionnaire
+
+
+
+                                                     47
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– le locataire
+– le propriétaire (optionnel)
+
+
+FORMULAIRE : SIGNATURE
+Affichage
+– Zone de signature tactile
+– Aperçu du document final
+Champs
+– Nom du signataire
+– Date
+– Signature manuscrite ou numérique
+Boutons
+– Signer
+– Refuser
+– Valider
+
+
+VIII.6 – COMPARAISON ENTRÉE / SORTIE
+DESCRIPTION
+La plateforme compare automatiquement les états des lieux d’entrée et de sortie.
+Fonctionnalités
+– Mise en évidence des dégradations
+– Calcul des écarts
+– Préparation du rapport de retenue
+
+
+VIII.7 – HISTORIQUE ET ARCHIVAGE
+TABLEAU DES ÉTATS DES LIEUX
+Colonnes
+– Référence
+– Lot
+
+
+                                                     48
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Locataire
+– Type
+– Date
+– Statut
+Actions
+– Voir
+– Télécharger PDF
+– Comparer
+– Archiver
+
+
+VIII.8 – ACCÈS LOCATAIRE CONTRÔLÉ
+Règles
+– Lecture seule
+– Téléchargement autorisé
+– Signature requise
+
+
+VIII.9 – ADAPTATION AU CONTEXTE AFRICAIN
+– Signature possible sur téléphone
+– Photos prioritaires
+– Fonctionnement hors connexion
+– Synchronisation ultérieure
+– Interface simple et multilingue
+
+
+VIII.10 – GÉNÉRATION DE DOCUMENTS
+Documents générés
+– État des lieux PDF
+– Rapport comparatif
+– Pièces jointes photo
+
+
+VIII.11 – TECHNOLOGIES RECOMMANDÉES
+
+
+                                                     49
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+FRONT-END
+– React / Next.js
+– Tailwind CSS
+– PWA Mobile-first
+BACK-END
+– NestJS ou Laravel
+– API REST
+BASE DE DONNÉES
+– PostgreSQL / MySQL
+– Tables : inspections, inspection_items, inspection_photos
+SÉCURITÉ
+– RBAC
+– Horodatage légal
+– Journal des signatures
+
+
+RÉSULTAT ATTENDU
+Un module États des lieux fiable, visuel et juridiquement robuste, permettant une
+gestion transparente des entrées et sorties, réduisant les litiges et sécurisant les
+parties, à l’image de Rentila mais optimisé pour les usages africains.
+
+
+
+
+IX – FINANCES
+(Bilan – Fiscalité – Prêts – Trésorerie dynamique)
+OBJECTIF DU MODULE
+Le module Finances centralise, automatise et sécurise toute la gestion financière
+immobilière : loyers, ventes, paiements échelonnés, charges, impôts, prêts et
+trésorerie.
+Il constitue l’outil de pilotage financier pour les agences, propriétaires et
+gestionnaires.
+
+
+
+
+                                                     50
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Modules liés :
+Locations, Locataires, Paiements, Recouvrement, Documents, Bilan, Déclaration
+fiscale.
+
+
+IX.1 – TRÉSORERIE DYNAMIQUE (CŒUR DU MODULE)
+DESCRIPTION FONCTIONNELLE
+La trésorerie dynamique affiche en temps réel la situation financière globale ou par
+propriétaire, immeuble, lot.
+
+
+TABLEAU DE BORD TRÉSORERIE
+Affichage (Dashboard)
+– Graphique entrées / sorties
+– Solde actuel
+– Prévisions à 30 / 60 / 90 jours
+Indicateurs
+– Loyers encaissés
+– Loyers en attente
+– Impayés
+– Dépenses
+– Solde net
+Boutons
+– Ajouter une opération
+– Exporter PDF / Excel
+– Filtrer
+
+
+FORMULAIRE : OPÉRATION FINANCIÈRE
+Champs
+– Type : Entrée / Sortie
+– Nature : Loyer, Vente, Charge, Frais, Autre
+– Montant
+
+
+                                                     51
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Date
+– Lot / Bien concerné
+– Locataire / Acheteur
+– Moyen de paiement (Cash, Mobile Money, Virement, Carte)
+– Justificatif (photo / PDF)
+Boutons
+– Enregistrer
+– Annuler
+
+
+IX.2 – BILAN FINANCIER
+DESCRIPTION
+Le bilan permet de visualiser la performance financière sur une période donnée.
+
+
+BILAN – AFFICHAGE
+Périodes
+– Mensuel
+– Trimestriel
+– Annuel
+Indicateurs
+– Revenus totaux
+– Dépenses totales
+– Résultat net
+– Rendement par bien
+Boutons
+– Générer bilan
+– Télécharger PDF
+– Export Excel
+
+
+IX.3 – DÉCLARATION FISCALE
+
+
+
+
+                                                     52
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+DESCRIPTION
+Le module fiscal prépare automatiquement les données nécessaires à la déclaration
+fiscale immobilière, selon les règles locales.
+
+
+FORMULAIRE : PARAMÈTRES FISCAUX
+Champs
+– Pays
+– Régime fiscal
+– Taux d’imposition
+– Type d’activité (Particulier / Société)
+
+
+TABLEAU DÉCLARATION FISCALE
+Contenu
+– Revenus déclarables
+– Charges déductibles
+– Base imposable
+– Impôt estimé
+Boutons
+– Générer déclaration
+– Télécharger PDF
+
+
+IX.4 – PRÊTS ET FINANCEMENTS
+DESCRIPTION
+Gestion des prêts contractés pour l’achat ou la rénovation des biens.
+
+
+FORMULAIRE : CRÉATION D’UN PRÊT
+Champs
+– Organisme prêteur
+– Montant du prêt
+
+
+                                                     53
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Taux d’intérêt
+– Durée
+– Date de début
+– Bien concerné
+– Type de remboursement
+Boutons
+– Enregistrer
+– Modifier
+– Clôturer
+
+
+SUIVI DES PRÊTS
+Affichage
+– Capital restant dû
+– Échéances
+– Intérêts payés
+
+
+IX.5 – PAIEMENTS & IMPAYÉS
+DESCRIPTION
+Gestion intégrée des paiements classiques et échelonnés.
+Fonctionnalités
+– Paiement en ligne
+– Paiement Mobile Money
+– Reçus automatiques
+– Alertes de retard
+
+
+ALERTES & RECOUVREMENT
+– Notification locataire
+– Notification gestionnaire
+– Notification agent recouvreur
+– Historique des relances
+
+
+                                                     54
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+
+
+IX.6 – ACCÈS & AUTORISATIONS
+Règles
+– Propriétaire : lecture + export
+– Gestionnaire : gestion complète
+– Comptable : accès fiscal et bilan
+– Locataire : lecture de ses paiements uniquement
+
+
+IX.7 – ADAPTATION AU CONTEXTE AFRICAIN
+– Mobile Money prioritaire
+– Multi-devises
+– Gestion hors ligne partielle
+– Fiscalité configurable par pays
+– Export simplifié pour administrations locales
+
+
+IX.8 – TECHNOLOGIES RECOMMANDÉES
+FRONT-END
+– React / Next.js
+– Chart.js / Recharts
+– Tailwind CSS
+BACK-END
+– Laravel ou NestJS
+– API REST sécurisée
+BASE DE DONNÉES
+– PostgreSQL / MySQL
+– Tables : transactions, balances, loans, taxes
+SÉCURITÉ
+– RBAC
+– Journal financier
+– Traçabilité complète
+
+
+                                                     55
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+
+
+RÉSULTAT ATTENDU
+Un module Finances puissant, clair et automatisé permettant un pilotage financier
+précis, une conformité fiscale et une gestion efficace de la trésorerie, comparable à
+Rentila mais optimisé pour les réalités africaines.
+
+
+
+
+X – DOCUMENTS
+(Mes documents – Mes modèles)
+OBJECTIF DU MODULE
+Le module Documents permet la création, centralisation, personnalisation,
+génération automatique et archivage sécurisé de tous les documents immobiliers et
+administratifs.
+Il élimine le papier, réduit les erreurs et garantit une traçabilité complète.
+Modules liés :
+Biens, Lots, Locataires, Locations, Finances, États des lieux, Plaintes, Services.
+
+
+X.1 – MES DOCUMENTS (ARCHIVAGE CENTRAL)
+DESCRIPTION FONCTIONNELLE
+Espace de stockage numérique sécurisé permettant de consulter et gérer tous les
+documents générés ou importés.
+
+
+AFFICHAGE : BIBLIOTHÈQUE DE DOCUMENTS
+Disposition
+– Barre de recherche en haut
+– Filtres à gauche
+– Liste centrale des documents
+Colonnes
+– Nom du document
+
+
+                                                     56
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Type
+– Lié à (Bien / Lot / Locataire)
+– Date
+– Statut
+Boutons
+– Importer
+– Voir
+– Télécharger
+– Partager
+– Archiver
+
+
+FORMULAIRE : IMPORTATION DOCUMENT
+Champs
+– Nom du document
+– Catégorie
+– Fichier (PDF, image)
+– Bien / Lot concerné
+– Visibilité (privé / partagé)
+Boutons
+– Importer
+– Annuler
+
+
+X.2 – MES MODÈLES (GÉNÉRATION AUTOMATIQUE)
+DESCRIPTION
+Gestion des modèles de documents réutilisables avec champs dynamiques.
+Types de modèles
+– Contrat de location
+– Contrat de vente
+– Quittance de loyer
+– Reçu de paiement
+
+
+
+                                                     57
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– État des lieux
+– Lettre de relance
+
+
+AFFICHAGE : LISTE DES MODÈLES
+Colonnes
+– Nom du modèle
+– Type
+– Dernière modification
+– Statut
+Boutons
+– Créer modèle
+– Modifier
+– Dupliquer
+– Supprimer
+
+
+FORMULAIRE : CRÉATION / MODIFICATION DE MODÈLE
+Disposition
+– Éditeur central
+– Variables dynamiques à droite
+Champs
+– Nom du modèle
+– Type
+– Contenu du document (éditeur riche)
+Variables automatiques
+– {{NomLocataire}}
+– {{MontantLoyer}}
+– {{Date}}
+– {{AdresseBien}}
+Boutons
+– Enregistrer
+
+
+
+                                                     58
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Aperçu
+– Générer document
+
+
+X.3 – GÉNÉRATION AUTOMATIQUE DE DOCUMENT
+DESCRIPTION
+À partir d’un modèle, le système génère automatiquement un document final.
+
+
+FORMULAIRE : GÉNÉRER DOCUMENT
+Champs
+– Modèle
+– Bien / Lot
+– Locataire / Acheteur
+– Date
+Boutons
+– Générer PDF
+– Annuler
+
+
+X.4 – SIGNATURE & VALIDATION
+FONCTIONNALITÉS
+– Signature électronique
+– Validation par gestionnaire
+– Historique des signatures
+
+
+X.5 – ACCÈS & AUTORISATIONS
+Règles
+– Propriétaire : lecture et téléchargement
+– Gestionnaire : création et modification
+– Locataire : accès à ses documents uniquement
+
+
+
+
+                                                     59
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+X.6 – ADAPTATION AU CONTEXTE AFRICAIN
+– Modèles juridiques personnalisables par pays
+– Signature mobile prioritaire
+– Documents accessibles hors ligne (PWA)
+– Envoi via WhatsApp
+
+
+X.7 – TECHNOLOGIES RECOMMANDÉES
+FRONT-END
+– React / Next.js
+– Rich Text Editor (TipTap / Quill)
+– Tailwind CSS
+BACK-END
+– Laravel ou NestJS
+– Génération PDF (wkhtmltopdf / dompdf)
+BASE DE DONNÉES
+– PostgreSQL / MySQL
+– Tables : documents, templates
+SÉCURITÉ
+– Chiffrement des fichiers
+– RBAC
+– Journal d’accès
+
+
+RÉSULTAT ATTENDU
+Un module Documents structuré, sécurisé et automatisé permettant une gestion
+documentaire complète et professionnelle, comparable à Rentila mais optimisée pour
+les réalités africaines.
+
+
+
+
+XI – CARNET
+(Notes – Contacts – Suivi terrain)
+
+
+                                                     60
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+OBJECTIF DU MODULE
+Le module Carnet est un outil de mémoire opérationnelle pour les gestionnaires et
+agences.
+Il permet de consigner toutes les notes, observations, contacts et actions terrain,
+même hors connexion, et de les relier aux biens, lots, locataires et interventions.
+Modules liés :
+Biens, Lots, Locataires, Interventions, Agenda, Plaintes, Tâches.
+
+
+XI.1 – NOTES INTERNES
+DESCRIPTION FONCTIONNELLE
+Permet d’ajouter des notes libres ou structurées, visibles uniquement par les
+utilisateurs autorisés.
+
+
+AFFICHAGE : LISTE DES NOTES
+Disposition
+– Barre de recherche en haut
+– Filtres à gauche
+– Liste chronologique au centre
+Colonnes
+– Titre
+– Type
+– Lié à (Bien / Lot / Locataire)
+– Auteur
+– Date
+Boutons
+– Ajouter note
+– Voir
+– Modifier
+– Supprimer
+
+
+
+
+                                                     61
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+FORMULAIRE : CRÉATION DE NOTE
+Champs
+– Titre
+– Contenu (éditeur texte)
+– Type (Note terrain / Rappel / Observation)
+– Élément lié (Bien, Lot, Locataire)
+– Visibilité (privée / partagée)
+Boutons
+– Enregistrer
+– Annuler
+
+
+XI.2 – CONTACTS
+DESCRIPTION
+Gestion centralisée de tous les contacts utiles à la gestion immobilière.
+
+
+AFFICHAGE : RÉPERTOIRE DES CONTACTS
+Colonnes
+– Nom
+– Rôle
+– Téléphone
+– WhatsApp
+– Email
+Boutons
+– Ajouter contact
+– Appeler
+– WhatsApp
+– Modifier
+
+
+FORMULAIRE : CRÉATION CONTACT
+
+
+
+
+                                                     62
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Champs
+– Nom complet
+– Rôle
+– Téléphone principal
+– Email
+– Adresse
+– Note associée
+
+
+XI.3 – SUIVI TERRAIN
+DESCRIPTION
+Suivi des actions réalisées sur le terrain (visites, inspections, interventions).
+
+
+AFFICHAGE : JOURNAL TERRAIN
+Colonnes
+– Date
+– Action
+– Lieu
+– Responsable
+– Statut
+Boutons
+– Ajouter suivi
+– Joindre photo
+– Localiser
+
+
+FORMULAIRE : ACTION TERRAIN
+Champs
+– Type d’action
+– Bien / Lot
+– Description
+
+
+
+
+                                                     63
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Photo
+– Géolocalisation automatique
+
+
+XI.4 – ACCÈS & AUTORISATIONS
+– Gestionnaire : accès complet
+– Propriétaire : lecture limitée
+– Agent terrain : création uniquement
+
+
+XI.5 – ADAPTATION AU CONTEXTE AFRICAIN
+– Fonctionnement hors ligne
+– Géolocalisation terrain
+– Photos prioritaires
+– WhatsApp intégré
+
+
+XI.6 – TECHNOLOGIES RECOMMANDÉES
+FRONT-END
+– React / Next.js
+– PWA
+– Tailwind CSS
+BACK-END
+– Laravel ou NestJS
+BASE DE DONNÉES
+– PostgreSQL / MySQL
+– Tables : notes, contacts, field_logs
+SÉCURITÉ
+– RBAC
+– Historique des modifications
+
+
+
+
+                                                     64
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+RÉSULTAT ATTENDU
+Un module Carnet simple, mobile et puissant, garantissant un suivi terrain rigoureux
+et une mémoire opérationnelle fiable, comparable à Rentila mais adaptée aux réalités
+africaines.
+
+
+
+
+XII – AGENDA
+(Échéances – Rappels automatiques – Planning)
+OBJECTIF DU MODULE
+Le module Agenda centralise tous les événements, échéances et rappels
+automatiques liés à la gestion immobilière afin d’éviter les oublis, retards et pertes
+financières.
+Modules liés :
+Locations, Finances, États des lieux, Interventions, Carnet, Tâches, Plaintes.
+
+
+XII.1 – TYPES D’ÉVÉNEMENTS
+– Échéance de loyer
+– Paiement échelonné
+– Fin de contrat
+– État des lieux
+– Intervention technique
+– Rappel administratif
+– Rendez-vous terrain
+
+
+XII.2 – VUE AGENDA
+AFFICHAGE PRINCIPAL
+Modes
+– Jour
+– Semaine
+– Mois
+
+
+                                                     65
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Disposition
+– Calendrier central
+– Filtres à gauche
+– Liste d’événements à droite
+Couleurs
+– Vert : payé
+– Orange : à venir
+– Rouge : retard
+Boutons
+– Ajouter événement
+– Filtrer
+– Exporter
+
+
+XII.3 – RAPPELS AUTOMATIQUES
+DESCRIPTION
+Le système envoie automatiquement des rappels avant et après échéance.
+Canaux
+– WhatsApp
+– SMS
+– Email
+Délais configurables
+– 7 jours
+– 3 jours
+– 24h
+– Après retard
+
+
+FORMULAIRE : PARAMÉTRAGE RAPPELS
+Champs
+– Type d’événement
+– Délai
+
+
+
+                                                     66
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Canal
+– Destinataire
+
+
+XII.4 – CRÉATION D’ÉVÉNEMENT
+FORMULAIRE : AJOUT ÉVÉNEMENT
+Champs
+– Titre
+– Type
+– Date / Heure
+– Bien / Lot
+– Locataire / Responsable
+– Priorité
+Boutons
+– Enregistrer
+– Annuler
+
+
+XII.5 – ACCÈS & AUTORISATIONS
+– Gestionnaire : complet
+– Propriétaire : lecture
+– Locataire : événements liés
+
+
+XII.6 – ADAPTATION AU CONTEXTE AFRICAIN
+– WhatsApp-first
+– Fuseaux horaires locaux
+– Notifications mobiles prioritaires
+
+
+XII.7 – TECHNOLOGIES RECOMMANDÉES
+FRONT-END
+– React / Next.js
+
+
+                                                     67
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– FullCalendar
+– Tailwind CSS
+BACK-END
+– Laravel ou NestJS
+– Scheduler (cron / queue)
+BASE DE DONNÉES
+– PostgreSQL / MySQL
+– Tables : events, reminders
+SÉCURITÉ
+– RBAC
+– Journal des notifications
+
+
+RÉSULTAT ATTENDU
+Un module Agenda fiable et automatisé permettant un suivi précis des échéances et
+une réduction significative des retards, comparable à Rentila mais adapté aux réalités
+africaines.
+
+
+
+
+XIII – INTERVENTIONS
+(Maintenance, réparations, services connexes)
+OBJECTIF DU MODULE
+Le module Interventions permet de déclarer, suivre, affecter et clôturer toutes les
+opérations de maintenance et services connexes (plomberie, électricité, sécurité,
+ménage, gardiennage, assainissement), avec traçabilité complète.
+Modules liés
+Biens, Locataires, Plaintes, Agenda, Finances, Fournisseurs, Documents.
+
+
+XIII.1 – TYPOLOGIE DES INTERVENTIONS
+
+
+
+
+                                                     68
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Catégories
+– Maintenance corrective
+– Maintenance préventive
+– Services connexes
+Exemples (contexte africain)
+– Fuite d’eau
+– Coupure électrique
+– Problème de forage
+– Nettoyage cour commune
+– Gardiennage
+– Vidange fosse septique
+
+
+XIII.2 – TABLEAU DES INTERVENTIONS
+AFFICHAGE PRINCIPAL
+Colonnes
+– N° ticket
+– Bien / Lot
+– Type
+– Priorité
+– Statut
+– Intervenant
+– Date
+Statuts
+– Ouvert
+– En cours
+– En attente
+– Résolu
+– Clos
+Boutons
+– Nouvelle intervention
+– Filtrer
+– Exporter
+
+
+                                                     69
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+
+
+XIII.3 – CRÉATION D’INTERVENTION
+FORMULAIRE : NOUVELLE INTERVENTION
+Champs
+– Type d’intervention
+– Catégorie
+– Description
+– Urgence
+– Bien / Lot
+– Locataire concerné
+– Photos (avant)
+Boutons
+– Créer
+– Annuler
+
+
+XIII.4 – DÉCLARATION PAR LE LOCATAIRE
+DESCRIPTION
+Le locataire peut soumettre une demande depuis son espace.
+FORMULAIRE : DEMANDE LOCATAIRE
+Champs
+– Problème rencontré
+– Description
+– Photos
+– Disponibilité
+Notifications
+– Gestionnaire
+– Propriétaire
+
+
+XIII.5 – AFFECTATION INTERVENANT
+
+
+
+                                                     70
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+FORMULAIRE : AFFECTER INTERVENANT
+Champs
+– Prestataire
+– Date intervention
+– Coût estimé
+Boutons
+– Affecter
+– Reporter
+
+
+XIII.6 – SUIVI & CLÔTURE
+FORMULAIRE : CLÔTURE INTERVENTION
+Champs
+– Actions réalisées
+– Photos après
+– Coût réel
+– Commentaires
+Boutons
+– Clôturer
+– Reprogrammer
+
+
+XIII.7 – SERVICES CONNEXES
+Types
+– Sécurité / Gardiennage
+– Nettoyage
+– Assainissement
+– Jardinage
+Fonctionnalités
+– Contrats périodiques
+– Paiement mensuel
+– Suivi qualité
+
+
+                                                     71
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+
+
+XIII.8 – ALERTES & RAPPELS
+– Intervention urgente non traitée
+– Intervention dépassée
+– Intervention récurrente
+Canaux
+– SMS
+– WhatsApp
+– Email
+
+
+XIII.9 – AUTORISATIONS & ACCÈS
+– Gestionnaire : complet
+– Propriétaire : validation
+– Locataire : déclaration et suivi
+– Prestataire : accès limité
+
+
+XIII.10 – ADAPTATION CONTEXTE AFRICAIN
+– Prestataires locaux informels
+– Paiement mobile money
+– Réseau faible (mode offline)
+
+
+XIII.11 – TECHNOLOGIES RECOMMANDÉES
+FRONT-END
+– React / Vue
+– Tailwind CSS
+– Upload images
+BACK-END
+– Laravel / NestJS
+– API REST
+
+
+                                                     72
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+BASE DE DONNÉES
+– interventions
+– providers
+– intervention_logs
+SÉCURITÉ
+– RBAC
+– Historique des actions
+
+
+RÉSULTAT ATTENDU
+Un module Interventions complet, terrain-oriented, permettant une gestion rapide et
+documentée des maintenances et services connexes, parfaitement adapté aux réalités
+africaines.
+
+
+
+
+XIV – TÂCHES & MESSAGES
+(Communication interne, suivi opérationnel, notifications)
+OBJECTIF DU MODULE
+Le module Tâches & Messages permet de coordonner toutes les actions humaines
+autour de la gestion immobilière :
+– assignation de tâches,
+– communication interne et externe,
+– suivi terrain,
+– notifications automatiques (WhatsApp, SMS, Email).
+Il constitue le centre nerveux opérationnel entre gestionnaires, agents, prestataires,
+propriétaires et locataires.
+Modules liés
+Bureau (Dashboard), Biens, Locataires, Interventions, Agenda, Finances.
+
+
+XIV.1 – TÂCHES (TASK MANAGEMENT)
+
+
+
+
+                                                     73
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+DESCRIPTION FONCTIONNELLE
+Chaque action opérationnelle (relance, visite, intervention, paiement, état des lieux)
+est matérialisée par une tâche traçable, assignée à un utilisateur.
+Exemples
+– Relancer un locataire impayé
+– Effectuer une visite terrain
+– Superviser une intervention
+– Collecter un loyer en espèces
+– Déposer un document administratif
+
+
+XIV.2 – TABLEAU DES TÂCHES
+AFFICHAGE (ÉCRAN PRINCIPAL)
+Vue par défaut
+– Liste filtrable + badges de priorité
+Colonnes
+– Titre
+– Bien / Lot
+– Assigné à
+– Priorité
+– Échéance
+– Statut
+Statuts
+– À faire
+– En cours
+– En retard
+– Terminé
+Boutons
+– Nouvelle tâche
+– Filtrer
+– Vue calendrier
+
+
+
+
+                                                     74
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+XIV.3 – FORMULAIRE : CRÉER UNE TÂCHE
+AFFICHAGE
+– Formulaire central
+– Sélecteurs rapides
+Champs
+– Titre de la tâche
+– Description
+– Bien / Lot (optionnel)
+– Assigné à
+– Priorité (basse / moyenne / urgente)
+– Date limite
+– Rappel automatique
+Boutons
+– Créer
+– Annuler
+
+
+XIV.4 – SUIVI ET CLÔTURE DES TÂCHES
+FORMULAIRE : MISE À JOUR
+Champs
+– Statut
+– Commentaires
+– Photos terrain (optionnel)
+Boutons
+– Marquer terminé
+– Reporter
+– Ajouter commentaire
+
+
+XIV.5 – MESSAGERIE INTERNE
+DESCRIPTION
+Messagerie contextuelle liée à :
+
+
+                                                     75
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– un bien
+– un locataire
+– une tâche
+– une intervention
+Types de messages
+– Message interne (équipe)
+– Message externe (locataire / propriétaire)
+
+
+XIV.6 – FORMULAIRE : ENVOYER UN MESSAGE
+AFFICHAGE
+– Fenêtre type chat (mobile-first)
+Champs
+– Destinataire
+– Canal (WhatsApp / SMS / Email / Interne)
+– Message
+– Pièce jointe (photo, document)
+Boutons
+– Envoyer
+– Enregistrer comme note
+
+
+XIV.7 – NOTIFICATIONS MULTICANALES
+CANUX SUPPORTÉS
+– WhatsApp (prioritaire)
+– SMS
+– Email
+– Notification in-app
+ÉVÉNEMENTS DÉCLENCHEURS
+– Nouvelle tâche assignée
+– Tâche en retard
+– Nouveau message
+
+
+
+                                                     76
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Intervention planifiée
+– Paiement attendu
+
+
+XIV.8 – PARAMÉTRAGE DES NOTIFICATIONS
+FORMULAIRE : PRÉFÉRENCES UTILISATEUR
+Champs
+– Canal préféré
+– Heures de réception
+– Types d’alertes
+Boutons
+– Enregistrer
+
+
+XIV.9 – AUTORISATIONS & CONTRÔLE
+DROITS
+– Administrateur : tout
+– Gestionnaire : création / assignation
+– Agent terrain : exécution
+– Locataire : messages limités
+Journalisation
+– Historique des tâches
+– Logs des messages envoyés
+
+
+XIV.10 – ADAPTATION AU CONTEXTE AFRICAIN
+– WhatsApp-first (faible taux email)
+– SMS fallback réseau faible
+– Messages courts et clairs
+– Utilisation terrain (agents mobiles)
+– Multilingue (FR / local)
+
+
+
+
+                                                     77
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+XIV.11 – DISPOSITION UI/UX
+DESKTOP
+– Liste tâches à gauche
+– Détails à droite
+MOBILE
+– Vue carte
+– Bouton flottant “+”
+
+
+XIV.12 – TECHNOLOGIES RECOMMANDÉES
+FRONT-END
+– React / Next.js
+– Tailwind CSS
+– WebSockets (temps réel)
+BACK-END
+– Laravel / NestJS
+– API REST + Events
+NOTIFICATIONS
+– WhatsApp API (Meta / fournisseurs locaux)
+– SMS Gateway locale
+– Email SMTP
+BASE DE DONNÉES
+– tasks
+– messages
+– notifications
+– user_preferences
+SÉCURITÉ
+– RBAC
+– Chiffrement des messages sensibles
+
+
+
+
+                                                     78
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+RÉSULTAT ATTENDU
+Un module Tâches & Messages fluide, orienté terrain, permettant une coordination
+humaine efficace, une communication fiable même en réseau faible, et une
+réduction drastique des oublis opérationnels.
+
+
+
+
+XV – CANDIDATS
+(Location & Achat)
+OBJECTIF DU MODULE
+Le module Candidats permet de centraliser, analyser et qualifier toutes les
+demandes de location ou d’achat provenant :
+– du catalogue public géolocalisé,
+– des agences partenaires,
+– du terrain (agents commerciaux),
+– des recommandations (parrainage).
+Il sert de sas de sélection avant la création d’un locataire ou d’un acheteur actif.
+Modules liés
+Catalogue public, Réservations, Biens, Locataires / Acheteurs, Tâches, Messages.
+
+
+XV.1 – TYPOLOGIE DES CANDIDATS
+Types
+– Candidat locataire
+– Candidat acheteur
+Statuts
+– Nouveau
+– En étude
+– Préqualifié
+– Refusé
+– Accepté
+
+
+
+
+                                                     79
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Origines
+– Site public
+– WhatsApp
+– Agent terrain
+– Partenaire
+
+
+XV.2 – TABLEAU DES CANDIDATS
+AFFICHAGE (ÉCRAN PRINCIPAL)
+Vue liste filtrable
+Colonnes
+– Nom
+– Type (Location / Achat)
+– Bien ciblé
+– Budget
+– Statut
+– Source
+Actions rapides
+– Voir fiche
+– Contacter
+– Affecter agent
+– Accepter / Refuser
+Boutons
+– Nouveau candidat
+– Exporter
+
+
+XV.3 – FORMULAIRE PUBLIC : DÉPÔT DE CANDIDATURE
+AFFICHAGE
+– Mobile-first
+– Accessible via lien public / QR code / WhatsApp
+
+
+
+
+                                                     80
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Champs communs
+– Nom & prénom
+– Téléphone (obligatoire)
+– Email (optionnel)
+– Type de demande (Location / Achat)
+– Zone recherchée (géolocalisation)
+– Budget max
+– Date souhaitée
+Champs location
+– Durée prévue
+– Nombre d’occupants
+Champs achat
+– Mode de financement (cash / échelonné / prêt)
+Boutons
+– Envoyer ma demande
+
+
+XV.4 – FORMULAIRE INTERNE : FICHE CANDIDAT
+AFFICHAGE
+– Fiche complète + onglets
+Onglets
+– Informations
+– Documents
+– Historique
+– Commentaires
+Champs supplémentaires
+– Situation professionnelle
+– Revenus estimés
+– Références
+– Observations gestionnaire
+
+
+
+
+                                                     81
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+XV.5 – DOCUMENTS CANDIDAT
+Types acceptés
+– Pièce d’identité
+– Attestation de travail
+– Relevé bancaire
+– Lettre de motivation
+Boutons
+– Ajouter document
+– Valider / Refuser
+
+
+XV.6 – PRÉQUALIFICATION & SCORING
+CRITÈRES
+– Budget / loyer
+– Stabilité professionnelle
+– Historique locatif
+– Capacité de paiement
+Score
+– Faible / Moyen / Élevé
+Affichage
+– Badge couleur
+
+
+XV.7 – AFFECTATION AGENT / COMMERCIAL
+FORMULAIRE
+Champs
+– Agent responsable
+– Date de suivi
+– Priorité
+Boutons
+– Affecter
+
+
+
+
+                                                     82
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Notifications
+– WhatsApp automatique à l’agent
+
+
+XV.8 – COMMUNICATION AVEC LE CANDIDAT
+Canaux
+– WhatsApp
+– SMS
+– Email
+Actions
+– Proposer une visite
+– Demander documents
+– Informer décision
+Historique conservé
+
+
+XV.9 – ACCEPTATION / REFUS
+ACTIONS
+Acceptation
+– Conversion automatique en Locataire ou Acheteur
+– Génération du dossier
+Refus
+– Motif
+– Message automatique poli
+
+
+XV.10 – RÈGLES D’ACCÈS
+– Administrateur : tous candidats
+– Gestionnaire : candidats de son périmètre
+– Agent : candidats assignés
+– Propriétaire : consultation limitée
+
+
+
+
+                                                     83
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+XV.11 – ADAPTATION CONTEXTE AFRICAIN
+– Téléphone obligatoire
+– WhatsApp comme canal principal
+– Documents photo (smartphone)
+– Processus simplifié
+– Multilingue
+
+
+XV.12 – DISPOSITION UI/UX
+DESKTOP
+– Tableau candidats à gauche
+– Fiche à droite
+MOBILE
+– Cartes candidates
+– Bouton flottant “+”
+
+
+XV.13 – TECHNOLOGIES RECOMMANDÉES
+FRONT-END
+– React / Next.js
+– Tailwind CSS
+– Map API (OpenStreetMap)
+BACK-END
+– Laravel / NestJS
+– API REST
+BASE DE DONNÉES
+– candidates
+– candidate_documents
+– candidate_scores
+SÉCURITÉ
+– RBAC
+– Chiffrement données personnelles
+
+
+                                                     84
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+
+
+RÉSULTAT ATTENDU
+Un module Candidats structuré, fluide et orienté terrain, permettant de réduire les
+risques d’impayés, accélérer les décisions et transformer efficacement les demandes
+en contrats actifs.
+
+
+
+
+XVI – OUTILS
+(Gestion des équipements, déplacements, relevés et communication administrative)
+OBJECTIF DU MODULE
+Le module Outils permet de centraliser la gestion opérationnelle des ressources
+matérielles et des communications de terrain, afin de garantir un suivi optimal des
+interventions et des opérations liées aux biens immobiliers.
+Modules liés : Interventions, Tâches, Biens, Finances, Locataires / Acheteurs.
+
+
+XVI.1 – GESTION DES ÉQUIPEMENTS
+DESCRIPTION FONCTIONNELLE
+Permet de suivre le parc matériel, son état, son affectation et son historique.
+Exemples
+– Clés, serrures, appareils électroménagers
+– Matériel d’entretien
+– Véhicules ou moyens de transport internes
+FORMULAIRE : CRÉER / MODIFIER ÉQUIPEMENT
+Affichage :
+– Formulaire central avec onglets
+– Desktop : 2 colonnes
+– Mobile : 1 colonne
+Champs :
+– Nom de l’équipement
+
+
+                                                     85
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Type / Catégorie
+– Numéro de série / référence
+– Etat (neuf, bon, usé, à réparer)
+– Affectation (bien, agence, agent)
+– Date d’acquisition
+– Observations
+Boutons :
+–[   Enregistrer]
+–[   Modifier]
+–[   Supprimer]
+–[   Historique]
+
+
+XVI.2 – GESTION DES DÉPLACEMENTS
+DESCRIPTION FONCTIONNELLE
+Permet de planifier, suivre et enregistrer les déplacements des agents ou intervenants
+sur le terrain.
+FORMULAIRE : PLANIFICATION DÉPLACEMENT
+Affichage :
+– Formulaire simple avec calendrier et carte
+Champs :
+– Agent / Collaborateur
+– Motif déplacement
+– Date / Heure départ
+– Date / Heure retour
+– Lieu départ / arrivée (coordonnées GPS)
+– Véhicule ou moyen de transport utilisé
+– Commentaires
+Boutons :
+–[   Planifier]
+–[   Modifier]
+
+
+
+                                                     86
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+
+–[      Annuler]
+–[      Voir itinéraire]
+Notifications :
+– WhatsApp / SMS automatique à l’agent
+– Rappel PWA
+
+
+XVI.3 – RELEVÉS DE COMPTEURS
+DESCRIPTION FONCTIONNELLE
+Pour suivre la consommation ou l’usage de biens (eau, électricité, gaz) et automatiser
+les alertes ou calculs de charges.
+FORMULAIRE : AJOUTER RELEVÉ
+Affichage :
+– Formulaire central avec affichage historique
+Champs :
+– Type de compteur (Eau, Électricité, Gaz…)
+– Bien / Lot associé
+– Valeur précédente
+– Valeur actuelle
+– Date du relevé
+– Agent ayant effectué le relevé
+– Commentaires
+Boutons :
+–[   Enregistrer]
+–[   Historique]
+–[   Correction]
+Alertes :
+– Notifications automatiques pour relevés manquants ou anomalie
+
+
+XVI.4 – ENVOI DE LETTRES / DOCUMENTS ADMINISTRATIFS
+
+
+
+                                                     87
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+DESCRIPTION FONCTIONNELLE
+Pour centraliser l’envoi de lettres (avis, rappels, notifications officielles) et documents
+aux locataires ou propriétaires.
+FORMULAIRE : CRÉER / ENVOYER LETTRE
+Affichage :
+– Formulaire central avec aperçu
+– Desktop : 2 panneaux (texte & destinataires)
+– Mobile : 1 panneau
+Champs :
+– Type de document (Lettre de relance, Avis légal, Notification)
+– Destinataire (locataire, propriétaire, agent)
+– Moyen d’envoi (Email, WhatsApp, SMS, Impression PDF)
+– Date d’envoi
+– Pièce jointe (PDF / Image)
+– Observations
+Boutons :
+–[   Envoyer]
+–[   Enregistrer comme modèle]
+–[   Supprimer]
+Historique :
+– Liste des envois avec statut
+– Relances automatiques programmables
+
+
+XVI.5 – AUTORISATIONS & CONTRÔLE
+Règles d’accès
+– Administrateur : création, modification, suppression, affectation
+– Gestionnaire : création / affectation des équipements et déplacements
+– Agent : consultation / exécution / ajout relevés
+– Propriétaire / Locataire : consultation limitée selon permission
+Journalisation
+– Historique complet par action, agent, date, statut
+
+
+                                                     88
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+
+
+XVI.6 – ADAPTATION AU CONTEXTE AFRICAIN
+– WhatsApp-first pour notifications terrain
+– SMS fallback si réseau faible
+– Captures photo pour relevés ou équipements
+– Multilingue (FR / langues locales)
+– Mobile-first pour agents en déplacement
+
+
+XVI.7 – DISPOSITION UI/UX
+Desktop :
+– Tableau de bord central
+– Panneaux latéraux : filtres / détails
+– Boutons flottants “+” pour ajout rapide
+Mobile :
+– Cartes interactives pour équipements / relevés
+– Bouton flottant “+” pour action rapide
+
+
+XVI.8 – TECHNOLOGIES RECOMMANDÉES
+Front-end : React / Next.js, Tailwind CSS, PWA mobile-first
+Back-end : Laravel / NestJS, API REST sécurisée
+Notifications : WhatsApp API, SMS Gateway locale, Email SMTP
+Base de données : equipments, travels, meters, letters
+Sécurité : RBAC, chiffrement données sensibles, journalisation complète
+
+
+RÉSULTAT ATTENDU
+Un module Outils complet et fiable permettant de :
+– Suivre le matériel et équipements,
+– Planifier et suivre les déplacements terrain,
+– Collecter et contrôler les relevés de compteurs,
+
+
+
+
+                                                     89
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+– Envoyer les lettres / documents administratifs avec traçabilité,
+– Améliorer l’efficacité opérationnelle et la communication terrain.
+
+
+
+
+XVII – CORBEILLE / ARCHIVAGE
+OBJECTIF DU MODULE
+Le module Corbeille assure la gestion sécurisée des données supprimées, la
+possibilité de restaurer les éléments effacés et le suivi des actions.
+Il complète l’ensemble de la plateforme en garantissant :
+    •   la sécurité des informations sensibles,
+    •   l’auditabilité des actions,
+    •   la conformité avec la réglementation locale (RGPD-like et lois africaines sur la
+        protection des données).
+
+
+XVII.1 – DESCRIPTION FONCTIONNELLE
+    •   Archivage automatique : tous les éléments supprimés (biens, locataires,
+        contrats, états des lieux, documents, interventions) sont déplacés vers la
+        corbeille.
+    •   Restoration : possibilité de restaurer des éléments supprimés individuellement
+        ou par lot.
+    •   Suppression définitive : suppression irréversible avec confirmation multi-
+        niveau.
+    •   Historique des actions : registre complet des suppressions et restaurations par
+        utilisateur et date.
+    •   Filtrage et recherche : par type de module, date, utilisateur, ou statut.
+    •   Notification : alertes automatiques aux administrateurs lors de suppression
+        d’éléments critiques.
+
+
+
+
+                                                     90
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+XVII.2 – FORMULAIRE : CORBEILLE / RESTAURATION
+Affichage :
+    •   Tableau central (desktop) avec filtres latéraux
+    •   Mobile : liste verticale scrollable
+    •   Colonnes principales : Nom / Type / Module / Supprimé par / Date / Actions
+Filtres latéraux :
+    •   Module : Biens, Locataires, Contrats, Documents, États des lieux, Interventions,
+        Tâches, Messages, Outils
+    •   Date de suppression
+    •   Utilisateur ayant supprimé
+Boutons / Actions :
+
+    •   [       Restaurer] : restaure un élément ou un lot sélectionné
+
+    •   [       Supprimer définitivement] : suppression irréversible, confirmation requise
+
+    •   [       Exporter liste] : export PDF/Excel
+
+    •   [       Rechercher] : recherche par mot-clé
+Workflow simplifié :
+    1. L’utilisateur sélectionne un ou plusieurs éléments.
+    2. Choix de l’action : restauration ou suppression définitive.
+    3. Confirmation multi-niveau (popup + mot de passe).
+    4. Mise à jour du journal d’audit et notifications aux administrateurs.
+
+
+XVII.3 – SÉCURITÉ ET PERMISSIONS
+    •   RBAC granulaire : seuls certains rôles peuvent restaurer ou supprimer
+        définitivement.
+            o    Administrateur : toutes les actions
+
+
+                                                     91
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+            o   Gestionnaire : restauration limitée aux éléments de son
+                agence/propriétaire
+            o   Agent / Utilisateur standard : consultation seule
+    •   Journalisation complète : date, utilisateur, type d’action, module concerné,
+        élément affecté.
+    •   Chiffrement : données sensibles archivées avec chiffrement AES-256.
+
+
+XVII.4 – ADAPTATION AU CONTEXTE AFRICAIN
+    •   Notifications via WhatsApp/SMS pour les actions critiques
+    •   Support offline PWA limité, pour consultation mobile dans zones à faible
+        réseau
+    •   Multilingue : Français + langues locales selon configuration
+
+
+XVII.5 – DISPOSITION UI/UX
+Desktop :
+    •   Tableau central avec colonnes triables
+    •   Panneau latéral pour filtres et recherche
+    •   Boutons flottants pour restauration ou suppression en masse
+Mobile :
+    •   Liste verticale scrollable avec swipe pour restauration ou suppression
+    •   Bouton flottant “+” pour actions rapides
+
+
+XVII.6 – TECHNOLOGIES RECOMMANDÉES
+    •   Front-end : React / Next.js, Tailwind CSS, PWA Mobile-first
+    •   Back-end : Laravel / NestJS, API REST sécurisée
+
+
+
+                                                     92
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+    •   Base de données : PostgreSQL / MySQL, tables trash, audit_logs
+    •   Notifications : WhatsApp API, SMS Gateway locale, Email SMTP
+    •   Sécurité : RBAC + chiffrement AES-256 + journalisation complète
+
+
+XVII.7 – RÉSULTAT ATTENDU
+Un module Corbeille sécurisé et fiable permettant de :
+    •   Consulter les éléments supprimés par type et date
+    •   Restaurer facilement des données supprimées
+    •   Supprimer définitivement en toute sécurité
+    •   Maintenir un historique complet pour audit et conformité
+    •   Garantir une traçabilité complète et une sécurité adaptée aux contraintes
+        africaines
+
+
+
+
+MODULE SERVICES CONNEXES
+Objectif du module
+Le module Services Connexes permet aux locataires, acheteurs et propriétaires de
+réserver et gérer des prestations complémentaires associées à un bien immobilier :
+nettoyage, gardiennage, nounou, transport, courses, domestiques, etc.
+Il vise à créer un écosystème intégré où les services peuvent être liés directement au
+bien, avec suivi et paiements intégrés.
+
+
+1 – DESCRIPTION FONCTIONNELLE
+    •   Catalogue dynamique des services disponibles
+    •   Association d’un service à un bien ou à une réservation
+    •   Filtrage par type de service, disponibilité et localisation
+
+
+
+                                                     93
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+    •   Réservation en ligne avec paiement (Mobile Money, carte bancaire)
+    •   Historique des services commandés
+    •   Notifications automatiques pour l’utilisateur et le prestataire
+    •   Suivi et évaluation de la prestation
+Cas d’usage :
+    1. Le locataire choisit un bien sur la plateforme.
+    2. Il consulte les services associés disponibles à proximité.
+    3. Il réserve et paye en ligne.
+    4. Le prestataire reçoit une notification et peut confirmer la prestation.
+    5. Le client peut suivre l’état de la prestation et noter le service.
+
+
+2 – FORMULAIRE : RÉSERVATION DE SERVICE
+Affichage (layout) :
+    •   Desktop : deux colonnes – gauche : liste des services, droite : formulaire de
+        réservation
+    •   Mobile : affichage en une seule colonne, menu déroulant pour filtres
+Champs principaux :
+    •   Type de service (nettoyage, gardiennage, nounou, transport…)
+    •   Bien concerné (sélection depuis les biens du locataire ou acheteur)
+    •   Date et heure souhaitées
+    •   Fréquence (ponctuelle, récurrente)
+    •   Prestataire sélectionné ou automatique selon proximité
+    •   Mode de paiement (Mobile Money, Carte, Virement)
+    •   Commentaires supplémentaires
+    •   Pièces jointes éventuelles (photos, consignes)
+
+
+                                                     94
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Boutons / Actions :
+
+    •   [     Réserver]
+
+    •   [     Modifier réservation]
+
+    •   [     Annuler]
+
+    •   [     Historique des services]
+
+    •   [     Envoyer notification au prestataire]
+
+
+3 – INTERFACE UTILISATEUR
+Dashboard locataire / acheteur :
+    •   Carte géolocalisée avec les prestataires à proximité
+    •   Liste filtrable par type de service
+    •   Statut des services (Confirmé / En cours / Terminé / Annulé)
+    •   Notifications en temps réel via WhatsApp / SMS / Email
+Dashboard prestataire :
+    •   Liste des services reçus et à venir
+    •   Confirmation de la prestation
+    •   Marqueur de localisation pour interventions terrain
+
+
+4 – SÉCURITÉ ET PERMISSIONS
+    •   Les prestataires ne voient que leurs missions attribuées
+    •   Les locataires / propriétaires voient uniquement les services qu’ils ont réservés
+    •   Historique et suivi auditables par l’administrateur
+    •   Paiements sécurisés et traçables
+
+
+
+
+                                                     95
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+5 – ADAPTATION AU CONTEXTE AFRICAIN
+    •   Paiements Mobile Money intégrés (MTN, Orange, Moov, Airtel selon pays)
+    •   Notifications WhatsApp-first pour confirmation et rappel
+    •   Prise en compte des zones rurales et urbaines (offline limité PWA)
+    •   Gestion multilingue (Français + langues locales)
+    •   Prestataires indépendants ou agences locales intégrés
+
+
+6 – TECHNOLOGIES RECOMMANDÉES
+Front-end : React / Next.js, Tailwind CSS, PWA Mobile-first
+Back-end : NestJS / Laravel, API REST sécurisée
+Base de données : PostgreSQL / MySQL, tables services, reservations, prestataires,
+paiements
+Notifications : WhatsApp API, SMS Gateway locale, Email SMTP
+Sécurité : JWT, RBAC, journalisation des actions, chiffrement des données sensibles
+
+
+7 – RÉSULTAT ATTENDU
+    •   Réservation et paiement de services associés directement depuis la
+        plateforme
+    •   Suivi temps réel de chaque prestation
+    •   Notification instantanée pour prestataires et clients
+    •   Historique complet consultable par les utilisateurs autorisés
+    •   Intégration fluide au parcours locataire / acheteur
+
+
+
+
+XVIII – CATALOGUE GÉOLOCALISÉ PUBLIC & MOTEUR DE RECHERCHE GPS
+OBJECTIF DU MODULE
+
+
+
+                                                     96
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Ce module constitue la vitrine publique de Hope Gestion Immobilière.
+Il permet à toute personne (sans compte) ou utilisateur connecté de rechercher,
+localiser et réserver un bien immobilier à proximité à l’aide du GPS et de filtres
+intelligents.
+Il relie directement :
+→ biens
+→ agences / gestionnaires
+→ services connexes
+→ réservation / paiement
+
+
+XVIII.1 – ACCÈS AU CATALOGUE PUBLIC
+Accès via :
+    •   lien public
+    •   QR code
+    •   partage WhatsApp / SMS / Email
+Accessible :
+    •   sans inscription
+    •   avec compte (fonctionnalités avancées)
+
+
+XVIII.2 – INTERFACE PRINCIPALE
+Disposition écran (Desktop)
+
+
+| Barre recherche + filtres |
+| Carte GPS interactive | Liste des biens
+||
+||
+Mobile
+
+
+
+                                                     97
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+    •    Barre recherche en haut
+    •    Carte pleine page
+    •    Liste des biens glissante
+
+
+XVIII.3 – MOTEUR DE RECHERCHE & FILTRES
+Filtres principaux
+    •    Ville / Département / Quartier
+    •    Distance (1km – 50km)
+    •    Type de bien (Maison, Appartement, Terrain, Immeuble, Bureau…)
+    •    Budget (min / max)
+    •    Location / Vente
+    •    Disponibilité immédiate
+    •    Meublé / Non meublé
+    •    Services inclus
+    •    Paiement échelonné possible
+Boutons
+
+[       Rechercher]
+[       Ma position]
+[       Autour de moi]
+[       Vue carte]
+[       Vue liste]
+
+
+XVIII.4 – FICHE DÉTAILLÉE D’UN BIEN
+Contenu affiché
+    •    Galerie photos & vidéos
+
+
+
+                                                     98
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+    •    Localisation GPS
+    •    Description complète
+    •    Prix / conditions
+    •    Plan de paiement (si échelonné)
+    •    Services disponibles
+    •    Agence / gestionnaire responsable
+    •    Boutons actions
+Boutons
+
+[       Favoris]
+[       Contacter]
+[       Réserver]
+[       Faire une demande]
+[       Payer / acompte]
+
+
+XVIII.5 – FORMULAIRE : DEMANDE / RÉSERVATION
+Champs :
+    •    Nom & prénom
+    •    Téléphone (WhatsApp obligatoire)
+    •    Email (optionnel)
+    •    Type : Location / Achat
+    •    Bien sélectionné
+    •    Date souhaitée
+    •    Message
+    •    Mode de paiement
+    •    Acceptation conditions
+
+
+
+                                                     99
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Boutons :
+
+[       Envoyer la demande]
+[       Procéder au paiement]
+
+
+XVIII.6 – FONCTIONNALITÉS AVANCÉES
+    •    Détection GPS automatique
+    •    Tri intelligent des biens proches
+    •    Suggestion de biens similaires
+    •    Historique de navigation
+    •    Notifications instantanées
+    •    Intégration services connexes
+
+
+XVIII.7 – ADAPTATION AU CONTEXTE AFRICAIN
+    •    WhatsApp comme canal principal
+    •    Mobile Money prioritaire
+    •    Connexion faible gérée (PWA)
+    •    Multilingue (FR + langues locales)
+    •    Support utilisateurs sans email
+
+
+XVIII.8 – SÉCURITÉ & CONTRÔLE
+    •    Validation des annonces par gestionnaire
+    •    Masquage automatique des biens déjà loués / vendus
+    •    Journal d’accès et de demandes
+
+
+XVIII.9 – TECHNOLOGIES RECOMMANDÉES
+
+
+                                                     100
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Front-end
+    •   React / Next.js
+    •   Mapbox ou Google Maps
+    •   Tailwind CSS
+    •   PWA
+Back-end
+    •   NestJS ou Laravel
+    •   API REST / GraphQL
+Base de données
+    •   PostgreSQL / MySQL
+    •   Elasticsearch (recherche)
+Notifications
+    •   WhatsApp API
+    •   SMS Gateway
+    •   Email SMTP
+Paiement
+    •   Mobile Money
+    •   Stripe / Paystack
+
+
+RÉSULTAT ATTENDU
+Un catalogue immobilier public intelligent, géolocalisé, accessible à tous, permettant
+de :
+    •   Trouver rapidement un bien proche
+    •   Réserver à distance
+    •   Payer facilement
+
+
+                                                     101
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+    •   Connecter agences, propriétaires, locataires et prestataires
+
+
+XIX – MODULE PLAINTES (TICKETS) & DEMANDES – ESPACE LOCATAIRE
+OBJECTIF DU MODULE
+Ce module permet aux locataires / acheteurs de signaler des problèmes, faire des
+demandes ou solliciter des services depuis leur espace personnel, avec un système de
+tickets structurés, traçables et automatisés.
+Il vise à :
+    •   améliorer la satisfaction client,
+    •   réduire les délais de traitement,
+    •   assurer une traçabilité complète des interventions.
+
+
+XIX.1 – ESPACE LOCATAIRE : INTERFACE PRINCIPALE
+Disposition écran
+Barre latérale :
+    •   Tableau de bord
+    •   Mes biens
+    •   Mes paiements
+    •   Mes plaintes & demandes
+    •   Documents
+    •   Messages
+Zone centrale :
+    •   Liste des tickets
+    •   Bouton création
+Boutons principaux
+
+
+
+                                                     102
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+
+[       Nouvelle plainte / demande]
+[       Rechercher]
+[       Historique]
+
+
+XIX.2 – TYPES DE TICKETS
+    •    Plainte technique (eau, électricité, dégâts…)
+    •    Demande de maintenance
+    •    Demande de service connexe
+    •    Réclamation financière
+    •    Autre demande
+
+
+XIX.3 – FORMULAIRE : CRÉATION DE TICKET
+Champs :
+    •    Type de ticket (liste déroulante)
+    •    Bien concerné
+    •    Urgence (faible / normale / élevée / critique)
+    •    Titre
+    •    Description détaillée
+    •    Photos / vidéos
+    •    Date souhaitée d’intervention
+    •    Autorisation d’accès au logement (oui / non)
+    •    Contact prioritaire (WhatsApp)
+Boutons :
+
+[       Envoyer le ticket]
+[       Enregistrer brouillon]
+
+
+                                                     103
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+
+
+XIX.4 – WORKFLOW AUTOMATISÉ
+    1. Locataire soumet ticket
+    2. Notification immédiate à :
+            o     agence
+            o     gestionnaire
+            o     propriétaire (selon paramètres)
+    3. Assignation automatique d’un intervenant
+    4. Planification intervention
+    5. Suivi temps réel par le locataire
+    6. Validation & clôture
+
+
+XIX.5 – INTERFACE AGENCE / GESTIONNAIRE
+Tableau des tickets avec :
+    •    Numéro ticket
+    •    Locataire
+    •    Bien
+    •    Statut
+    •    Priorité
+    •    Intervenant affecté
+    •    Délai restant
+Boutons
+
+[       Affecter intervenant]
+[       Programmer]
+[       Répondre]
+
+
+                                                     104
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+
+[       Clôturer]
+[       Générer rapport]
+
+
+XIX.6 – HISTORIQUE & STATISTIQUES
+    •    Temps moyen de résolution
+    •    Taux de satisfaction
+    •    Tickets par type
+    •    Classement des prestataires
+
+
+XIX.7 – ADAPTATION CONTEXTE AFRICAIN
+    •    Notifications WhatsApp / SMS prioritaires
+    •    Mode hors connexion
+    •    Support utilisateur sans email
+    •    Interface simple & multilingue
+
+
+XIX.8 – SÉCURITÉ & CONFORMITÉ
+    •    Journal complet des actions
+    •    Accès contrôlé par rôles
+    •    Archivage sécurisé
+
+
+XIX.9 – TECHNOLOGIES RECOMMANDÉES
+Front-end
+    •    React / Next.js
+    •    Tailwind CSS
+    •    PWA
+
+
+                                                     105
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+Back-end
+    •   Laravel ou NestJS
+    •   API REST
+Base de données
+    •   PostgreSQL / MySQL
+Notifications
+    •   WhatsApp API
+    •   SMS Gateway
+    •   Firebase push
+Stockage médias
+    •   S3 compatible
+
+
+RÉSULTAT ATTENDU
+Un système de gestion des plaintes et demandes professionnel, transparent,
+automatisé et parfaitement adapté au marché immobilier africain.
+
+
+
+
+XIX – MODULE ABONNEMENT
+OBJECTIF DU MODULE
+Le module Abonnement gère l’accès à la plateforme selon des plans tarifaires
+adaptés aux agences, propriétaires et gestionnaires.
+Il conditionne l’activation des fonctionnalités, le nombre d’utilisateurs, de biens et de
+services accessibles.
+
+
+XIX.1 – TYPES D’ABONNEMENTS
+Profils concernés
+
+
+                                                     106
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+    •   Agence immobilière
+    •   Propriétaire individuel
+    •   Gestionnaire professionnel
+    •   Partenaire services
+Exemples de plans
+
+Plan           Cible                  Fonctionnalités
+
+Essentiel      Propriétaire           Gestion de base
+
+Pro            Agence                 Tous modules
+
+Entreprise Grandes agences Modules illimités
+
+Sur mesure Promoteurs                 Personnalisé
+
+
+XIX.2 – INTERFACE ABONNEMENT (Utilisateur)
+Disposition écran
+Carte centrale avec :
+    •   Plan actuel
+    •   Date d’expiration
+    •   Utilisation du quota
+    •   Bouton renouvellement
+Boutons
+
+[   Mettre à niveau]
+[   Renouveler]
+[   Factures]
+[⏸ Suspendre]
+
+
+
+
+                                                     107
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+XIX.3 – FORMULAIRE : SOUSCRIPTION / MODIFICATION
+Champs :
+    •    Type de compte
+    •    Plan choisi
+    •    Durée (mensuel / trimestriel / annuel)
+    •    Nombre d’utilisateurs
+    •    Nombre de biens
+    •    Modules optionnels
+    •    Mode de paiement
+Boutons
+
+[       Payer]
+[       Générer facture]
+[       Annuler]
+
+
+XIX.4 – GESTION ADMINISTRATEUR
+Interface Admin :
+    •    Création de plans
+    •    Paramétrage des quotas
+    •    Activation / suspension de comptes
+    •    Historique des paiements
+Boutons :
+
+[       Nouveau plan]
+[       Modifier]
+[       Suspendre]
+[       Rapports]
+
+
+
+                                                     108
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+
+
+XIX.5 – WORKFLOW DE PAIEMENT
+    1. Choix plan
+    2. Facture générée
+    3. Paiement Mobile Money / Carte / Virement
+    4. Activation automatique
+    5. Notifications utilisateur & admin
+
+
+XIX.6 – ADAPTATION CONTEXTE AFRICAIN
+    •   Paiement Mobile Money prioritaire
+    •   Factures simples et imprimables
+    •   Périodes flexibles
+    •   Support client WhatsApp
+
+
+XIX.7 – SÉCURITÉ & CONTRÔLE
+    •   Chiffrement des paiements
+    •   Journal d’audit
+    •   Gestion des accès par abonnement
+
+
+XIX.8 – TECHNOLOGIES RECOMMANDÉES
+Front-end
+    •   React / Next.js
+    •   Tailwind CSS
+Back-end
+
+
+
+                                                     109
+Préparé pour le développement/ D. Thomas/ Déc 2025
+
+
+    •   Laravel / NestJS
+Paiement
+    •   Paystack / Flutterwave
+    •   Mobile Money APIs
+Base de données
+    •   PostgreSQL / MySQL
+
+
+RÉSULTAT ATTENDU
+Un système d’abonnement robuste, flexible et adapté aux réalités économiques
+africaines, assurant la viabilité financière de la plateforme.
+
+
+
+
+                                                     110
+
