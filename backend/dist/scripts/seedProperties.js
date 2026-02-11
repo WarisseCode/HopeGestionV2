@@ -134,4 +134,3 @@ async function seedProperties() {
     }
 }
 seedProperties();
-//# sourceMappingURL=seedProperties.js.map

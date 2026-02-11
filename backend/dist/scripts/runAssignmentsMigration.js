@@ -22,4 +22,3 @@ async function runAssignmentsMigration() {
     }
 }
 runAssignmentsMigration();
-//# sourceMappingURL=runAssignmentsMigration.js.map

@@ -15,10 +15,12 @@ const pool = new Pool({
 
 async function checkUser() {
     try {
-        const fs = require('fs');
         const res = await pool.query("SELECT token FROM user_invitations WHERE email = 'derojou@gmail.com'");
-        fs.writeFileSync('token.txt', res.rows[0].token);
-        console.log('Token written to token.txt');
+        if (res.rows.length > 0) {
+            console.log('Token:', res.rows[0].token);
+        } else {
+            console.log('No token found');
+        }
     } catch (err) {
         console.error('Error:', err);
     } finally {

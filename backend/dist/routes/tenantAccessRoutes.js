@@ -148,4 +148,3 @@ router.post('/:tenantId/suspend', authMiddleware_1.protect, permissionMiddleware
     }
 });
 exports.default = router;
-//# sourceMappingURL=tenantAccessRoutes.js.map

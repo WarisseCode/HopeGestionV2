@@ -26,4 +26,3 @@ const runMigration = async () => {
     }
 };
 runMigration();
-//# sourceMappingURL=addTypeChargesToLeases.js.map

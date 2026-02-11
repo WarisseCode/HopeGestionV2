@@ -269,4 +269,3 @@ router.get('/check-payment/:transactionId', authMiddleware_1.protect, async (req
     }
 });
 exports.default = router;
-//# sourceMappingURL=subscriptionRoutes.js.map

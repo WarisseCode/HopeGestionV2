@@ -59,9 +59,12 @@ const SELECT_PAYMENTS_FIELDS = `
     p.created_at,
     p.owner_id
 `;
+const ownerIsolation_1 = require("../middleware/ownerIsolation");
 // GET /api/finances - Liste des paiements
-router.get('/', permissionMiddleware_1.default.canRead('finances'), async (req, res) => {
+router.get('/', permissionMiddleware_1.default.canRead('finances'), ownerIsolation_1.filterByOwner, async (req, res) => {
     try {
+        const ownerIds = req.ownerIds;
+        const whereClause = (0, ownerIsolation_1.buildOwnerWhereClause)(ownerIds);
         const { lease_id, start_date, end_date, statut, type } = req.query;
         let query = `
             SELECT 
@@ -75,7 +78,7 @@ router.get('/', permissionMiddleware_1.default.canRead('finances'), async (req, 
             JOIN leases l ON p.lease_id = l.id
             JOIN tenants t ON l.tenant_id = t.id
             JOIN owners o ON l.owner_id = o.id
-            WHERE 1=1
+            WHERE ${whereClause.replace(/owner_id/g, 'p.owner_id')}
         `;
         const params = [];
         let paramIndex = 1;
@@ -342,4 +345,3 @@ router.get('/export/excel', permissionMiddleware_1.default.canRead('finances'), 
     }
 });
 exports.default = router;
-//# sourceMappingURL=financeRoutes.js.map

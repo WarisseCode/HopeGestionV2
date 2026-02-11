@@ -71,4 +71,3 @@ function getActionLabel(action) {
     }
 }
 exports.default = exports.permissions;
-//# sourceMappingURL=permissionMiddleware.js.map

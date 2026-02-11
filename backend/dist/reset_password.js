@@ -61,4 +61,3 @@ async function resetPassword() {
     }
 }
 resetPassword();
-//# sourceMappingURL=reset_password.js.map

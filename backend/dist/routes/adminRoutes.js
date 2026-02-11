@@ -359,4 +359,3 @@ async function checkAdminInvite(req, res) {
         res.status(500).json({ valid: false, message: 'Erreur serveur.' });
     }
 }
-//# sourceMappingURL=adminRoutes.js.map

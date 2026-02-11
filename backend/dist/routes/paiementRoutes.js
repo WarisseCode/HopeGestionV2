@@ -7,11 +7,12 @@ const express_1 = __importDefault(require("express"));
 const router = express_1.default.Router();
 const index_1 = require("../index");
 const permissionMiddleware_1 = __importDefault(require("../middleware/permissionMiddleware"));
-// GET /api/paiements - Liste des paiements
-router.get('/', permissionMiddleware_1.default.canRead('finance'), async (req, res) => {
+const ownerIsolation_1 = require("../middleware/ownerIsolation");
+// GET /api/paiements - Liste des paiements (avec filtrage owner)
+router.get('/', permissionMiddleware_1.default.canRead('finance'), ownerIsolation_1.filterByOwner, async (req, res) => {
     try {
-        const userId = req.userId;
-        const userRole = req.userRole;
+        const ownerIds = req.ownerIds;
+        const whereClause = (0, ownerIsolation_1.buildOwnerWhereClause)(ownerIds);
         let query = `
             SELECT p.*, 
                    t.nom as tenant_name, t.prenoms as tenant_surname, 
@@ -22,18 +23,10 @@ router.get('/', permissionMiddleware_1.default.canRead('finance'), async (req, r
             LEFT JOIN tenants t ON lease.tenant_id = t.id
             LEFT JOIN lots l ON lease.lot_id = l.id
             LEFT JOIN buildings b ON l.building_id = b.id
+            WHERE ${whereClause.replace(/owner_id/g, 'p.owner_id')}
+            ORDER BY p.date_paiement DESC LIMIT 100
         `;
-        const params = [];
-        // Filtrage selon le rôle
-        if (userRole === 'proprietaire') {
-            // Un propriétaire ne voit que les paiements liés à ses biens
-            // Note: Simplification, on suppose qu'on a owner_id sur payments via migration
-            query += ` WHERE p.owner_id = (SELECT id FROM owners WHERE phone = (SELECT telephone FROM users WHERE id = $1))`;
-            params.push(userId);
-        }
-        // Gestionnaires voient tout pour l'instant (ou filtrer par agence plus tard)
-        query += ` ORDER BY p.date_paiement DESC LIMIT 100`;
-        const result = await index_1.pool.query(query, params);
+        const result = await index_1.pool.query(query);
         res.json(result.rows);
     }
     catch (error) {
@@ -83,21 +76,41 @@ router.post('/', permissionMiddleware_1.default.canWrite('finance'), async (req,
         res.status(500).json({ message: "Erreur serveur" });
     }
 });
-// GET /api/paiements/stats - Statistiques financières
-router.get('/stats', async (req, res) => {
+// GET /api/paiements/stats - Statistiques financières (filtrées par owner)
+router.get('/stats', permissionMiddleware_1.default.canRead('finance'), async (req, res) => {
     try {
+        const userId = req.userId;
+        const userRole = req.userRole;
+        let ownerFilter = '';
+        const params = [];
+        // Filtrage selon le rôle
+        if (userRole === 'proprietaire') {
+            ownerFilter = ` AND p.owner_id = (SELECT id FROM owners WHERE phone = (SELECT telephone FROM users WHERE id = $1))`;
+            params.push(userId);
+        }
+        else if (userRole === 'gestionnaire' || userRole === 'manager') {
+            // Filtrer par propriétaires assignés
+            const ownersResult = await index_1.pool.query(`SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`, [userId]);
+            if (ownersResult.rows.length > 0) {
+                const ownerIds = ownersResult.rows.map(r => r.owner_id);
+                ownerFilter = ` AND p.owner_id IN (${ownerIds.join(',')})`;
+            }
+        }
+        // Admin voit tout (pas de filtre)
         // Revenus du mois en cours
         const revenusMois = await index_1.pool.query(`
-            SELECT SUM(montant) as total 
-            FROM payments 
-            WHERE date_trunc('month', date_paiement) = date_trunc('month', CURRENT_DATE)
-        `);
+            SELECT COALESCE(SUM(p.montant), 0) as total
+            FROM payments p
+            WHERE date_trunc('month', p.date_paiement) = date_trunc('month', CURRENT_DATE)
+            ${ownerFilter}
+        `, params);
         // Revenus année
         const revenusAnnee = await index_1.pool.query(`
-            SELECT SUM(montant) as total 
-            FROM payments 
-            WHERE date_trunc('year', date_paiement) = date_trunc('year', CURRENT_DATE)
-        `);
+            SELECT COALESCE(SUM(p.montant), 0) as total
+            FROM payments p
+            WHERE date_trunc('year', p.date_paiement) = date_trunc('year', CURRENT_DATE)
+            ${ownerFilter}
+        `, params);
         res.json({
             mois: revenusMois.rows[0].total || 0,
             annee: revenusAnnee.rows[0].total || 0
@@ -108,19 +121,38 @@ router.get('/stats', async (req, res) => {
         res.status(500).json({ message: "Erreur serveur" });
     }
 });
-// GET /api/paiements/history - Historique sur 6 mois
-router.get('/history', async (req, res) => {
+// GET /api/paiements/history - Historique sur 6 mois (filtré par owner)
+router.get('/history', permissionMiddleware_1.default.canRead('finance'), async (req, res) => {
     try {
+        const userId = req.userId;
+        const userRole = req.userRole;
+        let ownerFilter = '';
+        const params = [];
+        // Filtrage selon le rôle
+        if (userRole === 'proprietaire') {
+            ownerFilter = ` AND p.owner_id = (SELECT id FROM owners WHERE phone = (SELECT telephone FROM users WHERE id = $1))`;
+            params.push(userId);
+        }
+        else if (userRole === 'gestionnaire' || userRole === 'manager') {
+            // Filtrer par propriétaires assignés
+            const ownersResult = await index_1.pool.query(`SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`, [userId]);
+            if (ownersResult.rows.length > 0) {
+                const ownerIds = ownersResult.rows.map(r => r.owner_id);
+                ownerFilter = ` AND p.owner_id IN (${ownerIds.join(',')})`;
+            }
+        }
+        // Admin voit tout (pas de filtre)
         const result = await index_1.pool.query(`
             SELECT 
-                TO_CHAR(date_paiement, 'Mon') as mois,
-                EXTRACT(MONTH FROM date_paiement) as mois_num,
-                SUM(montant) as total 
-            FROM payments 
-            WHERE date_paiement >= CURRENT_DATE - INTERVAL '6 months'
+                TO_CHAR(p.date_paiement, 'Mon') as mois,
+                EXTRACT(MONTH FROM p.date_paiement) as mois_num,
+                COALESCE(SUM(p.montant), 0) as total
+            FROM payments p
+            WHERE p.date_paiement >= CURRENT_DATE - INTERVAL '6 months'
+            ${ownerFilter}
             GROUP BY mois, mois_num 
             ORDER BY mois_num
-        `);
+        `, params);
         res.json(result.rows);
     }
     catch (error) {
@@ -129,4 +161,3 @@ router.get('/history', async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=paiementRoutes.js.map

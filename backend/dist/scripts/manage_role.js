@@ -28,4 +28,3 @@ async function updateRole() {
     }
 }
 updateRole();
-//# sourceMappingURL=manage_role.js.map

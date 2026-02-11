@@ -63,4 +63,3 @@ async function runMigration() {
     await database_1.default.end();
 }
 runMigration();
-//# sourceMappingURL=runModule4Migration.js.map

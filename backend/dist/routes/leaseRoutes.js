@@ -41,6 +41,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const dotenv = __importStar(require("dotenv"));
 const permissionMiddleware_1 = __importDefault(require("../middleware/permissionMiddleware"));
+const ownerIsolation_1 = require("../middleware/ownerIsolation");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const notificationService_1 = require("../services/notificationService");
@@ -48,9 +49,11 @@ dotenv.config();
 const router = (0, express_1.Router)();
 const database_1 = __importDefault(require("../db/database"));
 // GET /api/locations - Liste des baux/contrats
-router.get('/', permissionMiddleware_1.default.canRead('locataires'), async (req, res) => {
+router.get('/', permissionMiddleware_1.default.canRead('locataires'), ownerIsolation_1.filterByOwner, async (req, res) => {
     try {
-        const { statut, owner_id } = req.query;
+        const { statut } = req.query;
+        const ownerIds = req.ownerIds;
+        const ownerWhereClause = (0, ownerIsolation_1.buildOwnerWhereClause)(ownerIds);
         let query = `
             SELECT 
                 l.id,
@@ -86,24 +89,13 @@ router.get('/', permissionMiddleware_1.default.canRead('locataires'), async (req
             LEFT JOIN lots lot ON l.lot_id = lot.id
             LEFT JOIN buildings b ON lot.building_id = b.id
             LEFT JOIN owners o ON l.owner_id = o.id
-            WHERE 1=1
+            WHERE ${ownerWhereClause.replace(/owner_id/g, 'l.owner_id')}
         `;
         const params = [];
         let paramIndex = 1;
         if (statut) {
             query += ` AND l.statut = $${paramIndex}`;
             params.push(statut);
-            paramIndex++;
-        }
-        if (owner_id) {
-            query += ` AND l.owner_id = $${paramIndex}`;
-            params.push(owner_id);
-            paramIndex++;
-        }
-        // AUTO-FILTER FOR GUEST USERS: Use issuer's data context
-        if (req.user?.isGuest && req.user?.issuerId) {
-            query += ` AND l.owner_id = $${paramIndex}`;
-            params.push(req.user.issuerId);
             paramIndex++;
         }
         query += ` ORDER BY l.created_at DESC`;
@@ -193,7 +185,7 @@ router.post('/', permissionMiddleware_1.default.canWrite('locataires'), async (r
                 type_paiement, frequence_paiement, jour_echeance, penalite_retard, tolerance_jours,
                 prix_vente, apport_initial, modalite_paiement, date_expiration, conditions_particulieres,
                 statut, gestionnaire_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, 'actif', $24)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, 'actif', $25)
             RETURNING *
         `, [
             tenant_id, lot_id, owner_id, reference_bail, type_contrat,
@@ -354,7 +346,12 @@ router.post('/:id/sign', permissionMiddleware_1.default.canWrite('locataires'), 
         // Notify owner
         if (dbResult.rows.length > 0) {
             const lease = dbResult.rows[0];
-            await notificationService_1.NotificationService.send(lease.owner_id, '✍️ Contrat Signé', `Le bail ${lease.reference_bail} a été signé électroniquement.`, 'success', 'DOCUMENT_SIGNED');
+            // Resolve user_id associated with this owner
+            const ownerUserRes = await database_1.default.query("SELECT user_id FROM owner_user WHERE owner_id = $1 AND is_active = TRUE ORDER BY role = 'owner' DESC LIMIT 1", [lease.owner_id]);
+            if (ownerUserRes.rows.length > 0) {
+                const userId = ownerUserRes.rows[0].user_id;
+                await notificationService_1.NotificationService.send(userId, '✍️ Contrat Signé', `Le bail ${lease.reference_bail} a été signé électroniquement.`, 'success', 'DOCUMENT_SIGNED');
+            }
         }
         res.json({
             message: 'Signature enregistrée avec succès',
@@ -396,4 +393,3 @@ async function generatePaymentSchedule(leaseId, startDate, numInstallments, amou
     await database_1.default.query('UPDATE leases SET next_payment_date = $1 WHERE id = $2', [firstPaymentDate, leaseId]);
 }
 exports.default = router;
-//# sourceMappingURL=leaseRoutes.js.map
