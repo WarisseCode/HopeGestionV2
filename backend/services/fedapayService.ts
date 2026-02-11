@@ -304,10 +304,20 @@ class FedaPayService {
 
     /**
      * Calculate subscription end date based on plan duration
+     * Handles month-end overflows (e.g., Jan 31 + 1 month = Feb 28/29)
      */
     calculateEndDate(startDate: Date, durationMonths: number): Date {
         const endDate = new Date(startDate);
+        const originalDay = endDate.getDate();
+
         endDate.setMonth(endDate.getMonth() + durationMonths);
+
+        // If the day of the month has changed (overflowed), it means we hit a shorter month
+        // We adjust to the last day of the intended month by setting day to 0 of the next month
+        if (endDate.getDate() !== originalDay) {
+            endDate.setDate(0);
+        }
+
         return endDate;
     }
 }
