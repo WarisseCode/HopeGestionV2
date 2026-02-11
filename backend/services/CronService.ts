@@ -1,7 +1,5 @@
 import cron from 'node-cron';
 import pool from '../db/database';
-// import { sendEmail } from '../utils/emailSender'; // To be implemented or mocked
-// import { sendSMS } from '../utils/smsSender';     // To be implemented or mocked
 
 export class CronService {
     static init() {
