@@ -2,15 +2,11 @@
 
 import { Router } from 'express';
 import { Pool } from 'pg'; 
-import * as dotenv from 'dotenv';
 
 // Outils de sécurité
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken'; 
 import crypto from 'crypto';
-
-// Charger les variables d'environnement
-dotenv.config();
 
 import { AuditService } from '../services/AuditService';
 import EmailService from '../services/EmailService';
@@ -19,7 +15,7 @@ const router = Router();
 
 // Pour que les routes aient accès à la DB (Méthode simple pour le MVP)
 import pool from '../db/database';
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
+import { JWT_SECRET } from '../config/config';
 const SALT_ROUNDS = 10; // Niveau de complexité pour bcrypt
 
 // 1. Endpoint d'INSCRIPTION
