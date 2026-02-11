@@ -6,8 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CronService = void 0;
 const node_cron_1 = __importDefault(require("node-cron"));
 const database_1 = __importDefault(require("../db/database"));
-// import { sendEmail } from '../utils/emailSender'; // To be implemented or mocked
-// import { sendSMS } from '../utils/smsSender';     // To be implemented or mocked
 class CronService {
     static init() {
         console.log('Initializing Cron Service...');

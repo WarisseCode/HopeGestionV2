@@ -545,15 +545,9 @@ router.post('/invite-user', verifyToken, async (req, res) => {
             const token = crypto_1.default.randomBytes(32).toString('hex');
             const expiresAt = new Date(Date.now() + 48 * 3600 * 1000); // 48h
             // 3. Stocker Invitation
-            await client.query(`INSERT INTO user_invitations (token, email, role, issuer_id, permissions, expires_at)
-                 VALUES ($1, $2, $3, $4, $5, $6)`, [token, email || telephone, role, issuerId, { userId }, expiresAt] // Storing userId in permissions json as a link hack or use a generic json
-            );
-            // Wait, I created a schema with owner_id but no user_id column in invitations? 
-            // Actually, I can use the permissions JSON to store the targeted user_id or just rely on email/phone matching.
-            // But wait, the invitation needs to verify THIS specific pending user. 
-            // Let's add user_id to user_invitations in a future migration or just put it in the JSON for now.
-            // Better: update the schema I just made? No, I can't easily undo. 
-            // I'll put it in permissions column for now: { "targetUserId": 123 }
+            // Using user_id column directly (added in migration 28)
+            await client.query(`INSERT INTO user_invitations (token, email, role, issuer_id, permissions, expires_at, user_id)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)`, [token, email || telephone, role, issuerId, {}, expiresAt, userId]);
             await client.query('COMMIT');
             // 4. Retourner le lien (pour envoi WhatsApp)
             // L'URL frontend: /accept-invite?token=...
@@ -591,8 +585,8 @@ router.post('/accept-invite', async (req, res) => {
             return res.status(400).json({ message: 'Invitation invalide ou expirée.' });
         }
         const invite = inviteRes.rows[0];
-        // Retrieve userId from json if we stored it there
-        const targetUserId = invite.permissions?.userId;
+        // Retrieve userId from user_id column (primary) or permissions json (legacy fallback)
+        const targetUserId = invite.user_id || invite.permissions?.userId;
         if (!targetUserId) {
             return res.status(500).json({ message: 'Erreur intégrité invitation (User ID manquant).' });
         }
