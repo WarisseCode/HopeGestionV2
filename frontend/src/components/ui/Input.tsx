@@ -1,5 +1,5 @@
 // src/components/ui/Input.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { AlertCircle } from 'lucide-react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -21,14 +21,21 @@ const Input: React.FC<InputProps> = ({
   endIcon,
   showErrorIcon = true,
   className = '',
+  id,
   ...props
 }) => {
+  const generatedId = useId();
+  const inputId = id || generatedId;
+  const errorId = error ? `${inputId}-error` : undefined;
+  const helperId = helperText ? `${inputId}-helper` : undefined;
+
   const hasError = !!error;
   const [shake, setShake] = useState(false);
 
   // Déclenche l'animation shake quand une nouvelle erreur apparaît
   useEffect(() => {
     if (hasError) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShake(true);
       const timer = setTimeout(() => setShake(false), 500);
       return () => clearTimeout(timer);
@@ -38,7 +45,7 @@ const Input: React.FC<InputProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+        <label htmlFor={inputId} className="block text-sm font-semibold text-gray-700 mb-1.5">
           {label} {required && <span className="text-error">*</span>}
         </label>
       )}
@@ -61,6 +68,9 @@ const Input: React.FC<InputProps> = ({
           </div>
         )}
         <input
+          id={inputId}
+          aria-invalid={hasError ? "true" : "false"}
+          aria-describedby={[errorId, helperId].filter(Boolean).join(' ') || undefined}
           {...props}
           className={`
             w-full py-3 px-4 
@@ -85,10 +95,10 @@ const Input: React.FC<InputProps> = ({
         ) : null}
       </div>
       {helperText && !hasError && (
-        <p className="mt-1.5 text-sm text-gray-500">{helperText}</p>
+        <p id={helperId} className="mt-1.5 text-sm text-gray-500">{helperText}</p>
       )}
       {hasError && (
-        <p className="mt-1.5 text-sm text-error flex items-center gap-1.5 font-medium">
+        <p id={errorId} className="mt-1.5 text-sm text-error flex items-center gap-1.5 font-medium">
           {error}
         </p>
       )}
