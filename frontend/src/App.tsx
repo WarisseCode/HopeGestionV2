@@ -9,7 +9,6 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import CompleteProfile from './pages/CompleteProfile';
 import AcceptInvite from './pages/AcceptInvite';
-// import Dashboard from './pages/Dashboard'; // Removed as file is deleted
 import LocataireDashboard from './pages/LocataireDashboard';
 import ProprietaireDashboard from './pages/ProprietaireDashboard';
 import GestionnaireDashboard from './pages/GestionnaireDashboard';
