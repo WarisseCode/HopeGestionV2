@@ -289,4 +289,3 @@ router.get('/compare/:idEntree/:idSortie', async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=edlRoutes.js.map

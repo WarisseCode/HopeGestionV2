@@ -35,4 +35,3 @@ class MobileMoneyService {
     }
 }
 exports.mobileMoneyService = new MobileMoneyService();
-//# sourceMappingURL=mobileMoneyService.js.map

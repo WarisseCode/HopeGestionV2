@@ -162,4 +162,3 @@ router.post('/:id/close', authMiddleware_1.protect, async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=ticketRoutes.js.map

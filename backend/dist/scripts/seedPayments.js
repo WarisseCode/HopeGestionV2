@@ -56,4 +56,3 @@ async function seedPayments() {
     }
 }
 seedPayments();
-//# sourceMappingURL=seedPayments.js.map

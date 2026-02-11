@@ -185,4 +185,3 @@ router.post('/settings', authMiddleware_1.protect, async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=calendarRoutes.js.map

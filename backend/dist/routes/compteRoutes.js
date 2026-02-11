@@ -9,22 +9,39 @@ const database_1 = __importDefault(require("../db/database"));
 const router = (0, express_1.Router)();
 // GET /api/compte/proprietaires : Récupérer la liste des propriétaires
 router.get('/proprietaires', async (req, res) => {
-    // Vérification : Seuls les admins et gestionnaires peuvent accéder aux propriétaires
-    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
+    // Vérification : Admins, gestionnaires, managers ET propriétaires peuvent accéder (avec filtre)
+    if (!['admin', 'gestionnaire', 'manager', 'proprietaire', 'owner'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     try {
-        const query = `
+        let query = `
             SELECT id, type, name as nom, first_name as prenom, phone as telephone, 
                    phone_secondary as "telephoneSecondaire", email, address as adresse, 
                    city as ville, country as pays, id_number as "numeroPiece", 
                    photo, management_mode as "modeGestion",
-                   mobile_money_coordinates as "mobileMoney", rccm_number as "rccmNumber"
+                   mobile_money_number as "mobileMoney",
+                   id_number as "rccmNumber"
             FROM owners
             WHERE is_active = TRUE
-            ORDER BY name ASC
         `;
-        const result = await database_1.default.query(query);
+        const params = [];
+        // Si ce n'est pas un admin, on filtre pour ne montrer que les propriétaires liés (via owner_user)
+        if (req.userRole !== 'admin') {
+            // Trouver les IDs owner liés à cet utilisateur
+            const linkResult = await database_1.default.query(`SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`, [req.userId]);
+            if (linkResult.rows.length > 0) {
+                // Filtrer sur les IDs trouvés
+                const ownerIds = linkResult.rows.map(row => row.owner_id);
+                query += ` AND id = ANY($1)`;
+                params.push(ownerIds);
+            }
+            else {
+                // Pas de lien owner trouvé -> liste vide
+                return res.json({ proprietaires: [] });
+            }
+        }
+        query += ` ORDER BY name ASC`;
+        const result = await database_1.default.query(query, params);
         res.status(200).json({ proprietaires: result.rows });
     }
     catch (error) {
@@ -90,7 +107,8 @@ router.get('/autorisations', async (req, res) => {
 });
 // POST /api/compte/proprietaires : Créer ou mettre à jour un propriétaire
 router.post('/proprietaires', async (req, res) => {
-    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
+    // Autoriser Admin, Gestionnaire ET Propriétaire à créer
+    if (!['admin', 'gestionnaire', 'manager', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     try {
@@ -104,24 +122,35 @@ router.post('/proprietaires', async (req, res) => {
             RETURNING *`, [
             req.body.type || 'individual',
             req.body.name || req.body.company_name, // Nom ou Raison sociale
-            req.body.first_name || '',
+            req.body.first_name || req.body.prenom || '', // Support both field names
             cleanPhone,
-            req.body.phone_secondary || null,
+            req.body.phone_secondary || req.body.secondary_phone || null, // Support both field names
             req.body.email || '',
             req.body.address || '',
             req.body.city || '',
             req.body.country || 'Bénin',
             req.body.id_number || null,
-            req.body.photo || null,
-            cleanMobileMoney,
+            req.body.photo || req.body.photo_url || null, // Support both field names
+            cleanMobileMoney || (req.body.mobile_money ? req.body.mobile_money.replace(/[^\d+]/g, '') : null), // Support both
             req.body.management_mode || 'direct'
         ]);
         const ownerId = newOwner.rows[0].id;
         // Lier à l'utilisateur qui crée (si ce n'est pas un admin pur qui crée pour les autres)
-        // Pour simplification, on lie toujours celui qui crée
-        await database_1.default.query(`INSERT INTO owner_user (user_id, owner_id, role, is_active, start_date) VALUES ($1, $2, 'owner', true, CURRENT_DATE)`, [req.userId, ownerId]);
+        try {
+            await database_1.default.query(`INSERT INTO owner_user (user_id, owner_id, role, is_active, start_date) VALUES ($1, $2, 'owner', true, CURRENT_DATE)`, [req.userId, ownerId]);
+        }
+        catch (linkError) {
+            console.error('Erreur liaison owner_user:', linkError);
+            // On continue même si la liaison échoue (non critique pour la création)
+        }
         // Log action
-        await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'CREATE_OWNER', 'COMPTE', `Propriétaire: ${req.body.name || req.body.company_name}`]);
+        try {
+            await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'CREATE_OWNER', 'COMPTE', JSON.stringify({ name: req.body.name || req.body.company_name })]);
+        }
+        catch (logError) {
+            console.error('Erreur audit_log:', logError);
+            // On continue même si le log échoue
+        }
         res.status(201).json(newOwner.rows[0]);
     }
     catch (error) {
@@ -134,29 +163,57 @@ router.post('/proprietaires', async (req, res) => {
 });
 // PUT /api/compte/proprietaires/:id : Modifier un propriétaire
 router.put('/proprietaires/:id', async (req, res) => {
-    if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
+    // Autoriser Admin, Gestionnaire ET Propriétaire à modifier (si c'est le sien)
+    if (!['admin', 'gestionnaire', 'manager', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
     try {
-        const { name, type, phone, email, address, company_name, rccm_number, mobile_money, telephoneSecondaire, management_mode, delegation_start_date, delegation_end_date } = req.body;
         const ownerId = req.params.id;
-        // Nettoyage des numéros
-        const cleanPhone = phone ? phone.replace(/[\s\-\(\)\.]/g, '') : null;
-        const cleanPhoneSec = telephoneSecondaire ? telephoneSecondaire.replace(/[\s\-\(\)\.]/g, '') : null;
-        const cleanMobileMoney = mobile_money ? mobile_money.replace(/[\s\-\(\)\.]/g, '') : null;
+        // Si c'est un propriétaire, vérifier qu'il modifie le sien
+        if (req.userRole === 'proprietaire') {
+            const checkLink = await database_1.default.query(`SELECT 1 FROM owner_user WHERE user_id = $1 AND owner_id = $2`, [req.userId, ownerId]);
+            if (checkLink.rows.length === 0) {
+                return res.status(403).json({ message: "Vous n'êtes pas autorisé à modifier ce propriétaire." });
+            }
+        }
+        // Support multiple field names for backward compatibility
+        const { name, type, phone, email, address, company_name, rccm_number, mobile_money, mobile_money_number, telephoneSecondaire, secondary_phone, phone_secondary, first_name, prenom, management_mode, delegation_start_date, delegation_end_date } = req.body;
+        // Nettoyage des numéros avec support de multiples noms de champs
+        const rawPhone = phone;
+        const cleanPhone = rawPhone ? rawPhone.replace(/[\s\-\(\)\.]/g, '') : null;
+        const rawPhoneSec = phone_secondary || secondary_phone || telephoneSecondaire;
+        const cleanPhoneSec = rawPhoneSec ? rawPhoneSec.replace(/[\s\-\(\)\.]/g, '') : null;
+        const rawMobileMoney = mobile_money_number || mobile_money;
+        const cleanMobileMoney = rawMobileMoney ? rawMobileMoney.replace(/[\s\-\(\)\.]/g, '') : null;
         const updatedOwner = await database_1.default.query(`UPDATE owners 
-             SET name = $1, type = $2, phone = $3, email = $4, address = $5,
-                 company_name = $6, rccm_number = $7, mobile_money = $8,
-                 contact_info = COALESCE($9, contact_info),
-                 management_mode = COALESCE($10, management_mode),
-                 delegation_start_date = COALESCE($11, delegation_start_date),
-                 delegation_end_date = COALESCE($12, delegation_end_date),
+             SET name = COALESCE($1, name),
+                 type = COALESCE($2, type),
+                 phone = COALESCE($3, phone),
+                 email = COALESCE($4, email),
+                 address = COALESCE($5, address),
+                 first_name = COALESCE($6, first_name),
+                 company_name = COALESCE($7, company_name),
+                 rccm_number = COALESCE($8, rccm_number),
+                 mobile_money_number = COALESCE($9, mobile_money_number),
+                 phone_secondary = COALESCE($10, phone_secondary),
+                 management_mode = COALESCE($11, management_mode),
+                 delegation_start_date = COALESCE($12, delegation_start_date),
+                 delegation_end_date = COALESCE($13, delegation_end_date),
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = $13 RETURNING *`, [
-            name, type, cleanPhone, email, address,
-            company_name, rccm_number, cleanMobileMoney,
-            cleanPhoneSec, // On map telephoneSecondaire dans contact_info pour l'instant ou on pourrait créer une colonne dédiée
-            management_mode, delegation_start_date, delegation_end_date,
+             WHERE id = $14 RETURNING *`, [
+            name || company_name, // Support both
+            type,
+            cleanPhone,
+            email,
+            address,
+            first_name || prenom || null, // Support both field names
+            company_name,
+            rccm_number,
+            cleanMobileMoney,
+            cleanPhoneSec,
+            management_mode,
+            delegation_start_date,
+            delegation_end_date,
             ownerId
         ]);
         if (updatedOwner.rows.length === 0) {
@@ -371,4 +428,3 @@ router.get('/proprietaires/:id/biens', async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=compteRoutes.js.map

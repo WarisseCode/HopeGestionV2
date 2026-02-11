@@ -189,4 +189,3 @@ router.get('/:id/properties', authMiddleware_1.protect, ownerIsolation_1.checkOw
     }
 });
 exports.default = router;
-//# sourceMappingURL=ownerRoutes.js.map

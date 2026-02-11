@@ -140,4 +140,3 @@ router.get('/', async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=alertRoutes.js.map

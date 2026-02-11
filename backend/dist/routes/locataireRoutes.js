@@ -34,7 +34,15 @@ router.get('/', authMiddleware_1.protect, permissionMiddleware_1.default.canRead
                    al.ref_lot as lot_nom,
                    al.loyer_mensuel as loyer_actuel,
                    al.lease_id as active_lease_id,
-                   al.lease_statut as bail_statut
+                   al.lease_statut as bail_statut,
+                   -- Logique de statut de paiement basée sur le dernier paiement
+                   CASE
+                     WHEN al.lease_id IS NULL THEN 'unknown'
+                     WHEN lp.last_payment_date IS NULL THEN 'pending' -- Jamais payé
+                     WHEN lp.last_payment_date < CURRENT_DATE - INTERVAL '35 days' THEN 'late' -- Retard > 5 jours après fin de mois (approx)
+                     WHEN EXTRACT(MONTH FROM lp.last_payment_date) = EXTRACT(MONTH FROM CURRENT_DATE) THEN 'paid' -- Payé ce mois-ci
+                     ELSE 'pending' -- Pas encore payé ce mois-ci mais pas encore en retard critique
+                   END as payment_status
             FROM tenants t 
             LEFT JOIN LATERAL (
                 SELECT lot.ref_lot, l.loyer_actuel as loyer_mensuel, l.id as lease_id, l.statut as lease_statut
@@ -44,6 +52,11 @@ router.get('/', authMiddleware_1.protect, permissionMiddleware_1.default.canRead
                 ORDER BY l.date_debut DESC
                 LIMIT 1
             ) al ON true
+            LEFT JOIN LATERAL (
+                SELECT MAX(date_paiement) as last_payment_date
+                FROM payments p
+                WHERE p.lease_id = al.lease_id
+            ) lp ON true
             WHERE t.owner_id = $1 AND t.statut != 'Archivé'
         `;
         const params = [ownerId];
@@ -120,6 +133,21 @@ router.post('/', authMiddleware_1.protect, async (req, res) => {
         const { nom, prenoms, email, telephone_principal, telephone_secondaire, nationalite, type_piece, numero_piece, type, mode_paiement_preferentiel, 
         // Module IV new fields
         adresse_actuelle, date_expiration_piece, photo_profil_url, photo_piece_url, caution, avance, paiement_echelonne } = req.body;
+        // Sanitize optional fields (empty string -> null)
+        const cleanEmail = email && email.trim() !== '' ? email : null;
+        const cleanStartPhone2 = telephone_secondaire && telephone_secondaire.trim() !== '' ? telephone_secondaire : null;
+        const cleanAddress = adresse_actuelle && adresse_actuelle.trim() !== '' ? adresse_actuelle : null;
+        const cleanExpDate = date_expiration_piece && date_expiration_piece.trim() !== '' ? date_expiration_piece : null;
+        const cleanPhotoProfil = photo_profil_url && photo_profil_url.trim() !== '' ? photo_profil_url : null;
+        const cleanPhotoPiece = photo_piece_url && photo_piece_url.trim() !== '' ? photo_piece_url : null;
+        // Check for duplicates (Phone or Email) logic for same owner
+        const duplicateCheck = await database_1.default.query(`SELECT id FROM tenants
+             WHERE owner_id = $1
+             AND (telephone_principal = $2 OR (email IS NOT NULL AND email != '' AND email = $3))
+             AND statut != 'Archivé'`, [ownerId, telephone_principal, cleanEmail || '']);
+        if (duplicateCheck.rows.length > 0) {
+            return res.status(409).json({ message: "Un locataire avec ce téléphone ou cet email existe déjà." });
+        }
         const result = await database_1.default.query(`INSERT INTO tenants (
                 owner_id, nom, prenoms, email, telephone_principal, telephone_secondaire,
                 nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel,
@@ -127,21 +155,26 @@ router.post('/', authMiddleware_1.protect, async (req, res) => {
                 caution, avance, paiement_echelonne
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Actif', $11, $12, $13, $14, $15, $16, $17, $18) 
             RETURNING id`, [
-            ownerId, nom, prenoms, email, telephone_principal, telephone_secondaire,
+            ownerId, nom, prenoms, cleanEmail, telephone_principal, cleanStartPhone2,
             nationalite, type_piece, numero_piece, type || 'Locataire', mode_paiement_preferentiel,
-            adresse_actuelle || null, date_expiration_piece || null, photo_profil_url || null, photo_piece_url || null,
+            cleanAddress, cleanExpDate, cleanPhotoProfil, cleanPhotoPiece,
             caution || 0, avance || 0, paiement_echelonne || false
         ]);
-        // Log Creation
-        await AuditService_1.AuditService.log({
-            userId: userId,
-            action: 'CREATE_TENANT',
-            entityType: 'TENANT',
-            entityId: result.rows[0].id,
-            details: { nom, prenoms, email },
-            ipAddress: req.ip || 'unknown',
-            userAgent: req.headers['user-agent'] || 'unknown'
-        });
+        // Log Creation (Silent fail)
+        try {
+            await AuditService_1.AuditService.log({
+                userId: userId,
+                action: 'CREATE_TENANT',
+                entityType: 'TENANT',
+                entityId: result.rows[0].id,
+                details: { nom, prenoms, email },
+                ipAddress: req.ip || 'unknown',
+                userAgent: req.headers['user-agent'] || 'unknown'
+            });
+        }
+        catch (auditError) {
+            console.error('Audit log failed for tenant creation (non-critical):', auditError);
+        }
         res.status(201).json({ message: "Locataire créé", id: result.rows[0].id });
     }
     catch (error) {
@@ -224,4 +257,3 @@ router.delete('/:id', authMiddleware_1.protect, async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=locataireRoutes.js.map

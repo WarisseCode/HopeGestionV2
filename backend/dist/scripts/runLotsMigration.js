@@ -22,4 +22,3 @@ async function runLotsMigration() {
     }
 }
 runLotsMigration();
-//# sourceMappingURL=runLotsMigration.js.map

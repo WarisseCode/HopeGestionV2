@@ -67,4 +67,3 @@ async function seedSuperAdmin() {
         // Don't crash the server if seed fails
     }
 }
-//# sourceMappingURL=seedAdmin.js.map

@@ -26,4 +26,3 @@ async function verifyLogic() {
     }
 }
 verifyLogic();
-//# sourceMappingURL=verifyCronLogic.js.map
