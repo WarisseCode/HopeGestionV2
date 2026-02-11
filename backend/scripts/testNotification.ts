@@ -2,10 +2,27 @@
 // backend/scripts/testNotification.ts
 // Use native fetch (Node 18+)
 
+import dotenv from 'dotenv';
+dotenv.config();
+
 // Configuration
-const BASE_URL = 'http://127.0.0.1:5000/api';
-const TEST_EMAIL = 'test_notif@hope.com';
-const TEST_PASSWORD = 'TestPass123!';
+const BASE_URL = process.env.API_URL || 'http://127.0.0.1:5000/api';
+
+const timestamp = Date.now();
+// Generate secure random credentials if not provided to ensure fresh state and security
+const TEST_EMAIL = process.env.TEST_EMAIL || `test_notif_${timestamp}@hope.com`;
+const TEST_PASSWORD = process.env.TEST_PASSWORD || `TestPass${timestamp}!`;
+// Generate random phone number: +229 + 8 random digits to avoid uniqueness constraints
+const randomPhone = `+229${Math.floor(10000000 + Math.random() * 90000000)}`;
+const TEST_PHONE = process.env.TEST_PHONE || randomPhone;
+
+console.log('--- Test Configuration ---');
+console.log(`Email: ${TEST_EMAIL}`);
+if (!process.env.TEST_PASSWORD) {
+    console.log(`Generated Password: ${TEST_PASSWORD}`);
+}
+console.log(`Phone: ${TEST_PHONE}`);
+console.log('--------------------------');
 
 // Helpers
 async function post(url: string, body: any, token?: string) {
@@ -46,7 +63,7 @@ async function testNotifications() {
             prenoms: 'Test User',
             email: TEST_EMAIL, 
             password: TEST_PASSWORD,
-            telephone: '+22900000001'
+            telephone: TEST_PHONE
         });
         // Log registration result for debugging
         if (!regRes.ok) {
