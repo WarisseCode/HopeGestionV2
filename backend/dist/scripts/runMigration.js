@@ -38,16 +38,30 @@ const pg_1 = require("pg");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const dotenv = __importStar(require("dotenv"));
-// Charger les variables d'environnement
-dotenv.config();
-const pool = new pg_1.Pool({
-    connectionString: process.env.DATABASE_URL,
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-});
+// Charger les variables d'environnement seulement en local
+if (process.env.NODE_ENV !== 'production') {
+    dotenv.config();
+}
+const dbConfig = process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false } // Always required for Render/Cloud DBs
+    }
+    : {
+        user: process.env.DB_USER,
+        host: process.env.DB_HOST,
+        database: process.env.DB_NAME,
+        password: process.env.DB_PASSWORD,
+        port: parseInt(process.env.DB_PORT || '5432', 10),
+        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
+    };
+console.log('🔧 DB Config:', process.env.DATABASE_URL ? 'Using DATABASE_URL' : 'Using individual params');
+if (!process.env.DATABASE_URL) {
+    console.log('   Host:', process.env.DB_HOST);
+    console.log('   User:', process.env.DB_USER);
+    console.log('   DB:', process.env.DB_NAME);
+}
+const pool = new pg_1.Pool(dbConfig);
 async function runMigration() {
     const client = await pool.connect();
     try {
@@ -119,6 +133,34 @@ async function runMigration() {
             await client.query(subscriptionsSql);
             console.log('   - plans, subscriptions, subscription_payments créées');
         }
+        console.log('13/13 Exécution migrations/20_fix_leases_complete...');
+        const leasesFixPath = path.join(process.cwd(), 'migrations', '20_fix_leases_complete.sql');
+        if (fs.existsSync(leasesFixPath)) {
+            const leasesFixSql = fs.readFileSync(leasesFixPath, 'utf8');
+            await client.query(leasesFixSql);
+            console.log('   - leases (ajout: owner_id, type_contrat, prix_vente, etc.)');
+        }
+        console.log('14/14 Exécution migrations/21_fix_lots_complete...');
+        const lotsFixPath = path.join(process.cwd(), 'migrations', '21_fix_lots_complete.sql');
+        if (fs.existsSync(lotsFixPath)) {
+            const lotsFixSql = fs.readFileSync(lotsFixPath, 'utf8');
+            await client.query(lotsFixSql);
+            console.log('   - lots (ajout: bloc, caution, prix_vente, etc.)');
+        }
+        console.log('15/15 Exécution migrations/22_fix_payments_complete...');
+        const paymentsFixPath = path.join(process.cwd(), 'migrations', '22_fix_payments_complete.sql');
+        if (fs.existsSync(paymentsFixPath)) {
+            const paymentsFixSql = fs.readFileSync(paymentsFixPath, 'utf8');
+            await client.query(paymentsFixSql);
+            console.log('   - payments (ajout: schedule_id, description, owner_id)');
+        }
+        console.log('16/16 Exécution migrations/23_fix_owners_metadata...');
+        const ownersFixPath = path.join(process.cwd(), 'migrations', '23_fix_owners_metadata.sql');
+        if (fs.existsSync(ownersFixPath)) {
+            const ownersFixSql = fs.readFileSync(ownersFixPath, 'utf8');
+            await client.query(ownersFixSql);
+            console.log('   - owners (ajout: company_name, rccm_number, mobile_money_coordinates)');
+        }
         console.log('✅ Migration exécutée avec succès!');
         console.log('\n📊 Tables créées et mises à jour.');
         console.log('\n🔧 Modifications appliquées:');
@@ -158,4 +200,3 @@ runMigration()
     console.error('💥 Erreur fatale:', error);
     process.exit(1);
 });
-//# sourceMappingURL=runMigration.js.map

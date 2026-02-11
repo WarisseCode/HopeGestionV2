@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -47,17 +80,30 @@ router.post('/', authMiddleware_1.protect, async (req, res) => {
         const ownerId = await getManagedOwnerId(userId);
         if (!ownerId)
             return res.status(403).json({ message: "Action non autorisée." });
-        // 2. Trouver l'utilisateur cible
+        // 2. Trouver l'utilisateur cible OU Créer un nouvel utilisateur
+        let targetUserId;
+        let tempPassword = '';
+        let isNewUser = false;
         const userCheck = await database_1.default.query('SELECT id FROM users WHERE email = $1', [email]);
-        if (userCheck.rows.length === 0) {
-            return res.status(404).json({ message: "Utilisateur non trouvé avec cet email." });
+        if (userCheck.rows.length > 0) {
+            targetUserId = userCheck.rows[0].id;
         }
-        const targetUserId = userCheck.rows[0].id;
+        else {
+            // Utilisateur inexistant -> Création automatique
+            // Générer un mot de passe temporaire : ex "Hg" + 4 caractères hex + "!" => "Hg1a2b!"
+            const randomPart = await Promise.resolve().then(() => __importStar(require('crypto'))).then(c => c.randomBytes(3).toString('hex'));
+            tempPassword = `Hg${randomPart}!`;
+            const hashedPassword = await Promise.resolve().then(() => __importStar(require('bcrypt'))).then(b => b.hash(tempPassword, 10)); // Dynamic import to ensure module availability
+            const newUser = await database_1.default.query(`INSERT INTO users (nom, email, password, role, user_type, created_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())
+         RETURNING id`, ['Invité', email, hashedPassword, 'user', role === 'manager' ? 'gestionnaire' : 'comptable']);
+            targetUserId = newUser.rows[0].id;
+            isNewUser = true;
+        }
         if (targetUserId === userId) {
             return res.status(400).json({ message: "Vous faites déjà partie de l'équipe." });
         }
         // 3. Ajouter/Mettre à jour délégation
-        // Permissions par défaut si non fournies
         const perms = permissions || {};
         await database_1.default.query(`INSERT INTO owner_user (
           owner_id, user_id, role, start_date, is_active,
@@ -74,7 +120,11 @@ router.post('/', authMiddleware_1.protect, async (req, res) => {
             perms.can_edit_properties || false,
             perms.can_manage_tenants || false
         ]);
-        res.status(201).json({ message: "Membre ajouté avec succès." });
+        res.status(201).json({
+            message: isNewUser ? "Compte créé et membre ajouté avec succès." : "Membre ajouté avec succès.",
+            tempPassword: isNewUser ? tempPassword : null,
+            isNewUser
+        });
     }
     catch (err) {
         console.error(err);
@@ -102,4 +152,3 @@ router.delete('/:targetId', authMiddleware_1.protect, async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=delegationRoutes.js.map

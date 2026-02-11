@@ -9,4 +9,3 @@ router.get('/', (req, res) => {
     res.json({ message: "Liste des baux (TODO)" });
 });
 exports.default = router;
-//# sourceMappingURL=bauxRoutes.js.map

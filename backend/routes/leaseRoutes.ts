@@ -427,6 +427,8 @@ async function generatePaymentSchedule(
     frequency: string = 'mensuel'
 ) {
     const start = new Date(startDate);
+    const dueDates: Date[] = [];
+    const descriptions: string[] = [];
     
     for (let i = 0; i < numInstallments; i++) {
         let echeanceDate: Date;
@@ -446,11 +448,18 @@ async function generatePaymentSchedule(
                 break;
         }
         
+        dueDates.push(echeanceDate);
+        descriptions.push(`Échéance #${i + 1}`);
+    }
+
+    if (numInstallments > 0) {
+        // Bulk insert using UNNEST for performance
         // Correct column names: due_date, total_amount, description, statut
         await pool.query(`
             INSERT INTO payment_schedules (lease_id, due_date, total_amount, amount_paid, statut, description)
-            VALUES ($1, $2, $3, 0, 'en_attente', $4)
-        `, [leaseId, echeanceDate, amount, `Échéance #${i + 1}`]);
+            SELECT $1, d, $3, 0, 'en_attente', descr
+            FROM UNNEST($2::date[], $4::text[]) AS t(d, descr)
+        `, [leaseId, dueDates, amount, descriptions]);
     }
     
     // Update next_payment_date on lease

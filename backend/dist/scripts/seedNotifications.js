@@ -81,4 +81,3 @@ async function seedNotificationsForAllUsers() {
     }
 }
 seedNotificationsForAllUsers();
-//# sourceMappingURL=seedNotifications.js.map

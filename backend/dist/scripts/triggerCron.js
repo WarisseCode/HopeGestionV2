@@ -62,4 +62,3 @@ async function runTest() {
     }
 }
 runTest();
-//# sourceMappingURL=triggerCron.js.map

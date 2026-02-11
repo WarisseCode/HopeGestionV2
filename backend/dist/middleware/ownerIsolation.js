@@ -27,7 +27,7 @@ const checkOwnerAccess = async (req, res, next) => {
             });
         }
         // Admin et Manager ont accès à tous les propriétaires
-        if (userRole === 'admin' || userRole === 'manager' || userRole === 'gestionnaire') {
+        if (userRole === 'admin' || userRole === 'manager') {
             return next();
         }
         // Vérifier si l'utilisateur a accès à ce propriétaire
@@ -62,7 +62,7 @@ const filterByOwner = async (req, res, next) => {
             });
         }
         // Admin et Manager voient tout
-        if (userRole === 'admin' || userRole === 'manager' || userRole === 'gestionnaire') {
+        if (userRole === 'admin' || userRole === 'manager') {
             req.ownerIds = null; // null = tous les propriétaires
             return next();
         }
@@ -133,4 +133,3 @@ exports.default = {
     checkPermission: exports.checkPermission,
     buildOwnerWhereClause: exports.buildOwnerWhereClause
 };
-//# sourceMappingURL=ownerIsolation.js.map

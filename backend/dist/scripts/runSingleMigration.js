@@ -77,4 +77,3 @@ async function runSingleMigration() {
     }
 }
 runSingleMigration();
-//# sourceMappingURL=runSingleMigration.js.map

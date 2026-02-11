@@ -103,4 +103,3 @@ router.get('/report/:ownerId/:year', permissionMiddleware_1.default.canRead('fin
     }
 });
 exports.default = router;
-//# sourceMappingURL=taxRoutes.js.map

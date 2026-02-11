@@ -1,11 +1,12 @@
 const { Pool } = require('pg');
+require('dotenv').config();
 
 const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'hope_gestion_db',
-  password: 'postgres123',
-  port: 5432,
+  user: process.env.DB_USER || 'postgres',
+  host: process.env.DB_HOST || 'localhost',
+  database: process.env.DB_NAME || 'hope_gestion_db',
+  password: process.env.DB_PASSWORD,
+  port: parseInt(process.env.DB_PORT || '5432'),
 });
 
 const checkExpenses = async () => {

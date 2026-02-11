@@ -10,4 +10,3 @@ async function testThinking() {
     console.log('✅ Test finished.');
 }
 testThinking();
-//# sourceMappingURL=testWhatsApp.js.map

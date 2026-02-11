@@ -101,4 +101,3 @@ router.get('/variables/:type', async (req, res) => {
     res.json(variables);
 });
 exports.default = router;
-//# sourceMappingURL=templateRoutes.js.map

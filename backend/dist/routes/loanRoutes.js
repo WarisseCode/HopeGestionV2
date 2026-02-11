@@ -132,4 +132,3 @@ router.post('/', permissionMiddleware_1.default.canWrite('finances'), async (req
     }
 });
 exports.default = router;
-//# sourceMappingURL=loanRoutes.js.map
