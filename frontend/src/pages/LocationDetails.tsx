@@ -10,6 +10,7 @@ import {
     RefreshCw, XCircle, Wallet
 } from 'lucide-react';
 import locationApi from '../api/locationApi';
+import { API_URL } from '../config';
 import type { Location, PaymentScheduleItem } from '../api/locationApi';
 import Alert from '../components/ui/Alert';
 import Card from '../components/ui/Card';
@@ -60,7 +61,7 @@ const LocationDetails: React.FC = () => {
         
         try {
             setLoading(true);
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/paiements`, {
+            const response = await fetch(`${API_URL}/paiements`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('userToken')}`,
