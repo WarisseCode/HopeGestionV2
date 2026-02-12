@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import pool from '../db/database';
+import { RecoveryService } from './recoveryService';
 
 export class CronService {
     static init() {
@@ -16,6 +17,12 @@ export class CronService {
              console.log('Running intervention alerts check...');
              await this.checkInterventionAlerts();
              await this.checkTaskAlerts();
+        });
+
+        // Run every day at 2:00 AM - Recovery Missions Generation
+        cron.schedule('0 2 * * *', async () => {
+            console.log('Running nightly recovery mission generation...');
+            await RecoveryService.generateRecoveryMissions();
         });
     }
 
@@ -89,28 +96,19 @@ export class CronService {
             // 2. For each setting, find matching events
             for (const setting of settings) {
                 // Determine target date based on delay
-                // delay_days = -7 means we look for events starting in 7 days
-                // target_date = now + 7 days
-                
-                // Note: This logic is simplified. Correct way:
-                // If delay is -7, we want events where start_date = today + 7
-                // We format dates to YYYY-MM-DD to compare
-                
                 const targetDate = new Date();
                 targetDate.setDate(targetDate.getDate() + Math.abs(setting.delay_days)); 
-                // Note: if delay is positive (after event), logic differs, assuming negative for "reminder before"
                 
                 const targetDateStr = targetDate.toISOString().split('T')[0];
 
                 if (setting.event_type === 'payment') {
                     // Check Leases with matching due day (approx)
-                    // This creates a complex query, for MVP we mock log
                     console.log(`[Mock] Check payment reminders for user ${setting.user_id} on ${targetDateStr} via ${setting.channel}`);
                 } else if (setting.event_type === 'contract_end') {
                      const leases = await pool.query(
                          `SELECT l.id, t.nom, t.prenoms FROM leases l 
                           JOIN tenants t ON l.tenant_id = t.id
-                          WHERE l.date_fin = $1 AND l.owner_id IN (SELECT owner_id FROM owner_user WHERE user_id = $2)`,
+                          WHERE l.date_fin =  AND l.owner_id IN (SELECT owner_id FROM owner_user WHERE user_id = )`,
                          [targetDateStr, setting.user_id]
                      );
                      leases.rows.forEach(l => {
@@ -120,7 +118,7 @@ export class CronService {
                     // Check custom events
                      const events = await pool.query(
                          `SELECT * FROM calendar_events 
-                          WHERE user_id = $1 AND start_date::date = $2`,
+                          WHERE user_id =  AND start_date::date = `,
                          [setting.user_id, targetDateStr]
                      );
                      events.rows.forEach(e => {
