@@ -211,7 +211,7 @@ const Finances: React.FC = () => {
         {(activeTab === 'paiements' || activeTab === 'echeances') && (
              <div className="flex gap-2">
                  <Button 
-                    variant="outline" 
+                    variant="ghost" 
                     className="rounded-full px-6 shadow-sm border-primary text-primary hover:bg-primary/5"
                     onClick={() => setShowGenerateModal(true)}
                     disabled={generating}
@@ -420,7 +420,7 @@ const Finances: React.FC = () => {
         size="md"
         footer={
             <>
-                <Button variant="outline" onClick={() => setShowGenerateModal(false)}>Annuler</Button>
+                <Button variant="ghost" onClick={() => setShowGenerateModal(false)}>Annuler</Button>
                 <Button 
                     variant="primary" 
                     onClick={confirmGenerateSchedules}

@@ -150,7 +150,7 @@ const FinanceLoans: React.FC = () => {
                             </Button>
                             {loan.status === 'active' && (
                                 <Button 
-                                    variant="outline"
+                                    variant="ghost"
                                     className="text-red-500 border-red-200 hover:bg-red-50"
                                     onClick={() => handleCloseLoan(loan.id)}
                                 >

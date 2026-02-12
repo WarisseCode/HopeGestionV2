@@ -69,7 +69,7 @@ const TenantPayments: React.FC = () => {
                 toast.success('Paiement confirmé !');
                 loadData(); // Reload to update status
             } else {
-                toast.info(`Statut actuel : ${result.status === 'pending' ? 'En attente' : result.status}`);
+                toast(`Statut actuel : ${result.status === 'pending' ? 'En attente' : result.status}`);
                 if (result.status !== 'pending') loadData();
             }
         } catch (error: any) {
@@ -236,7 +236,7 @@ const TenantPayments: React.FC = () => {
 
                                             {schedule.pending_transaction_id && (
                                                 <Button
-                                                    variant="outline"
+                                                    variant="ghost"
                                                     className="px-3"
                                                     title="Vérifier le statut si vous avez déjà payé"
                                                     onClick={() => handleVerifyClick(schedule)}
@@ -391,7 +391,7 @@ const TenantPayments: React.FC = () => {
 
                         <div className="flex gap-3">
                             <Button
-                                variant="outline"
+                                variant="ghost"
                                 onClick={() => setShowPaymentModal(false)}
                                 className="flex-1"
                             >

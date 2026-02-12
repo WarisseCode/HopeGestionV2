@@ -163,11 +163,6 @@ const LocataireDashboard: React.FC = () => {
           value={formatCurrency(loyerMensuel)} 
           color="purple"
           trend={{ value: joursAvantEcheance.toString(), label: `jours avant échéance`, positive: true }}
-          action={{
-            label: "Payer en ligne",
-            onClick: () => navigate('/dashboard/paiements-loyer'),
-            icon: CreditCard
-          }}
         />
         <KPICard 
           icon={FileText} 
