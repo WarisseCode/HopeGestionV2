@@ -57,6 +57,7 @@ import EdlSignature from './pages/EdlSignature';
 import Pricing from './pages/Pricing';
 import Carnet from './pages/Carnet'; // Module XI
 import TasksPage from './pages/TasksPage'; // Module XIV
+import TenantPayments from './pages/TenantPayments'; // Paiement en ligne des loyers
 // Public marketing pages
 import { 
   FonctionnalitesPage, 
@@ -198,6 +199,7 @@ const App: React.FC = () => {
                                             <Route path="alertes" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Alertes />} />} />
                                             <Route path="mobile-money" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<MobileMoney />} />} />
                                             <Route path="quittances" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Quittances />} />} />
+                                            <Route path="paiements-loyer" element={<RouteProtection allowedUserTypes={['locataire']} children={<TenantPayments />} />} />
                                             <Route path="abonnement" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Pricing />} />} />
                                             <Route path="proprietaires" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<Proprietaires />} />} />
                                             <Route path="locataire" element={<LocataireDashboard />} />

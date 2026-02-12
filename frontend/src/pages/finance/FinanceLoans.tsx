@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Eye, Calendar, TrendingUp } from 'lucide-react';
+import { Plus, Eye, Calendar, TrendingUp, CheckCircle, Ban } from 'lucide-react';
 import { financeApi } from '../../api/financeApi';
 import type { Loan } from '../../api/financeApi';
 import Button from '../../components/ui/Button';
@@ -60,6 +60,31 @@ const FinanceLoans: React.FC = () => {
         }
     };
 
+    const handleCloseLoan = async (loanId: number) => {
+        if (!confirm('Confirmer la clôture de ce prêt ? Toutes les échéances en attente seront marquées comme payées.')) return;
+        try {
+            await financeApi.closeLoan(loanId);
+            toast.success('Prêt clôturé avec succès');
+            loadLoans();
+            if (selectedLoan?.id === loanId) setSelectedLoan(null);
+        } catch (error: any) {
+            toast.error(error.message);
+        }
+    };
+
+    const handlePayInstallment = async (loanId: number, paymentId: number) => {
+        try {
+            await financeApi.payInstallment(loanId, paymentId);
+            toast.success('Échéance payée');
+            // Refresh details view
+            const detail = await financeApi.getLoanDetails(loanId);
+            setSelectedLoan(detail);
+            loadLoans();
+        } catch (error: any) {
+            toast.error(error.message);
+        }
+    };
+
     const formatMoney = (val: any) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(Number(val));
 
     return (
@@ -104,18 +129,35 @@ const FinanceLoans: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Progress Bar (Mocked for MVP) */}
+                        {/* Progress Bar (dynamic from paid installments) */}
                         <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
-                            <div className="bg-blue-600 h-2 rounded-full" style={{ width: '25%' }}></div>
+                            <div 
+                                className="bg-blue-600 h-2 rounded-full transition-all" 
+                                style={{ width: `${loan.duration_months > 0 ? ((Number(loan.paid_installments) || 0) / loan.duration_months) * 100 : 0}%` }}
+                            ></div>
                         </div>
+                        <p className="text-xs text-gray-400 mb-4">
+                            {loan.paid_installments || 0} / {loan.duration_months} échéances payées
+                        </p>
 
-                        <Button 
-                            variant="primary" 
-                            className="w-full"
-                            onClick={() => handleViewDetails(loan.id)}
-                        >
-                            <Eye size={16} className="mr-2" /> Voir l'amortissement
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button 
+                                variant="primary" 
+                                className="flex-1"
+                                onClick={() => handleViewDetails(loan.id)}
+                            >
+                                <Eye size={16} className="mr-2" /> Voir
+                            </Button>
+                            {loan.status === 'active' && (
+                                <Button 
+                                    variant="outline"
+                                    className="text-red-500 border-red-200 hover:bg-red-50"
+                                    onClick={() => handleCloseLoan(loan.id)}
+                                >
+                                    <Ban size={16} />
+                                </Button>
+                            )}
+                        </div>
                     </Card>
                 ))}
             </div>
@@ -184,9 +226,18 @@ const FinanceLoans: React.FC = () => {
                                             <td className="p-3 text-right text-red-500">{formatMoney(row.amount_interest)}</td>
                                             <td className="p-3 text-right text-green-600">{formatMoney(row.amount_principal)}</td>
                                             <td className="p-3 text-center">
-                                                <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${row.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                                                    {row.status}
-                                                </span>
+                                                {row.status === 'paid' ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-700">
+                                                        <CheckCircle size={12} /> Payé
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handlePayInstallment(selectedLoan!.id, row.id)}
+                                                        className="inline-flex items-center gap-1 px-3 py-1 rounded text-xs font-bold bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors cursor-pointer"
+                                                    >
+                                                        Payer
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}

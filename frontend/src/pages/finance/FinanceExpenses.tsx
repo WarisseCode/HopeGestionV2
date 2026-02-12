@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Filter, FileText, Upload } from 'lucide-react';
+import { Plus, Trash2, Filter, FileText, Upload, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { financeApi } from '../../api/financeApi';
 import type { Expense } from '../../api/financeApi';
@@ -22,6 +22,7 @@ const FinanceExpenses: React.FC = () => {
         description: '',
         supplier_name: ''
     });
+    const [proofFile, setProofFile] = useState<File | null>(null);
 
     useEffect(() => {
         loadData();
@@ -47,7 +48,7 @@ const FinanceExpenses: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await financeApi.createExpense(formData);
+            await financeApi.createExpense(formData, proofFile || undefined);
             toast.success("Dépense enregistrée");
             setShowForm(false);
             setFormData({
@@ -57,6 +58,7 @@ const FinanceExpenses: React.FC = () => {
                 description: '',
                 supplier_name: ''
             });
+            setProofFile(null);
             loadData();
         } catch (error: any) {
             toast.error(error.message);
@@ -135,8 +137,31 @@ const FinanceExpenses: React.FC = () => {
                                 />
                             </div>
 
-                            <div className="bg-blue-50 p-3 rounded text-sm text-blue-700 flex items-center gap-2 cursor-pointer border border-blue-200 border-dashed justify-center">
-                                <Upload size={16} /> Ajouter un justificatif (Optionnel)
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Justificatif (Optionnel)</label>
+                                <label className={`flex items-center gap-2 p-3 rounded border-2 border-dashed cursor-pointer transition-colors text-sm ${
+                                    proofFile 
+                                        ? 'bg-green-50 border-green-300 text-green-700' 
+                                        : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
+                                }`}>
+                                    <Upload size={16} />
+                                    {proofFile ? proofFile.name : 'Cliquez pour ajouter un justificatif'}
+                                    <input 
+                                        type="file" 
+                                        accept="image/*,.pdf" 
+                                        className="hidden" 
+                                        onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                                    />
+                                </label>
+                                {proofFile && (
+                                    <button 
+                                        type="button" 
+                                        className="text-xs text-red-500 mt-1 hover:underline"
+                                        onClick={() => setProofFile(null)}
+                                    >
+                                        Retirer le fichier
+                                    </button>
+                                )}
                             </div>
 
                             <div className="flex justify-end gap-3 mt-6">
@@ -157,12 +182,13 @@ const FinanceExpenses: React.FC = () => {
                             <th className="p-4">Catégorie</th>
                             <th className="p-4">Description</th>
                             <th className="p-4">Montant</th>
+                            <th className="p-4">Justif.</th>
                             <th className="p-4 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {expenses.length === 0 ? (
-                            <tr><td colSpan={5} className="p-8 text-center text-gray-400">Aucune dépense enregistrée</td></tr>
+                            <tr><td colSpan={6} className="p-8 text-center text-gray-400">Aucune dépense enregistrée</td></tr>
                         ) : (
                             expenses.map(item => (
                                 <tr key={item.id} className="hover:bg-gray-50">
@@ -178,6 +204,21 @@ const FinanceExpenses: React.FC = () => {
                                     </td>
                                     <td className="p-4 font-mono font-bold text-red-600">
                                         -{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(Number(item.amount))}
+                                    </td>
+                                    <td className="p-4">
+                                        {item.proof_url ? (
+                                            <a 
+                                                href={item.proof_url} 
+                                                target="_blank" 
+                                                rel="noreferrer" 
+                                                className="text-blue-500 hover:text-blue-700"
+                                                title="Voir le justificatif"
+                                            >
+                                                <ExternalLink size={16} />
+                                            </a>
+                                        ) : (
+                                            <span className="text-gray-300">—</span>
+                                        )}
                                     </td>
                                     <td className="p-4 text-right">
                                         <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 p-1">

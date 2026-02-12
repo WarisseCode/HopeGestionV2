@@ -173,30 +173,30 @@ router.post('/', permissions.canWrite('finances'), async (req: AuthenticatedRequ
     }
 });
 
-// GET /api/finances/stats - Statistiques
+// GET /api/finances/stats - Statistiques (accepte ?month=X&year=Y, défaut: mois courant)
 router.get('/stats', permissions.canRead('finances'), async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const currentMonth = new Date().getMonth() + 1;
-        const currentYear = new Date().getFullYear();
+        const targetMonth = req.query.month ? parseInt(req.query.month as string) : new Date().getMonth() + 1;
+        const targetYear = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear();
 
-        // 1. Total encashed this month
+        // 1. Total encashed for target month
         const encashedRes = await pool.query(`
             SELECT SUM(montant) as total 
             FROM payments 
             WHERE EXTRACT(MONTH FROM date_paiement) = $1 
             AND EXTRACT(YEAR FROM date_paiement) = $2
             AND statut = 'valide'
-        `, [currentMonth, currentYear]);
+        `, [targetMonth, targetYear]);
 
-        // 2. Total expenses this month
+        // 2. Total expenses for target month
         const expensesRes = await pool.query(`
             SELECT SUM(amount) as total
             FROM expenses
             WHERE EXTRACT(MONTH FROM date_expense) = $1
             AND EXTRACT(YEAR FROM date_expense) = $2
-        `, [currentMonth, currentYear]);
+        `, [targetMonth, targetYear]);
 
-        // 3. Pending
+        // 3. Pending (always current)
         const pendingRes = await pool.query(`
             SELECT SUM(total_amount - amount_paid) as total
             FROM payment_schedules
@@ -215,6 +215,66 @@ router.get('/stats', permissions.canRead('finances'), async (req: AuthenticatedR
         });
     } catch (error) {
         console.error('Error fetching stats:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// GET /api/finances/stats/monthly - Revenus/Dépenses par mois (pour graphiques)
+router.get('/stats/monthly', permissions.canRead('finances'), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const months = parseInt(req.query.months as string) || 6;
+
+        // Revenue per month
+        const revenueRes = await pool.query(`
+            SELECT 
+                EXTRACT(MONTH FROM date_paiement)::int as month,
+                EXTRACT(YEAR FROM date_paiement)::int as year,
+                SUM(montant) as total
+            FROM payments
+            WHERE date_paiement >= (CURRENT_DATE - INTERVAL '1 month' * $1)
+            AND statut = 'valide'
+            GROUP BY year, month
+            ORDER BY year, month
+        `, [months]);
+
+        // Expenses per month
+        const expenseRes = await pool.query(`
+            SELECT 
+                EXTRACT(MONTH FROM date_expense)::int as month,
+                EXTRACT(YEAR FROM date_expense)::int as year,
+                SUM(amount) as total
+            FROM expenses
+            WHERE date_expense >= (CURRENT_DATE - INTERVAL '1 month' * $1)
+            GROUP BY year, month
+            ORDER BY year, month
+        `, [months]);
+
+        // Build month labels for last N months
+        const data = [];
+        const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+        const now = new Date();
+
+        for (let i = months - 1; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const m = d.getMonth() + 1;
+            const y = d.getFullYear();
+
+            const rev = revenueRes.rows.find((r: any) => r.month === m && r.year === y);
+            const exp = expenseRes.rows.find((r: any) => r.month === m && r.year === y);
+
+            data.push({
+                label: `${monthNames[m - 1]} ${y}`,
+                month: m,
+                year: y,
+                revenue: parseFloat(rev?.total || '0'),
+                expenses: parseFloat(exp?.total || '0'),
+                net: parseFloat(rev?.total || '0') - parseFloat(exp?.total || '0')
+            });
+        }
+
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching monthly stats:', error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
@@ -354,4 +414,135 @@ router.get('/export/excel', permissions.canRead('finances'), async (req: Authent
     }
 });
 
+
+import { FinanceService } from '../services/FinanceService';
+
+// POST /api/finances/generate-schedules - Générer les échéances (Admin/Gest)
+router.post('/generate-schedules', permissions.canWrite('finances'), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const { month, year } = req.body;
+        
+        // Par défaut: mois courant
+        const targetMonth = month ? parseInt(month) : new Date().getMonth() + 1;
+        const targetYear = year ? parseInt(year) : new Date().getFullYear();
+
+        const result = await FinanceService.generateMonthlySchedules(targetMonth, targetYear);
+        
+        res.json({ 
+            message: 'Génération terminée', 
+            details: result 
+        });
+    } catch (error) {
+        console.error('Error generating schedules:', error);
+        res.status(500).json({ message: 'Erreur lors de la génération des échéances' });
+    }
+});
+
+// GET /api/finances/schedules - Liste des échéances avec infos locataire
+router.get('/schedules', permissions.canRead('finances'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const ownerIds = (req as any).ownerIds;
+        const { month, year } = req.query;
+        const targetMonth = month ? parseInt(month as string) : new Date().getMonth() + 1;
+        const targetYear = year ? parseInt(year as string) : new Date().getFullYear();
+
+        let ownerFilter = '1=1';
+        if (ownerIds && ownerIds.length > 0) {
+            ownerFilter = `l.owner_id IN (${ownerIds.join(',')})`;
+        } else if (ownerIds && ownerIds.length === 0) {
+            return res.json([]);
+        }
+
+        const result = await pool.query(`
+            SELECT 
+                ps.id,
+                ps.lease_id,
+                ps.total_amount,
+                ps.due_date,
+                ps.status,
+                ps.amount_paid,
+                ps.description,
+                ps.created_at,
+                t.nom as tenant_nom,
+                t.prenoms as tenant_prenoms,
+                t.telephone_principal as tenant_telephone,
+                l.reference_bail,
+                l.loyer_actuel,
+                l.charges_mensuelles,
+                lo.ref_lot as lot_reference
+            FROM payment_schedules ps
+            JOIN leases l ON ps.lease_id = l.id
+            JOIN tenants t ON l.tenant_id = t.id
+            LEFT JOIN lots lo ON l.lot_id = lo.id
+            WHERE EXTRACT(MONTH FROM ps.due_date) = $1
+            AND EXTRACT(YEAR FROM ps.due_date) = $2
+            AND ${ownerFilter}
+            ORDER BY ps.due_date ASC, t.nom ASC
+        `, [targetMonth, targetYear]);
+
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching schedules:', error);
+        res.status(500).json({ message: 'Erreur chargement échéances' });
+    }
+});
+
+// PUT /api/finances/schedules/:id/pay - Marquer une échéance comme payée
+router.put('/schedules/:id/pay', permissions.canWrite('finances'), async (req: AuthenticatedRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const { id } = req.params;
+        const { payment_method, reference } = req.body;
+
+        // Vérifier que l'échéance existe et est pending
+        const scheduleRes = await client.query(
+            'SELECT ps.*, l.tenant_id, l.owner_id FROM payment_schedules ps JOIN leases l ON ps.lease_id = l.id WHERE ps.id = $1',
+            [id]
+        );
+        if (scheduleRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: 'Échéance non trouvée' });
+        }
+        const schedule = scheduleRes.rows[0];
+        if (schedule.status === 'paid') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ message: 'Échéance déjà payée' });
+        }
+
+        // Mettre à jour l'échéance
+        await client.query(
+            `UPDATE payment_schedules 
+             SET status = 'paid', amount_paid = total_amount, date_reglement_final = NOW()
+             WHERE id = $1`,
+            [id]
+        );
+
+        // Créer un enregistrement de paiement correspondant
+        await client.query(
+            `INSERT INTO payments (lease_id, schedule_id, montant, date_paiement, mode_paiement, reference_transaction, type, statut, owner_id, description)
+             VALUES ($1, $2, $3, NOW(), $4, $5, 'loyer', 'paid', $6, $7)`,
+            [
+                schedule.lease_id,
+                id,
+                schedule.total_amount,
+                payment_method || 'especes',
+                reference || null,
+                schedule.owner_id,
+                schedule.description || `Paiement loyer`
+            ]
+        );
+
+        await client.query('COMMIT');
+        res.json({ message: 'Échéance marquée comme payée', schedule: { ...schedule, status: 'paid' } });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error paying schedule:', error);
+        res.status(500).json({ message: 'Erreur paiement échéance' });
+    } finally {
+        client.release();
+    }
+});
+
 export default router;
+

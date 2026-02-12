@@ -161,8 +161,13 @@ const LocataireDashboard: React.FC = () => {
           icon={Wallet} 
           label="Loyer Mensuel" 
           value={formatCurrency(loyerMensuel)} 
-          color="blue" 
-          trend={{ value: "Payé", label: "Dernier Loyer", positive: true }}
+          color="purple"
+          trend={{ value: joursAvantEcheance.toString(), label: `jours avant échéance`, positive: true }}
+          action={{
+            label: "Payer en ligne",
+            onClick: () => navigate('/dashboard/paiements-loyer'),
+            icon: CreditCard
+          }}
         />
         <KPICard 
           icon={FileText} 

@@ -1,0 +1,540 @@
+[
+  {
+    "id": 1,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "200000.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 9,
+    "lot_id": 3
+  },
+  {
+    "id": 2,
+    "statut": "signe",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "75369.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 17,
+    "lot_id": 32
+  },
+  {
+    "id": 3,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "301815.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 15,
+    "lot_id": 38
+  },
+  {
+    "id": 4,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "84825.00",
+    "charges_mensuelles": "7274.00",
+    "jour_echeance": 5,
+    "tenant_id": 1,
+    "lot_id": 18
+  },
+  {
+    "id": 5,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "106722.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 11,
+    "lot_id": 49
+  },
+  {
+    "id": 6,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "241359.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 3,
+    "lot_id": 40
+  },
+  {
+    "id": 7,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "100000.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 14,
+    "lot_id": 16
+  },
+  {
+    "id": 8,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "94377.00",
+    "charges_mensuelles": "8596.00",
+    "jour_echeance": 5,
+    "tenant_id": 17,
+    "lot_id": 22
+  },
+  {
+    "id": 9,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "650102.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 5,
+    "lot_id": 34
+  },
+  {
+    "id": 10,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "64035.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 9,
+    "lot_id": 45
+  },
+  {
+    "id": 11,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "244665.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 13,
+    "lot_id": 26
+  },
+  {
+    "id": 12,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "167619.00",
+    "charges_mensuelles": "14653.00",
+    "jour_echeance": 5,
+    "tenant_id": 15,
+    "lot_id": 19
+  },
+  {
+    "id": 13,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "286058.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 19,
+    "lot_id": 41
+  },
+  {
+    "id": 14,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "207879.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 7,
+    "lot_id": 51
+  },
+  {
+    "id": 15,
+    "statut": "signe",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "200000.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 3,
+    "lot_id": 6
+  },
+  {
+    "id": 16,
+    "statut": "resilie",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "241512.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 1,
+    "lot_id": 47
+  },
+  {
+    "id": 17,
+    "statut": "signe",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "182101.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 11,
+    "lot_id": 48
+  },
+  {
+    "id": 18,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "61637.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 2,
+    "lot_id": 28
+  },
+  {
+    "id": 19,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "226523.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 6,
+    "lot_id": 30
+  },
+  {
+    "id": 20,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "80000.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 16,
+    "lot_id": 17
+  },
+  {
+    "id": 21,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "94665.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 18,
+    "lot_id": 52
+  },
+  {
+    "id": 22,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "510116.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 12,
+    "lot_id": 50
+  },
+  {
+    "id": 23,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "367380.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 10,
+    "lot_id": 53
+  },
+  {
+    "id": 24,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "150022.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 4,
+    "lot_id": 55
+  },
+  {
+    "id": 25,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "61997.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 8,
+    "lot_id": 33
+  },
+  {
+    "id": 26,
+    "statut": "actif",
+    "date_debut": "2026-01-28T23:00:00.000Z",
+    "date_fin": "2027-01-28T23:00:00.000Z",
+    "loyer_actuel": "411830.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 14,
+    "lot_id": 35
+  },
+  {
+    "id": 27,
+    "statut": "signe",
+    "date_debut": "2026-02-05T23:00:00.000Z",
+    "date_fin": "2027-02-04T23:00:00.000Z",
+    "loyer_actuel": "241512.00",
+    "charges_mensuelles": "58441.00",
+    "jour_echeance": 5,
+    "tenant_id": 19,
+    "lot_id": 47
+  },
+  {
+    "id": 28,
+    "statut": "actif",
+    "date_debut": "2026-02-05T23:00:00.000Z",
+    "date_fin": "2027-02-04T23:00:00.000Z",
+    "loyer_actuel": "50000.00",
+    "charges_mensuelles": "5000.00",
+    "jour_echeance": 5,
+    "tenant_id": 20,
+    "lot_id": 57
+  },
+  {
+    "id": 29,
+    "statut": "actif",
+    "date_debut": "2026-02-05T23:00:00.000Z",
+    "date_fin": "2027-02-04T23:00:00.000Z",
+    "loyer_actuel": "50000.00",
+    "charges_mensuelles": "5000.00",
+    "jour_echeance": 5,
+    "tenant_id": 13,
+    "lot_id": 56
+  },
+  {
+    "id": 30,
+    "statut": "en_attente",
+    "date_debut": "2026-02-18T23:00:00.000Z",
+    "date_fin": null,
+    "loyer_actuel": "50000.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 21,
+    "lot_id": 58
+  },
+  {
+    "id": 32,
+    "statut": "actif",
+    "date_debut": "2026-02-09T23:00:00.000Z",
+    "date_fin": "2027-02-09T23:00:00.000Z",
+    "loyer_actuel": "150000.00",
+    "charges_mensuelles": "0.00",
+    "jour_echeance": 5,
+    "tenant_id": 23,
+    "lot_id": 1
+  }
+]
+---STATUTS---
+[
+  {
+    "statut": "en_attente",
+    "nb": 1
+  },
+  {
+    "statut": "actif",
+    "nb": 25
+  },
+  {
+    "statut": "signe",
+    "nb": 4
+  },
+  {
+    "statut": "resilie",
+    "nb": 1
+  }
+]
+---SCHEDULES_FEB_2026---
+[
+  {
+    "id": 1,
+    "lease_id": 1,
+    "total_amount": "200000.00",
+    "due_date": "2026-02-10T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 2,
+    "lease_id": 32,
+    "total_amount": "150000.00",
+    "due_date": "2026-02-09T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 3,
+    "lease_id": 3,
+    "total_amount": "301815.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 4,
+    "lease_id": 4,
+    "total_amount": "92099.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 5,
+    "lease_id": 5,
+    "total_amount": "106722.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 6,
+    "lease_id": 6,
+    "total_amount": "241359.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 7,
+    "lease_id": 7,
+    "total_amount": "100000.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 8,
+    "lease_id": 8,
+    "total_amount": "102973.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 9,
+    "lease_id": 9,
+    "total_amount": "650102.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 10,
+    "lease_id": 10,
+    "total_amount": "64035.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 11,
+    "lease_id": 11,
+    "total_amount": "244665.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 12,
+    "lease_id": 12,
+    "total_amount": "182272.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 13,
+    "lease_id": 13,
+    "total_amount": "286058.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 14,
+    "lease_id": 14,
+    "total_amount": "207879.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 15,
+    "lease_id": 18,
+    "total_amount": "61637.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 16,
+    "lease_id": 19,
+    "total_amount": "226523.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 17,
+    "lease_id": 20,
+    "total_amount": "80000.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 18,
+    "lease_id": 21,
+    "total_amount": "94665.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 19,
+    "lease_id": 22,
+    "total_amount": "510116.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 20,
+    "lease_id": 23,
+    "total_amount": "367380.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 21,
+    "lease_id": 24,
+    "total_amount": "150022.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 22,
+    "lease_id": 25,
+    "total_amount": "61997.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 23,
+    "lease_id": 26,
+    "total_amount": "411830.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 24,
+    "lease_id": 28,
+    "total_amount": "55000.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": 25,
+    "lease_id": 29,
+    "total_amount": "55000.00",
+    "due_date": "2026-02-04T23:00:00.000Z",
+    "status": "pending"
+  }
+]

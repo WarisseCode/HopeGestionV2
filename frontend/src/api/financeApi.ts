@@ -124,10 +124,23 @@ export const financeApi = {
         return await res.json();
     },
 
-    getStats: async (): Promise<BaseStats> => {
+    getStats: async (month?: number, year?: number): Promise<BaseStats> => {
         const token = getToken();
-        const res = await fetch(`${API_URL}/finances/stats`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const params = new URLSearchParams();
+        if (month) params.append('month', month.toString());
+        if (year) params.append('year', year.toString());
+        const qs = params.toString() ? `?${params.toString()}` : '';
+        const res = await fetch(`${API_URL}/finances/stats${qs}`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error('Erreur stats');
+        return await res.json();
+    },
+
+    getMonthlyStats: async (months: number = 6): Promise<any[]> => {
+        const token = getToken();
+        const res = await fetch(`${API_URL}/finances/stats/monthly?months=${months}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Erreur stats mensuelles');
         return await res.json();
     },
 
@@ -153,15 +166,34 @@ export const financeApi = {
         return res.ok ? await res.json() : [];
     },
 
-    createExpense: async (data: Partial<Expense>): Promise<Expense> => {
+    createExpense: async (data: Partial<Expense>, proofFile?: File): Promise<Expense> => {
         const token = getToken();
-        const res = await fetch(`${API_URL}/expenses`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        if (!res.ok) throw new Error((await res.json()).message || 'Erreur enregistrement dépense');
-        return await res.json();
+        
+        if (proofFile) {
+            // Use FormData for file upload
+            const formData = new FormData();
+            formData.append('proof', proofFile);
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    formData.append(key, String(value));
+                }
+            });
+            const res = await fetch(`${API_URL}/expenses`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            if (!res.ok) throw new Error((await res.json()).message || 'Erreur enregistrement dépense');
+            return await res.json();
+        } else {
+            const res = await fetch(`${API_URL}/expenses`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) throw new Error((await res.json()).message || 'Erreur enregistrement dépense');
+            return await res.json();
+        }
     },
 
     deleteExpense: async (id: number): Promise<void> => {
@@ -196,6 +228,26 @@ export const financeApi = {
         return await res.json();
     },
 
+    closeLoan: async (id: number): Promise<{ message: string }> => {
+        const token = getToken();
+        const res = await fetch(`${API_URL}/loans/${id}/close`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error((await res.json()).message || 'Erreur clôture');
+        return await res.json();
+    },
+
+    payInstallment: async (loanId: number, paymentId: number): Promise<any> => {
+        const token = getToken();
+        const res = await fetch(`${API_URL}/loans/${loanId}/installment/${paymentId}/pay`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error((await res.json()).message || 'Erreur paiement');
+        return await res.json();
+    },
+
     // --- TAX ---
     getTaxSettings: async (ownerId: number): Promise<TaxSettings> => {
         const token = getToken();
@@ -217,6 +269,40 @@ export const financeApi = {
         const token = getToken();
         const res = await fetch(`${API_URL}/tax/report/${ownerId}/${year}`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error('Erreur rapport fiscal');
+        return await res.json();
+    },
+    // --- SCHEDULES ---
+    generateSchedules: async (month?: number, year?: number): Promise<any> => {
+        const token = getToken();
+        const res = await fetch(`${API_URL}/finances/generate-schedules`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ month, year })
+        });
+        if (!res.ok) throw new Error((await res.json()).message || 'Erreur génération échéances');
+        return await res.json();
+    },
+
+    getSchedules: async (month?: number, year?: number): Promise<any[]> => {
+        const token = getToken();
+        const params = new URLSearchParams();
+        if (month) params.set('month', month.toString());
+        if (year) params.set('year', year.toString());
+        const res = await fetch(`${API_URL}/finances/schedules?${params}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error((await res.json()).message || 'Erreur chargement échéances');
+        return await res.json();
+    },
+
+    paySchedule: async (scheduleId: number, paymentMethod?: string, reference?: string): Promise<any> => {
+        const token = getToken();
+        const res = await fetch(`${API_URL}/finances/schedules/${scheduleId}/pay`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_method: paymentMethod, reference })
+        });
+        if (!res.ok) throw new Error((await res.json()).message || 'Erreur paiement échéance');
         return await res.json();
     }
 };

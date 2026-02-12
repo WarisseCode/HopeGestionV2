@@ -25,6 +25,8 @@ const storage = multer.diskStorage({
             uploadPath = 'uploads/documents';
         } else if (req.body.type === 'inventory') {
             uploadPath = 'uploads/inventories';
+        } else if (req.body.type === 'expense' || file.fieldname === 'proof') {
+            uploadPath = 'uploads/expenses';
         }
 
         // Créer le dossier s'il n'existe pas

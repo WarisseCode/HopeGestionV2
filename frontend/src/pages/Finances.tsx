@@ -8,11 +8,14 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Building2,
-  Calculator
+  Calculator,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import Modal from '../components/ui/Modal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { KPICard } from '../components/dashboard';
 import { financeApi } from '../api/financeApi';
@@ -21,12 +24,15 @@ import { getLocataires, getLocataireDetails } from '../api/locataireApi';
 import type { Locataire } from '../api/locataireApi';
 
 // Sub-modules
+import FinanceSchedules from './finance/FinanceSchedules';
+
 import FinanceExpenses from './finance/FinanceExpenses';
 import FinanceLoans from './finance/FinanceLoans';
 import FinanceTax from './finance/FinanceTax';
+import FinanceChart from '../components/finance/FinanceChart';
 
 const Finances: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'paiements' | 'depenses' | 'prets' | 'fiscalite'>('paiements');
+  const [activeTab, setActiveTab] = useState<'paiements' | 'echeances' | 'depenses' | 'prets' | 'fiscalite'>('echeances');
   const [showForm, setShowForm] = useState(false);
   const [activeSubModule, setActiveSubModule] = useState<string>('paiements');
 
@@ -38,6 +44,11 @@ const Finances: React.FC = () => {
       pending_total: 0 
   });
   const [loading, setLoading] = useState(true);
+
+  // Period selector state
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 
   // Selectors Data for Payment Form
   const [locataires, setLocataires] = useState<Locataire[]>([]);
@@ -59,7 +70,7 @@ const Finances: React.FC = () => {
       setLoading(true);
       const [pData, pStats, locs] = await Promise.all([
         financeApi.getPayments(),
-        financeApi.getStats(),
+        financeApi.getStats(selectedMonth, selectedYear),
         getLocataires('Locataire')
       ]);
       
@@ -73,6 +84,40 @@ const Finances: React.FC = () => {
       console.error("Erreur chargement finances:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Reload stats when period changes
+  useEffect(() => {
+    const reloadStats = async () => {
+      try {
+        const pStats = await financeApi.getStats(selectedMonth, selectedYear);
+        // @ts-ignore
+        setStats(pStats);
+      } catch (error) {
+        console.error('Erreur stats:', error);
+      }
+    };
+    reloadStats();
+  }, [selectedMonth, selectedYear]);
+
+  const handlePrevMonth = () => {
+    if (selectedMonth === 1) {
+      setSelectedMonth(12);
+      setSelectedYear(selectedYear - 1);
+    } else {
+      setSelectedMonth(selectedMonth - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    const now = new Date();
+    if (selectedMonth === now.getMonth() + 1 && selectedYear === now.getFullYear()) return;
+    if (selectedMonth === 12) {
+      setSelectedMonth(1);
+      setSelectedYear(selectedYear + 1);
+    } else {
+      setSelectedMonth(selectedMonth + 1);
     }
   };
 
@@ -109,6 +154,34 @@ const Finances: React.FC = () => {
       }
   };
 
+  const [generating, setGenerating] = useState(false);
+
+
+
+
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+
+  const handleGenerateSchedules = async () => {
+      // Logic moved to onConfirm of Modal
+      setShowGenerateModal(true);
+  };
+
+  const confirmGenerateSchedules = async () => {
+      try {
+          setGenerating(true);
+          const result = await financeApi.generateSchedules();
+          alert(`Succès ! ${result.details.generated} échéances générées.`);
+          fetchData(); 
+          setActiveTab('echeances');
+          setShowGenerateModal(false);
+      } catch (error: any) {
+          console.error("Erreur génération:", error);
+          alert(error.message || "Erreur lors de la génération");
+      } finally {
+          setGenerating(false);
+      }
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -135,15 +208,49 @@ const Finances: React.FC = () => {
             Pilotage financier complet (Revenus, Dépenses, Fiscalité)
           </p>
         </div>
-        {activeTab === 'paiements' && (
-             <Button 
-                variant="primary" 
-                className="rounded-full px-6 shadow-lg"
-                onClick={() => setShowForm(true)}
-             >
-                <Plus size={18} className="mr-2" /> Encaisser Loyer
-             </Button>
+        {(activeTab === 'paiements' || activeTab === 'echeances') && (
+             <div className="flex gap-2">
+                 <Button 
+                    variant="outline" 
+                    className="rounded-full px-6 shadow-sm border-primary text-primary hover:bg-primary/5"
+                    onClick={() => setShowGenerateModal(true)}
+                    disabled={generating}
+                 >
+                    {generating ? 'Génération...' : '📅 Générer Loyers'}
+                 </Button>
+                 <Button 
+                    variant="primary" 
+                    className="rounded-full px-6 shadow-lg"
+                    onClick={() => setShowForm(true)}
+                 >
+                    <Plus size={18} className="mr-2" /> Encaisser Loyer
+                 </Button>
+             </div>
         )}
+      </div>
+
+      {/* Period Selector */}
+      <div className="flex items-center justify-center gap-3 bg-white rounded-xl p-3 shadow-sm border border-gray-100 w-fit mx-auto">
+        <button 
+          onClick={handlePrevMonth}
+          className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <span className="text-base font-bold text-gray-800 min-w-[180px] text-center">
+          {monthNames[selectedMonth - 1]} {selectedYear}
+        </span>
+        <button 
+          onClick={handleNextMonth}
+          className={`p-2 rounded-lg transition-colors ${
+            selectedMonth === new Date().getMonth() + 1 && selectedYear === new Date().getFullYear()
+              ? 'text-gray-300 cursor-not-allowed'
+              : 'hover:bg-gray-100 text-gray-500'
+          }`}
+          disabled={selectedMonth === new Date().getMonth() + 1 && selectedYear === new Date().getFullYear()}
+        >
+          <ChevronRight size={20} />
+        </button>
       </div>
 
       {/* Global KPIs (Dynamic Treasury) */}
@@ -172,11 +279,22 @@ const Finances: React.FC = () => {
             value={formatCurrency(stats.pending_total)} 
             color="purple" 
         />
-    </div>
+      </div>
+
+      {/* Revenue vs Expenses Chart */}
+      <FinanceChart />
 
       {/* Navigation Tabs */}
       <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 overflow-x-auto">
         <div className="flex p-1 gap-2 min-w-max">
+             <button
+                onClick={() => setActiveTab('echeances')}
+                className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                activeTab === 'echeances' ? 'bg-amber-50 text-amber-700 shadow-sm border border-amber-100' : 'text-gray-500 hover:bg-gray-50'
+                }`}
+            >
+                📅 Échéances
+            </button>
              <button
                 onClick={() => setActiveTab('paiements')}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
@@ -287,11 +405,42 @@ const Finances: React.FC = () => {
                 </>
             )}
 
+            {activeTab === 'echeances' && <FinanceSchedules month={selectedMonth} year={selectedYear} />}
             {activeTab === 'depenses' && <FinanceExpenses />}
             {activeTab === 'prets' && <FinanceLoans />}
             {activeTab === 'fiscalite' && <FinanceTax />}
         </motion.div>
       </AnimatePresence>
+
+      {/* MODAL DE GENERATION */}
+      <Modal
+        isOpen={showGenerateModal}
+        onClose={() => setShowGenerateModal(false)}
+        title="Générer les appels de loyer"
+        size="md"
+        footer={
+            <>
+                <Button variant="outline" onClick={() => setShowGenerateModal(false)}>Annuler</Button>
+                <Button 
+                    variant="primary" 
+                    onClick={confirmGenerateSchedules}
+                    disabled={generating}
+                >
+                    {generating ? 'Génération en cours...' : 'Confirmer la génération'}
+                </Button>
+            </>
+        }
+      >
+          <div className="space-y-4">
+              <p className="text-gray-600">
+                  Cette action va générer automatiquement les quittances de loyer pour tous les baux actifs du mois courant.
+              </p>
+              <div className="bg-blue-50 text-blue-800 p-4 rounded-lg text-sm">
+                  ℹ️ Les quittances déjà existantes pour ce mois ne seront pas dupliquées.
+              </div>
+          </div>
+      </Modal>
+
     </motion.div>
   );
 };

@@ -1,6 +1,7 @@
 // backend/index.ts
 
 // Importations de base
+// Force restart
 import express, { Request, Response } from 'express';
 import path from 'path';
 import { Pool } from 'pg'; 
@@ -256,6 +257,10 @@ app.use('/api/subscriptions', subscriptionRoutes); // Mix of public (plans) and 
 // Routes Webhooks FedaPay (paiements)
 import fedapayWebhookRoutes from './routes/fedapayWebhookRoutes';
 app.use('/api/webhooks/fedapay', fedapayWebhookRoutes);
+
+// Routes Rent Payments (Paiement en ligne des loyers)
+import rentPaymentRoutes from './routes/rentPaymentRoutes';
+app.use('/api/rent-payments', protect, rentPaymentRoutes);
 
 // Route Test Protégée (pour validation rapide de 'protect')
 // Route Test Protégée (pour validation rapide de 'protect')

@@ -73,8 +73,10 @@ router.get('/categories', async (req: AuthenticatedRequest, res: Response) => {
     }
 });
 
-// POST /api/expenses - Create expense
-router.post('/', permissions.canWrite('finances'), async (req: AuthenticatedRequest, res: Response) => {
+import { upload } from '../middleware/uploadMiddleware';
+
+// POST /api/expenses - Create expense (with optional proof upload)
+router.post('/', permissions.canWrite('finances'), upload.single('proof'), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const {
             building_id,
@@ -84,13 +86,19 @@ router.post('/', permissions.canWrite('finances'), async (req: AuthenticatedRequ
             description,
             amount,
             date_expense,
-            supplier_name,
-            proof_url
+            supplier_name
         } = req.body;
 
         // Validation simple
         if (!amount || !date_expense || !category) {
             return res.status(400).json({ message: 'Champs obligatoires manquants' });
+        }
+
+        // Handle uploaded proof file
+        let proofUrl = req.body.proof_url || null;
+        if (req.file) {
+            // Build relative URL path for static serving
+            proofUrl = `/uploads/expenses/${req.file.filename}`;
         }
 
         const result = await pool.query(`
@@ -108,7 +116,7 @@ router.post('/', permissions.canWrite('finances'), async (req: AuthenticatedRequ
             amount,
             date_expense,
             supplier_name || '',
-            proof_url || null
+            proofUrl
         ]);
 
         res.status(201).json(result.rows[0]);

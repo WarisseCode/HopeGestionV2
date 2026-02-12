@@ -72,6 +72,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
           title: "Mon Espace",
           items: [
             { icon: <FileText size={20} />, label: 'Mes Contrats', path: '/contrats' },
+            { icon: <CreditCard size={20} />, label: 'Payer en ligne', path: '/paiements-loyer' },
             { icon: <Wallet size={20} />, label: 'Mes Paiements', path: '/finances' },
             { icon: <FileText size={20} />, label: 'Mes Quittances', path: '/quittances' },
             { icon: <FolderOpen size={20} />, label: 'Documents', path: '/documents' },
