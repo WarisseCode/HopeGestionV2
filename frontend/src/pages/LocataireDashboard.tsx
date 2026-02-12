@@ -1,329 +1,207 @@
-// frontend/src/pages/LocataireDashboard.tsx
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import DashboardStats from '../components/dashboard/DashboardStats';
 import { 
   Home, 
   FileText, 
-  Wallet, 
-  Calendar,
-  CheckCircle2,
-  AlertCircle,
-  Bell,
   CreditCard,
-  Download,
-  Phone,
-  MessageSquare
+  AlertTriangle,
+  Settings,
+  ShoppingBag,
+  Bell
 } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useUser } from '../contexts/UserContext';
-import { 
-  KPICard, 
-  QuickActions, 
-  ActivityFeed, 
-  UpcomingEvents,
-  DashboardSkeleton
-} from '../components/dashboard';
-import NotificationBell from '../components/NotificationBell';
-import type { Activity } from '../components/dashboard/ActivityFeed';
-import type { UpcomingEvent } from '../components/dashboard/UpcomingEvents';
+import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import { useAuth } from '../contexts/AuthContext';
+import ServiceMarketplace from '../components/services/ServiceMarketplace'; // Import Marketplace
 
-import { getToken } from '../api/authApi';
-import { API_URL } from '../config';
-
-const LocataireDashboard: React.FC = () => {
-  const { user, stats, loading } = useUser();
-  const navigate = useNavigate();
-  const [activities, setActivities] = React.useState<Activity[]>([]);
-
-  React.useEffect(() => {
-    const fetchActivities = async () => {
-        const token = getToken();
-        if (!token) return;
-        try {
-            const res = await fetch(`${API_URL}/dashboard/activity`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (data.activities) {
-                const mapped = data.activities.map((a: any) => ({
-                     id: a.id,
-                     type: a.type,
-                     title: a.title,
-                     description: a.description,
-                     time: new Date(a.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-                }));
-                setActivities(mapped);
-            }
-        } catch (e) {
-            console.error("Error fetching activities", e);
-        }
-    };
-    fetchActivities();
-  }, []);
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1, 
-      transition: { staggerChildren: 0.05 } 
-    }
+// Types for props
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  trend?: {
+    value: number;
+    isPositive: boolean;
   };
+  className?: string;
+}
 
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
-  };
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, className = '' }) => (
+  <div className={`bg-white p-6 rounded-xl shadow-sm border border-gray-100 ${className}`}>
+    <div className="flex justify-between items-start">
+      <div>
+        <p className="text-sm font-medium text-gray-500">{title}</p>
+        <h3 className="text-2xl font-bold text-gray-900 mt-2">{value}</h3>
+      </div>
+      <div className="p-3 bg-gray-50 rounded-lg text-primary">
+        {icon}
+      </div>
+    </div>
+    {trend && (
+      <div className="mt-4 flex items-center text-sm">
+        <span className={`font-medium ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+          {trend.isPositive ? '+' : ''}{trend.value}%
+        </span>
+        <span className="text-gray-500 ml-2">vs mois dernier</span>
+      </div>
+    )}
+  </div>
+);
 
-  // Mes événements à venir
-  const upcomingEvents: UpcomingEvent[] = [
-    { id: 1, type: 'rent', title: 'Prochain loyer', description: 'Loyer à venir', date: '05 du mois', daysUntil: 8 },
-  ];
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
-  };
-
-  if (loading) {
-    return <DashboardSkeleton type="locataire" />;
-  }
-
-  // Stats spécifiques au locataire
-  const nomLogement = (stats as any)?.nomLogement || 'Aucun logement';
-  const loyerMensuel = (stats as any)?.loyerMensuel || 0;
-  const statutContrat = (stats as any)?.statutContrat || 'inactif';
-  // Calculate days until next payment
-  const nextPaymentDate = (stats as any)?.prochainPaiement ? new Date((stats as any).prochainPaiement) : new Date();
-  const diffTime = Math.abs(nextPaymentDate.getTime() - new Date().getTime());
-  const joursAvantEcheance = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-
-  const recentPayments = (stats as any)?.recentPayments || [];
+const LocataireDashboard = () => {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'overview' | 'services'>('overview'); // Tab state
 
   return (
-    <motion.div 
-      className="p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      {/* Header Section */}
-      <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+    <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
-            {user?.nom || 'Locataire'} <span className="text-primary">.</span>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Bonjour, {user?.nom || 'Locataire'} 👋
           </h1>
-          <p className="text-base-content/60 font-medium mt-1">
-            Bonjour {user?.nom || 'Locataire'}, bienvenue chez vous.
-          </p>
+          <p className="text-gray-500">Bienvenue dans votre espace personnel</p>
         </div>
-        
-        <div className="flex items-center gap-3">
-             <NotificationBell />
-             <div className="text-right hidden md:block">
-                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Mon Logement</p>
-                <p className="font-bold text-gray-800">{nomLogement}</p>
-             </div>
-        </div>
-      </motion.div>
-
-      {/* Next Payment Alert Banner */}
-      <motion.div variants={itemVariants}>
-        <div className={`rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
-          joursAvantEcheance <= 5 ? 'bg-gradient-to-r from-orange-500 to-red-500' : 'bg-gradient-to-r from-primary to-primary-focus'
-        } text-white`}>
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-              <Calendar size={24} />
-            </div>
-            <div>
-              <p className="text-white/80 text-sm font-medium">Prochain paiement</p>
-              <p className="text-2xl font-bold">{formatCurrency(loyerMensuel)}</p>
-              <p className="text-white/70 text-sm">Échéance dans {joursAvantEcheance} jours</p>
-            </div>
-          </div>
-          <Button 
-            variant="ghost" 
-            className="bg-white text-primary hover:bg-white/90 font-semibold shadow-lg"
-            onClick={() => navigate('/dashboard/finances/mobile-money')}
-          >
-            <CreditCard size={18} className="mr-2" />
-            Payer maintenant
+        <div className="flex gap-3">
+          <Button variant="outline" className="gap-2">
+            <Bell size={18} />
+            Notifications
+          </Button>
+          <Button variant="primary" onClick={() => setActiveTab('services')}>
+            <ShoppingBag size={18} className="mr-2" />
+            Réserver un service
           </Button>
         </div>
-      </motion.div>
-
-      {/* KPI Grid */}
-      <motion.div 
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-        variants={itemVariants}
-      >
-        <KPICard 
-          icon={Wallet} 
-          label="Loyer Mensuel" 
-          value={formatCurrency(loyerMensuel)} 
-          color="blue" 
-          trend={{ value: "Payé", label: "Dernier Loyer", positive: true }}
-        />
-        <KPICard 
-          icon={FileText} 
-          label="Statut du Bail" 
-          value={statutContrat === 'actif' ? 'Actif' : 'Inactif'} 
-          color="green" 
-          trend={{ value: "Valide", label: "Contrat en cours", positive: true }}
-        />
-        <KPICard 
-          icon={Calendar} 
-          label="Prochaine Échéance" 
-          value={new Date(nextPaymentDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-          color="purple" 
-          trend={{ value: `J-${joursAvantEcheance}`, label: "avant retard", positive: joursAvantEcheance > 5 }}
-        />
-         <KPICard 
-          icon={AlertCircle} 
-          label="Incidents" 
-          value="0" 
-          color="pink" 
-          trend={{ value: "R.A.S.", label: "Tout est calme", positive: true }}
-        />
-      </motion.div>
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        
-        {/* Left Column (Info & History) */}
-        <div className="xl:col-span-2 space-y-8">
-             {/* Info Logement Card */}
-             <motion.div variants={itemVariants}>
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 flex flex-col md:flex-row gap-6 items-start">
-                     <div className="w-full md:w-1/3 rounded-xl overflow-hidden shadow-inner bg-gradient-to-br from-primary/5 to-primary/10 aspect-video md:aspect-square relative">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                           <Home size={48} className="text-primary/30" />
-                        </div>
-                     </div>
-                     <div className="flex-1 w-full space-y-4">
-                         <div className="flex justify-between items-start">
-                             <div>
-                                <h3 className="text-xl font-bold text-gray-900">{nomLogement}</h3>
-                                <p className="text-gray-500">{(stats as any)?.dateDebut ? `Depuis le ${new Date((stats as any).dateDebut).toLocaleDateString()}` : ''}</p>
-                             </div>
-                             <span className={`px-3 py-1 text-sm font-bold rounded-full ${statutContrat === 'actif' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                 {statutContrat === 'actif' ? 'En règle' : 'Inactif'}
-                             </span>
-                         </div>
-                         
-                         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                             <div>
-                                 <p className="text-xs text-gray-400 font-semibold uppercase">Bailleur</p>
-                                 <p className="font-medium">Hope Immobilier</p>
-                             </div>
-                              <div>
-                                 <p className="text-xs text-gray-400 font-semibold uppercase">Début du contrat</p>
-                                 <p className="font-medium">{(stats as any)?.dateDebut ? new Date((stats as any).dateDebut).toLocaleDateString() : 'N/A'}</p>
-                             </div>
-                              <div>
-                                 <p className="text-xs text-gray-400 font-semibold uppercase">Caution Déposée</p>
-                                 <p className="font-medium">{formatCurrency(loyerMensuel * 3)}</p>
-                             </div>
-                              <div>
-                                 <p className="text-xs text-gray-400 font-semibold uppercase">Gestionnaire</p>
-                                 <p className="font-medium">{(stats as any)?.gestionnaire || 'Non assigné'}</p>
-                             </div>
-                         </div>
-
-                         <div className="flex gap-2 pt-4">
-                           <Button variant="ghost" size="sm" className="flex-1">
-                             <Phone size={16} className="mr-2" />
-                             Appeler
-                           </Button>
-                           <Button variant="ghost" size="sm" className="flex-1">
-                             <MessageSquare size={16} className="mr-2" />
-                             Message
-                           </Button>
-                           <Button variant="ghost" size="sm" className="flex-1">
-                             <Download size={16} className="mr-2" />
-                             Bail PDF
-                           </Button>
-                         </div>
-                     </div>
-                </div>
-             </motion.div>
-
-            {/* Payment History Card */}
-            <motion.div variants={itemVariants}>
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                    <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                        <h3 className="font-bold text-gray-800">Historique des Paiements</h3>
-                        <Button variant="ghost" className="btn-sm text-primary" onClick={() => navigate('/dashboard/finances')}>
-                          Tout voir
-                        </Button>
-                    </div>
-                    <div className="p-0">
-                        {recentPayments.length > 0 ? recentPayments.map((paiement: any, idx: number) => (
-                             <div key={idx} className="flex items-center justify-between p-4 px-6 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                      paiement.status === 'paid' ? 'bg-green-50' : 'bg-orange-50'
-                                    }`}>
-                                        <CheckCircle2 size={18} className={
-                                          paiement.status === 'paid' ? 'text-green-600' : 'text-orange-600'
-                                        } />
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-gray-800">Loyer {paiement.month}</p>
-                                        <p className="text-xs text-gray-400">{new Date(paiement.date).toLocaleDateString()} • {paiement.method || 'Virement'}</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-bold text-gray-900">{formatCurrency(paiement.amount)}</p>
-                                    <span className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-md uppercase tracking-wide ${
-                                      paiement.status === 'paid' 
-                                        ? 'bg-green-100 text-green-700' 
-                                        : 'bg-orange-100 text-orange-700'
-                                    }`}>
-                                      {paiement.status === 'paid' ? 'Payé' : 'En attente'}
-                                    </span>
-                                </div>
-                            </div>
-                        )) : (
-                            <p className="text-center py-8 text-gray-500">Aucun paiement récent.</p>
-                        )}
-                    </div>
-                </div>
-            </motion.div>
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-8">
-            
-             {/* Quick Actions */}
-             <motion.div variants={itemVariants}>
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-                    <h3 className="font-bold text-gray-800 mb-4">Mes Démarches</h3>
-                    <QuickActions userType="locataire" />
-                </div>
-            </motion.div>
-
-             {/* Upcoming Events */}
-            <motion.div variants={itemVariants}>
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-                    <h3 className="font-bold text-gray-800 mb-4">À Venir</h3>
-                    <UpcomingEvents events={upcomingEvents} userType="locataire" />
-                </div>
-            </motion.div>
-
-            {/* Recent Activity Timeline */}
-             <motion.div variants={itemVariants}>
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-                    <h3 className="font-bold text-gray-800 mb-4">Journal</h3>
-                    <ActivityFeed activities={activities} />
-                </div>
-            </motion.div>
-
-        </div>
-
       </div>
-    </motion.div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200">
+          <button
+            className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'overview' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('overview')}
+          >
+            Vue d'ensemble
+          </button>
+          <button
+            className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'services' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('services')}
+          >
+            Services & Marketplace
+          </button>
+      </div>
+
+      {activeTab === 'overview' ? (
+        <>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard
+              title="Loyer Mensuel"
+              value="150.000 F"
+              icon={<Home size={24} />}
+            />
+            <StatCard
+              title="Prochaine échéance"
+              value="05 Avril"
+              icon={<Calendar size={24} />}
+              className="border-l-4 border-l-orange-500"
+            />
+            <StatCard
+              title="Quittances dispo"
+              value="12"
+              icon={<FileText size={24} />}
+            />
+            <StatCard
+              title="Tickets en cours"
+              value="1"
+              icon={<AlertTriangle size={24} />}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Content Area */}
+            <div className="lg:col-span-2 space-y-6">
+              <Card title="Mon Contrat">
+                <div className="p-4 bg-gray-50 rounded-lg flex justify-between items-center">
+                  <div>
+                    <h3 className="font-bold">Bail #LOC-2024-001</h3>
+                    <p className="text-sm text-gray-500">Du 01/01/2024 au 31/12/2024</p>
+                  </div>
+                  <span className="badge badge-success text-white">Actif</span>
+                </div>
+              </Card>
+
+              <Card title="Mes Paiements Récents">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-50 text-gray-500">
+                    <tr>
+                      <th className="p-3">Date</th>
+                      <th className="p-3">Montant</th>
+                      <th className="p-3">Statut</th>
+                      <th className="p-3 text-right">Reçu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-t">
+                      <td className="p-3">01/03/2024</td>
+                      <td className="p-3 font-bold">150.000 F</td>
+                      <td className="p-3"><span className="text-green-600 bg-green-50 px-2 py-1 rounded text-xs font-bold">Payé</span></td>
+                      <td className="p-3 text-right"><Button variant="ghost" size="sm">PDF</Button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </Card>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              <Card title="Actions Rapides">
+                <div className="grid grid-cols-2 gap-3">
+                  <Button variant="outline" className="justify-center flex-col h-24 gap-2 hover:border-primary hover:text-primary transition-colors">
+                    <CreditCard size={24} />
+                    <span>Payer Loyer</span>
+                  </Button>
+                  <Button variant="outline" className="justify-center flex-col h-24 gap-2 hover:border-error hover:text-error transition-colors">
+                    <AlertTriangle size={24} />
+                    <span>Signaler un problème</span>
+                  </Button>
+                </div>
+              </Card>
+
+              <div className="bg-blue-50 p-5 rounded-xl border border-blue-100">
+                <h3 className="font-bold text-blue-900 mb-2">Besoin d'aide ?</h3>
+                <p className="text-sm text-blue-700 mb-4">Contactez votre gestionnaire directement sur WhatsApp.</p>
+                <Button className="w-full bg-green-500 hover:bg-green-600 border-none text-white">
+                  Contacter par WhatsApp
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <ServiceMarketplace />
+      )}
+    </div>
   );
 };
+
+// Quick helper for icon if missing import
+const Calendar = ({ size }: { size: number }) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="16" y1="2" x2="16" y2="6"></line>
+      <line x1="8" y1="2" x2="8" y2="6"></line>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
+    </svg>
+);
 
 export default LocataireDashboard;
