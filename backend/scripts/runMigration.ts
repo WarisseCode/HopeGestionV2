@@ -1,4 +1,3 @@
-// backend/scripts/runMigration.ts
 import { Pool } from 'pg';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -57,14 +56,14 @@ async function runMigration() {
         const documentsSql = fs.readFileSync(documentsMigrationPath, 'utf8');
         const tenantsSql = fs.readFileSync(tenantsEnhancementPath, 'utf8');
         const calendarSql = fs.readFileSync(calendarSupportPath, 'utf8');
-        const auditSql = fs.readFileSync(auditLogsPath, 'utf8');
+        // const auditSql = fs.readFileSync(auditLogsPath, 'utf8'); // Commented in original
         const financeSql = fs.readFileSync(financeMigrationPath, 'utf8');
         
         console.log('📄 Fichier SQL chargé:', migrationPath);
         console.log('🚀 Exécution de la migration...\n');
         
-        const fixAuditIdsPath = path.join(dbDir, 'fix_audit_logs_ids.sql');
-        const fixAuditIdsSql = fs.readFileSync(fixAuditIdsPath, 'utf8');
+        // const fixAuditIdsPath = path.join(dbDir, 'fix_audit_logs_ids.sql');
+        // const fixAuditIdsSql = fs.readFileSync(fixAuditIdsPath, 'utf8');
 
         // Exécuter les migrations - Ordre séquentiel
         console.log('0/9 Exécution init.sql (tables de base)...');
@@ -79,17 +78,11 @@ async function runMigration() {
         await client.query(tenantsSql);
         console.log('5/9 Exécution migration_calendar_support...');
         await client.query(calendarSql);
-        // console.log('6/9 Exécution migration_audit_logs...');
-        // await client.query(auditSql);
-        // await client.query(fixAuditSql); // Fichier manquant ou déjà intégré ?
-        // await client.query(fixAuditSchemaV2Sql); // Fichier manquant ou déjà intégré ?
-        // console.log('7/9 Exécution fix_audit_logs_ids...');
-        // await client.query(fixAuditIdsSql);
+
         console.log('8/9 Exécution migration_finance...');
         const notifPath = path.join(dbDir, 'migration_notifications.sql');
         const notifSql = fs.readFileSync(notifPath, 'utf8');
 
-        console.log('8/9 Exécution migration_finance...');
         await client.query(financeSql);
         console.log('9/9 Exécution migration_notifications...');
         await client.query(notifSql);
@@ -146,26 +139,34 @@ async function runMigration() {
             await client.query(ownersFixSql);
             console.log('   - owners (ajout: company_name, rccm_number, mobile_money_coordinates)');
         }
+
+        // --- NOUVELLES MIGRATIONS ---
+        console.log('17/17 Exécution migrations/add_geolocation_columns...');
+        const geoPath = path.join(process.cwd(), 'migrations', 'add_geolocation_columns.sql');
+        if (fs.existsSync(geoPath)) {
+            const geoSql = fs.readFileSync(geoPath, 'utf8');
+            await client.query(geoSql);
+            console.log('   - Geolocation columns added');
+        }
+
+        console.log('18/18 Exécution migrations/create_services_tables...');
+        const servicesPath = path.join(process.cwd(), 'migrations', 'create_services_tables.sql');
+        if (fs.existsSync(servicesPath)) {
+            const servicesSql = fs.readFileSync(servicesPath, 'utf8');
+            await client.query(servicesSql);
+            console.log('   - Services tables created');
+        }
+
+        console.log('19/19 Exécution migrations/create_recovery_missions...');
+        const recoveryPath = path.join(process.cwd(), 'migrations', 'create_recovery_missions.sql');
+        if (fs.existsSync(recoveryPath)) {
+            const recoverySql = fs.readFileSync(recoveryPath, 'utf8');
+            await client.query(recoverySql);
+            console.log('   - Recovery missions table created');
+        }
         
         console.log('✅ Migration exécutée avec succès!');
         console.log('\n📊 Tables créées et mises à jour.');
-        console.log('\n🔧 Modifications appliquées:');
-        console.log('   - users (ajout: agency_id, role, is_super_admin)');
-        console.log('   - biens (ajout: owner_id)');
-        console.log('   - lots (ajout: owner_id)');
-        console.log('   - locataires (ajout: owner_id)');
-        console.log('   - contrats (ajout: owner_id)');
-        console.log('   - paiements (ajout: owner_id)');
-        console.log('\n📈 Vues créées:');
-        console.log('   - v_owners_summary');
-        console.log('   - v_user_owners');
-        console.log('\n🎯 Données de démonstration insérées:');
-        console.log('   - 3 propriétaires exemples');
-        
-        console.log('\n🔧 Migration user_type terminée.');
-        console.log('\n📁 Migration Documents terminée.');
-        console.log('\n👥 Migration Locataires (Amélioration) terminée.');
-        console.log('\n📅 Migration Calendrier terminée.');
         
     } catch (error: any) {
         console.error('❌ Erreur lors de la migration:', error.message);
