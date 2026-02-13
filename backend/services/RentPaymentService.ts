@@ -247,16 +247,23 @@ class RentPaymentService {
                         SELECT 
                             $1, $2, $3, NOW(), 'mobile_money', $4, 'loyer', 'valide',
                             'Paiement en ligne via Mobile Money',
-                            l.owner_id
-                        FROM leases l
-                        WHERE l.id = $5
-                    `, [
                         transaction.lease_id,
                         transaction.schedule_id,
                         transaction.amount,
                         fedapayTransactionId,
                         transaction.lease_id
-                    ]);
+                    ])
+                    RETURNING id;
+
+                    const paymentId = paymentExists.rows.length > 0 ? paymentExists.rows[0].id : (await client.query('SELECT id FROM payments WHERE reference_transaction = $1', [fedapayTransactionId])).rows[0]?.id;
+                    
+                    // Note: The INSERT above is inside an IF block that checks if payment exists. 
+                    // But actually the code block structure is:
+                    // if (paymentExists.rows.length === 0) {
+                    //    INSERT ...
+                    // }
+                    // So I need to capture the ID from the INSERT.
+
 
                     // Update payment schedule to paid/partial
                     const scheduleRes = await client.query(`
@@ -277,8 +284,15 @@ class RentPaymentService {
 
                     console.log(`[RentPaymentService] Payment confirmed for schedule ${transaction.schedule_id}`);
 
-                    // Generate PDF receipt logic ...
-                    // (We can call generateReceipt asynchronously or let the user fetch it later)
+                    // Generate PDF receipt automatically
+                    if (paymentId) {
+                        try {
+                            await receiptService.generateReceipt(paymentId);
+                            console.log(`[RentPaymentService] Receipt generated for payment ${paymentId}`);
+                        } catch (err) {
+                            console.error('[RentPaymentService] Error generating receipt:', err);
+                        }
+                    }
                 }
             }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Clock, AlertTriangle, CreditCard, Phone, User } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, CreditCard, Phone, User, FileText } from 'lucide-react';
 import { financeApi } from '../../api/financeApi';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
@@ -22,6 +22,7 @@ interface Schedule {
     loyer_actuel: string;
     charges_mensuelles: string;
     lot_reference: string | null;
+    quittance_url: string | null;
 }
 
 interface FinanceSchedulesProps {
@@ -264,6 +265,16 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
                                             <span className="bg-green-100 text-green-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
                                                 <CheckCircle size={16} /> Payé
                                             </span>
+                                            {schedule.quittance_url && (
+                                                <Button
+                                                    variant="secondary"
+                                                    className="rounded-xl px-3 shadow-sm bg-gray-100 hover:bg-gray-200 text-gray-700 border-none"
+                                                    title="Télécharger la quittance"
+                                                    onClick={() => window.open(`${import.meta.env.VITE_API_URL}${schedule.quittance_url}`, '_blank')}
+                                                >
+                                                    <FileText size={16} />
+                                                </Button>
+                                            )}
                                         ) : (
                                             <Button
                                                 variant="primary"

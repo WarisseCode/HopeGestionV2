@@ -12,6 +12,7 @@ dotenv.config();
 
 const router = Router();
 import pool from '../db/database';
+import { receiptService } from '../services/ReceiptService';
 
 // Helper to select payments with correct aliases
 const SELECT_PAYMENTS_FIELDS = `
@@ -469,7 +470,16 @@ router.get('/schedules', permissions.canRead('finances'), filterByOwner, async (
                 l.reference_bail,
                 l.loyer_actuel,
                 l.charges_mensuelles,
-                lo.ref_lot as lot_reference
+                l.charges_mensuelles,
+                lo.ref_lot as lot_reference,
+                (
+                    SELECT p.quittance_url 
+                    FROM payments p 
+                    WHERE p.schedule_id = ps.id 
+                    AND p.statut = 'valide' 
+                    ORDER BY p.date_paiement DESC, p.created_at DESC
+                    LIMIT 1
+                ) as quittance_url
             FROM payment_schedules ps
             JOIN leases l ON ps.lease_id = l.id
             JOIN tenants t ON l.tenant_id = t.id
@@ -518,10 +528,10 @@ router.put('/schedules/:id/pay', permissions.canWrite('finances'), async (req: A
             [id]
         );
 
-        // Créer un enregistrement de paiement correspondant
-        await client.query(
+        const paymentRes = await client.query(
             `INSERT INTO payments (lease_id, schedule_id, montant, date_paiement, mode_paiement, reference_transaction, type, statut, owner_id, description)
-             VALUES ($1, $2, $3, NOW(), $4, $5, 'loyer', 'paid', $6, $7)`,
+             VALUES ($1, $2, $3, NOW(), $4, $5, 'loyer', 'paid', $6, $7)
+             RETURNING id`,
             [
                 schedule.lease_id,
                 id,
@@ -533,8 +543,24 @@ router.put('/schedules/:id/pay', permissions.canWrite('finances'), async (req: A
             ]
         );
 
+        const paymentId = paymentRes.rows[0].id;
+
+        // Générer la quittance PDF
+        let receiptUrl = null;
+        try {
+            // Note: generateReceipt update the payment record with the URL
+            receiptUrl = await receiptService.generateReceipt(paymentId);
+        } catch (err) {
+            console.error('Error generating receipt:', err);
+            // Non-blocking error, user can generate it later optionally
+        }
+
         await client.query('COMMIT');
-        res.json({ message: 'Échéance marquée comme payée', schedule: { ...schedule, status: 'paid' } });
+        res.json({ 
+            message: 'Échéance marquée comme payée', 
+            schedule: { ...schedule, status: 'paid', quittance_url: receiptUrl },
+            receiptUrl
+        });
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Error paying schedule:', error);
