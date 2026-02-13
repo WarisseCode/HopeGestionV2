@@ -261,20 +261,21 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
 
                                     {/* Status & Action */}
                                     <div className="flex items-center gap-3 flex-shrink-0">
-                                        {schedule.status === 'paid' ? (
-                                            <span className="bg-green-100 text-green-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
-                                                <CheckCircle size={16} /> Payé
-                                            </span>
-                                            {schedule.quittance_url && (
-                                                <Button
-                                                    variant="secondary"
-                                                    className="rounded-xl px-3 shadow-sm bg-gray-100 hover:bg-gray-200 text-gray-700 border-none"
-                                                    title="Télécharger la quittance"
-                                                    onClick={() => window.open(`${import.meta.env.VITE_API_URL}${schedule.quittance_url}`, '_blank')}
-                                                >
-                                                    <FileText size={16} />
-                                                </Button>
-                                            )}
+                                            <div className="flex items-center gap-2">
+                                                <span className="bg-green-100 text-green-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
+                                                    <CheckCircle size={16} /> Payé
+                                                </span>
+                                                {schedule.quittance_url && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="rounded-xl px-3 shadow-sm bg-gray-100 hover:bg-gray-200 text-gray-700 border-none h-10 w-10 p-0 flex items-center justify-center"
+                                                        title="Télécharger la quittance"
+                                                        onClick={() => window.open(`${import.meta.env.VITE_API_URL}${schedule.quittance_url}`, '_blank')}
+                                                    >
+                                                        <FileText size={16} />
+                                                    </Button>
+                                                )}
+                                            </div>
                                         ) : (
                                             <Button
                                                 variant="primary"
