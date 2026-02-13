@@ -56,7 +56,9 @@ async function loadLogo(): Promise<string | null> {
  * Format currency in FCFA
  */
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
+  // Replace narrow no-break space (U+202F) and no-break space (U+00A0) with regular space
+  // jsPDF's Helvetica font can't render these, showing them as "/"
+  return new Intl.NumberFormat('fr-FR').format(amount).replace(/[\u202F\u00A0]/g, ' ') + ' FCFA';
 }
 
 /**

@@ -347,10 +347,11 @@ class ReceiptService {
     // ============================================================================
 
     private formatCurrency(amount: number): string {
+        // Replace narrow no-break space (U+202F) and no-break space (U+00A0) with regular space
         return new Intl.NumberFormat('fr-FR', {
             style: 'currency',
             currency: 'XOF'
-        }).format(amount);
+        }).format(amount).replace(/[\u202F\u00A0]/g, ' ');
     }
 
     private formatDate(date: Date): string {
