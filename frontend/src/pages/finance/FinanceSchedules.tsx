@@ -261,6 +261,7 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
 
                                     {/* Status & Action */}
                                     <div className="flex items-center gap-3 flex-shrink-0">
+                                        {schedule.status === 'paid' ? (
                                             <div className="flex items-center gap-2">
                                                 <span className="bg-green-100 text-green-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
                                                     <CheckCircle size={16} /> Payé
