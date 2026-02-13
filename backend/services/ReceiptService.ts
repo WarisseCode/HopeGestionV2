@@ -255,7 +255,7 @@ class ReceiptService {
                 y += 28;
 
                 // Table rows
-                const rows = [
+                const rows: [string, string][] = [
                     ['Période concernée', data.payment.period],
                     ['Loyer Principal', this.formatCurrency(data.payment.amount)],
                     ['Charges locatives', this.formatCurrency(charges)],
