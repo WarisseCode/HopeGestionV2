@@ -40,7 +40,7 @@ export interface RentPaymentResult {
 // SERVICE CLASS
 // ============================================================================
 
-class RentPaymentService {
+export class RentPaymentService {
 
     /**
      * Get pending payment schedules for a lease
@@ -263,34 +263,32 @@ class RentPaymentService {
                     paymentId = paymentExists.rows[0].id;
                 }
 
+                // Update payment schedule to paid/partial
+                const scheduleRes = await client.query(`
+                    SELECT total_amount, amount_paid
+                    FROM payment_schedules
+                    WHERE id = $1
+                `, [transaction.schedule_id]);
 
-                    // Update payment schedule to paid/partial
-                    const scheduleRes = await client.query(`
-                        SELECT total_amount, amount_paid
-                        FROM payment_schedules
-                        WHERE id = $1
-                    `, [transaction.schedule_id]);
+                const schedule = scheduleRes.rows[0];
+                const newPaidAmount = parseFloat(schedule.amount_paid || 0) + parseFloat(transaction.amount);
+                const newStatus = newPaidAmount >= parseFloat(schedule.total_amount) ? 'paid' : 'partial';
 
-                    const schedule = scheduleRes.rows[0];
-                    const newPaidAmount = parseFloat(schedule.amount_paid || 0) + parseFloat(transaction.amount);
-                    const newStatus = newPaidAmount >= parseFloat(schedule.total_amount) ? 'paid' : 'partial';
+                await client.query(`
+                    UPDATE payment_schedules
+                    SET amount_paid = $1, status = $2, updated_at = NOW()
+                    WHERE id = $3
+                `, [newPaidAmount, newStatus, transaction.schedule_id]);
 
-                    await client.query(`
-                        UPDATE payment_schedules
-                        SET amount_paid = $1, status = $2, updated_at = NOW()
-                        WHERE id = $3
-                    `, [newPaidAmount, newStatus, transaction.schedule_id]);
+                console.log(`[RentPaymentService] Payment confirmed for schedule ${transaction.schedule_id}`);
 
-                    console.log(`[RentPaymentService] Payment confirmed for schedule ${transaction.schedule_id}`);
-
-                    // Generate PDF receipt automatically
-                    if (paymentId) {
-                        try {
-                            await receiptService.generateReceipt(paymentId);
-                            console.log(`[RentPaymentService] Receipt generated for payment ${paymentId}`);
-                        } catch (err) {
-                            console.error('[RentPaymentService] Error generating receipt:', err);
-                        }
+                // Generate PDF receipt automatically
+                if (paymentId) {
+                    try {
+                        await receiptService.generateReceipt(paymentId);
+                        console.log(`[RentPaymentService] Receipt generated for payment ${paymentId}`);
+                    } catch (err) {
+                        console.error('[RentPaymentService] Error generating receipt:', err);
                     }
                 }
             }
@@ -474,4 +472,4 @@ class RentPaymentService {
 }
 
 // Export singleton
-export const rentPaymentService = new RentPaymentService();
+export const rentPaymentService: RentPaymentService = new RentPaymentService();
