@@ -181,8 +181,8 @@ const Quittances: React.FC = () => {
             <Button 
               variant="primary"
               className="flex items-center gap-2"
-              onClick={() => {
-                  generateQuittancePDF({
+              onClick={async () => {
+                  await generateQuittancePDF({
                       id: 'MANUAL-' + Date.now(),
                       numero: 'QUI-MANUAL-' + new Date().getFullYear(),
                       locataire: formData.locataire,
@@ -277,18 +277,31 @@ const Quittances: React.FC = () => {
                         <td className="p-4 font-bold text-green-600">{quittance.montant.toLocaleString()} F</td>
                         <td className="p-4 text-sm text-gray-500">{new Date(quittance.dateEmission).toLocaleDateString()}</td>
                         <td className="p-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                           <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            title="Voir la quittance"
+                            onClick={async () => {
+                                await generateQuittancePDF(quittance, 'preview');
+                            }}
+                            className="text-blue-600 hover:bg-blue-50"
+                           >
+                            <Eye size={18} />
+                           </Button>
                            <Button 
                             variant="ghost" 
                             size="sm" 
                             title="Télécharger PDF"
-                            onClick={() => {
-                                generateQuittancePDF(quittance); // Assuming this utility function handles the object structure
-                                toast.success(`Quittance pour ${quittance.locataire} générée !`);
+                            onClick={async () => {
+                                await generateQuittancePDF(quittance, 'download');
+                                toast.success(`Quittance pour ${quittance.locataire} téléchargée !`);
                             }}
                             className="text-primary hover:bg-primary/10"
                            >
                             <Download size={18} />
                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}

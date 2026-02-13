@@ -158,109 +158,179 @@ class ReceiptService {
     }
 
     /**
-     * Create the PDF document
+     * Create the PDF document with premium design
      */
     private async createPDF(data: ReceiptData, filepath: string): Promise<void> {
+        const LOGO_PATH = path.join(__dirname, '../assets/logo.png');
+
         return new Promise((resolve, reject) => {
             try {
                 const doc = new PDFDocument({ size: 'A4', margin: 50 });
                 const stream = fs.createWriteStream(filepath);
-
                 doc.pipe(stream);
 
-                // Header
-                doc.fontSize(20).font('Helvetica-Bold').text('QUITTANCE DE LOYER', { align: 'center' });
-                doc.moveDown(0.5);
-                doc.fontSize(10).font('Helvetica').text(`N° ${data.receiptNumber}`, { align: 'center' });
-                doc.moveDown(2);
+                const pageWidth = 595.28; // A4 width in points
+                const margin = 50;
+                const contentWidth = pageWidth - margin * 2;
 
-                // Issuer (Owner) - Left
-                doc.fontSize(12).font('Helvetica-Bold').text('Émetteur (Bailleur)');
-                doc.fontSize(10).font('Helvetica')
-                    .text(data.owner.name)
-                    .text(data.owner.address)
-                    .moveDown();
+                // Brand colors
+                const navy = '#1A365D';
+                const darkText = '#1E1E1E';
+                const mediumText = '#5A5A5A';
+                const lightText = '#8C8C8C';
+                const lightBg = '#F5F7FA';
 
-                // Recipient (Tenant) - Left
-                doc.fontSize(12).font('Helvetica-Bold').text('Locataire');
-                doc.fontSize(10).font('Helvetica')
-                    .text(data.tenant.name)
-                    .text(data.tenant.address)
-                    .moveDown(2);
+                // ─── HEADER ───
+                let y = 40;
 
-                // Main Content Box
-                const boxTop = doc.y;
-                doc.roundedRect(50, boxTop, 495, 150, 5).stroke();
-
-                doc.y = boxTop + 15;
-                doc.fontSize(11).font('Helvetica-Bold')
-                    .text('Je soussigné(e), reconnais avoir reçu de :', { align: 'center' });
-                doc.moveDown(0.3);
-                doc.fontSize(12).text(data.tenant.name, { align: 'center' });
-                doc.moveDown(0.5);
-
-                doc.fontSize(11).font('Helvetica')
-                    .text('La somme de :', { align: 'center' });
-                doc.moveDown(0.3);
-                doc.fontSize(16).font('Helvetica-Bold')
-                    .text(this.formatCurrency(data.payment.amount), { align: 'center' });
-                doc.moveDown(0.5);
-
-                doc.fontSize(10).font('Helvetica')
-                    .text(`Au titre du loyer pour la période : ${data.payment.period}`, { align: 'center' })
-                    .text(`Bien situé : ${data.property.address}`, { align: 'center' });
-
-                doc.y = boxTop + 155;
-                doc.moveDown();
-
-                // Payment Details Table
-                const tableTop = doc.y + 10;
-                doc.fontSize(11).font('Helvetica-Bold').text('Détails du paiement', 50, tableTop);
-                
-                const detailsY = tableTop + 25;
-                doc.fontSize(10).font('Helvetica');
-                
-                // Row 1
-                doc.text('Date de paiement :', 50, detailsY, { width: 200, continued: false });
-                doc.text(this.formatDate(data.date), 280, detailsY, { align: 'right' });
-                
-                // Row 2
-                doc.text('Mode de paiement :', 50, detailsY + 20, { width: 200, continued: false });
-                doc.text(data.payment.method, 280, detailsY + 20, { align: 'right' });
-                
-                // Row 3
-                if (data.payment.reference) {
-                    doc.text('Référence transaction :', 50, detailsY + 40, { width: 200, continued: false });
-                    doc.text(data.payment.reference, 280, detailsY + 40, { align: 'right' });
+                // Logo
+                if (fs.existsSync(LOGO_PATH)) {
+                    doc.image(LOGO_PATH, margin, y - 5, { width: 120 });
+                } else {
+                    doc.fontSize(18).font('Helvetica-Bold').fillColor(navy)
+                        .text('HOPE GESTION', margin, y);
+                    doc.fontSize(8).font('Helvetica').fillColor(mediumText)
+                        .text('Gestion Immobilière Simplifiée', margin, y + 18);
                 }
 
-                doc.y = detailsY + 70;
-                doc.moveDown(2);
+                // Date & contact — right side
+                doc.fontSize(9).font('Helvetica').fillColor(mediumText)
+                    .text(`Cotonou, le ${this.formatDate(new Date())}`, pageWidth - margin - 150, y, { width: 150, align: 'right' })
+                    .text('Tél: +229 01 02 03 04', pageWidth - margin - 150, y + 14, { width: 150, align: 'right' })
+                    .text('contact@hopegestion.com', pageWidth - margin - 150, y + 26, { width: 150, align: 'right' });
 
-                // Legal Notice
-                doc.fontSize(8).font('Helvetica').fillColor('#666')
+                // Separator line
+                y += 45;
+                doc.moveTo(margin, y).lineTo(pageWidth - margin, y).lineWidth(0.5).strokeColor('#DDE1E6').stroke();
+
+                // ─── TITLE BANNER ───
+                y += 15;
+                const bannerWidth = 300;
+                const bannerX = (pageWidth - bannerWidth) / 2;
+                doc.roundedRect(bannerX, y, bannerWidth, 36, 4).fill(navy);
+
+                doc.fontSize(16).font('Helvetica-Bold').fillColor('#FFFFFF')
+                    .text('QUITTANCE DE LOYER', bannerX, y + 6, { width: bannerWidth, align: 'center' });
+                doc.fontSize(10).font('Helvetica').fillColor('#FFFFFF')
+                    .text(`N° QUI-${data.receiptNumber}`, bannerX, y + 22, { width: bannerWidth, align: 'center' });
+
+                y += 50;
+
+                // ─── PARTIES SECTION ───
+                const colWidth = (contentWidth - 15) / 2;
+
+                // Bailleur box
+                doc.roundedRect(margin, y, colWidth, 60, 3).fill(lightBg);
+                doc.fontSize(8).font('Helvetica-Bold').fillColor(navy)
+                    .text('BAILLEUR / GESTIONNAIRE', margin + 10, y + 10);
+                doc.fontSize(10).font('Helvetica').fillColor(darkText)
+                    .text(data.owner.name, margin + 10, y + 22);
+                doc.fontSize(9).font('Helvetica').fillColor(mediumText)
+                    .text(data.owner.address, margin + 10, y + 34)
+                    .text('Tél: +229 01 02 03 04', margin + 10, y + 46);
+
+                // Locataire box
+                const rightX = margin + colWidth + 15;
+                doc.roundedRect(rightX, y, colWidth, 60, 3).fill(lightBg);
+                doc.fontSize(8).font('Helvetica-Bold').fillColor(navy)
+                    .text('LOCATAIRE', rightX + 10, y + 10);
+                doc.fontSize(10).font('Helvetica').fillColor(darkText)
+                    .text(data.tenant.name, rightX + 10, y + 22);
+                doc.fontSize(9).font('Helvetica').fillColor(mediumText)
+                    .text(data.property.address, rightX + 10, y + 34)
+                    .text(data.tenant.address, rightX + 10, y + 46);
+
+                y += 75;
+
+                // ─── PAYMENT TABLE ───
+                const charges = 0;
+                const total = data.payment.amount + charges;
+
+                // Table header
+                doc.roundedRect(margin, y, contentWidth, 28, 3).fill(navy);
+                doc.fontSize(10).font('Helvetica-Bold').fillColor('#FFFFFF')
+                    .text('Désignation', margin + 12, y + 9)
+                    .text('Montant / Détails', pageWidth - margin - 12, y + 9, { align: 'right', width: 150 });
+
+                y += 28;
+
+                // Table rows
+                const rows = [
+                    ['Période concernée', data.payment.period],
+                    ['Loyer Principal', this.formatCurrency(data.payment.amount)],
+                    ['Charges locatives', this.formatCurrency(charges)],
+                ];
+
+                rows.forEach((row, i) => {
+                    const rowBg = i % 2 === 0 ? '#FAFBFD' : '#FFFFFF';
+                    doc.rect(margin, y, contentWidth, 28).fill(rowBg);
+                    doc.rect(margin, y, contentWidth, 28).lineWidth(0.3).strokeColor('#DDE1E6').stroke();
+
+                    doc.fontSize(10).font('Helvetica-Bold').fillColor(darkText)
+                        .text(row[0], margin + 12, y + 9);
+                    doc.fontSize(10).font('Helvetica').fillColor(darkText)
+                        .text(row[1], pageWidth - margin - 12, y + 9, { align: 'right', width: 150 });
+                    y += 28;
+                });
+
+                // Total row
+                doc.roundedRect(margin, y, contentWidth, 32, 3).fill('#EBF0F8');
+                doc.fontSize(11).font('Helvetica-Bold').fillColor(navy)
+                    .text('TOTAL PAYÉ', margin + 12, y + 10)
+                    .text(this.formatCurrency(total), pageWidth - margin - 12, y + 10, { align: 'right', width: 150 });
+
+                y += 45;
+
+                // ─── PAYMENT INFO BAR ───
+                doc.roundedRect(margin, y, contentWidth, 26, 3).fill(lightBg);
+                doc.fontSize(9).font('Helvetica').fillColor(mediumText)
+                    .text('Mode de paiement :', margin + 10, y + 8);
+                doc.font('Helvetica-Bold').fillColor(darkText)
+                    .text(data.payment.method, margin + 85, y + 8);
+                doc.font('Helvetica').fillColor(mediumText)
+                    .text('Date de paiement :', pageWidth / 2 + 10, y + 8);
+                doc.font('Helvetica-Bold').fillColor(darkText)
+                    .text(this.formatDate(data.date), pageWidth / 2 + 90, y + 8);
+
+                if (data.payment.reference) {
+                    y += 20;
+                    doc.fontSize(8).font('Helvetica').fillColor(mediumText)
+                        .text(`Réf. transaction : ${data.payment.reference}`, margin + 10, y + 8);
+                }
+
+                y += 40;
+
+                // ─── LEGAL MENTION ───
+                doc.fontSize(8).font('Helvetica').fillColor(lightText)
                     .text(
                         'Cette quittance annule tous les reçus qui auraient pu être donnés en acompte. ' +
-                        'Elle ne libère le locataire que pour la période indiquée.',
-                        { align: 'center', width: 495 }
+                        'Elle ne libère le locataire que pour la période indiquée ci-dessus.',
+                        margin, y, { width: contentWidth }
                     );
 
-                doc.moveDown(2);
+                y += 25;
+                doc.moveTo(margin, y).lineTo(pageWidth - margin, y).lineWidth(0.3).strokeColor('#DDE1E6').stroke();
+                y += 15;
 
-                // Signature
-                doc.fillColor('#000').fontSize(10)
-                    .text(`Fait à Cotonou, le ${this.formatDate(new Date())}`, { align: 'right' });
-                doc.moveDown(0.5);
-                doc.fontSize(9).font('Helvetica-Bold')
-                    .text('Le Bailleur', { align: 'right' });
-                doc.moveDown(3);
-                doc.fontSize(8).font('Helvetica').text('(Signature)', { align: 'right' });
+                // ─── SIGNATURE ───
+                doc.fontSize(9).font('Helvetica').fillColor(darkText)
+                    .text('Pour valoir ce que de droit.', margin, y);
+                doc.fontSize(10).font('Helvetica-Bold').fillColor(darkText)
+                    .text('Le Gestionnaire', pageWidth - margin - 100, y, { width: 100, align: 'right' });
 
-                // Footer
-                doc.fontSize(7).fillColor('#999')
-                    .text('Document généré automatiquement par HopeGestion', 50, doc.page.height - 30, {
-                        align: 'center'
-                    });
+                y += 35;
+                doc.moveTo(pageWidth - margin - 80, y).lineTo(pageWidth - margin, y).lineWidth(0.5).strokeColor('#CCC').stroke();
+                doc.fontSize(8).font('Helvetica').fillColor(lightText)
+                    .text('(Signature & cachet)', pageWidth - margin - 80, y + 5, { width: 80, align: 'center' });
+
+                // ─── FOOTER BAR ───
+                const footerY = doc.page.height - 35;
+                doc.rect(0, footerY, pageWidth, 35).fill(navy);
+                doc.fontSize(7).font('Helvetica').fillColor('#FFFFFF')
+                    .text(
+                        'Document généré automatiquement par la plateforme HopeGestion — www.hopegestion.com',
+                        0, footerY + 13, { align: 'center', width: pageWidth }
+                    );
 
                 doc.end();
                 stream.on('finish', resolve);

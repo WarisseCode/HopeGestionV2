@@ -11,96 +11,331 @@ export interface QuittanceData {
   montant: number;
   datePaiement: string | Date;
   proprietaire?: string;
+  charges?: number;
 }
 
-export const generateQuittancePDF = (data: QuittanceData) => {
-  // 1. Création du document (A4, portrait)
+// Couleurs de la marque HopeGestion
+const BRAND = {
+  primary: [26, 54, 93] as [number, number, number],       // #1A365D - Navy
+  accent: [220, 38, 74] as [number, number, number],        // #DC264A - Rose/Red
+  blue: [59, 130, 246] as [number, number, number],          // #3B82F6 - Bright blue
+  darkText: [30, 30, 30] as [number, number, number],        // Near-black
+  mediumText: [90, 90, 90] as [number, number, number],      // Medium gray
+  lightText: [140, 140, 140] as [number, number, number],    // Light gray
+  tableBg: [245, 247, 250] as [number, number, number],      // Light bg
+  white: [255, 255, 255] as [number, number, number],
+};
+
+// Cache for logo base64
+let logoBase64Cache: string | null = null;
+
+/**
+ * Load logo image as base64 for embedding in PDF
+ */
+async function loadLogo(): Promise<string | null> {
+  if (logoBase64Cache) return logoBase64Cache;
+  
+  try {
+    const response = await fetch('/logo.png');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        logoBase64Cache = reader.result as string;
+        resolve(logoBase64Cache);
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Format currency in FCFA
+ */
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
+}
+
+/**
+ * Draw a horizontal line
+ */
+function drawLine(doc: jsPDF, y: number, x1: number = 20, x2?: number) {
+  const w = x2 || doc.internal.pageSize.getWidth() - 20;
+  doc.setDrawColor(...BRAND.lightText);
+  doc.setLineWidth(0.3);
+  doc.line(x1, y, w, y);
+}
+
+/**
+ * Generate a professional rent receipt PDF
+ * @param data Receipt data
+ * @param mode 'download' saves the file, 'preview' opens in a new tab
+ */
+export const generateQuittancePDF = async (data: QuittanceData, mode: 'download' | 'preview' = 'download') => {
   const doc = new jsPDF();
-  const width = doc.internal.pageSize.getWidth();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 20;
+  const contentWidth = pageWidth - margin * 2;
 
-  // --- EN-TÊTE ---
-  // Couleur primaire de la marque (approximatif pour le PDF)
-  doc.setTextColor(59, 130, 246); // Blue-500
-  doc.setFontSize(22);
+  // ─── LOAD LOGO ───
+  const logo = await loadLogo();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // HEADER SECTION
+  // ═══════════════════════════════════════════════════════════════════
+
+  let headerY = 15;
+
+  // Logo
+  if (logo) {
+    doc.addImage(logo, 'PNG', margin, headerY - 2, 40, 16);
+  } else {
+    // Fallback: text logo
+    doc.setTextColor(...BRAND.primary);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('HOPE GESTION', margin, headerY + 8);
+  }
+
+  // Date — top right
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+  doc.setTextColor(...BRAND.mediumText);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Cotonou, le ${formattedDate}`, pageWidth - margin, headerY + 4, { align: 'right' });
+
+  // Contact info under date
+  doc.setFontSize(8);
+  doc.text('Tél: +229 01 02 03 04', pageWidth - margin, headerY + 10, { align: 'right' });
+  doc.text('contact@hopegestion.com', pageWidth - margin, headerY + 15, { align: 'right' });
+
+  // Separator
+  headerY += 25;
+  drawLine(doc, headerY);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // TITLE SECTION
+  // ═══════════════════════════════════════════════════════════════════
+
+  headerY += 12;
+
+  // Title with accent bar
+  const titleWidth = 140;
+  const titleX = (pageWidth - titleWidth) / 2;
+  doc.setFillColor(...BRAND.primary);
+  doc.roundedRect(titleX, headerY - 6, titleWidth, 22, 3, 3, 'F');
+
+  doc.setTextColor(...BRAND.white);
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text("HopeGestion", 20, 20);
+  doc.text('QUITTANCE DE LOYER', pageWidth / 2, headerY + 4, { align: 'center' });
 
-  doc.setTextColor(100);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text("Gestion Immobilière Simplifiée", 20, 26);
-  
-  // Date d'émission
-  const today = new Date().toLocaleDateString('fr-FR');
-  doc.text(`Cotonou, le ${today}`, width - 20, 20, { align: 'right' });
+  doc.text(`N° ${data.numero}`, pageWidth / 2, headerY + 12, { align: 'center' });
 
-  // --- TITRE ---
-  doc.setTextColor(0);
-  doc.setFontSize(18);
+  headerY += 28;
+
+  // ═══════════════════════════════════════════════════════════════════
+  // PARTIES SECTION (Bailleur & Locataire)
+  // ═══════════════════════════════════════════════════════════════════
+
+  const partiesY = headerY;
+  const colWidth = contentWidth / 2 - 5;
+
+  // --- Bailleur (Left column) ---
+  doc.setFillColor(245, 247, 250);
+  doc.roundedRect(margin, partiesY, colWidth, 42, 2, 2, 'F');
+
+  doc.setTextColor(...BRAND.primary);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
-  doc.text("QUITTANCE DE LOYER", width / 2, 45, { align: 'center' });
+  doc.text('BAILLEUR / GESTIONNAIRE', margin + 8, partiesY + 10);
+
+  doc.setTextColor(...BRAND.darkText);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(data.proprietaire || 'Agence Hope Immobilier', margin + 8, partiesY + 19);
   
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`N° ${data.numero}`, width / 2, 52, { align: 'center' });
+  doc.setFontSize(9);
+  doc.setTextColor(...BRAND.mediumText);
+  doc.text('Cotonou, Bénin', margin + 8, partiesY + 26);
+  doc.text('Tél: +229 01 02 03 04', margin + 8, partiesY + 33);
 
-  // --- INFOS PARTIES ---
-  const yStart = 70;
-  
-  // Bailleur / Gestionnaire
-  doc.setFontSize(11);
+  // --- Locataire (Right column) ---
+  const rightColX = margin + colWidth + 10;
+  doc.setFillColor(245, 247, 250);
+  doc.roundedRect(rightColX, partiesY, colWidth, 42, 2, 2, 'F');
+
+  doc.setTextColor(...BRAND.primary);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
-  doc.text("BAILLEUR / GESTIONNAIRE :", 20, yStart);
-  doc.setFont('helvetica', 'normal');
-  doc.text("Agence Hope Immobilier", 20, yStart + 7);
-  doc.text("Cotonou, Bénin", 20, yStart + 14);
-  doc.text("Tél: +229 01 02 03 04", 20, yStart + 21);
+  doc.text('LOCATAIRE', rightColX + 8, partiesY + 10);
 
-  // Locataire
-  doc.setFont('helvetica', 'bold');
-  doc.text("LOCATAIRE :", width / 2 + 10, yStart);
+  doc.setTextColor(...BRAND.darkText);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(data.locataire, width / 2 + 10, yStart + 7);
-  doc.text(`Bien: ${data.bien}`, width / 2 + 10, yStart + 14);
+  doc.text(data.locataire, rightColX + 8, partiesY + 19);
 
-  // --- TABLEAU DÉTAILS ---
-  const tableData = [
+  doc.setFontSize(9);
+  doc.setTextColor(...BRAND.mediumText);
+  doc.text(`Bien: ${data.bien}`, rightColX + 8, partiesY + 26);
+
+  headerY = partiesY + 52;
+
+  // ═══════════════════════════════════════════════════════════════════
+  // PAYMENT DETAILS TABLE
+  // ═══════════════════════════════════════════════════════════════════
+
+  const charges = data.charges || 0;
+  const total = data.montant + charges;
+
+  const tableData: any[][] = [
     ['Période concernée', data.periode],
-    ['Loyer Principal', `${data.montant.toLocaleString()} FCFA`],
-    ['Charges', '0 FCFA'], // (À dynamiser plus tard si nécessaire)
-    ['TOTAL PAYÉ', `${data.montant.toLocaleString()} FCFA`]
+    ['Loyer Principal', formatCurrency(data.montant)],
+    ['Charges locatives', formatCurrency(charges)],
   ];
 
   autoTable(doc, {
-    startY: yStart + 35,
+    startY: headerY,
     head: [['Désignation', 'Montant / Détails']],
     body: tableData,
-    theme: 'striped',
-    headStyles: { fillColor: [59, 130, 246] }, // Blue header
+    foot: [['TOTAL PAYÉ', formatCurrency(total)]],
+    theme: 'plain',
+    headStyles: {
+      fillColor: BRAND.primary,
+      textColor: BRAND.white,
+      fontSize: 10,
+      fontStyle: 'bold',
+      cellPadding: 6,
+    },
+    bodyStyles: {
+      fontSize: 10,
+      cellPadding: 6,
+      textColor: BRAND.darkText,
+    },
+    footStyles: {
+      fillColor: [235, 240, 248],
+      textColor: BRAND.primary,
+      fontSize: 11,
+      fontStyle: 'bold',
+      cellPadding: 7,
+    },
+    alternateRowStyles: {
+      fillColor: [250, 251, 253],
+    },
     columnStyles: {
       0: { fontStyle: 'bold', cellWidth: 100 },
-      1: { halign: 'right' }
+      1: { halign: 'right' as const },
     },
-    styles: { fontSize: 11, cellPadding: 5 }
+    styles: {
+      lineWidth: 0.1,
+      lineColor: [220, 225, 230],
+    },
+    margin: { left: margin, right: margin },
   });
 
-  // --- PIED DE PAGE / SIGNATURE ---
-  const finalY = (doc as any).lastAutoTable.finalY || 150;
-  
-  doc.setFontSize(10);
-  doc.text("Pour valoir ce que de droit.", 20, finalY + 20);
-  
+  const tableEndY = (doc as any).lastAutoTable.finalY || headerY + 80;
+
+  // ═══════════════════════════════════════════════════════════════════
+  // MODE DE PAIEMENT
+  // ═══════════════════════════════════════════════════════════════════
+
+  let infoY = tableEndY + 15;
+
+  doc.setFillColor(245, 247, 250);
+  doc.roundedRect(margin, infoY - 5, contentWidth, 20, 2, 2, 'F');
+
+  doc.setTextColor(...BRAND.mediumText);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Mode de paiement :', margin + 8, infoY + 4);
   doc.setFont('helvetica', 'bold');
-  doc.text("Le Gestionnaire", width - 60, finalY + 20);
-  
-  // Mention légale (Design 'Wow' - petit cadre coloré en bas)
-  doc.setFillColor(240, 249, 255); // Light blue bg
-  doc.rect(0, doc.internal.pageSize.getHeight() - 20, width, 20, 'F');
-  doc.setTextColor(100);
+  doc.setTextColor(...BRAND.darkText);
+  doc.text('Mobile Money', margin + 60, infoY + 4);
+
+  const paymentDate = new Date(data.datePaiement).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...BRAND.mediumText);
+  doc.text('Date de paiement :', pageWidth / 2 + 10, infoY + 4);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...BRAND.darkText);
+  doc.text(paymentDate, pageWidth / 2 + 60, infoY + 4);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // LEGAL MENTION & SIGNATURE
+  // ═══════════════════════════════════════════════════════════════════
+
+  infoY += 35;
+
+  // Legal notice
+  doc.setTextColor(...BRAND.mediumText);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'italic');
-  doc.text("Ce document est généré automatiquement par la plateforme HopeGestion.", width / 2, doc.internal.pageSize.getHeight() - 8, { align: 'center' });
+  doc.text(
+    'Cette quittance annule tous les reçus qui auraient pu être donnés en acompte. Elle ne libère le locataire que pour la période indiquée ci-dessus.',
+    margin, infoY, { maxWidth: contentWidth }
+  );
 
-  // --- SAUVEGARDE ---
-  doc.save(`Quittance_${data.numero}_${data.locataire.replace(/\s+/g, '_')}.pdf`);
+  infoY += 20;
+  drawLine(doc, infoY);
+  infoY += 12;
+
+  // Signature block
+  doc.setTextColor(...BRAND.darkText);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Pour valoir ce que de droit.', margin, infoY);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Le Gestionnaire', pageWidth - margin, infoY, { align: 'right' });
+
+  // Signature line
+  infoY += 30;
+  doc.setDrawColor(...BRAND.lightText);
+  doc.setLineWidth(0.5);
+  doc.line(pageWidth - margin - 60, infoY, pageWidth - margin, infoY);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...BRAND.lightText);
+  doc.text('(Signature & cachet)', pageWidth - margin - 30, infoY + 8, { align: 'center' });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // FOOTER
+  // ═══════════════════════════════════════════════════════════════════
+
+  // Bottom accent bar
+  doc.setFillColor(...BRAND.primary);
+  doc.rect(0, pageHeight - 22, pageWidth, 22, 'F');
+
+  doc.setTextColor(...BRAND.white);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.text(
+    'Document généré automatiquement par la plateforme HopeGestion — www.hopegestion.com',
+    pageWidth / 2, pageHeight - 10, { align: 'center' }
+  );
+
+  // ─── OUTPUT ───
+  if (mode === 'preview') {
+    const pdfBlob = doc.output('blob');
+    const url = URL.createObjectURL(pdfBlob);
+    window.open(url, '_blank');
+  } else {
+    doc.save(`Quittance_${data.numero}_${data.locataire.replace(/\s+/g, '_')}.pdf`);
+  }
 };
