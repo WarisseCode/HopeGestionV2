@@ -195,11 +195,12 @@ class RentPaymentService {
         try {
             await client.query('BEGIN');
 
-            // 1. Get transaction details
+            // 1. Get transaction details with owner_id
             const transactionRes = await client.query(`
-                SELECT id, schedule_id, lease_id, tenant_id, amount, status
-                FROM rent_payment_transactions
-                WHERE fedapay_transaction_id = $1
+                SELECT rpt.id, rpt.schedule_id, rpt.lease_id, rpt.tenant_id, rpt.amount, rpt.status, l.owner_id
+                FROM rent_payment_transactions rpt
+                JOIN leases l ON rpt.lease_id = l.id
+                WHERE rpt.fedapay_transaction_id = $1
             `, [fedapayTransactionId]);
 
             if (transactionRes.rows.length === 0) {
@@ -229,9 +230,11 @@ class RentPaymentService {
                 // Check if payment already exists (double safety)
                 const paymentExists = await client.query('SELECT id FROM payments WHERE reference_transaction = $1', [fedapayTransactionId]);
                 
+                let paymentId;
+
                 if (paymentExists.rows.length === 0) {
                     // Create payment entry
-                    await client.query(`
+                    const paymentRes = await client.query(`
                         INSERT INTO payments (
                             lease_id,
                             schedule_id,
@@ -244,25 +247,21 @@ class RentPaymentService {
                             description,
                             owner_id
                         )
-                        SELECT 
-                            $1, $2, $3, NOW(), 'mobile_money', $4, 'loyer', 'valide',
-                            'Paiement en ligne via Mobile Money',
+                        VALUES ($1, $2, $3, NOW(), 'mobile_money', $4, 'loyer', 'valide', $5, $6)
+                        RETURNING id
+                    `, [
                         transaction.lease_id,
                         transaction.schedule_id,
                         transaction.amount,
                         fedapayTransactionId,
-                        transaction.lease_id
-                    ])
-                    RETURNING id;
+                        'Paiement en ligne via Mobile Money',
+                        transaction.owner_id
+                    ]);
 
-                    const paymentId = paymentExists.rows.length > 0 ? paymentExists.rows[0].id : (await client.query('SELECT id FROM payments WHERE reference_transaction = $1', [fedapayTransactionId])).rows[0]?.id;
-                    
-                    // Note: The INSERT above is inside an IF block that checks if payment exists. 
-                    // But actually the code block structure is:
-                    // if (paymentExists.rows.length === 0) {
-                    //    INSERT ...
-                    // }
-                    // So I need to capture the ID from the INSERT.
+                    paymentId = paymentRes.rows[0].id;
+                } else {
+                    paymentId = paymentExists.rows[0].id;
+                }
 
 
                     // Update payment schedule to paid/partial
