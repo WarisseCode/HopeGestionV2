@@ -146,6 +146,14 @@ async function runMigration() {
             await client.query(ownersFixSql);
             console.log('   - owners (ajout: company_name, rccm_number, mobile_money_coordinates)');
         }
+
+        console.log('17/17 Exécution migrations/add_payments_missing_columns.sql...');
+        const paymentsColsPath = path.join(dbDir, 'migrations', 'add_payments_missing_columns.sql');
+        if (fs.existsSync(paymentsColsPath)) {
+            const paymentsColsSql = fs.readFileSync(paymentsColsPath, 'utf8');
+            await client.query(paymentsColsSql);
+            console.log('   - payments (ajout: schedule_id, description manquants)');
+        }
         
         console.log('✅ Migration exécutée avec succès!');
         console.log('\n📊 Tables créées et mises à jour.');
