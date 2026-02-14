@@ -162,6 +162,14 @@ async function runMigration() {
             await client.query(paymentSchedulesSql);
             console.log('   - payment_schedules (ajout: date_reglement_final manquant)');
         }
+
+        console.log('19/19 Exécution migrations/create_finance_tables.sql (Prêts & Catégories)...');
+        const finTablesPath = path.join(dbDir, 'migrations', 'create_finance_tables.sql');
+        if (fs.existsSync(finTablesPath)) {
+            const finTablesSql = fs.readFileSync(finTablesPath, 'utf8');
+            await client.query(finTablesSql);
+            console.log('   - loans, loan_payments, expense_categories, tax_settings créées/vérifiées');
+        }
         
         console.log('✅ Migration exécutée avec succès!');
         console.log('\n📊 Tables créées et mises à jour.');
