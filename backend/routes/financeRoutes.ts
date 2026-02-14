@@ -564,7 +564,10 @@ router.put('/schedules/:id/pay', permissions.canWrite('finances'), async (req: A
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Error paying schedule:', error);
-        res.status(500).json({ message: 'Erreur paiement échéance' });
+        res.status(500).json({ 
+            message: error instanceof Error ? error.message : 'Erreur paiement échéance',
+            details: String(error)
+        });
     } finally {
         client.release();
     }
