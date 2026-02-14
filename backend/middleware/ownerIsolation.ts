@@ -31,8 +31,8 @@ export const checkOwnerAccess = async (
             });
         }
 
-        // Admin et Manager (Gestionnaire) ont accès à tous les propriétaires
-        if (userRole === 'admin' || userRole === 'manager' || userRole === 'gestionnaire') {
+        // Admin et Manager ont accès à tous les propriétaires
+        if (userRole === 'admin' || userRole === 'manager') {
             return next();
         }
 
@@ -78,7 +78,7 @@ export const filterByOwner = async (
         }
 
         // Admin et Manager voient tout
-        if (userRole === 'admin' || userRole === 'manager' || userRole === 'gestionnaire') {
+        if (userRole === 'admin' || userRole === 'manager') {
             (req as any).ownerIds = null; // null = tous les propriétaires
             return next();
         }
