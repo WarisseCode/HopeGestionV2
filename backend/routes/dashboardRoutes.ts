@@ -21,7 +21,7 @@ router.get('/stats/gestionnaire', async (req: AuthenticatedRequest, res: Respons
         let ownerIds: number[] = [];
 
         // Si pas admin, on filtre par les propriétaires assignés
-        if (req.userRole !== 'admin') {
+        if (req.userRole !== 'admin' && req.userRole !== 'manager' && req.userRole !== 'gestionnaire') {
             const ownersResult = await pool.query(
                 `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
                 [req.userId]
@@ -120,7 +120,7 @@ router.get('/stats/manager', async (req: AuthenticatedRequest, res: Response) =>
         let ownerIds: number[] = [];
 
         // Si pas admin, on filtre par les propriétaires assignés
-        if (req.userRole !== 'admin') {
+        if (req.userRole !== 'admin' && req.userRole !== 'manager' && req.userRole !== 'gestionnaire') {
             const ownersResult = await pool.query(
                 `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
                 [req.userId]
@@ -423,7 +423,7 @@ router.get('/kpi', async (req: AuthenticatedRequest, res: Response) => {
         let ownerIds: number[] = [];
         let ownerFilter = '1=1';
         
-        if (req.userRole !== 'admin') {
+        if (req.userRole !== 'admin' && req.userRole !== 'manager' && req.userRole !== 'gestionnaire') {
             const ownersResult = await pool.query(
                 `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
                 [req.userId]
@@ -698,12 +698,12 @@ router.get('/chart-data', async (req: AuthenticatedRequest, res: Response) => {
         // Dépenses par mois
         const depensesResult = await pool.query(`
             SELECT 
-                TO_CHAR(date_depense, 'Mon') as name,
-                EXTRACT(MONTH FROM date_depense) as month_num,
-                COALESCE(SUM(montant), 0) as depenses
-            FROM depenses
-            WHERE date_depense >= CURRENT_DATE - INTERVAL '${interval}'
-            GROUP BY TO_CHAR(date_depense, 'Mon'), EXTRACT(MONTH FROM date_depense)
+                TO_CHAR(date_expense, 'Mon') as name,
+                EXTRACT(MONTH FROM date_expense) as month_num,
+                COALESCE(SUM(amount), 0) as depenses
+            FROM expenses
+            WHERE date_expense >= CURRENT_DATE - INTERVAL '${interval}'
+            GROUP BY TO_CHAR(date_expense, 'Mon'), EXTRACT(MONTH FROM date_expense)
             ORDER BY month_num
         `);
 
@@ -774,7 +774,7 @@ router.get('/activity', async (req: AuthenticatedRequest, res: Response) => {
         let whereClauseUsers = '1=1';
 
         // Filter by owner/user if not admin
-        if (req.userRole !== 'admin') {
+        if (req.userRole !== 'admin' && req.userRole !== 'manager' && req.userRole !== 'gestionnaire') {
             if (req.userRole === 'locataire') {
                 // Find tenant ID via user email
                 const userResult = await pool.query('SELECT email FROM users WHERE id = $1', [req.userId]);
@@ -895,7 +895,7 @@ router.get('/activity', async (req: AuthenticatedRequest, res: Response) => {
 router.get('/featured-properties', async (req: AuthenticatedRequest, res: Response) => {
     try {
         let whereClause = '1=1';
-        if (req.userRole !== 'admin') {
+        if (req.userRole !== 'admin' && req.userRole !== 'manager' && req.userRole !== 'gestionnaire') {
             const ownersResult = await pool.query(
                 `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
                 [req.userId]
