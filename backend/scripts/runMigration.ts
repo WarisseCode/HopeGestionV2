@@ -154,6 +154,14 @@ async function runMigration() {
             await client.query(paymentsColsSql);
             console.log('   - payments (ajout: schedule_id, description manquants)');
         }
+
+        console.log('18/18 Exécution migrations/add_payment_schedules_missing_columns.sql...');
+        const paymentSchedulesPath = path.join(dbDir, 'migrations', 'add_payment_schedules_missing_columns.sql');
+        if (fs.existsSync(paymentSchedulesPath)) {
+            const paymentSchedulesSql = fs.readFileSync(paymentSchedulesPath, 'utf8');
+            await client.query(paymentSchedulesSql);
+            console.log('   - payment_schedules (ajout: date_reglement_final manquant)');
+        }
         
         console.log('✅ Migration exécutée avec succès!');
         console.log('\n📊 Tables créées et mises à jour.');
