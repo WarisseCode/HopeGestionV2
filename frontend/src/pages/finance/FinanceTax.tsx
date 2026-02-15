@@ -90,7 +90,7 @@ const FinanceTax: React.FC = () => {
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-1">Propriétaire / Entité</label>
                             <select 
-                                className="select select-bordered w-full bg-gray-50 border p-2 rounded"
+                                className="select select-bordered w-full bg-gray-50 border p-2 rounded text-gray-900"
                                 value={selectedOwner}
                                 onChange={handleOwnerChange}
                             >
