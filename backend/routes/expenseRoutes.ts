@@ -93,7 +93,7 @@ router.post('/', permissions.canWrite('finances'), upload.single('proof'), async
         if (!amount || !date_expense || !category) {
             return res.status(400).json({ message: 'Champs obligatoires manquants' });
         }
-        }
+
 
         // Determine owner_id
         let finalOwnerId = owner_id;
