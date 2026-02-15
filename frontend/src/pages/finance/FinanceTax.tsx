@@ -90,13 +90,14 @@ const FinanceTax: React.FC = () => {
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-1">Propriétaire / Entité</label>
                             <select 
-                                className="select select-bordered w-full bg-gray-50 border p-2 rounded text-gray-900"
+                                className="select select-bordered w-full border p-2 rounded text-base"
+                                style={{ color: 'black', backgroundColor: 'white' }}
                                 value={selectedOwner}
                                 onChange={handleOwnerChange}
                             >
-                                <option value="">Choisir...</option>
+                                <option value="" style={{ color: 'black', backgroundColor: 'white' }}>Choisir...</option>
                                 {owners.map(o => (
-                                    <option key={o.id} value={o.id}>{o.name}</option>
+                                    <option key={o.id} value={o.id} style={{ color: 'black', backgroundColor: 'white' }}>{o.name}</option>
                                 ))}
                             </select>
                         </div>
