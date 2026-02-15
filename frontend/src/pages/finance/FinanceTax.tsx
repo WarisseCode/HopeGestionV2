@@ -87,19 +87,39 @@ const FinanceTax: React.FC = () => {
                     </h3>
                     
                     <div className="space-y-4">
-                        <div>
+                        <div className="relative">
                             <label className="block text-sm font-bold text-gray-700 mb-1">Propriétaire / Entité</label>
-                            <select 
-                                className="w-full border border-gray-300 rounded p-2 text-base !text-black !bg-white"
-                                style={{ color: 'black', backgroundColor: 'white' }}
-                                value={selectedOwner}
-                                onChange={handleOwnerChange}
-                            >
-                                <option value="" className="!text-black !bg-white">Choisir...</option>
-                                {owners.map(o => (
-                                    <option key={o.id} value={o.id} className="!text-black !bg-white">{o.name}</option>
-                                ))}
-                            </select>
+                            <div className="dropdown w-full">
+                                <div 
+                                    tabIndex={0} 
+                                    role="button" 
+                                    className="btn btn-outline w-full justify-between bg-white text-black hover:bg-gray-100 hover:text-black font-normal"
+                                >
+                                    {selectedOwner 
+                                        ? owners.find(o => o.id === parseInt(selectedOwner))?.name || 'Inconnu'
+                                        : 'Choisir...'}
+                                    <span className="text-gray-500">▼</span>
+                                </div>
+                                <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-white rounded-box w-full mt-1 border border-gray-200">
+                                    {owners.map(o => (
+                                        <li key={o.id}>
+                                            <button 
+                                                onClick={() => {
+                                                    handleOwnerChange({ target: { value: o.id.toString() } } as any);
+                                                    // Close dropdown by blurring (hacky but works with daisyui dropdown)
+                                                    (document.activeElement as HTMLElement)?.blur();
+                                                }}
+                                                className="text-black hover:bg-blue-50"
+                                            >
+                                                {o.name}
+                                            </button>
+                                        </li>
+                                    ))}
+                                    {owners.length === 0 && (
+                                        <li className="text-gray-400 p-2 text-center">Aucun propriétaire</li>
+                                    )}
+                                </ul>
+                            </div>
                         </div>
 
                         {selectedOwner && (
