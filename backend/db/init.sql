@@ -106,38 +106,17 @@ CREATE TABLE IF NOT EXISTS tickets (
     date_resolution TIMESTAMP
 );
 
--- Données de test (Seed)
 
--- Utilisateur démo
+
+
+-- Données de test (Seed) - DESACTIVÉ pour éviter la réinsertion en prod
+-- Le compte admin est préservé via la migration si nécessaire, mais ici on évite les conflits
+
+-- Utilisateur démo (optionnel, décommenter si besoin d'un admin par défaut)
 INSERT INTO users (nom, email, password_hash, role, telephone) 
 VALUES ('Waris Gestion', 'admin@hope.com', '$2b$10$abcdefghijklmnopqrstuvwxyz123456', 'gestionnaire', '+22997000000')
 ON CONFLICT (email) DO NOTHING;
 
--- Immeuble démo
-INSERT INTO buildings (user_id, nom, type, adresse, ville) 
-VALUES (1, 'Résidence La Paix', 'Immeuble', 'Quartier Haie Vive', 'Cotonou');
+-- Les données de démonstration (Immeubles, Lots, Locataires...) ont été retirées
+-- pour ne pas polluer la base de production lors des déploiements.
 
--- Lots démo
-INSERT INTO lots (building_id, ref_lot, type, etage, loyer_mensuel, statut) 
-VALUES 
-((SELECT id FROM buildings LIMIT 1), 'A1', 'Appartement 3 Pièces', '1', 150000, 'disponible'),
-((SELECT id FROM buildings LIMIT 1), 'A2', 'Studio Américain', '1', 80000, 'occupe'),
-((SELECT id FROM buildings LIMIT 1), 'B1', 'Boutique', 'RDC', 200000, 'occupe');
-
--- Locataires démo
-INSERT INTO tenants (nom, prenoms, telephone_principal) 
-VALUES 
-('KOFFI', 'Jean', '+229 97 00 00 00'),
-('DOSSOU', 'Marie', '+229 66 00 00 00');
-
--- Contrats démo
-INSERT INTO leases (lot_id, tenant_id, date_debut, loyer_actuel)
-VALUES
-(2, 1, '2025-01-01', 80000),
-(3, 2, '2025-02-01', 200000);
-
--- Paiements démo
-INSERT INTO payments (lease_id, montant, type, mode_paiement, date_paiement)
-VALUES
-(1, 80000, 'Loyer', 'Mobile Money', '2025-11-05'),
-(2, 200000, 'Loyer', 'Especes', '2025-11-05');
