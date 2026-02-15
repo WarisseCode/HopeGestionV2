@@ -3,8 +3,10 @@ import { Plus, Trash2, Filter, FileText, Upload, ExternalLink } from 'lucide-rea
 import { format } from 'date-fns';
 import { financeApi } from '../../api/financeApi';
 import type { Expense } from '../../api/financeApi';
-import { ownerApi, Owner } from '../../api/ownerApi';
-import { getImmeubles, Immeuble } from '../../api/bienApi';
+import { ownerApi } from '../../api/ownerApi';
+import type { Owner } from '../../api/ownerApi';
+import { getImmeubles } from '../../api/bienApi';
+import type { Immeuble } from '../../api/bienApi';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
