@@ -93,6 +93,25 @@ router.post('/', permissions.canWrite('finances'), upload.single('proof'), async
         if (!amount || !date_expense || !category) {
             return res.status(400).json({ message: 'Champs obligatoires manquants' });
         }
+        }
+
+        // Determine owner_id
+        let finalOwnerId = owner_id;
+
+        if (building_id) {
+            // Auto-fetch owner from building to ensure consistency
+            const buildingResult = await pool.query('SELECT owner_id FROM buildings WHERE id = $1', [building_id]);
+            if (buildingResult.rows.length > 0) {
+                finalOwnerId = buildingResult.rows[0].owner_id;
+            }
+        }
+
+        // If still no owner_id, this is an issue for strict isolation
+        if (!finalOwnerId) {
+             console.warn('⚠️ Creating expense without owner_id - will be invisible to strict isolation filters');
+             // Optionally return 400 here if we want to enforce it strictly
+             // return res.status(400).json({ message: 'Propriétaire ou Immeuble requis' });
+        }
 
         // Handle uploaded proof file
         let proofUrl = req.body.proof_url || null;
@@ -110,7 +129,7 @@ router.post('/', permissions.canWrite('finances'), upload.single('proof'), async
         `, [
             building_id || null,
             lot_id || null,
-            owner_id || null,
+            finalOwnerId || null,
             category,
             description || '',
             amount,

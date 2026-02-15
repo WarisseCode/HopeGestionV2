@@ -3,6 +3,8 @@ import { Plus, Trash2, Filter, FileText, Upload, ExternalLink } from 'lucide-rea
 import { format } from 'date-fns';
 import { financeApi } from '../../api/financeApi';
 import type { Expense } from '../../api/financeApi';
+import { ownerApi, Owner } from '../../api/ownerApi';
+import { getImmeubles, Immeuble } from '../../api/bienApi';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
@@ -11,6 +13,8 @@ import { toast } from 'react-hot-toast';
 const FinanceExpenses: React.FC = () => {
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [categories, setCategories] = useState<{id:number, name:string}[]>([]);
+    const [owners, setOwners] = useState<Owner[]>([]);
+    const [buildings, setBuildings] = useState<Immeuble[]>([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     
@@ -20,7 +24,9 @@ const FinanceExpenses: React.FC = () => {
         amount: 0,
         category: '',
         description: '',
-        supplier_name: ''
+        supplier_name: '',
+        building_id: undefined,
+        owner_id: undefined
     });
     const [proofFile, setProofFile] = useState<File | null>(null);
 
@@ -31,12 +37,16 @@ const FinanceExpenses: React.FC = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [expData, catData] = await Promise.all([
+            const [expData, catData, ownerData, buildingData] = await Promise.all([
                 financeApi.getExpenses(),
-                financeApi.getExpenseCategories()
+                financeApi.getExpenseCategories(),
+                ownerApi.getOwners(),
+                getImmeubles()
             ]);
             setExpenses(expData);
             setCategories(catData);
+            setOwners(ownerData);
+            setBuildings(buildingData);
         } catch (error) {
             console.error(error);
             toast.error("Erreur chargement données");
@@ -56,7 +66,9 @@ const FinanceExpenses: React.FC = () => {
                 amount: 0,
                 category: '',
                 description: '',
-                supplier_name: ''
+                supplier_name: '',
+                building_id: undefined,
+                owner_id: undefined
             });
             setProofFile(null);
             loadData();
@@ -105,6 +117,50 @@ const FinanceExpenses: React.FC = () => {
                                 onChange={(e) => setFormData({...formData, amount: parseFloat(e.target.value)})}
                                 required
                             />
+                            
+                            {/* Building Selection */}
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Immeuble Concerné (Optionnel)</label>
+                                <select 
+                                    className="select select-bordered w-full bg-gray-50 border p-2 rounded"
+                                    value={formData.building_id || ''}
+                                    onChange={(e) => {
+                                        const bId = e.target.value ? parseInt(e.target.value) : undefined;
+                                        const selectedBuilding = buildings.find(b => b.id === bId);
+                                        setFormData({
+                                            ...formData, 
+                                            building_id: bId,
+                                            // Auto-select owner if building is selected
+                                            owner_id: selectedBuilding?.owner_id || formData.owner_id
+                                        });
+                                    }}
+                                >
+                                    <option value="">-- Aucun / Dépense Générale --</option>
+                                    {buildings.map(b => (
+                                        <option key={b.id} value={b.id}>{b.nom}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Owner Selection */}
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Propriétaire Concerné</label>
+                                <select 
+                                    className="select select-bordered w-full bg-gray-50 border p-2 rounded"
+                                    value={formData.owner_id || ''}
+                                    onChange={(e) => setFormData({...formData, owner_id: e.target.value ? parseInt(e.target.value) : undefined})}
+                                    required={!formData.building_id} // Required if no building selected
+                                    disabled={!!formData.building_id} // Disabled if building determines owner (optional, but safer)
+                                >
+                                    <option value="">-- Sélectionner un propriétaire --</option>
+                                    {owners.map(o => (
+                                        <option key={o.id} value={o.id}>{o.name} {o.first_name}</option>
+                                    ))}
+                                </select>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    {formData.building_id ? "Déterminé automatiquement par l'immeuble" : "Requis pour l'isolation des données"}
+                                </p>
+                            </div>
                             
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Catégorie</label>
