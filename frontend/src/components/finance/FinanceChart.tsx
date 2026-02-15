@@ -4,15 +4,14 @@
 import React, { useState, useEffect } from 'react';
 import {
     ResponsiveContainer,
-    BarChart,
-    Bar,
+    AreaChart,
+    Area,
     XAxis,
     YAxis,
     CartesianGrid,
     Tooltip,
     Legend,
-    Line,
-    ComposedChart
+    Line
 } from 'recharts';
 import { financeApi } from '../../api/financeApi';
 import Card from '../ui/Card';
@@ -95,45 +94,60 @@ const FinanceChart: React.FC = () => {
             </div>
             <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                         <XAxis 
                             dataKey="label" 
                             tick={{ fontSize: 12, fill: '#9ca3af' }}
-                            axisLine={{ stroke: '#e5e7eb' }}
+                            axisLine={false}
+                            tickLine={false}
                         />
                         <YAxis 
                             tickFormatter={formatXOF}
                             tick={{ fontSize: 12, fill: '#9ca3af' }}
                             axisLine={false}
+                            tickLine={false}
                         />
                         <Tooltip content={<CustomTooltip />} />
-                        <Legend 
-                            wrapperStyle={{ fontSize: 13, fontWeight: 600 }}
-                        />
-                        <Bar 
+                        <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                        <Area 
+                            type="monotone" 
                             dataKey="revenue" 
                             name="Revenus" 
-                            fill="#22c55e" 
-                            radius={[6, 6, 0, 0]}
-                            barSize={28}
+                            stroke="#22c55e" 
+                            strokeWidth={3}
+                            fillOpacity={1} 
+                            fill="url(#colorRevenue)" 
                         />
-                        <Bar 
+                        <Area 
+                            type="monotone" 
                             dataKey="expenses" 
                             name="Dépenses" 
-                            fill="#f97316" 
-                            radius={[6, 6, 0, 0]}
-                            barSize={28}
+                            stroke="#ef4444" 
+                            strokeWidth={3}
+                            fillOpacity={1} 
+                            fill="url(#colorExpenses)" 
                         />
                         <Line 
                             dataKey="net" 
                             name="Trésorerie nette" 
                             stroke="#3b82f6" 
-                            strokeWidth={2.5}
-                            dot={{ r: 4, fill: '#3b82f6' }}
-                            type="monotone"
+                            strokeWidth={3}
+                            dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: 'white' }}
+                            type="monotone" 
+                            activeDot={{ r: 8 }}
                         />
-                    </ComposedChart>
+                    </AreaChart>
                 </ResponsiveContainer>
             </div>
         </Card>

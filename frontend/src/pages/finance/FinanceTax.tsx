@@ -105,7 +105,8 @@ const FinanceTax: React.FC = () => {
                                         <li key={o.id}>
                                             <button 
                                                 onClick={() => {
-                                                    handleOwnerChange({ target: { value: o.id.toString() } } as any);
+                                                    // Create a synthetic event or just cast to unknown first
+                                                    handleOwnerChange({ target: { value: o.id.toString() } } as React.ChangeEvent<HTMLSelectElement>);
                                                     // Close dropdown by blurring (hacky but works with daisyui dropdown)
                                                     (document.activeElement as HTMLElement)?.blur();
                                                 }}
