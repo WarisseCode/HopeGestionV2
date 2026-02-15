@@ -105,124 +105,136 @@ const FinanceExpenses: React.FC = () => {
                     <Card className="max-w-md w-full bg-white relative">
                         <h3 className="text-lg font-bold mb-4">Nouvelle Dépense</h3>
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            <Input 
-                                label="Date" 
-                                type="date" 
-                                value={formData.date_expense} 
-                                onChange={(e) => setFormData({...formData, date_expense: e.target.value})}
-                                required
-                            />
-                            <Input 
-                                label="Montant (FCFA)" 
-                                type="number" 
-                                value={formData.amount} 
-                                onChange={(e) => setFormData({...formData, amount: parseFloat(e.target.value)})}
-                                required
-                            />
-                            
-                            {/* Building Selection */}
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Immeuble Concerné (Optionnel)</label>
-                                <select 
-                                    className="select select-bordered w-full bg-gray-50 border p-2 rounded"
-                                    value={formData.building_id || ''}
-                                    onChange={(e) => {
-                                        const bId = e.target.value ? parseInt(e.target.value) : undefined;
-                                        const selectedBuilding = buildings.find(b => b.id === bId);
-                                        setFormData({
-                                            ...formData, 
-                                            building_id: bId,
-                                            // Auto-select owner if building is selected
-                                            owner_id: selectedBuilding?.owner_id || formData.owner_id
-                                        });
-                                    }}
-                                >
-                                    <option value="">-- Aucun / Dépense Générale --</option>
-                                    {buildings.map(b => (
-                                        <option key={b.id} value={b.id}>{b.nom}</option>
-                                    ))}
-                                </select>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Left Column: Core Info */}
+                                <div className="space-y-4">
+                                    <Input 
+                                        label="Date" 
+                                        type="date" 
+                                        value={formData.date_expense} 
+                                        onChange={(e) => setFormData({...formData, date_expense: e.target.value})}
+                                        required
+                                    />
+                                    <Input 
+                                        label="Montant (FCFA)" 
+                                        type="number" 
+                                        value={formData.amount} 
+                                        onChange={(e) => setFormData({...formData, amount: parseFloat(e.target.value)})}
+                                        required
+                                    />
+
+                                    {/* Building Selection */}
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">Immeuble Concerné (Optionnel)</label>
+                                        <select 
+                                            className="select select-bordered w-full bg-gray-50 border p-2 rounded"
+                                            value={formData.building_id || ''}
+                                            onChange={(e) => {
+                                                const bId = e.target.value ? parseInt(e.target.value) : undefined;
+                                                const selectedBuilding = buildings.find(b => b.id === bId);
+                                                setFormData({
+                                                    ...formData, 
+                                                    building_id: bId,
+                                                    // Auto-select owner if building is selected
+                                                    owner_id: selectedBuilding?.owner_id || formData.owner_id
+                                                });
+                                            }}
+                                        >
+                                            <option value="">-- Aucun / Dépense Générale --</option>
+                                            {buildings.map(b => (
+                                                <option key={b.id} value={b.id}>{b.nom}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Owner Selection */}
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">Propriétaire Concerné</label>
+                                        <select 
+                                            className="select select-bordered w-full bg-gray-50 border p-2 rounded"
+                                            value={formData.owner_id || ''}
+                                            onChange={(e) => setFormData({...formData, owner_id: e.target.value ? parseInt(e.target.value) : undefined})}
+                                            required={!formData.building_id} // Required if no building selected
+                                            disabled={!!formData.building_id} // Disabled if building determines owner
+                                        >
+                                            <option value="">-- Sélectionner un propriétaire --</option>
+                                            {owners.map(o => (
+                                                <option key={o.id} value={o.id}>{o.name} {o.first_name}</option>
+                                            ))}
+                                        </select>
+                                        {!formData.building_id && (
+                                            <p className="text-xs text-orange-600 mt-1">
+                                                * Requis pour l'isolation des données
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Right Column: Details & Proof */}
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">Catégorie</label>
+                                        <select 
+                                            className="select select-bordered w-full bg-gray-50 border p-2 rounded"
+                                            value={formData.category}
+                                            onChange={(e) => setFormData({...formData, category: e.target.value})}
+                                            required
+                                        >
+                                            <option value="">Sélectionner...</option>
+                                            {categories.map(c => (
+                                                <option key={c.id} value={c.name}>{c.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <Input 
+                                        label="Fournisseur / Bénéficiaire" 
+                                        value={formData.supplier_name} 
+                                        onChange={(e) => setFormData({...formData, supplier_name: e.target.value})}
+                                    />
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">Justificatif (Optionnel)</label>
+                                        <label className={`flex flex-col items-center justify-center gap-2 p-6 rounded border-2 border-dashed cursor-pointer transition-colors text-sm h-32 ${
+                                            proofFile 
+                                                ? 'bg-green-50 border-green-300 text-green-700' 
+                                                : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
+                                        }`}>
+                                            <Upload size={24} />
+                                            <span className="text-center">{proofFile ? proofFile.name : 'Cliquez pour ajouter un fichier'}</span>
+                                            <input 
+                                                type="file" 
+                                                accept="image/*,.pdf" 
+                                                className="hidden" 
+                                                onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                                            />
+                                        </label>
+                                        {proofFile && (
+                                            <button 
+                                                type="button" 
+                                                className="text-xs text-red-500 mt-1 hover:underline w-full text-center"
+                                                onClick={() => setProofFile(null)}
+                                            >
+                                                Retirer le fichier
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Owner Selection */}
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Propriétaire Concerné</label>
-                                <select 
-                                    className="select select-bordered w-full bg-gray-50 border p-2 rounded"
-                                    value={formData.owner_id || ''}
-                                    onChange={(e) => setFormData({...formData, owner_id: e.target.value ? parseInt(e.target.value) : undefined})}
-                                    required={!formData.building_id} // Required if no building selected
-                                    disabled={!!formData.building_id} // Disabled if building determines owner (optional, but safer)
-                                >
-                                    <option value="">-- Sélectionner un propriétaire --</option>
-                                    {owners.map(o => (
-                                        <option key={o.id} value={o.id}>{o.name} {o.first_name}</option>
-                                    ))}
-                                </select>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    {formData.building_id ? "Déterminé automatiquement par l'immeuble" : "Requis pour l'isolation des données"}
-                                </p>
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Catégorie</label>
-                                <select 
-                                    className="select select-bordered w-full bg-gray-50 border p-2 rounded"
-                                    value={formData.category}
-                                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                                    required
-                                >
-                                    <option value="">Sélectionner...</option>
-                                    {categories.map(c => (
-                                        <option key={c.id} value={c.name}>{c.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <Input 
-                                label="Fournisseur / Bénéficiaire" 
-                                value={formData.supplier_name} 
-                                onChange={(e) => setFormData({...formData, supplier_name: e.target.value})}
-                            />
-
+                            {/* Full Width Description */}
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
                                 <textarea 
                                     className="textarea textarea-bordered w-full bg-gray-50 border p-2 rounded"
                                     value={formData.description}
                                     onChange={(e) => setFormData({...formData, description: e.target.value})}
-                                    rows={2}
+                                    rows={3}
+                                    placeholder="Détails supplémentaires..."
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Justificatif (Optionnel)</label>
-                                <label className={`flex items-center gap-2 p-3 rounded border-2 border-dashed cursor-pointer transition-colors text-sm ${
-                                    proofFile 
-                                        ? 'bg-green-50 border-green-300 text-green-700' 
-                                        : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
-                                }`}>
-                                    <Upload size={16} />
-                                    {proofFile ? proofFile.name : 'Cliquez pour ajouter un justificatif'}
-                                    <input 
-                                        type="file" 
-                                        accept="image/*,.pdf" 
-                                        className="hidden" 
-                                        onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                                    />
-                                </label>
-                                {proofFile && (
-                                    <button 
-                                        type="button" 
-                                        className="text-xs text-red-500 mt-1 hover:underline"
-                                        onClick={() => setProofFile(null)}
-                                    >
-                                        Retirer le fichier
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="flex justify-end gap-3 mt-6">
+                            <div className="flex justify-end gap-3 pt-4 border-t">
                                 <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
                                 <Button type="submit" variant="primary">Enregistrer</Button>
                             </div>
