@@ -64,3 +64,98 @@ export async function getTransactionsMoMo(): Promise<MobileMoneyTransaction[]> {
 
     return await response.json();
 }
+
+// --- CONFIGURATION API ---
+
+export interface MobileMoneyConfig {
+    id: number;
+    user_id: number;
+    nom: string;
+    operateur: 'MTN' | 'MOOV' | 'CELTIPAY' | 'KKIAPAY' | 'FEDAPAY';
+    numero: string;
+    statut: 'actif' | 'inactif';
+    created_at: string;
+}
+
+export interface CreateConfigData {
+    nom: string;
+    operateur: string;
+    numero: string;
+}
+
+export async function getConfigs(): Promise<MobileMoneyConfig[]> {
+    const token = getToken();
+    if (!token) throw new Error('Non authentifié');
+
+    const response = await fetch(`${API_URL}/configs`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok) throw new Error('Erreur chargement configurations');
+    return await response.json();
+}
+
+export async function addConfig(data: CreateConfigData): Promise<MobileMoneyConfig> {
+    const token = getToken();
+    if (!token) throw new Error('Non authentifié');
+
+    const response = await fetch(`${API_URL}/configs`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erreur ajout configuration');
+    }
+    return await response.json();
+}
+
+export async function updateConfig(id: number, data: Partial<CreateConfigData>): Promise<MobileMoneyConfig> {
+    const token = getToken();
+    if (!token) throw new Error('Non authentifié');
+
+    const response = await fetch(`${API_URL}/configs/${id}`, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erreur modification configuration');
+    }
+    return await response.json();
+}
+
+export async function deleteConfig(id: number): Promise<void> {
+    const token = getToken();
+    if (!token) throw new Error('Non authentifié');
+
+    const response = await fetch(`${API_URL}/configs/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok) throw new Error('Erreur suppression configuration');
+}
+
+export async function toggleConfig(id: number): Promise<MobileMoneyConfig> {
+    const token = getToken();
+    if (!token) throw new Error('Non authentifié');
+
+    const response = await fetch(`${API_URL}/configs/${id}/toggle`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok) throw new Error('Erreur changement statut');
+    return await response.json();
+}

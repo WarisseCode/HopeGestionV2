@@ -170,6 +170,15 @@ async function runMigration() {
             await client.query(finTablesSql);
             console.log('   - loans, loan_payments, expense_categories, tax_settings créées/vérifiées');
         }
+
+        console.log('20/20 Exécution backend/migrations/31_create_mobile_money_tables.sql...');
+        const mobileMoneyPath = path.join(process.cwd(), 'migrations', '31_create_mobile_money_tables.sql');
+        if (fs.existsSync(mobileMoneyPath)) {
+            const mobileMoneySql = fs.readFileSync(mobileMoneyPath, 'utf8');
+            await client.query(mobileMoneySql);
+            console.log('   - mobile_money_configs created');
+            console.log('   - mobile_money_transactions created/verified');
+        }
         
         console.log('✅ Migration exécutée avec succès!');
         console.log('\n📊 Tables créées et mises à jour.');

@@ -1,6 +1,4 @@
 // backend/index.ts
-
-// Importations de base
 // Force restart
 import express, { Request, Response } from 'express';
 import path from 'path';

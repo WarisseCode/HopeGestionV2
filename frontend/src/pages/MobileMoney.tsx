@@ -1,5 +1,5 @@
 // frontend/src/pages/MobileMoney.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   CreditCard, 
   Plus, 
@@ -15,15 +15,25 @@ import {
   Smartphone,
   RefreshCw,
   Search,
-  Filter
+  Filter,
+  MoreVertical
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 
-import { getTransactionsMoMo, initierPaiement } from '../api/mobileMoneyApi';
-import type { MobileMoneyTransaction } from '../api/mobileMoneyApi';
+import { 
+    getTransactionsMoMo, 
+    initierPaiement, 
+    getConfigs, 
+    addConfig, 
+    deleteConfig, 
+    toggleConfig,
+    type MobileMoneyTransaction,
+    type MobileMoneyConfig
+} from '../api/mobileMoneyApi';
 
 const MobileMoney: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'transactions' | 'configurations'>('transactions');
@@ -31,74 +41,123 @@ const MobileMoney: React.FC = () => {
   const [formType, setFormType] = useState<'transaction' | 'configuration'>('transaction');
 
   const [transactions, setTransactions] = useState<MobileMoneyTransaction[]>([]);
+  const [configurations, setConfigurations] = useState<MobileMoneyConfig[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  const [paymentForm, setPaymentForm] = useState({
-      remarque: '', montant: 0, operator: 'MTN', phone: ''
+  // Forms State
+  const [txForm, setTxForm] = useState({
+      remarque: '', montant: '', operator: 'MTN', phone: ''
+  });
+  const [configForm, setConfigForm] = useState({
+      nom: '', operateur: 'MTN', numero: ''
   });
 
   useEffect(() => {
-      fetchTransactions();
+      loadData();
   }, []);
 
-  const fetchTransactions = async () => {
+  const loadData = async () => {
+      setLoading(true);
       try {
-          setLoading(true);
-          const data = await getTransactionsMoMo();
-          setTransactions(data);
+          const [txs, configs] = await Promise.all([
+              getTransactionsMoMo(),
+              getConfigs()
+          ]);
+          setTransactions(txs);
+          setConfigurations(configs);
       } catch (e) {
-          console.error("Erreur chargement transactions MoMo", e);
+          console.error("Erreur chargement:", e);
+          toast.error("Erreur lors du chargement des données");
       } finally {
           setLoading(false);
       }
   };
 
-  const handlePayment = async () => {
+  // --- STATS CALCULATION ---
+  const stats = useMemo(() => {
+      const totalIn = transactions
+        .filter(t => t.transaction_type === 'collection' && t.status === 'success')
+        .reduce((acc, curr) => acc + Number(curr.amount), 0);
+      
+      const totalOut = transactions
+        .filter(t => t.transaction_type === 'payout' && t.status === 'success')
+        .reduce((acc, curr) => acc + Number(curr.amount), 0);
+      
+      return {
+          total: totalIn - totalOut,
+          in: totalIn,
+          out: totalOut,
+          countIn: transactions.filter(t => t.transaction_type === 'collection').length,
+          countOut: transactions.filter(t => t.transaction_type === 'payout').length
+      };
+  }, [transactions]);
+
+  // --- ACTIONS ---
+
+  const handleTransactionSubmit = async () => {
+      if (!txForm.montant || !txForm.phone) return toast.error("Montant et numéro requis");
+      
+      setSubmitting(true);
       try {
           await initierPaiement({
-              amount: paymentForm.montant,
-              phoneNumber: paymentForm.phone,
-              operator: paymentForm.operator,
-              description: paymentForm.remarque
+              amount: Number(txForm.montant),
+              phoneNumber: txForm.phone,
+              operator: txForm.operator,
+              description: txForm.remarque
           });
+          toast.success("Transaction initiée / enregistrée");
           setShowForm(false);
-          fetchTransactions();
-          alert("Paiement initié avec succès !");
+          loadData();
+          setTxForm({ remarque: '', montant: '', operator: 'MTN', phone: '' });
       } catch (e: any) {
-          console.error(e);
-          alert("Erreur: " + e.message);
+          toast.error(e.message || "Erreur lors de la transaction");
+      } finally {
+          setSubmitting(false);
       }
   };
 
-  const [configurations] = useState([
-    {
-      id: 1,
-      nom: 'Compte Moov Money',
-      operateur: 'Moov Money',
-      numero: '+229 97 00 00 00',
-      statut: 'Actif',
-      seuil: 500000,
-      frais: 1
-    },
-    {
-      id: 2,
-      nom: 'Compte MTN Money',
-      operateur: 'MTN Money',
-      numero: '+229 96 00 00 00',
-      statut: 'Actif',
-      seuil: 500000,
-      frais: 1
-    },
-    {
-      id: 3,
-      nom: 'Compte MTN ONATEL',
-      operateur: 'MTN ONATEL',
-      numero: '+229 95 00 00 00',
-      statut: 'Inactif',
-      seuil: 500000,
-      frais: 1
-    }
-  ]);
+  const handleConfigSubmit = async () => {
+      if (!configForm.nom || !configForm.numero) return toast.error("Nom et numéro requis");
+
+      setSubmitting(true);
+      try {
+          await addConfig({
+              nom: configForm.nom,
+              operateur: configForm.operateur,
+              numero: configForm.numero
+          });
+          toast.success("Compte ajouté avec succès");
+          setShowForm(false);
+          loadData();
+          setConfigForm({ nom: '', operateur: 'MTN', numero: '' });
+      } catch (e: any) {
+          toast.error(e.message || "Erreur ajout compte");
+      } finally {
+          setSubmitting(false);
+      }
+  };
+
+  const handleDeleteConfig = async (id: number) => {
+      if(!window.confirm("Supprimer ce compte ?")) return;
+      try {
+          await deleteConfig(id);
+          toast.success("Compte supprimé");
+          setConfigurations(prev => prev.filter(c => c.id !== id));
+      } catch (e: any) {
+          toast.error("Erreur suppression");
+      }
+  };
+
+  const handleToggleConfig = async (id: number) => {
+      try {
+          const updated = await toggleConfig(id);
+          setConfigurations(prev => prev.map(c => c.id === id ? updated : c));
+          toast.success("Statut mis à jour");
+      } catch (e: any) {
+          toast.error("Erreur mise à jour");
+      }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -126,7 +185,7 @@ const MobileMoney: React.FC = () => {
           <p className="text-base-content/60 font-medium mt-1">Gérez vos paiements Mobile Money et configurations.</p>
         </div>
         <div className="flex gap-3">
-             <Button variant="ghost" className="bg-base-100 border border-base-200 text-base-content shadow-sm rounded-full h-10" onClick={fetchTransactions}>
+             <Button variant="ghost" className="bg-base-100 border border-base-200 text-base-content shadow-sm rounded-full h-10" onClick={loadData}>
                 <RefreshCw size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} /> Actualiser
             </Button>
             <Button 
@@ -172,43 +231,43 @@ const MobileMoney: React.FC = () => {
           <Card className="border-none shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
               <div className="flex justify-between items-start">
                   <div>
-                      <p className="text-blue-100 font-medium mb-1">Solde Total Mobile Money</p>
-                      <h3 className="text-3xl font-bold">2,540,000 F</h3>
+                      <p className="text-blue-100 font-medium mb-1">Solde Total (Théorique)</p>
+                      <h3 className="text-3xl font-bold">{stats.total.toLocaleString()} F</h3>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
                       <Wallet size={24} className="text-white"/>
                   </div>
               </div>
               <div className="mt-4 flex items-center gap-2 text-sm text-blue-100 bg-blue-600/30 w-fit px-2 py-1 rounded-lg">
-                  <TrendingUp size={14} /> +15% ce mois
+                  <TrendingUp size={14} /> Basé sur l'historique
               </div>
           </Card>
            <Card className="border-none shadow-lg bg-base-100">
               <div className="flex justify-between items-start">
                   <div>
-                      <p className="text-base-content/60 font-medium mb-1">Entrées (Mois)</p>
-                      <h3 className="text-3xl font-bold text-base-content">1,850,000 F</h3>
+                      <p className="text-base-content/60 font-medium mb-1">Entrées</p>
+                      <h3 className="text-3xl font-bold text-base-content">{stats.in.toLocaleString()} F</h3>
                   </div>
                   <div className="p-3 bg-green-100 rounded-xl text-green-600 dark:bg-green-900/30 dark:text-green-400">
                       <ArrowDownLeft size={24}/>
                   </div>
               </div>
               <div className="mt-4 text-sm text-base-content/40">
-                  12 transactions reçues
+                  {stats.countIn} transactions reçues
               </div>
           </Card>
            <Card className="border-none shadow-lg bg-base-100">
               <div className="flex justify-between items-start">
                   <div>
-                      <p className="text-base-content/60 font-medium mb-1">Sorties (Mois)</p>
-                      <h3 className="text-3xl font-bold text-base-content">450,000 F</h3>
+                      <p className="text-base-content/60 font-medium mb-1">Sorties</p>
+                      <h3 className="text-3xl font-bold text-base-content">{stats.out.toLocaleString()} F</h3>
                   </div>
                   <div className="p-3 bg-red-100 rounded-xl text-red-600 dark:bg-red-900/30 dark:text-red-400">
                       <ArrowUpRight size={24}/>
                   </div>
               </div>
               <div className="mt-4 text-sm text-base-content/40">
-                  5 transactions envoyées
+                  {stats.countOut} transactions envoyées
               </div>
           </Card>
       </motion.div>
@@ -233,19 +292,6 @@ const MobileMoney: React.FC = () => {
                         className="input input-sm h-10 w-full pl-11 bg-base-200/50 border-transparent focus:bg-base-100 focus:border-primary rounded-xl transition-all"
                     />
                     </div>
-                    <div className="flex gap-2 w-full md:w-auto">
-                        <select className="select select-sm h-10 bg-base-200/50 border-transparent rounded-xl">
-                            <option>Tous les statuts</option>
-                            <option>Validé</option>
-                            <option>En attente</option>
-                            <option>Échoué</option>
-                        </select>
-                         <select className="select select-sm h-10 bg-base-200/50 border-transparent rounded-xl">
-                            <option>Tous les opérateurs</option>
-                            <option>Moov Money</option>
-                            <option>MTN Money</option>
-                        </select>
-                    </div>
                 </div>
             </Card>
 
@@ -264,7 +310,9 @@ const MobileMoney: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-base-200">
-                        {transactions.map(tx => (
+                        {transactions.length === 0 ? (
+                            <tr><td colSpan={7} className="text-center py-8 text-base-content/40">Aucune transaction</td></tr>
+                        ) : transactions.map(tx => (
                             <tr key={tx.id} className="hover:bg-base-200/50 transition-colors">
                                 <td className="pl-6 font-medium text-base-content">{tx.transaction_id || 'PENDING-' + tx.id}</td>
                                 <td>
@@ -308,14 +356,19 @@ const MobileMoney: React.FC = () => {
             className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
         >
             {configurations.map(config => (
-                <Card key={config.id} className="border-none shadow-xl bg-base-100 hover:-translate-y-1 transition-transform group">
+                <Card key={config.id} className={`border-none shadow-xl bg-base-100 hover:-translate-y-1 transition-transform group ${config.statut === 'inactif' ? 'opacity-60 grayscale' : ''}`}>
                     <div className="flex justify-between items-start mb-4">
-                        <div className={`p-3 rounded-2xl ${config.operateur.includes('Moov') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
+                        <div className={`p-3 rounded-2xl ${config.operateur.includes('MOOV') ? 'bg-blue-100 text-blue-600' : 'bg-yellow-100 text-yellow-600'}`}>
                             <Smartphone size={24} />
                         </div>
                         <div className="form-control">
                             <label className="cursor-pointer label p-0">
-                                <input type="checkbox" className="toggle toggle-sm toggle-primary" checked={config.statut === 'Actif'} readOnly />
+                                <input 
+                                    type="checkbox" 
+                                    className="toggle toggle-sm toggle-primary" 
+                                    checked={config.statut === 'actif'} 
+                                    onChange={() => handleToggleConfig(config.id)}
+                                />
                             </label>
                         </div>
                     </div>
@@ -328,18 +381,16 @@ const MobileMoney: React.FC = () => {
                              <span className="text-base-content/60">Numéro:</span>
                              <span className="font-mono font-medium text-base-content">{config.numero}</span>
                          </div>
-                         <div className="flex justify-between text-sm">
-                             <span className="text-base-content/60">Seuil Max:</span>
-                             <span className="font-medium text-base-content">{config.seuil.toLocaleString()} F</span>
-                         </div>
                     </div>
 
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <Button variant="ghost" size="sm" className="flex-1 border border-base-200">
-                             Modifier
-                         </Button>
-                         <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
-                             <Trash2 size={18} />
+                    <div className="flex gap-2">
+                         <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-red-500 hover:bg-red-50 w-full"
+                            onClick={() => handleDeleteConfig(config.id)}
+                         >
+                             <Trash2 size={18} /> Supprimer
                          </Button>
                     </div>
                 </Card>
@@ -347,7 +398,7 @@ const MobileMoney: React.FC = () => {
             
             {/* Add New Card Placeholder */}
             <div 
-                className="border-2 border-dashed border-base-300 rounded-2xl flex flex-col items-center justify-center p-8 text-base-content/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all cursor-pointer min-h-[300px]"
+                className="border-2 border-dashed border-base-300 rounded-2xl flex flex-col items-center justify-center p-8 text-base-content/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all cursor-pointer min-h-[250px]"
                 onClick={() => {
                      setFormType('configuration');
                      setShowForm(true);
@@ -362,7 +413,7 @@ const MobileMoney: React.FC = () => {
       )}
       </AnimatePresence>
 
-      {/* Simplified Modal for Forms */}
+      {/* Modal for Forms */}
       {showForm && (
            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                <motion.div 
@@ -379,23 +430,82 @@ const MobileMoney: React.FC = () => {
                        </button>
                    </div>
                    
-                   <div className="space-y-4">
-                       <Input label="Nom / Référence" placeholder="Ex: Paiement Loyer..." />
-                       <div className="grid grid-cols-2 gap-4">
-                           <Input label="Montant" placeholder="0 F CFA" type="number" />
-                           <div>
-                               <label className="block text-sm font-bold text-base-content/70 mb-2">Opérateur</label>
-                               <select className="select select-bordered w-full bg-base-200/50">
-                                   <option>Moov Money</option>
-                                   <option>MTN Money</option>
-                               </select>
+                   {formType === 'transaction' ? (
+                       <div className="space-y-4">
+                           <Input 
+                                label="Description / Référence" 
+                                placeholder="Ex: Paiement Loyer..." 
+                                value={txForm.remarque}
+                                onChange={(e) => setTxForm({...txForm, remarque: e.target.value})}
+                            />
+                           <div className="grid grid-cols-2 gap-4">
+                               <Input 
+                                    label="Montant" 
+                                    placeholder="0 F CFA" 
+                                    type="number" 
+                                    value={txForm.montant}
+                                    onChange={(e) => setTxForm({...txForm, montant: e.target.value})}
+                                />
+                               <div>
+                                   <label className="block text-sm font-bold text-base-content/70 mb-2">Opérateur</label>
+                                   <select 
+                                        className="select select-bordered w-full bg-base-200/50"
+                                        value={txForm.operator}
+                                        onChange={(e) => setTxForm({...txForm, operator: e.target.value})}
+                                    >
+                                       <option value="MTN">MTN Money</option>
+                                       <option value="MOOV">Moov Money</option>
+                                       <option value="CELTIPAY">Celtiis Cash</option>
+                                   </select>
+                               </div>
+                           </div>
+                           <Input 
+                                label="Numéro de téléphone" 
+                                placeholder="22997..." 
+                                value={txForm.phone}
+                                onChange={(e) => setTxForm({...txForm, phone: e.target.value})}
+                            />
+                       </div>
+                   ) : (
+                       <div className="space-y-4">
+                           <Input 
+                                label="Nom du Compte" 
+                                placeholder="Ex: Ma Boutique MTN" 
+                                value={configForm.nom}
+                                onChange={(e) => setConfigForm({...configForm, nom: e.target.value})}
+                            />
+                           <div className="grid grid-cols-2 gap-4">
+                               <div>
+                                   <label className="block text-sm font-bold text-base-content/70 mb-2">Opérateur</label>
+                                   <select 
+                                        className="select select-bordered w-full bg-base-200/50"
+                                        value={configForm.operateur}
+                                        onChange={(e) => setConfigForm({...configForm, operateur: e.target.value})}
+                                    >
+                                       <option value="MTN">MTN Money</option>
+                                       <option value="MOOV">Moov Money</option>
+                                       <option value="CELTIPAY">Celtiis Cash</option>
+                                   </select>
+                               </div>
+                               <Input 
+                                    label="Numéro" 
+                                    placeholder="+229..." 
+                                    value={configForm.numero}
+                                    onChange={(e) => setConfigForm({...configForm, numero: e.target.value})}
+                                />
                            </div>
                        </div>
-                   </div>
+                   )}
 
                    <div className="flex justify-end gap-3 mt-8">
                        <Button variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
-                       <Button variant="primary" onClick={() => setShowForm(false)}>Enregistrer</Button>
+                       <Button 
+                            variant="primary" 
+                            onClick={formType === 'transaction' ? handleTransactionSubmit : handleConfigSubmit}
+                            disabled={submitting}
+                        >
+                           {submitting ? 'Enregistrement...' : 'Enregistrer'}
+                       </Button>
                    </div>
                </motion.div>
            </div>

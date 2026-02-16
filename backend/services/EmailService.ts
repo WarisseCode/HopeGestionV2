@@ -147,14 +147,20 @@ Plateforme de Gestion Immobilière
     }
 
     /**
-     * Send password reset confirmation email
+     * Send rent payment confirmation to tenant
      */
-    async sendPasswordResetConfirmation(to: string, userName: string, ipAddress: string = 'unknown'): Promise<boolean> {
+    async sendRentPaymentConfirmation(
+        to: string, 
+        tenantName: string, 
+        amount: string, 
+        period: string,
+        receiptUrl: string
+    ): Promise<boolean> {
         try {
             const mailOptions = {
                 from: process.env.EMAIL_FROM || '"Hope Gestion" <noreply@hopegestion.com>',
                 to,
-                subject: 'Votre mot de passe a été modifié - Hope Gestion',
+                subject: `Confirmation de paiement - Loyer ${period}`,
                 html: `
                     <!DOCTYPE html>
                     <html>
@@ -165,32 +171,28 @@ Plateforme de Gestion Immobilière
                             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
                             .header { background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
                             .content { background: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
-                            .success { background: #D1FAE5; border-left: 4px solid #10B981; padding: 12px; margin: 20px 0; }
+                            .details { background: white; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; margin: 20px 0; }
+                            .button { display: inline-block; padding: 12px 24px; background: #10B981; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; }
                         </style>
                     </head>
                     <body>
                         <div class="container">
                             <div class="header">
-                                <h1>✅ Mot de passe modifié</h1>
+                                <h1>✅ Paiement Confirmé</h1>
                             </div>
                             <div class="content">
-                                <p>Bonjour <strong>${userName}</strong>,</p>
+                                <p>Bonjour <strong>${tenantName}</strong>,</p>
+                                <p>Nous avons bien reçu votre paiement pour le loyer de <strong>${period}</strong>.</p>
                                 
-                                <div class="success">
-                                    Votre mot de passe Hope Gestion a été modifié avec succès.
+                                <div class="details">
+                                    <p><strong>Montant payé :</strong> ${amount} FCFA</p>
+                                    <p><strong>Période :</strong> ${period}</p>
+                                    <p><strong>Date :</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
                                 </div>
-                                
-                                <p>Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.</p>
-                                
-                                <p style="font-size: 14px; color: #64748b;">
-                                    <strong>Informations de sécurité :</strong><br>
-                                    Modification effectuée depuis : ${ipAddress}
-                                </p>
-                                
-                                <hr style="border: none; border-top: 1px solid #cbd5e1; margin: 20px 0;">
-                                
-                                <p style="font-size: 13px; color: #ef4444;">
-                                    ⚠️ Si vous n'êtes pas à l'origine de cette modification, contactez immédiatement notre support.
+
+                                <p>Votre quittance est disponible en téléchargement :</p>
+                                <p style="text-align: center;">
+                                    <a href="${receiptUrl}" class="button">📄 Télécharger ma Quittance</a>
                                 </p>
                             </div>
                         </div>
@@ -202,7 +204,129 @@ Plateforme de Gestion Immobilière
             await this.transporter.sendMail(mailOptions);
             return true;
         } catch (error) {
-            console.error('❌ Error sending confirmation email:', error);
+            console.error('❌ Error sending rent payment confirmation:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Notify manager/owner of received payment
+     */
+    async sendPaymentReceivedNotification(
+        to: string,
+        managerName: string,
+        tenantName: string,
+        amount: string,
+        period: string
+    ): Promise<boolean> {
+        try {
+            const mailOptions = {
+                from: process.env.EMAIL_FROM || '"Hope Gestion" <noreply@hopegestion.com>',
+                to,
+                subject: `💰 Nouveau paiement reçu - ${tenantName}`,
+                html: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <style>
+                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                            .header { background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+                            .content { background: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
+                            .details { background: white; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; margin: 20px 0; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <h1>💰 Paiement Reçu</h1>
+                            </div>
+                            <div class="content">
+                                <p>Bonjour <strong>${managerName}</strong>,</p>
+                                <p>Le locataire <strong>${tenantName}</strong> vient de régler son loyer.</p>
+                                
+                                <div class="details">
+                                    <p><strong>Locataire :</strong> ${tenantName}</p>
+                                    <p><strong>Montant :</strong> ${amount} FCFA</p>
+                                    <p><strong>Période :</strong> ${period}</p>
+                                    <p><strong>Mode :</strong> Mobile Money (FedaPay)</p>
+                                </div>
+
+                                <p>La quittance a été générée et envoyée automatiquement au locataire.</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `
+            };
+
+            await this.transporter.sendMail(mailOptions);
+            return true;
+        } catch (error) {
+            console.error('❌ Error sending payment notification to manager:', error);
+            return false;
+        }
+    }
+    /**
+     * Send confirmation that password was successfully reset
+     */
+    async sendPasswordResetConfirmation(
+        to: string,
+        userName: string,
+        ipAddress: string
+    ): Promise<boolean> {
+        try {
+            const mailOptions = {
+                from: process.env.EMAIL_FROM || '"Hope Gestion" <noreply@hopegestion.com>',
+                to,
+                subject: 'Confirmation de réinitialisation de mot de passe',
+                html: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <style>
+                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                            .header { background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+                            .content { background: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
+                            .footer { text-align: center; color: #64748b; font-size: 12px; margin-top: 20px; }
+                            .code { font-family: monospace; background: #e2e8f0; padding: 2px 6px; border-radius: 3px; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <h1>✅ Mot de passe modifié</h1>
+                            </div>
+                            <div class="content">
+                                <p>Bonjour <strong>${userName}</strong>,</p>
+                                <p>Le mot de passe de votre compte Hope Gestion a été modifié avec succès.</p>
+                                
+                                <p style="margin-top: 20px;">Si vous êtes à l'origine de cette action, vous pouvez ignorer cet email.</p>
+                                
+                                <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 12px; margin: 20px 0;">
+                                    <strong>⚠️ Sécurité :</strong> Si vous n'avez pas effectué ce changement, veuillez contacter le support immédiatement.
+                                </div>
+
+                                <p style="font-size: 13px; color: #64748b; margin-top: 20px;">
+                                    Modification effectuée depuis l'adresse IP : <span class="code">${ipAddress}</span>
+                                </p>
+                            </div>
+                            <div class="footer">
+                                <p>Hope Gestion - Plateforme de Gestion Immobilière</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `
+            };
+
+            await this.transporter.sendMail(mailOptions);
+            return true;
+        } catch (error) {
+            console.error('❌ Error sending password reset confirmation:', error);
             return false;
         }
     }

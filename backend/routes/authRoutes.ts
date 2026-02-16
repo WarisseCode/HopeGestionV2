@@ -12,6 +12,8 @@ import { AuditService } from '../services/AuditService';
 import EmailService from '../services/EmailService';
 import { validatePassword } from '../utils/passwordUtils';
 
+// Re-trigger compilation for new EmailService method
+
 const router = Router();
 
 // Pour que les routes aient accès à la DB (Méthode simple pour le MVP)
