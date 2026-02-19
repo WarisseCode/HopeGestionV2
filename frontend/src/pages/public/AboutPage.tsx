@@ -60,12 +60,12 @@ const AboutPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             <TeamMember 
               name="Thomas DEGBO"
-              role="CEO"
+              role="CTO Stratégique"
               image={ThomasImage}
             />
             <TeamMember 
-              name="Sarah K."
-              role="CTO Stratégique"
+              name="Inès DEGBO."
+              role="CEO"
               image={SarahImage} 
             />
             <TeamMember 
