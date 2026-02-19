@@ -29,10 +29,11 @@ import FinanceSchedules from './finance/FinanceSchedules';
 import FinanceExpenses from './finance/FinanceExpenses';
 import FinanceLoans from './finance/FinanceLoans';
 import FinanceTax from './finance/FinanceTax';
+import FinanceOnlinePayments from './finance/FinanceOnlinePayments';
 import FinanceChart from '../components/finance/FinanceChart';
 
 const Finances: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'paiements' | 'echeances' | 'depenses' | 'prets' | 'fiscalite'>('echeances');
+  const [activeTab, setActiveTab] = useState<'paiements' | 'echeances' | 'en_ligne' | 'depenses' | 'prets' | 'fiscalite'>('echeances');
   const [showForm, setShowForm] = useState(false);
   const [activeSubModule, setActiveSubModule] = useState<string>('paiements');
 
@@ -304,6 +305,14 @@ const Finances: React.FC = () => {
                 <ArrowDownRight size={18}/> Revenus & Loyers
             </button>
             <button
+                onClick={() => setActiveTab('en_ligne')}
+                className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                activeTab === 'en_ligne' ? 'bg-cyan-50 text-cyan-700 shadow-sm border border-cyan-100' : 'text-gray-500 hover:bg-gray-50'
+                }`}
+            >
+                📱 Paiements en ligne
+            </button>
+            <button
                 onClick={() => setActiveTab('depenses')}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
                 activeTab === 'depenses' ? 'bg-red-50 text-red-700 shadow-sm border border-red-100' : 'text-gray-500 hover:bg-gray-50'
@@ -406,6 +415,7 @@ const Finances: React.FC = () => {
             )}
 
             {activeTab === 'echeances' && <FinanceSchedules month={selectedMonth} year={selectedYear} />}
+            {activeTab === 'en_ligne' && <FinanceOnlinePayments month={selectedMonth} year={selectedYear} />}
             {activeTab === 'depenses' && <FinanceExpenses />}
             {activeTab === 'prets' && <FinanceLoans />}
             {activeTab === 'fiscalite' && <FinanceTax />}

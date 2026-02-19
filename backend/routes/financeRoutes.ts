@@ -221,11 +221,13 @@ router.get('/stats', permissions.canRead('finances'), async (req: AuthenticatedR
 });
 
 // GET /api/finances/stats/monthly - Revenus/Dépenses par mois (pour graphiques)
-router.get('/stats/monthly', permissions.canRead('finances'), async (req: AuthenticatedRequest, res: Response) => {
+router.get('/stats/monthly', permissions.canRead('finances'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const months = parseInt(req.query.months as string) || 6;
+        const ownerIds = (req as any).ownerIds;
+        const ownerFilter = buildOwnerWhereClause(ownerIds);
 
-        // Revenue per month
+        // Revenue per month (filtered by owner)
         const revenueRes = await pool.query(`
             SELECT 
                 EXTRACT(MONTH FROM date_paiement)::int as month,
@@ -234,11 +236,12 @@ router.get('/stats/monthly', permissions.canRead('finances'), async (req: Authen
             FROM payments
             WHERE date_paiement >= (CURRENT_DATE - INTERVAL '1 month' * $1)
             AND statut = 'valide'
+            AND ${ownerFilter.replace(/owner_id/g, 'owner_id')}
             GROUP BY year, month
             ORDER BY year, month
         `, [months]);
 
-        // Expenses per month
+        // Expenses per month (filtered by owner)
         const expenseRes = await pool.query(`
             SELECT 
                 EXTRACT(MONTH FROM date_expense)::int as month,
@@ -246,6 +249,7 @@ router.get('/stats/monthly', permissions.canRead('finances'), async (req: Authen
                 SUM(amount) as total
             FROM expenses
             WHERE date_expense >= (CURRENT_DATE - INTERVAL '1 month' * $1)
+            AND ${ownerFilter.replace(/owner_id/g, 'owner_id')}
             GROUP BY year, month
             ORDER BY year, month
         `, [months]);
@@ -338,9 +342,11 @@ router.get('/stats/building/:id', permissions.canRead('finances'), async (req: A
 });
 
 // GET /api/finances/export/excel - Exportation Excel des paiements
-router.get('/export/excel', permissions.canRead('finances'), async (req: AuthenticatedRequest, res: Response) => {
+router.get('/export/excel', permissions.canRead('finances'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { start_date, end_date } = req.query;
+        const ownerIds = (req as any).ownerIds;
+        const ownerFilter = buildOwnerWhereClause(ownerIds);
         
         let query = `
             SELECT 
@@ -356,7 +362,7 @@ router.get('/export/excel', permissions.canRead('finances'), async (req: Authent
             JOIN owners o ON l.owner_id = o.id
             JOIN lots lo ON l.lot_id = lo.id
             JOIN buildings b ON lo.building_id = b.id
-            WHERE 1=1
+            WHERE ${ownerFilter.replace(/owner_id/g, 'p.owner_id')}
         `;
         const params: any[] = [];
         if (start_date) { params.push(start_date); query += ` AND p.date_paiement >= $${params.length}`; }
@@ -479,7 +485,21 @@ router.get('/schedules', permissions.canRead('finances'), filterByOwner, async (
                     AND p.statut = 'valide' 
                     ORDER BY p.date_paiement DESC, p.created_at DESC
                     LIMIT 1
-                ) as quittance_url
+                ) as quittance_url,
+                (
+                    SELECT rpt.status
+                    FROM rent_payment_transactions rpt
+                    WHERE rpt.schedule_id = ps.id
+                    ORDER BY rpt.created_at DESC
+                    LIMIT 1
+                ) as online_payment_status,
+                (
+                    SELECT rpt.paid_at
+                    FROM rent_payment_transactions rpt
+                    WHERE rpt.schedule_id = ps.id AND rpt.status = 'approved'
+                    ORDER BY rpt.created_at DESC
+                    LIMIT 1
+                ) as online_paid_at
             FROM payment_schedules ps
             JOIN leases l ON ps.lease_id = l.id
             JOIN tenants t ON l.tenant_id = t.id

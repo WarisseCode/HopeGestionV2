@@ -1,6 +1,7 @@
 // backend/routes/authRoutes.ts
 
 import { Router } from 'express';
+import { protect } from '../middleware/authMiddleware';
 import { Pool } from 'pg'; 
 
 // Outils de sécurité
@@ -12,6 +13,7 @@ import { AuditService } from '../services/AuditService';
 import EmailService from '../services/EmailService';
 import { validatePassword } from '../utils/passwordUtils';
 
+
 // Re-trigger compilation for new EmailService method
 
 const router = Router();
@@ -19,11 +21,12 @@ const router = Router();
 // Pour que les routes aient accès à la DB (Méthode simple pour le MVP)
 import pool from '../db/database';
 import { JWT_SECRET } from '../config/config';
+
 const SALT_ROUNDS = 10; // Niveau de complexité pour bcrypt
 
 // 1. Endpoint d'INSCRIPTION
 router.post('/register', async (req, res) => {
-    const { email, password, prenoms, nom, telephone, userType, nomAgence } = req.body;
+    const { email, password, prenoms, nom, telephone, userType, nomAgence, invitationCode } = req.body;
 
     try {
         // Validation des champs requis
@@ -99,6 +102,82 @@ router.post('/register', async (req, res) => {
             ipAddress: req.ip || 'unknown',
             userAgent: (req.headers['user-agent'] as string) || 'unknown'
         });
+
+        // Handle Invitation Code (Link to existing tenant OR Manager Org)
+        if (invitationCode) {
+            try {
+                // 1. Try to find INDIVIDUAL tenant invitation
+                const tenantRes = await pool.query(
+                    `SELECT id FROM tenants WHERE invitation_code = $1 AND user_id IS NULL`,
+                    [invitationCode]
+                );
+
+                if (tenantRes.rows.length > 0) {
+                    const tenantId = tenantRes.rows[0].id;
+                    const userId = result.rows[0].id;
+
+                    // Update tenant with User info (Synchronization as requested)
+                    await pool.query(
+                        `UPDATE tenants SET 
+                            user_id = $1,
+                            nom = $2, 
+                            email = $3, 
+                            telephone_principal = $4,
+                            prenoms = $5
+                         WHERE id = $6`,
+                        [userId, nom, sanitizedEmail, finalPhone, prenoms, tenantId]
+                    );
+
+                    // Force role to 'locataire'
+                    await pool.query(
+                        `UPDATE users SET user_type = 'locataire', role = 'locataire' WHERE id = $1`,
+                        [userId]
+                    );
+
+                    console.log(`[Auth] User ${userId} linked to Tenant ${tenantId} via INDIVIDUAL code.`);
+                } else {
+                    // 2. Try to find MANAGER/AGENCY code
+                    const ownerRes = await pool.query(
+                        `SELECT id FROM owners WHERE manager_code = $1`,
+                        [invitationCode]
+                    );
+
+                    if (ownerRes.rows.length > 0) {
+                        const ownerId = ownerRes.rows[0].id;
+                        const userId = result.rows[0].id;
+                        
+                        // Create NEW Tenant for this owner
+                        const newTenantCode = 'LOC-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                        
+                        // Note: tenants table requires nom, prenoms, telephone_principal
+                        const newTenant = await pool.query(
+                            `INSERT INTO tenants (
+                                owner_id, nom, prenoms, email, telephone_principal, 
+                                statut, type, invitation_code, user_id
+                            ) VALUES ($1, $2, $3, $4, $5, 'Nouveau', 'Locataire', $6, $7)
+                            RETURNING id`,
+                            [
+                                ownerId, nom, prenoms, sanitizedEmail, finalPhone,
+                                newTenantCode, userId
+                            ]
+                        );
+                        
+                        // Force role to 'locataire'
+                        await pool.query(
+                            `UPDATE users SET user_type = 'locataire', role = 'locataire' WHERE id = $1`,
+                            [userId]
+                        );
+
+                        console.log(`[Auth] User ${userId} created as new Tenant ${newTenant.rows[0].id} via MANAGER code ${ownerId}.`);
+                    } else {
+                        console.warn(`[Auth] Invalid invitation code: ${invitationCode} for user ${result.rows[0].id}`);
+                    }
+                }
+            } catch (linkErr) {
+                console.error('[Auth] Error processing invitation code:', linkErr);
+                // Non-blocking error
+            }
+        }
 
         res.status(201).json({ 
             message: 'Utilisateur créé avec succès.',
@@ -1265,6 +1344,135 @@ router.get('/validate-reset-token/:token', async (req, res) => {
     } catch (error) {
         console.error('❌ Error validating token:', error);
         res.status(500).json({ valid: false, message: 'Erreur de validation.' });
+    }
+});
+
+// 8. Endpoint de liaison manuelle (post-inscription)
+router.post('/link-tenant', async (req, res) => {
+    const { invitationCode, userId } = req.body;
+
+    if (!invitationCode || !userId) {
+        return res.status(400).json({ message: 'Code et ID utilisateur requis.' });
+    }
+
+    try {
+        // 1. Try individual invitation code first (LOC-XXXXXX)
+        const tenantRes = await pool.query(
+            `SELECT id FROM tenants WHERE invitation_code = $1 AND user_id IS NULL`,
+            [invitationCode.toUpperCase()]
+        );
+
+        if (tenantRes.rows.length > 0) {
+            const tenantId = tenantRes.rows[0].id;
+
+            // Get user info for synchronization
+            const userRes = await pool.query(
+                `SELECT nom, prenoms, email, telephone FROM users WHERE id = $1`,
+                [userId]
+            );
+
+            // Link tenant to user
+            await pool.query(
+                `UPDATE tenants SET user_id = $1 WHERE id = $2`,
+                [userId, tenantId]
+            );
+
+            // Sync user data to tenant
+            if (userRes.rows.length > 0) {
+                const u = userRes.rows[0];
+                await pool.query(
+                    `UPDATE tenants SET 
+                        nom = COALESCE($1, nom), 
+                        prenoms = COALESCE($2, prenoms), 
+                        email = COALESCE($3, email), 
+                        telephone_principal = COALESCE($4, telephone_principal)
+                     WHERE id = $5`,
+                    [u.nom, u.prenoms, u.email, u.telephone, tenantId]
+                );
+            }
+
+            // Update user role
+            await pool.query(
+                `UPDATE users SET user_type = 'locataire', role = 'locataire' WHERE id = $1`,
+                [userId]
+            );
+
+            return res.json({ message: 'Dossier locataire lié avec succès.', tenantId });
+        }
+
+        // 2. Try manager code (AG-XXXXXX)
+        const ownerRes = await pool.query(
+            `SELECT id FROM owners WHERE manager_code = $1`,
+            [invitationCode.toUpperCase()]
+        );
+
+        if (ownerRes.rows.length > 0) {
+            const ownerId = ownerRes.rows[0].id;
+
+            // Get user info
+            const userRes = await pool.query(
+                `SELECT nom, prenoms, email, telephone FROM users WHERE id = $1`,
+                [userId]
+            );
+            const u = userRes.rows[0] || {};
+
+            // Generate unique invitation code for the new tenant
+            const codeRes = await pool.query(
+                `SELECT 'LOC-' || substr(md5(random()::text || clock_timestamp()::text), 1, 6) AS code`
+            );
+            const newCode = codeRes.rows[0].code.toUpperCase();
+
+            // Create new tenant linked to this owner and user
+            const newTenant = await pool.query(
+                `INSERT INTO tenants (nom, prenoms, email, telephone_principal, owner_id, user_id, invitation_code, statut)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, 'Actif')
+                 RETURNING id`,
+                [u.nom || '', u.prenoms || '', u.email || '', u.telephone || '', ownerId, userId, newCode]
+            );
+
+            // Update user role
+            await pool.query(
+                `UPDATE users SET user_type = 'locataire', role = 'locataire' WHERE id = $1`,
+                [userId]
+            );
+
+            console.log(`[Auth] New tenant created via manager code: tenant_id=${newTenant.rows[0].id}, owner_id=${ownerId}, user_id=${userId}`);
+            return res.json({ message: 'Dossier locataire créé et lié avec succès.', tenantId: newTenant.rows[0].id });
+        }
+
+        // 3. No match found
+        return res.status(404).json({ message: 'Code invalide ou déjà utilisé.' });
+
+    } catch (error) {
+        console.error('Error linking tenant:', error);
+        res.status(500).json({ message: 'Erreur lors de la liaison.' });
+    }
+});
+
+
+// Récupérer le code gestionnaire (pour le dashboard gestionnaire)
+router.post('/manager-code', protect, async (req: any, res) => {
+    try {
+        const userId = req.user.id;
+        // Find owner managed by this user (or linked owner)
+        // Similar logic to getManagedOwnerId but we need the code
+        const result = await pool.query(
+            `SELECT o.manager_code 
+             FROM owners o
+             JOIN owner_user ou ON o.id = ou.owner_id
+             WHERE ou.user_id = $1 AND ou.is_active = TRUE
+             LIMIT 1`,
+            [userId]
+        );
+
+        if (result.rows.length > 0) {
+            res.json({ managerCode: result.rows[0].manager_code });
+        } else {
+            res.status(404).json({ message: "Aucun code gestionnaire trouvé" });
+        }
+    } catch (error) {
+        console.error('Error fetching manager code:', error);
+        res.status(500).json({ message: "Erreur serveur" });
     }
 });
 

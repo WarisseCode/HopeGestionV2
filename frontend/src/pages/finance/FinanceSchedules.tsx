@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Clock, AlertTriangle, CreditCard, Phone, User, FileText } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, CreditCard, Phone, User, FileText, Wifi } from 'lucide-react';
 import { financeApi } from '../../api/financeApi';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
@@ -23,6 +23,8 @@ interface Schedule {
     charges_mensuelles: string;
     lot_reference: string | null;
     quittance_url: string | null;
+    online_payment_status: string | null;
+    online_paid_at: string | null;
 }
 
 interface FinanceSchedulesProps {
@@ -291,6 +293,21 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
                                                 )}
                                                 Encaisser
                                             </Button>
+                                        )}
+                                        {/* Online payment badge */}
+                                        {schedule.online_payment_status && schedule.status !== 'paid' && (
+                                            <span className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border ${
+                                                schedule.online_payment_status === 'pending'
+                                                    ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                                                    : schedule.online_payment_status === 'approved'
+                                                    ? 'bg-green-50 text-green-700 border-green-200'
+                                                    : 'bg-gray-50 text-gray-500 border-gray-200'
+                                            }`}>
+                                                <Wifi size={12} />
+                                                {schedule.online_payment_status === 'pending' ? 'En ligne (en cours)' :
+                                                 schedule.online_payment_status === 'approved' ? 'Payé en ligne' :
+                                                 'En ligne (échoué)'}
+                                            </span>
                                         )}
                                     </div>
                                 </div>

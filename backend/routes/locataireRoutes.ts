@@ -172,19 +172,23 @@ router.post('/', protect, async (req: any, res) => {
             return res.status(409).json({ message: "Un locataire avec ce téléphone ou cet email existe déjà." });
         }
 
+        // Generate invitation code: LOC- + 6 random alphanumeric chars
+        const invitationCode = 'LOC-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+
         const result = await pool.query(
             `INSERT INTO tenants (
                 owner_id, nom, prenoms, email, telephone_principal, telephone_secondaire,
                 nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel,
                 adresse_actuelle, date_expiration_piece, photo_profil_url, photo_piece_url,
-                caution, avance, paiement_echelonne
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Actif', $11, $12, $13, $14, $15, $16, $17, $18) 
-            RETURNING id`,
+                caution, avance, paiement_echelonne, invitation_code
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Actif', $11, $12, $13, $14, $15, $16, $17, $18, $19) 
+            RETURNING id, invitation_code`,
             [
                 ownerId, nom, prenoms, cleanEmail, telephone_principal, cleanStartPhone2,
                 nationalite, type_piece, numero_piece, type || 'Locataire', mode_paiement_preferentiel,
                 cleanAddress, cleanExpDate, cleanPhotoProfil, cleanPhotoPiece,
-                caution || 0, avance || 0, paiement_echelonne || false
+                caution || 0, avance || 0, paiement_echelonne || false,
+                invitationCode
             ]
         );
 
@@ -203,7 +207,11 @@ router.post('/', protect, async (req: any, res) => {
             console.error('Audit log failed for tenant creation (non-critical):', auditError);
         }
 
-        res.status(201).json({ message: "Locataire créé", id: result.rows[0].id });
+        res.status(201).json({ 
+            message: "Locataire créé", 
+            id: result.rows[0].id,
+            invitation_code: result.rows[0].invitation_code 
+        });
 
     } catch (error) {
         console.error('Error creating tenant:', error);

@@ -13,6 +13,7 @@ export interface Locataire {
     numero_piece?: string;
     photo_piece_url?: string;
     photo_profil_url?: string;
+    invitation_code?: string;
     type: 'Locataire' | 'Acheteur' | 'Prospect';
     statut: 'Actif' | 'Inactif' | 'Expiré' | 'Archivé';
     mode_paiement_preferentiel?: string;

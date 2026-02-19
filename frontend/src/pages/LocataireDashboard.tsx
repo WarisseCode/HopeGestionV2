@@ -12,7 +12,9 @@ import {
   CreditCard,
   Download,
   Phone,
-  MessageSquare
+
+  MessageSquare,
+  Link as LinkIcon
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useUser } from '../contexts/UserContext';
@@ -27,14 +29,19 @@ import NotificationBell from '../components/NotificationBell';
 import type { Activity } from '../components/dashboard/ActivityFeed';
 import type { UpcomingEvent } from '../components/dashboard/UpcomingEvents';
 import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import toast from 'react-hot-toast';
 
 import { getToken } from '../api/authApi';
 import { API_URL } from '../config';
+import { linkTenant } from '../api/authApi';
 
 const LocataireDashboard: React.FC = () => {
   const { user, stats, loading } = useUser();
   const navigate = useNavigate();
   const [activities, setActivities] = React.useState<Activity[]>([]);
+  const [inviteCode, setInviteCode] = React.useState('');
+  const [linking, setLinking] = React.useState(false);
 
   React.useEffect(() => {
     const fetchActivities = async () => {
@@ -97,6 +104,25 @@ const LocataireDashboard: React.FC = () => {
   const diffTime = Math.abs(nextPaymentDate.getTime() - new Date().getTime());
   const joursAvantEcheance = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
 
+  const handleLinkTenant = async () => {
+    if (!inviteCode.trim()) {
+        toast.error('Veuillez saisir un code');
+        return;
+    }
+    setLinking(true);
+    try {
+        await linkTenant(Number(user?.id), inviteCode.trim());
+        toast.success('Dossier lié avec succès !');
+        setInviteCode('');
+        // Reload to refresh stats context
+        window.location.reload();
+    } catch (err: any) {
+        toast.error(err.message || 'Erreur lors de la liaison');
+    } finally {
+        setLinking(false);
+    }
+  };
+
   const recentPayments = (stats as any)?.recentPayments || [];
 
   return (
@@ -125,6 +151,38 @@ const LocataireDashboard: React.FC = () => {
              </div>
         </div>
       </motion.div>
+
+      {/* Helper Card if no apartment linked */}
+      {(!nomLogement || nomLogement === 'Aucun logement' || nomLogement === 'Aucun bail actif') && (
+          <motion.div variants={itemVariants} className="bg-blue-50 border border-blue-200 rounded-2xl p-6 shadow-sm mb-6">
+            <div className="flex flex-col md:flex-row items-center gap-6">
+                <div className="bg-blue-100 p-4 rounded-full text-blue-600">
+                    <LinkIcon size={32} />
+                </div>
+                <div className="flex-1 text-center md:text-left">
+                    <h3 className="text-lg font-bold text-blue-900">Liez votre dossier locataire</h3>
+                    <p className="text-blue-700 mt-1">
+                        Saisissez le code fourni par votre gestionnaire (code individuel ou code agence) pour accéder à vos quittances et payer votre loyer.
+                    </p>
+                </div>
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <Input 
+                        placeholder="Ex: LOC-X8Z9 ou AG-XXXX" 
+                        value={inviteCode}
+                        onChange={(e) => setInviteCode(e.target.value)}
+                        className="bg-white border-blue-300 uppercase font-mono"
+                    />
+                    <Button 
+                        variant="primary" 
+                        onClick={handleLinkTenant}
+                        disabled={linking}
+                    >
+                        {linking ? '...' : 'Lier'}
+                    </Button>
+                </div>
+            </div>
+          </motion.div>
+      )}
 
       {/* Next Payment Alert Banner */}
       <motion.div variants={itemVariants}>

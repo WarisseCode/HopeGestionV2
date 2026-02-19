@@ -4,6 +4,7 @@
 import pool from '../db/database';
 import { fedapayService } from './fedapayService';
 import { receiptService } from './ReceiptService';
+import emailService from './EmailService';
 import type { PaymentOperator, CreatePaymentRequest } from './fedapayService';
 
 // ============================================================================
@@ -283,13 +284,70 @@ export class RentPaymentService {
                 console.log(`[RentPaymentService] Payment confirmed for schedule ${transaction.schedule_id}`);
 
                 // Generate PDF receipt automatically
+                let receiptUrl: string | null = null;
                 if (paymentId) {
                     try {
-                        await receiptService.generateReceipt(paymentId);
+                        receiptUrl = await receiptService.generateReceipt(paymentId);
                         console.log(`[RentPaymentService] Receipt generated for payment ${paymentId}`);
                     } catch (err) {
                         console.error('[RentPaymentService] Error generating receipt:', err);
                     }
+                }
+
+                // Send email notifications (non-blocking)
+                try {
+                    // Get tenant info for email
+                    const tenantInfoRes = await client.query(`
+                        SELECT t.nom, t.prenoms, t.email, ps.description
+                        FROM tenants t
+                        JOIN leases l ON l.tenant_id = t.id
+                        JOIN payment_schedules ps ON ps.id = $1
+                        WHERE t.id = $2
+                    `, [transaction.schedule_id, transaction.tenant_id]);
+
+                    if (tenantInfoRes.rows.length > 0) {
+                        const tenantInfo = tenantInfoRes.rows[0];
+                        const tenantName = `${tenantInfo.prenoms} ${tenantInfo.nom}`;
+                        const period = tenantInfo.description || 'Loyer';
+                        const amountStr = String(transaction.amount);
+
+                        // 1. Email to tenant
+                        if (tenantInfo.email) {
+                            const fullReceiptUrl = receiptUrl 
+                                ? `${process.env.BACKEND_URL || 'http://localhost:3001'}${receiptUrl}`
+                                : '';
+                            emailService.sendRentPaymentConfirmation(
+                                tenantInfo.email,
+                                tenantName,
+                                amountStr,
+                                period,
+                                fullReceiptUrl
+                            ).catch(err => console.error('[RentPaymentService] Email to tenant failed:', err));
+                        }
+
+                        // 2. Email to manager/gestionnaire
+                        const managerRes = await client.query(`
+                            SELECT u.email, u.nom, u.prenoms
+                            FROM owner_user ou
+                            JOIN users u ON ou.user_id = u.id
+                            WHERE ou.owner_id = $1 AND ou.is_active = TRUE
+                            LIMIT 1
+                        `, [transaction.owner_id]);
+
+                        if (managerRes.rows.length > 0) {
+                            const manager = managerRes.rows[0];
+                            const managerName = `${manager.prenoms || ''} ${manager.nom || ''}`.trim();
+                            emailService.sendPaymentReceivedNotification(
+                                manager.email,
+                                managerName,
+                                tenantName,
+                                amountStr,
+                                period
+                            ).catch(err => console.error('[RentPaymentService] Email to manager failed:', err));
+                        }
+                    }
+                } catch (emailErr) {
+                    console.error('[RentPaymentService] Error sending email notifications:', emailErr);
                 }
             }
 

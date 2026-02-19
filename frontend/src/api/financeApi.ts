@@ -304,6 +304,31 @@ export const financeApi = {
         });
         if (!res.ok) throw new Error((await res.json()).message || 'Erreur paiement échéance');
         return await res.json();
+    },
+
+    // --- ONLINE PAYMENTS (Admin/Gestionnaire) ---
+
+    getOnlineTransactions: async (month?: number, year?: number, status?: string): Promise<any[]> => {
+        const token = getToken();
+        let url = `${API_URL}/rent-payments/admin/transactions?month=${month || new Date().getMonth() + 1}&year=${year || new Date().getFullYear()}`;
+        if (status) url += `&status=${status}`;
+        const res = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error((await res.json()).message || 'Erreur chargement transactions');
+        const data = await res.json();
+        return data.transactions;
+    },
+
+    getOnlinePaymentStats: async (month?: number, year?: number): Promise<any> => {
+        const token = getToken();
+        const url = `${API_URL}/rent-payments/admin/stats?month=${month || new Date().getMonth() + 1}&year=${year || new Date().getFullYear()}`;
+        const res = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error((await res.json()).message || 'Erreur chargement stats');
+        const data = await res.json();
+        return data.stats;
     }
 };
 

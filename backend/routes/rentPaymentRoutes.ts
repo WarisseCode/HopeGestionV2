@@ -7,6 +7,9 @@ import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { rentPaymentService } from '../services/RentPaymentService';
 import type { CreateRentPaymentRequest } from '../services/RentPaymentService';
 import type { WebhookPayload } from '../services/fedapayService';
+import permissions from '../middleware/permissionMiddleware';
+import { filterByOwner, buildOwnerWhereClause } from '../middleware/ownerIsolation';
+import pool from '../db/database';
 
 const router = Router();
 
@@ -262,6 +265,138 @@ router.get('/receipt/:transactionId', async (req: AuthenticatedRequest, res: Res
         res.status(500).json({
             success: false,
             message: error.message || 'Erreur lors de la récupération de la quittance'
+        });
+    }
+});
+
+// ============================================================================
+// ADMIN: ONLINE PAYMENT TRANSACTIONS (Gestionnaire/Propriétaire)
+// ============================================================================
+
+/**
+ * GET /api/rent-payments/admin/transactions
+ * List online payment transactions (filtered by owner for gestionnaire)
+ */
+router.get('/admin/transactions', permissions.canRead('finances'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const ownerIds = (req as any).ownerIds;
+        let ownerFilter = '1=1';
+        if (ownerIds && ownerIds.length > 0) {
+            ownerFilter = `l.owner_id IN (${ownerIds.join(',')})`;
+        } else if (ownerIds && ownerIds.length === 0) {
+            return res.json({ success: true, transactions: [], stats: { total: 0, pending: 0, approved: 0, failed: 0 } });
+        }
+
+        const { status: filterStatus, month, year } = req.query;
+        const targetMonth = month ? parseInt(month as string) : new Date().getMonth() + 1;
+        const targetYear = year ? parseInt(year as string) : new Date().getFullYear();
+
+        let statusFilter = '';
+        const params: any[] = [targetMonth, targetYear];
+        if (filterStatus && ['pending', 'approved', 'failed', 'cancelled'].includes(filterStatus as string)) {
+            params.push(filterStatus);
+            statusFilter = `AND rpt.status = $${params.length}`;
+        }
+
+        const result = await pool.query(`
+            SELECT
+                rpt.id,
+                rpt.schedule_id,
+                rpt.amount,
+                rpt.status,
+                rpt.payment_method as operator,
+                rpt.fedapay_transaction_id,
+                rpt.created_at,
+                rpt.paid_at,
+                t.nom as tenant_nom,
+                t.prenoms as tenant_prenoms,
+                t.telephone_principal as tenant_telephone,
+                ps.description as schedule_description,
+                ps.due_date,
+                lo.ref_lot as lot_reference,
+                b.nom as building_name
+            FROM rent_payment_transactions rpt
+            JOIN tenants t ON rpt.tenant_id = t.id
+            JOIN leases l ON rpt.lease_id = l.id
+            LEFT JOIN payment_schedules ps ON rpt.schedule_id = ps.id
+            LEFT JOIN lots lo ON l.lot_id = lo.id
+            LEFT JOIN buildings b ON lo.building_id = b.id
+            WHERE EXTRACT(MONTH FROM rpt.created_at) = $1
+            AND EXTRACT(YEAR FROM rpt.created_at) = $2
+            AND ${ownerFilter}
+            ${statusFilter}
+            ORDER BY rpt.created_at DESC
+        `, params);
+
+        res.json({
+            success: true,
+            transactions: result.rows
+        });
+
+    } catch (error: any) {
+        console.error('[RentPaymentRoutes] Error fetching admin transactions:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Erreur lors de la récupération des transactions en ligne'
+        });
+    }
+});
+
+/**
+ * GET /api/rent-payments/admin/stats
+ * KPIs for online payments (filtered by owner for gestionnaire)
+ */
+router.get('/admin/stats', permissions.canRead('finances'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const ownerIds = (req as any).ownerIds;
+        let ownerFilter = '1=1';
+        if (ownerIds && ownerIds.length > 0) {
+            ownerFilter = `l.owner_id IN (${ownerIds.join(',')})`;
+        } else if (ownerIds && ownerIds.length === 0) {
+            return res.json({
+                success: true,
+                stats: { total_online: 0, pending_count: 0, approved_count: 0, failed_count: 0, total_approved_amount: 0, total_pending_amount: 0 }
+            });
+        }
+
+        const { month, year } = req.query;
+        const targetMonth = month ? parseInt(month as string) : new Date().getMonth() + 1;
+        const targetYear = year ? parseInt(year as string) : new Date().getFullYear();
+
+        const result = await pool.query(`
+            SELECT
+                COUNT(*) as total_online,
+                COUNT(CASE WHEN rpt.status = 'pending' THEN 1 END) as pending_count,
+                COUNT(CASE WHEN rpt.status = 'approved' THEN 1 END) as approved_count,
+                COUNT(CASE WHEN rpt.status IN ('failed', 'cancelled') THEN 1 END) as failed_count,
+                COALESCE(SUM(CASE WHEN rpt.status = 'approved' THEN rpt.amount ELSE 0 END), 0) as total_approved_amount,
+                COALESCE(SUM(CASE WHEN rpt.status = 'pending' THEN rpt.amount ELSE 0 END), 0) as total_pending_amount
+            FROM rent_payment_transactions rpt
+            JOIN leases l ON rpt.lease_id = l.id
+            WHERE EXTRACT(MONTH FROM rpt.created_at) = $1
+            AND EXTRACT(YEAR FROM rpt.created_at) = $2
+            AND ${ownerFilter}
+        `, [targetMonth, targetYear]);
+
+        const stats = result.rows[0];
+
+        res.json({
+            success: true,
+            stats: {
+                total_online: parseInt(stats.total_online),
+                pending_count: parseInt(stats.pending_count),
+                approved_count: parseInt(stats.approved_count),
+                failed_count: parseInt(stats.failed_count),
+                total_approved_amount: parseFloat(stats.total_approved_amount),
+                total_pending_amount: parseFloat(stats.total_pending_amount)
+            }
+        });
+
+    } catch (error: any) {
+        console.error('[RentPaymentRoutes] Error fetching admin stats:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Erreur lors de la récupération des statistiques'
         });
     }
 });

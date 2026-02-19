@@ -8,7 +8,8 @@ import {
   Building2, 
   ArrowRight,
   Eye,
-  EyeOff
+  EyeOff,
+  Key
 } from 'lucide-react';
 import Button from './ui/Button';
 import Input from './ui/Input';
@@ -35,7 +36,8 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
     telephone: '',
     password: '',
     confirmPassword: '',
-    userType: 'gestionnaire'
+    userType: 'gestionnaire',
+    invitationCode: ''
   });
   
   const [showPassword, setShowPassword] = useState(false);
@@ -79,7 +81,8 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
         formData.email,
         formData.telephone,
         formData.password,
-        formData.userType
+        formData.userType,
+        formData.invitationCode
       );
       
       // Appeler la fonction de succès
@@ -239,6 +242,29 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
               ]}
               required
             />
+            
+            {/* Invitation Code Section */}
+            {formData.userType === 'locataire' && (
+              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                 <div className="flex items-start gap-3">
+                    <div className="mt-1 text-blue-500">
+                        <Key size={20} />
+                    </div>
+                    <div className="flex-1">
+                        <h4 className="text-sm font-bold text-blue-800 mb-1">Code d'Invitation ou Code Agence</h4>
+                        <p className="text-xs text-blue-600 mb-3">Saisissez le code fourni par votre gestionnaire (ex: LOC-X8Z9 ou AG-HOPE) pour lier automatiquement votre dossier.</p>
+                        <Input
+                            name="invitationCode"
+                            type="text"
+                            placeholder="Ex: LOC-X8Z9A2"
+                            value={formData.invitationCode}
+                            onChange={handleChange}
+                            className="bg-white border-blue-200 focus:border-blue-500 uppercase font-mono"
+                        />
+                    </div>
+                 </div>
+              </div>
+            )}
             
             <Button 
               type="submit" 

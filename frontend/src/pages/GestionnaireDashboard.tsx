@@ -18,7 +18,8 @@ import {
   Eye,
   ChevronDown,
   ChevronUp,
-  RefreshCw
+  RefreshCw,
+  Copy
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -71,6 +72,28 @@ const GestionnaireDashboard: React.FC = () => {
   const [isLoadingKpis, setIsLoadingKpis] = useState(true);
   const [isLoadingChart, setIsLoadingChart] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [managerCode, setManagerCode] = useState<string | null>(null);
+
+  // Fetch Manager Code
+  useEffect(() => {
+      const fetchCode = async () => {
+          const token = getToken();
+          if(!token) return;
+          try {
+              const res = await fetch(`${API_URL}/auth/manager-code`, {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if(res.ok) {
+                  const data = await res.json();
+                  setManagerCode(data.managerCode);
+              }
+          } catch(e) { console.error(e); }
+      };
+      if (user?.role === 'gestionnaire' || user?.role === 'proprietaire') {
+          fetchCode();
+      }
+  }, [user]);
 
   const handleKpiClick = (kpi: KPIData) => {
       if (kpi.id === 'lots_occupation') {
@@ -311,7 +334,6 @@ const GestionnaireDashboard: React.FC = () => {
             {/* Period Filter */}
             <PeriodFilter value={period} onChange={setPeriod} />
             
-            {/* Search */}
             <SearchInput 
               placeholder="Recherche rapide..." 
               value={searchQuery}
@@ -320,6 +342,22 @@ const GestionnaireDashboard: React.FC = () => {
               className="w-48 lg:w-64"
             />
             
+            {/* Manager Code Badge */}
+            {managerCode && (
+                <div 
+                    className="bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 flex items-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors group" 
+                    onClick={() => {
+                        navigator.clipboard.writeText(managerCode);
+                        alert(`Code ${managerCode} copié !`);
+                    }}
+                    title="Cliquez pour copier votre code agence"
+                >
+                    <span className="text-xs text-gray-500 font-medium uppercase">Code Agence:</span>
+                    <span className="font-bold text-primary font-mono tracking-wider">{managerCode}</span>
+                    <Copy size={14} className="text-gray-400 group-hover:text-primary transition-colors" />
+                </div>
+            )}
+
             <Button variant="primary" className="rounded-full px-6 h-10 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all">
                 <Plus size={18} className="mr-2" />
                 Nouveau

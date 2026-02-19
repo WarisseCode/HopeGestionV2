@@ -24,8 +24,12 @@ import {
   ChevronRight,
   LayoutGrid,
   List,
-  X
+
+  X,
+  Key,
+  Copy
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
@@ -257,6 +261,11 @@ const Locataires: React.FC = () => {
 
   const handleEmail = (email: string) => {
     window.location.href = `mailto:${email}`;
+  };
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast.success('Code d\'invitation copié !');
   };
 
   const containerVariants = {
@@ -498,6 +507,7 @@ const Locataires: React.FC = () => {
                           {person.statut}
                         </div>
                       </div>
+
 
                       <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1">{person.prenoms} {person.nom}</h3>
                       <p className="text-sm text-gray-500 mb-1 flex items-center gap-1.5">

@@ -41,7 +41,8 @@ export async function registerUser(
     email: string, 
     telephone: string, 
     password: string,
-    userType: string
+    userType: string,
+    invitationCode?: string
 ): Promise<RegisterResponse> {
     const data = await apiCall<RegisterResponse>(`${BASE_URL}/auth/register`, {
         method: 'POST',
@@ -51,7 +52,8 @@ export async function registerUser(
             email, 
             telephone, 
             password,
-            userType
+            userType,
+            invitationCode
         }),
     });
     
@@ -96,6 +98,23 @@ export async function getProfile(): Promise<UserProfile> {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         }
+    });
+    
+    return data;
+}
+
+// Lier un locataire via code d'invitation (post-inscription)
+export async function linkTenant(userId: number, invitationCode: string): Promise<{ message: string; tenantId: number }> {
+    const token = getToken();
+    if (!token) throw new Error('Non authentifié');
+
+    const data = await apiCall<{ message: string; tenantId: number }>(`${BASE_URL}/auth/link-tenant`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId, invitationCode })
     });
     
     return data;

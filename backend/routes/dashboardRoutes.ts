@@ -320,13 +320,14 @@ router.get('/stats/locataire', async (req: AuthenticatedRequest, res: Response) 
         const userEmail = userResult.rows[0].email;
         const userPhone = userResult.rows[0].telephone;
         
-        // Chercher le tenant correspondant
+        // Chercher le tenant correspondant (priorité: user_id, puis email/phone)
         const tenantResult = await pool.query(`
             SELECT t.id, t.nom, t.prenoms
             FROM tenants t
-            WHERE t.email = $1 OR t.telephone_principal = $2
+            WHERE t.user_id = $1 OR t.email = $2 OR t.telephone_principal = $3
+            ORDER BY CASE WHEN t.user_id = $1 THEN 0 ELSE 1 END
             LIMIT 1
-        `, [userEmail, userPhone]);
+        `, [userId, userEmail, userPhone]);
         
         if (tenantResult.rows.length === 0) {
             return res.status(200).json({

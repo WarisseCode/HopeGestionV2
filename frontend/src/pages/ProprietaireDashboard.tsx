@@ -9,7 +9,8 @@ import {
   Eye, 
   Users,
   Download,
-  RefreshCw
+  RefreshCw,
+  Copy
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -38,6 +39,28 @@ const ProprietaireDashboard: React.FC = () => {
   const { user, stats, loading } = useUser();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('30d');
+  const [managerCode, setManagerCode] = useState<string | null>(null);
+
+  // Fetch Manager Code
+  React.useEffect(() => {
+      const fetchCode = async () => {
+          const token = getToken();
+          if (!token) return;
+          try {
+              const res = await fetch(`${API_URL}/auth/manager-code`, {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (res.ok) {
+                  const data = await res.json();
+                  setManagerCode(data.managerCode);
+              }
+          } catch (e) { console.error(e); }
+      };
+      if (user?.role === 'proprietaire' || user?.role === 'gestionnaire') {
+          fetchCode();
+      }
+  }, [user]);
 
   // New State for Real Data
   const [chartData, setChartData] = useState<{ name: string; revenus: number; depenses: number }[]>([]);
@@ -152,6 +175,22 @@ const ProprietaireDashboard: React.FC = () => {
         <div className="flex items-center gap-3 flex-wrap">
             {/* Period Filter */}
             <PeriodFilter value={period} onChange={setPeriod} compact />
+
+            {/* Manager Code Badge */}
+            {managerCode && (
+                <div 
+                    className="bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 flex items-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors group" 
+                    onClick={() => {
+                        navigator.clipboard.writeText(managerCode);
+                        alert(`Code ${managerCode} copié !`);
+                    }}
+                    title="Cliquez pour copier votre code agence"
+                >
+                    <span className="text-xs text-gray-500 font-medium uppercase">Code Agence:</span>
+                    <span className="font-bold text-primary font-mono tracking-wider">{managerCode}</span>
+                    <Copy size={14} className="text-gray-400 group-hover:text-primary transition-colors" />
+                </div>
+            )}
 
             {/* Export Button */}
             <Button variant="ghost" className="gap-2">
