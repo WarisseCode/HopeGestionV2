@@ -40,11 +40,14 @@ console.log('✅ JWT_SECRET validation passed');
 
 // Auto-seed Super Admin if none exists
 import { seedSuperAdmin } from './scripts/seedAdmin';
+import { runMigrations } from './scripts/runMigrations';
 
 pool.connect()
     .then(async client => {
         console.log('Successfully connected to PostgreSQL!');
         client.release(); 
+        // Exécuter les migrations automatiques (idempotentes)
+        await runMigrations();
         // Seed Super Admin on first startup
         await seedSuperAdmin();
     })

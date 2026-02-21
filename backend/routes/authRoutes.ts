@@ -1514,23 +1514,40 @@ router.post('/link-tenant', protect, async (req: any, res) => {
 router.post('/manager-code', protect, async (req: any, res) => {
     try {
         const userId = req.user.id;
-        const result = await pool.query(
+        const userEmail = req.user.email;
+
+        // Stratégie 1 : Via owner_user (gestionnaires délégués et propriétaires liés)
+        let result = await pool.query(
             `SELECT o.id as owner_id, o.name as owner_name, o.manager_code
              FROM owners o
              JOIN owner_user ou ON o.id = ou.owner_id
              WHERE ou.user_id = $1 AND ou.is_active = TRUE
+               AND o.manager_code IS NOT NULL AND o.manager_code != ''
              ORDER BY o.name ASC`,
             [userId]
         );
 
+        // Stratégie 2 (fallback) : chercher directement par email dans owners
+        if (result.rows.length === 0 && userEmail) {
+            result = await pool.query(
+                `SELECT id as owner_id, name as owner_name, manager_code
+                 FROM owners
+                 WHERE email = $1
+                   AND manager_code IS NOT NULL AND manager_code != ''
+                 ORDER BY name ASC`,
+                [userEmail]
+            );
+        }
+
         if (result.rows.length > 0) {
-            // Rétro-compatibilité : on garde managerCode (premier owner) + liste complète
             res.json({
                 managerCode: result.rows[0].manager_code,
                 owners: result.rows
             });
         } else {
-            res.status(404).json({ message: "Aucun code gestionnaire trouvé" });
+            // Retourner 200 avec liste vide plutôt que 404 pour éviter les erreurs silencieuses
+            console.warn(`[Auth] No manager_code found for user_id=${userId} (email=${userEmail})`);
+            res.json({ managerCode: null, owners: [] });
         }
     } catch (error) {
         console.error('Error fetching manager code:', error);

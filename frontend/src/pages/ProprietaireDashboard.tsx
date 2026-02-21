@@ -57,7 +57,7 @@ const ProprietaireDashboard: React.FC = () => {
               }
           } catch (e) { console.error(e); }
       };
-      if (user?.role === 'proprietaire' || user?.role === 'gestionnaire') {
+      if (user) {
           fetchCode();
       }
   }, [user]);

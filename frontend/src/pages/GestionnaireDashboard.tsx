@@ -94,7 +94,7 @@ const GestionnaireDashboard: React.FC = () => {
               }
           } catch(e) { console.error(e); }
       };
-      if (user?.role === 'gestionnaire' || user?.role === 'proprietaire') {
+      if (user) {
           fetchCode();
       }
   }, [user]);

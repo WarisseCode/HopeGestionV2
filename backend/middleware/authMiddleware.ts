@@ -3,6 +3,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../config/config';
+import pool from '../db/database';
 
 // 1. Définir l'interface pour étendre la requête Express
 // Cela permet d'ajouter 'userId' et 'userRole' à l'objet 'req' après décodage.
@@ -13,7 +14,7 @@ export interface AuthenticatedRequest extends Request {
 }
 
 // 2. Fonction principale du middleware
-export const protect = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const protect = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     // 1. Récupérer le jeton de l'en-tête "Authorization"
     const authHeader = req.headers.authorization;
 
@@ -40,12 +41,24 @@ export const protect = (req: AuthenticatedRequest, res: Response, next: NextFunc
             const payload = decoded as { 
                 id: number, 
                 role: string, 
+                email?: string,
                 isGuest?: boolean, 
                 issuerId?: number, 
                 permissions?: any,
                 userType?: string 
             };
             console.log(`[AUTH] User authenticated. ID: ${payload.id}, Role: ${payload.role}, IsGuest: ${payload.isGuest || false}`);
+            
+            // Récupérer l'email depuis la DB si pas dans le token
+            let userEmail = payload.email || null;
+            if (!userEmail) {
+                try {
+                    const userRow = await pool.query('SELECT email FROM users WHERE id = $1', [payload.id]);
+                    if (userRow.rows.length > 0) userEmail = userRow.rows[0].email;
+                } catch (dbErr) {
+                    console.warn('[AUTH] Could not fetch user email from DB:', dbErr);
+                }
+            }
             
             // 3. Ajouter l'ID et le Rôle de l'utilisateur à l'objet requête (req)
             // Les routes futures pourront accéder à ces infos via req.userId et req.userRole.
@@ -56,6 +69,7 @@ export const protect = (req: AuthenticatedRequest, res: Response, next: NextFunc
             req.user = {
                 id: payload.id,
                 role: payload.role,
+                email: userEmail,
                 userType: payload.userType || 'gestionnaire',
                 // Guest-specific fields
                 isGuest: payload.isGuest || false,
