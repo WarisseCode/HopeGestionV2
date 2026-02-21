@@ -157,6 +157,16 @@ const MIGRATIONS: Migration[] = [
         sql: `
             ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url VARCHAR(500);
         `
+    },
+    {
+        name: '011_owner_user_missing_columns',
+        // La table owner_user a été créée sans ces colonnes dans l'ancienne migration
+        // Le code /auth/profile les SELECT-e -> crash 500 pour les locataires
+        sql: `
+            ALTER TABLE owner_user ADD COLUMN IF NOT EXISTS can_manage_users BOOLEAN DEFAULT FALSE;
+            ALTER TABLE owner_user ADD COLUMN IF NOT EXISTS can_delete_data BOOLEAN DEFAULT FALSE;
+            ALTER TABLE owner_user ADD COLUMN IF NOT EXISTS can_access_audit_logs BOOLEAN DEFAULT FALSE;
+        `
     }
 ];
 
