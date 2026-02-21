@@ -1,8 +1,8 @@
 // frontend/src/pages/Locataires.tsx
 // Version améliorée avec recherche fonctionnelle, filtres, statut paiement et actions rapides
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getLocataires, createLocataire, deleteLocataire } from '../api/locataireApi';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { getLocataires, createLocataire, deleteLocataire, approveLocataire, rejectLocataire } from '../api/locataireApi';
 import type { Locataire } from '../api/locataireApi';
 import { 
   Users, 
@@ -87,13 +87,17 @@ const PaymentStatusBadge: React.FC<{ status: PaymentStatus }> = ({ status }) => 
 
 const Locataires: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'locataires' | 'acheteurs' | 'affectation'>('locataires');
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'locataires' | 'acheteurs' | 'affectation' | 'requests'>(
+    (searchParams.get('tab') as 'locataires' | 'acheteurs' | 'affectation' | 'requests') || 'locataires'
+  );
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
 
   // Data states
   const [locataires, setLocataires] = useState<Locataire[]>([]);
   const [acheteurs, setAcheteurs] = useState<Locataire[]>([]);
+  const [requests, setRequests] = useState<Locataire[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -141,11 +145,17 @@ const Locataires: React.FC = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [locs, achs] = await Promise.all([
+      const [locsAll, achs] = await Promise.all([
         getLocataires('Locataire'),
         getLocataires('Acheteur')
       ]);
-      setLocataires(locs);
+      
+      // Separate Active from Pending
+      const activeLocs = locsAll.filter(l => l.statut !== 'En attente' && l.statut !== 'Rejeté');
+      const pendingLocs = locsAll.filter(l => l.statut === 'En attente');
+
+      setLocataires(activeLocs);
+      setRequests(pendingLocs);
       setAcheteurs(achs);
     } catch (err: any) {
       console.error(err);
@@ -165,7 +175,7 @@ const Locataires: React.FC = () => {
   }, [searchQuery, filterValues, activeTab]);
 
   // Filtered data
-  const currentList = activeTab === 'locataires' ? locataires : acheteurs;
+  const currentList = activeTab === 'locataires' ? locataires : activeTab === 'acheteurs' ? acheteurs : activeTab === 'requests' ? requests : [];
   
   const filteredList = useMemo(() => {
     return currentList.filter(person => {
@@ -378,6 +388,16 @@ const Locataires: React.FC = () => {
             <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-200 text-xs">{acheteurs.length}</span>
           </button>
           <button
+            onClick={() => { setActiveTab('requests'); setFilterValues({}); }}
+            className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'requests' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <UserPlus size={18} />
+            Demandes
+            {requests.length > 0 && <span className="ml-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-xs">{requests.length}</span>}
+          </button>
+          <button
             onClick={() => setActiveTab('affectation')}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'affectation' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
@@ -560,6 +580,44 @@ const Locataires: React.FC = () => {
                           <Eye size={16} />
                         </button>
                       </div>
+
+                      {/* Approval Actions for Pending Requests */}
+                      {activeTab === 'requests' && (
+                        <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-gray-50">
+                           <button 
+                             onClick={async (e) => {
+                               e.stopPropagation();
+                               if(!window.confirm('Confirmer ce locataire ?')) return;
+                               try {
+                                 await approveLocataire(person.id);
+                                 toast.success("Locataire approuvé !");
+                                 fetchData();
+                               } catch(err: any) {
+                                 toast.error(err.message);
+                               }
+                             }}
+                             className="btn btn-sm btn-success text-white"
+                           >
+                             Approuver
+                           </button>
+                           <button 
+                             onClick={async (e) => {
+                                e.stopPropagation();
+                                if(!window.confirm('Rejeter cette demande ?')) return;
+                                try {
+                                  await rejectLocataire(person.id);
+                                  toast.success("Demande rejetée.");
+                                  fetchData();
+                                } catch(err: any) {
+                                  toast.error(err.message);
+                                }
+                             }}
+                             className="btn btn-sm btn-error text-white"
+                           >
+                             Rejeter
+                           </button>
+                        </div>
+                      )}
                     </motion.div>
                   );
                 })}

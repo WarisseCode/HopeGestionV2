@@ -1,4 +1,5 @@
 // frontend/src/api/locataireApi.ts
+import { API_URL as BASE_URL } from '../config';
 import { getToken } from './authApi';
 
 export interface Locataire {
@@ -15,7 +16,7 @@ export interface Locataire {
     photo_profil_url?: string;
     invitation_code?: string;
     type: 'Locataire' | 'Acheteur' | 'Prospect';
-    statut: 'Actif' | 'Inactif' | 'Expiré' | 'Archivé';
+    statut: 'Actif' | 'Inactif' | 'Expiré' | 'Archivé' | 'En attente' | 'Rejeté';
     mode_paiement_preferentiel?: string;
     active_leases?: number; // count from SQL
     created_at?: string;
@@ -41,8 +42,6 @@ export interface LocataireDetails {
     baux: any[]; // On pourra affiner le type Bail plus tard
     paiements: any[];
 }
-
-import { API_URL as BASE_URL } from '../config';
 
 const API_URL = `${BASE_URL}/locataires`;
 
@@ -111,4 +110,24 @@ export async function deleteLocataire(id: number): Promise<void> {
     });
 
     if (!response.ok) throw new Error('Erreur suppression locataire');
+}
+
+export async function approveLocataire(id: number): Promise<void> {
+    const token = getToken();
+    const response = await fetch(`${API_URL}/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok) throw new Error('Erreur approbation locataire');
+}
+
+export async function rejectLocataire(id: number): Promise<void> {
+    const token = getToken();
+    const response = await fetch(`${API_URL}/${id}/reject`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok) throw new Error('Erreur rejet locataire');
 }

@@ -111,11 +111,16 @@ const LocataireDashboard: React.FC = () => {
     }
     setLinking(true);
     try {
-        await linkTenant(Number(user?.id), inviteCode.trim());
-        toast.success('Dossier lié avec succès !');
-        setInviteCode('');
-        // Reload to refresh stats context
-        window.location.reload();
+        const result = await linkTenant(Number(user?.id), inviteCode.trim());
+        const isPending = result.message?.toLowerCase().includes('attente');
+        if (isPending) {
+            toast.success('\u2705 Demande envoy\u00e9e ! Votre gestionnaire doit encore valider votre dossier.', { duration: 6000 });
+            setInviteCode('');
+        } else {
+            toast.success('Dossier li\u00e9 avec succ\u00e8s !');
+            setInviteCode('');
+            window.location.reload();
+        }
     } catch (err: any) {
         toast.error(err.message || 'Erreur lors de la liaison');
     } finally {

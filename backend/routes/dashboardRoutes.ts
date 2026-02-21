@@ -301,6 +301,7 @@ router.get('/stats/proprietaire', async (req: AuthenticatedRequest, res: Respons
 
 
 // GET /api/dashboard/stats/locataire : Stats pour un locataire
+// GET /api/dashboard/stats/locataire : Stats pour un locataire (support multi-dossiers)
 router.get('/stats/locataire', async (req: AuthenticatedRequest, res: Response) => {
     if (req.userRole !== 'locataire') {
         return res.status(403).json({ message: 'Accès refusé.' });
@@ -309,27 +310,32 @@ router.get('/stats/locataire', async (req: AuthenticatedRequest, res: Response) 
     const userId = req.userId;
     
     try {
-        // Trouver le tenant associé à cet utilisateur (via email ou téléphone)
-        // Note: Cette logique suppose qu'un utilisateur locataire est lié à un tenant
-        const userResult = await pool.query('SELECT email, telephone FROM users WHERE id = $1', [userId]);
-        
-        if (userResult.rows.length === 0) {
-            return res.status(404).json({ message: 'Utilisateur non trouvé.' });
-        }
-        
-        const userEmail = userResult.rows[0].email;
-        const userPhone = userResult.rows[0].telephone;
-        
-        // Chercher le tenant correspondant (priorité: user_id, puis email/phone)
+        // Trouver TOUS les tenants associés à cet utilisateur
         const tenantResult = await pool.query(`
             SELECT t.id, t.nom, t.prenoms
             FROM tenants t
-            WHERE t.user_id = $1 OR t.email = $2 OR t.telephone_principal = $3
-            ORDER BY CASE WHEN t.user_id = $1 THEN 0 ELSE 1 END
-            LIMIT 1
-        `, [userId, userEmail, userPhone]);
+            WHERE t.user_id = $1
+        `, [userId]);
         
-        if (tenantResult.rows.length === 0) {
+        let tenants = tenantResult.rows;
+
+        // Si aucun tenant lié par ID, on essaie encore par email/tel pour la rétrocompatibilité ou liaison auto
+        if (tenants.length === 0) {
+             const userResult = await pool.query('SELECT email, telephone FROM users WHERE id = $1', [userId]);
+             if (userResult.rows.length > 0) {
+                const { email, telephone } = userResult.rows[0];
+                const fallbackTenant = await pool.query(`
+                    SELECT id, nom, prenoms FROM tenants 
+                    WHERE email = $1 OR telephone_principal = $2
+                `, [email, telephone]);
+                
+                if (fallbackTenant.rows.length > 0) {
+                    tenants = fallbackTenant.rows;
+                }
+             }
+        }
+
+        if (tenants.length === 0) {
             return res.status(200).json({
                 stats: {
                     nomLogement: 'Aucun logement',
@@ -340,19 +346,18 @@ router.get('/stats/locataire', async (req: AuthenticatedRequest, res: Response) 
             });
         }
         
-        const tenantId = tenantResult.rows[0].id;
+        const tenantIds = tenants.map((t: any) => t.id);
         
-        // Trouver le bail actif du locataire
+        // Trouver TOUS les baux actifs pour ces locataires
         const leaseResult = await pool.query(`
             SELECT l.id, l.loyer_actuel, l.jour_echeance, l.statut, l.date_debut, l.date_fin,
                    lo.ref_lot, b.nom as nom_immeuble
             FROM leases l
             JOIN lots lo ON l.lot_id = lo.id
             JOIN buildings b ON lo.building_id = b.id
-            WHERE l.tenant_id = $1 AND l.statut = 'actif'
+            WHERE l.tenant_id = ANY($1) AND l.statut = 'actif'
             ORDER BY l.date_debut DESC
-            LIMIT 1
-        `, [tenantId]);
+        `, [tenantIds]);
         
         if (leaseResult.rows.length === 0) {
             return res.status(200).json({
@@ -364,50 +369,66 @@ router.get('/stats/locataire', async (req: AuthenticatedRequest, res: Response) 
                 }
             });
         }
-        
-        const lease = leaseResult.rows[0];
-        const nomLogement = `${lease.ref_lot} - ${lease.nom_immeuble}`;
-        const loyerMensuel = parseFloat(lease.loyer_actuel) || 0;
-        
-        // Calculer la prochaine date d'échéance
-        const today = new Date();
-        const jourEcheance = lease.jour_echeance || 5;
-        let prochainPaiement = new Date(today.getFullYear(), today.getMonth(), jourEcheance);
-        if (prochainPaiement < today) {
-            prochainPaiement = new Date(today.getFullYear(), today.getMonth() + 1, jourEcheance);
+
+        // AGGREGATION LOGIC
+        let totalLoyerMensuel = 0;
+        let nextPaymentDate: Date | null = null;
+        let combinedPayments: any[] = [];
+        let logementsNames: string[] = [];
+        let leaseIds: number[] = [];
+
+        // 1. Calculate Total Rent & Collect Names
+        for (const lease of leaseResult.rows) {
+            totalLoyerMensuel += parseFloat(lease.loyer_actuel) || 0;
+            logementsNames.push(`${lease.ref_lot} (${lease.nom_immeuble})`);
+            leaseIds.push(lease.id);
+
+            // 2. Find earliest next payment date
+            const today = new Date();
+            const jourEcheance = lease.jour_echeance || 5;
+            let np = new Date(today.getFullYear(), today.getMonth(), jourEcheance);
+            if (np < today) {
+                np = new Date(today.getFullYear(), today.getMonth() + 1, jourEcheance);
+            }
+
+            if (!nextPaymentDate || np < nextPaymentDate) {
+                nextPaymentDate = np;
+            }
         }
-        
 
-
-        // Fetch Recent Payments for Dashboard Card
+        // 3. Fetch recent payments for ALL active leases
         const paymentsResult = await pool.query(`
             SELECT id, montant, date_paiement, type, method, status
             FROM payments
-            WHERE lease_id = $1
+            WHERE lease_id = ANY($1)
             ORDER BY date_paiement DESC
-            LIMIT 5
-        `, [lease.id]);
+            LIMIT 10
+        `, [leaseIds]);
 
-        // Add payments to response
+        combinedPayments = paymentsResult.rows.map(p => ({
+            id: p.id,
+            amount: parseFloat(p.montant),
+            date: p.date_paiement,
+            status: 'paid',
+            month: new Date(p.date_paiement).toLocaleString('fr-FR', { month: 'long' })
+        }));
+
+        // Determine display name for housing
+        let nomLogementDisplay = logementsNames[0];
+        if (logementsNames.length > 1) {
+            nomLogementDisplay = `${logementsNames.length} Logements actifs`;
+        }
+
         const statsResponse = {
-            nomLogement,
-            loyerMensuel,
-            prochainPaiement: prochainPaiement.toISOString().split('T')[0],
-            statutContrat: lease.statut,
-            dateDebut: lease.date_debut,
-            dateFin: lease.date_fin,
-            recentPayments: paymentsResult.rows.map(p => ({
-                id: p.id,
-                amount: parseFloat(p.montant),
-                date: p.date_paiement,
-                status: 'paid', // Assuming fetched payments are successful
-                month: new Date(p.date_paiement).toLocaleString('fr-FR', { month: 'long' })
-            }))
+            nomLogement: nomLogementDisplay,
+            loyerMensuel: totalLoyerMensuel,
+            prochainPaiement: nextPaymentDate ? nextPaymentDate.toISOString().split('T')[0] : null,
+            statutContrat: 'actif',
+            dateDebut: leaseResult.rows[0].date_debut, // Most recent
+            dateFin: leaseResult.rows[0].date_fin,
+            recentPayments: combinedPayments
         };
         
-        // Overwrite previous send
-        // Since we already sent response above (oops), we need to restructure.
-        // Actually, let's fix the flow.
         return res.status(200).json({ stats: statsResponse });
 
     } catch (error) {

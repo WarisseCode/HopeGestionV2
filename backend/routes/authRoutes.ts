@@ -1348,16 +1348,34 @@ router.get('/validate-reset-token/:token', async (req, res) => {
 });
 
 // 8. Endpoint de liaison manuelle (post-inscription)
-router.post('/link-tenant', async (req, res) => {
-    const { invitationCode, userId } = req.body;
+// 8. Endpoint de liaison manuelle (post-inscription)
+router.post('/link-tenant', protect, async (req: any, res) => {
+    const { invitationCode } = req.body;
+    const userId = req.userId;
 
-    if (!invitationCode || !userId) {
-        return res.status(400).json({ message: 'Code et ID utilisateur requis.' });
+    if (!invitationCode) {
+        return res.status(400).json({ message: 'Code invitation requis.' });
     }
 
+    const client = await pool.connect();
+
     try {
+        await client.query('BEGIN');
+
+        // 0. CHECK IF USER ALREADY LINKED
+        // Multi-tenant support: We DO NOT unlink previous tenants anymore.
+        // We just log it for info.
+        const existingLinkRes = await client.query(
+            `SELECT id FROM tenants WHERE user_id = $1`,
+            [userId]
+        );
+
+        if (existingLinkRes.rows.length > 0) {
+            console.log(`[Auth] User ${userId} is already linked to tenant(s) ${existingLinkRes.rows.map(r => r.id).join(', ')}. Adding new link...`);
+        }
+
         // 1. Try individual invitation code first (LOC-XXXXXX)
-        const tenantRes = await pool.query(
+        const tenantRes = await client.query(
             `SELECT id FROM tenants WHERE invitation_code = $1 AND user_id IS NULL`,
             [invitationCode.toUpperCase()]
         );
@@ -1366,13 +1384,13 @@ router.post('/link-tenant', async (req, res) => {
             const tenantId = tenantRes.rows[0].id;
 
             // Get user info for synchronization
-            const userRes = await pool.query(
-                `SELECT nom, prenoms, email, telephone FROM users WHERE id = $1`,
+            const userRes = await client.query(
+                `SELECT nom, email, telephone FROM users WHERE id = $1`,
                 [userId]
             );
 
             // Link tenant to user
-            await pool.query(
+            await client.query(
                 `UPDATE tenants SET user_id = $1 WHERE id = $2`,
                 [userId, tenantId]
             );
@@ -1380,93 +1398,137 @@ router.post('/link-tenant', async (req, res) => {
             // Sync user data to tenant
             if (userRes.rows.length > 0) {
                 const u = userRes.rows[0];
-                await pool.query(
+                await client.query(
                     `UPDATE tenants SET 
                         nom = COALESCE($1, nom), 
-                        prenoms = COALESCE($2, prenoms), 
-                        email = COALESCE($3, email), 
-                        telephone_principal = COALESCE($4, telephone_principal)
-                     WHERE id = $5`,
-                    [u.nom, u.prenoms, u.email, u.telephone, tenantId]
+                        email = COALESCE($2, email), 
+                        telephone_principal = COALESCE($3, telephone_principal)
+                     WHERE id = $4`,
+                    [u.nom, u.email, u.telephone, tenantId]
                 );
             }
 
             // Update user role
-            await pool.query(
+            await client.query(
                 `UPDATE users SET user_type = 'locataire', role = 'locataire' WHERE id = $1`,
                 [userId]
             );
 
+            await client.query('COMMIT');
             return res.json({ message: 'Dossier locataire lié avec succès.', tenantId });
         }
 
         // 2. Try manager code (AG-XXXXXX)
-        const ownerRes = await pool.query(
-            `SELECT id FROM owners WHERE manager_code = $1`,
+        const ownerRes = await client.query(
+            `SELECT id, email, name FROM owners WHERE manager_code = $1`,
             [invitationCode.toUpperCase()]
         );
 
         if (ownerRes.rows.length > 0) {
-            const ownerId = ownerRes.rows[0].id;
+            const owner = ownerRes.rows[0];
+            const ownerId = owner.id;
+
+            // CHECK DOUBLE LINK (Prevent linking to same owner twice)
+            const doubleLinkRes = await client.query(
+                `SELECT id FROM tenants WHERE user_id = $1 AND owner_id = $2`,
+                [userId, ownerId]
+            );
+
+            if (doubleLinkRes.rows.length > 0) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ message: 'Vous êtes déjà lié à ce gestionnaire.' });
+            }
 
             // Get user info
-            const userRes = await pool.query(
-                `SELECT nom, prenoms, email, telephone FROM users WHERE id = $1`,
+            const userRes = await client.query(
+                `SELECT nom, email, telephone FROM users WHERE id = $1`,
                 [userId]
             );
             const u = userRes.rows[0] || {};
 
             // Generate unique invitation code for the new tenant
-            const codeRes = await pool.query(
+            const codeRes = await client.query(
                 `SELECT 'LOC-' || substr(md5(random()::text || clock_timestamp()::text), 1, 6) AS code`
             );
             const newCode = codeRes.rows[0].code.toUpperCase();
 
-            // Create new tenant linked to this owner and user
-            const newTenant = await pool.query(
+            // Create new tenant linked to this owner and user with 'En attente' status
+            // Note: 'prenoms' is required in tenants but not in users. defaulting to empty string.
+            const newTenant = await client.query(
                 `INSERT INTO tenants (nom, prenoms, email, telephone_principal, owner_id, user_id, invitation_code, statut)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, 'Actif')
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, 'En attente')
                  RETURNING id`,
-                [u.nom || '', u.prenoms || '', u.email || '', u.telephone || '', ownerId, userId, newCode]
+                [u.nom || '', '', u.email || '', u.telephone || '', ownerId, userId, newCode]
             );
 
-            // Update user role
-            await pool.query(
+            // Update user role (pre-emptive, or maybe wait? Let's give them role so they can access dashboard pending)
+            await client.query(
                 `UPDATE users SET user_type = 'locataire', role = 'locataire' WHERE id = $1`,
                 [userId]
             );
 
-            console.log(`[Auth] New tenant created via manager code: tenant_id=${newTenant.rows[0].id}, owner_id=${ownerId}, user_id=${userId}`);
-            return res.json({ message: 'Dossier locataire créé et lié avec succès.', tenantId: newTenant.rows[0].id });
+            // NOTIFY ALL USERS linked to this owner (propriétaires ET gestionnaires)
+            const linkedUsersRes = await client.query(
+                `SELECT ou.user_id FROM owner_user ou
+                 WHERE ou.owner_id = $1 AND ou.is_active = TRUE`,
+                [ownerId]
+            );
+
+            if (linkedUsersRes.rows.length > 0) {
+                const notifTitle = "Nouvelle demande de liaison";
+                const notifMessage = `Le locataire ${u.nom || 'Inconnu'} souhaite rejoindre votre agence via le code gestionnaire.`;
+
+                for (const row of linkedUsersRes.rows) {
+                    await client.query(
+                        `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+                         VALUES ($1, 'info', $2, $3, '/dashboard/locataires?tab=requests', false, NOW())`,
+                        [row.user_id, notifTitle, notifMessage]
+                    );
+                }
+                console.log(`[Auth] Notified ${linkedUsersRes.rows.length} user(s) for owner_id=${ownerId}`);
+            } else {
+                console.warn(`[Auth] No linked users found for owner_id=${ownerId} — notification not sent`);
+            }
+
+            await client.query('COMMIT');
+            console.log(`[Auth] New tenant request via manager code: tenant_id=${newTenant.rows[0].id}, owner_id=${ownerId}, user_id=${userId}`);
+            return res.json({ message: 'Demande envoyée. En attente de validation par le gestionnaire.', tenantId: newTenant.rows[0].id });
         }
 
         // 3. No match found
+        await client.query('ROLLBACK');
         return res.status(404).json({ message: 'Code invalide ou déjà utilisé.' });
 
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Error linking tenant:', error);
         res.status(500).json({ message: 'Erreur lors de la liaison.' });
+    } finally {
+        client.release();
     }
 });
 
 
-// Récupérer le code gestionnaire (pour le dashboard gestionnaire)
+// Récupérer les codes gestionnaire (pour le dashboard gestionnaire)
+// Retourne tous les owners gérés avec leurs codes respectifs
 router.post('/manager-code', protect, async (req: any, res) => {
     try {
         const userId = req.user.id;
-        // Find owner managed by this user (or linked owner)
-        // Similar logic to getManagedOwnerId but we need the code
         const result = await pool.query(
-            `SELECT o.manager_code 
+            `SELECT o.id as owner_id, o.name as owner_name, o.manager_code
              FROM owners o
              JOIN owner_user ou ON o.id = ou.owner_id
              WHERE ou.user_id = $1 AND ou.is_active = TRUE
-             LIMIT 1`,
+             ORDER BY o.name ASC`,
             [userId]
         );
 
         if (result.rows.length > 0) {
-            res.json({ managerCode: result.rows[0].manager_code });
+            // Rétro-compatibilité : on garde managerCode (premier owner) + liste complète
+            res.json({
+                managerCode: result.rows[0].manager_code,
+                owners: result.rows
+            });
         } else {
             res.status(404).json({ message: "Aucun code gestionnaire trouvé" });
         }

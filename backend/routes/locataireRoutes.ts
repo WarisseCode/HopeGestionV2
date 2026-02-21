@@ -308,5 +308,80 @@ router.delete('/:id', protect, async (req: any, res) => {
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
+// POST /api/locataires/:id/approve - Valider une demande
+router.post('/:id/approve', protect, async (req: any, res) => {
+    try {
+        const userId = req.user.id;
+        const tenantId = req.params.id;
+        const ownerId = await getManagedOwnerId(userId);
 
+        if (!ownerId) return res.status(403).json({ message: "Non autorisé" });
+
+        // Vérif appartenance
+        const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
+        if (tenantCheck.rows.length === 0) return res.status(404).json({ message: "Locataire non trouvé" });
+
+        await pool.query("UPDATE tenants SET statut = 'Actif' WHERE id = $1", [tenantId]);
+
+        // Notification au locataire
+        const tenantData = await pool.query('SELECT user_id, nom FROM tenants WHERE id = $1', [tenantId]);
+        if (tenantData.rows.length > 0 && tenantData.rows[0].user_id) {
+            const tenantUserId = tenantData.rows[0].user_id;
+            await pool.query(
+                `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+                 VALUES ($1, 'success', $2, $3, '/dashboard', false, NOW())`,
+                [
+                    tenantUserId,
+                    'Demande acceptée ✅',
+                    'Votre demande de liaison a été acceptée par le gestionnaire. Vous êtes maintenant actif.'
+                ]
+            );
+        }
+
+        res.json({ message: "Locataire approuvé avec succès" });
+
+    } catch (error) {
+        console.error('Error approving tenant:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// POST /api/locataires/:id/reject - Refuser une demande
+router.post('/:id/reject', protect, async (req: any, res) => {
+    try {
+        const userId = req.user.id;
+        const tenantId = req.params.id;
+        const ownerId = await getManagedOwnerId(userId);
+
+        if (!ownerId) return res.status(403).json({ message: "Non autorisé" });
+
+        const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
+        if (tenantCheck.rows.length === 0) return res.status(404).json({ message: "Locataire non trouvé" });
+
+        // On supprime ou on archive ? 'Rejeté' permet de garder une trace, mais 'DELETE' est plus propre pour un refus initial.
+        // On va mettre statut = 'Rejeté' pour l'instant.
+        await pool.query("UPDATE tenants SET statut = 'Rejeté' WHERE id = $1", [tenantId]);
+
+        // Notification au locataire
+        const tenantData = await pool.query('SELECT user_id FROM tenants WHERE id = $1', [tenantId]);
+        if (tenantData.rows.length > 0 && tenantData.rows[0].user_id) {
+            const tenantUserId = tenantData.rows[0].user_id;
+            await pool.query(
+                `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+                 VALUES ($1, 'error', $2, $3, '/dashboard', false, NOW())`,
+                [
+                    tenantUserId,
+                    'Demande refusée ❌',
+                    'Votre demande de liaison a été refusée par le gestionnaire. Vous pouvez contacter votre gestionnaire pour plus d\'informations.'
+                ]
+            );
+        }
+
+        res.json({ message: "Demande refusée" });
+
+    } catch (error) {
+        console.error('Error rejecting tenant:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
 export default router;

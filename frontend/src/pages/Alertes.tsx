@@ -369,30 +369,40 @@ const Alertes: React.FC = () => {
                          <div className="text-center py-10 text-gray-400">Aucune notification.</div>
                      ) : (
                          notifications.map(notif => (
-                            <Card key={notif.id} className={`border-l-4 ${!notif.is_read ? 'border-l-primary bg-primary/5' : 'border-l-gray-200 bg-white'} hover:shadow-md transition-all cursor-pointer`}>
-                                <div className="flex flex-col md:flex-row justify-between gap-4">
-                                    <div className="flex items-start gap-4">
-                                        <div className={`p-3 rounded-full ${notif.type === 'success' ? 'bg-green-100 text-green-600' : notif.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                                            {notif.type === 'success' ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h3 className={`font-bold ${!notif.is_read ? 'text-gray-900' : 'text-gray-500'}`}>{notif.title}</h3>
-                                                {!notif.is_read && <span className="badge badge-primary badge-xs text-white">Nouveau</span>}
-                                            </div>
-                                            <p className="text-sm text-gray-600">{notif.message}</p>
-                                            <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                                                <span className="flex items-center gap-1"><Clock size={12}/> {new Date(notif.created_at).toLocaleString()}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 self-end md:self-center">
-                                        {!notif.is_read && (
-                                            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-primary" onClick={() => handleMarkAsRead(notif.id)}>Marquer comme lu</Button>
-                                        )}
-                                    </div>
-                                </div>
-                            </Card>
+                             <Card key={notif.id} className={`border-l-4 ${!notif.is_read ? 'border-l-primary bg-primary/5' : 'border-l-gray-200 bg-white'} hover:shadow-md transition-all cursor-pointer`}
+                                onClick={async () => {
+                                    if (!notif.is_read) await handleMarkAsRead(notif.id);
+                                    if (notif.link) navigate(notif.link);
+                                }}
+                             >
+                                 <div className="flex flex-col md:flex-row justify-between gap-4">
+                                     <div className="flex items-start gap-4">
+                                         <div className={`p-3 rounded-full ${notif.type === 'success' ? 'bg-green-100 text-green-600' : notif.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                             {notif.type === 'success' ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
+                                         </div>
+                                         <div>
+                                             <div className="flex items-center gap-2 mb-1">
+                                                 <h3 className={`font-bold ${!notif.is_read ? 'text-gray-900' : 'text-gray-500'}`}>{notif.title}</h3>
+                                                 {!notif.is_read && <span className="badge badge-primary badge-xs text-white">Nouveau</span>}
+                                             </div>
+                                             <p className="text-sm text-gray-600">{notif.message}</p>
+                                             <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                                                 <span className="flex items-center gap-1"><Clock size={12}/> {new Date(notif.created_at).toLocaleString()}</span>
+                                             </div>
+                                         </div>
+                                     </div>
+                                     <div className="flex items-center gap-2 self-end md:self-center">
+                                         {notif.link && (
+                                             <Button variant="primary" size="sm" className="btn-xs gap-1 text-white" onClick={(e) => { e.stopPropagation(); if (!notif.is_read) handleMarkAsRead(notif.id); navigate(notif.link!); }}>
+                                                 Voir <ArrowRight size={12}/>
+                                             </Button>
+                                         )}
+                                         {!notif.is_read && (
+                                             <Button variant="ghost" size="sm" className="text-gray-400 hover:text-primary" onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notif.id); }}>Marquer comme lu</Button>
+                                         )}
+                                     </div>
+                                 </div>
+                             </Card>
                          ))
                      )}
                 </div>

@@ -104,7 +104,7 @@ export async function getProfile(): Promise<UserProfile> {
 }
 
 // Lier un locataire via code d'invitation (post-inscription)
-export async function linkTenant(userId: number, invitationCode: string): Promise<{ message: string; tenantId: number }> {
+export async function linkTenant(_userId: number, invitationCode: string): Promise<{ message: string; tenantId: number }> {
     const token = getToken();
     if (!token) throw new Error('Non authentifié');
 
@@ -114,7 +114,7 @@ export async function linkTenant(userId: number, invitationCode: string): Promis
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ userId, invitationCode })
+        body: JSON.stringify({ invitationCode })
     });
     
     return data;
