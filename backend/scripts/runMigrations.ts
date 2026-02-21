@@ -167,6 +167,42 @@ const MIGRATIONS: Migration[] = [
             ALTER TABLE owner_user ADD COLUMN IF NOT EXISTS can_delete_data BOOLEAN DEFAULT FALSE;
             ALTER TABLE owner_user ADD COLUMN IF NOT EXISTS can_access_audit_logs BOOLEAN DEFAULT FALSE;
         `
+    },
+    {
+        name: '012_generate_manager_codes',
+        // CRITIQUE: Les owners existants n'ont PAS de manager_code généré
+        // La colonne existe mais les données sont NULL -> link-tenant et badge ne fonctionnent pas
+        sql: `
+            ALTER TABLE owners ADD COLUMN IF NOT EXISTS manager_code VARCHAR(20);
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'unique_manager_code'
+                ) THEN
+                    ALTER TABLE owners ADD CONSTRAINT unique_manager_code UNIQUE (manager_code);
+                END IF;
+            END $$;
+            UPDATE owners 
+            SET manager_code = 'AG-' || UPPER(SUBSTRING(MD5(id::text || name || RANDOM()::text), 1, 6))
+            WHERE manager_code IS NULL OR manager_code = '';
+            CREATE INDEX IF NOT EXISTS idx_owners_manager_code ON owners(manager_code);
+        `
+    },
+    {
+        name: '013_auto_link_owners_to_users',
+        // CRITIQUE: Les propriétaires existants n'ont PAS de lien owner_user
+        // Sans ce lien, /auth/manager-code ne trouve rien -> le badge ne s'affiche pas
+        sql: `
+            INSERT INTO owner_user (owner_id, user_id, role, is_active, start_date,
+                can_view_finances, can_edit_properties, can_manage_tenants, 
+                can_manage_contracts, can_validate_payments)
+            SELECT o.id, u.id, 'owner', TRUE, CURRENT_DATE,
+                TRUE, TRUE, TRUE, TRUE, TRUE
+            FROM owners o
+            JOIN users u ON LOWER(u.email) = LOWER(o.email)
+            WHERE o.email IS NOT NULL AND o.email != ''
+            ON CONFLICT (owner_id, user_id) DO NOTHING;
+        `
     }
 ];
 

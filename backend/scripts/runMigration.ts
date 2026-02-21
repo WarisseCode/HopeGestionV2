@@ -179,7 +179,29 @@ async function runMigration() {
             console.log('   - mobile_money_configs created');
             console.log('   - mobile_money_transactions created/verified');
         }
-        
+        console.log('21/21 Exécution migration_manager_code.sql...');
+        const managerCodePath = path.join(dbDir, 'migration_manager_code.sql');
+        if (fs.existsSync(managerCodePath)) {
+            const managerCodeSql = fs.readFileSync(managerCodePath, 'utf8');
+            await client.query(managerCodeSql);
+            console.log('   - owners (ajout: manager_code + génération codes existants)');
+        }
+
+        // Auto-link owners to users via email (owner_user)
+        console.log('22/22 Création liens owner_user...');
+        await client.query(`
+            INSERT INTO owner_user (owner_id, user_id, role, is_active, start_date,
+                can_view_finances, can_edit_properties, can_manage_tenants, 
+                can_manage_contracts, can_validate_payments)
+            SELECT o.id, u.id, 'owner', TRUE, CURRENT_DATE,
+                TRUE, TRUE, TRUE, TRUE, TRUE
+            FROM owners o
+            JOIN users u ON LOWER(u.email) = LOWER(o.email)
+            WHERE o.email IS NOT NULL AND o.email != ''
+            ON CONFLICT (owner_id, user_id) DO NOTHING
+        `);
+        console.log('   - owner_user liens créés pour propriétaires existants');
+
         console.log('✅ Migration exécutée avec succès!');
         console.log('\n📊 Tables créées et mises à jour.');
         console.log('\n🔧 Modifications appliquées:');
