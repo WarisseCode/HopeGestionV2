@@ -142,6 +142,21 @@ const MIGRATIONS: Migration[] = [
             ALTER TABLE tenants ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
             CREATE INDEX IF NOT EXISTS idx_tenants_user_id ON tenants(user_id);
         `
+    },
+    {
+        name: '009_users_preferences_is_guest',
+        // CAUSE DIRECTE DU 500 SUR /profile — ces colonnes sont SELECT-ées dans authRoutes.ts
+        sql: `
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}';
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS is_guest BOOLEAN DEFAULT FALSE;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS statut VARCHAR(50) DEFAULT 'actif';
+        `
+    },
+    {
+        name: '010_users_photo_url',
+        sql: `
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url VARCHAR(500);
+        `
     }
 ];
 

@@ -352,7 +352,11 @@ router.get('/profile', verifyToken, async (req: any, res) => {
     try {
         const userId = req.user.id;
         const result = await pool.query(
-            `SELECT id, nom, user_type, role, email, telephone, photo_url, preferences, is_guest 
+            `SELECT 
+                id, nom, user_type, role, email, telephone,
+                COALESCE(photo_url, NULL) as photo_url,
+                COALESCE(preferences, '{}') as preferences,
+                COALESCE(is_guest, FALSE) as is_guest
              FROM users WHERE id = $1`,
             [userId]
         );
