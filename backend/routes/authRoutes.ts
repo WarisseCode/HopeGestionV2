@@ -1456,13 +1456,23 @@ router.post('/link-tenant', protect, async (req: any, res) => {
             );
             const newCode = codeRes.rows[0].code.toUpperCase();
 
+            const nameParts = (u.nom || 'Locataire').split(' ');
+            const lastName = nameParts[0] || 'Locataire';
+            const firstName = nameParts.slice(1).join(' ') || lastName;
+
             // Create new tenant linked to this owner and user with 'En attente' status
-            // Note: 'prenoms' is required in tenants but not in users. defaulting to empty string.
             const newTenant = await client.query(
                 `INSERT INTO tenants (nom, prenoms, email, telephone_principal, owner_id, user_id, invitation_code, statut)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, 'En attente')
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, 
+                    CASE WHEN EXISTS(
+                        SELECT 1 FROM pg_type t 
+                        JOIN pg_enum e ON t.oid = e.enumtypid 
+                        WHERE t.typname LIKE '%statut%' AND e.enumlabel = 'En attente'
+                    ) THEN 'En attente' ELSE 'actif' END
+                 )
+                 ON CONFLICT DO NOTHING
                  RETURNING id`,
-                [u.nom || '', '', u.email || '', u.telephone || '', ownerId, userId, newCode]
+                [lastName, firstName, u.email || '', u.telephone || '', ownerId, userId, newCode]
             );
 
             // Update user role (pre-emptive, or maybe wait? Let's give them role so they can access dashboard pending)

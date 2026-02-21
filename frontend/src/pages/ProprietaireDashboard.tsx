@@ -362,6 +362,36 @@ const ProprietaireDashboard: React.FC = () => {
                 </div>
             </motion.div>
 
+            {/* Code de Liaison Locataire */}
+            {managerCode && (
+                <motion.div variants={itemVariants}>
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 shadow-lg text-white">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Copy size={16} className="text-white/70" />
+                            <h3 className="font-bold text-sm uppercase tracking-wide text-white/80">Code de Liaison</h3>
+                        </div>
+                        <p className="text-3xl font-mono font-extrabold tracking-widest mb-2">{managerCode}</p>
+                        <p className="text-white/70 text-xs mb-4">Partagez ce code avec vos locataires pour qu'ils puissent rejoindre votre espace.</p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(managerCode);
+                                }}
+                                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm font-semibold px-3 py-2 rounded-lg transition-all"
+                            >
+                                <Copy size={14} /> Copier
+                            </button>
+                            <button
+                                onClick={() => navigate('/dashboard/locataires?tab=requests')}
+                                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm font-semibold px-3 py-2 rounded-lg transition-all"
+                            >
+                                Demandes en attente
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+
             {/* Occupation Pie Chart */}
             <motion.div variants={itemVariants}>
                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 relative overflow-hidden">
