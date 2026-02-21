@@ -131,11 +131,11 @@ END $$;
 -- ============================================
 
 -- Propriétaire par défaut (pour migration des données existantes)
-INSERT INTO owners (name, first_name, phone, email, type, management_mode, is_active)
+INSERT INTO owners (name, first_name, phone, email, type, management_mode, is_active, manager_code)
 VALUES 
-('OTCHADE', 'Warisse', '+22997000000', 'warissecodeman@gmail.com', 'individual', 'direct', TRUE),
-('KOFFI', 'Jean', '+22997111111', 'jean.koffi@example.com', 'individual', 'direct', TRUE),
-('IMMOBILIER PLUS', NULL, '+22997222222', 'contact@immobilierplus.bj', 'company', 'delegated', TRUE)
+('OTCHADE', 'Warisse', '+22997000000', 'warissecodeman@gmail.com', 'individual', 'direct', TRUE, 'AG-' || UPPER(SUBSTRING(MD5('OTCHADE' || '1'), 1, 6))),
+('KOFFI', 'Jean', '+22997111111', 'jean.koffi@example.com', 'individual', 'direct', TRUE, 'AG-' || UPPER(SUBSTRING(MD5('KOFFI' || '2'), 1, 6))),
+('IMMOBILIER PLUS', NULL, '+22997222222', 'contact@immobilierplus.bj', 'company', 'delegated', TRUE, 'AG-' || UPPER(SUBSTRING(MD5('IMMOBILIER' || '3'), 1, 6)))
 ON CONFLICT (phone) DO NOTHING;
 
 -- ============================================
