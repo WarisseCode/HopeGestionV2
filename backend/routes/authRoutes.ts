@@ -1539,28 +1539,27 @@ router.post('/manager-code', protect, async (req: any, res) => {
         const userEmail = req.user.email;
         console.log(`[manager-code] START user_id=${userId} email=${userEmail}`);
 
-        // Debug: vérifier si la colonne manager_code existe
-        const colCheck = await pool.query(`
-            SELECT column_name FROM information_schema.columns 
-            WHERE table_name = 'owners' AND column_name = 'manager_code'
-        `);
-        console.log(`[manager-code] column manager_code exists?`, colCheck.rows.length > 0);
-
-        if (colCheck.rows.length === 0) {
-            // La colonne n'existe pas encore — la migration n'a pas tourné
-            console.error(`[manager-code] CRITICAL: colonne manager_code n'existe PAS dans owners !`);
-            return res.json({ managerCode: null, owners: [], debug: 'column_missing' });
+        // Étape 0 : S'assurer que la colonne manager_code existe (auto-migration)
+        try {
+            await pool.query(`ALTER TABLE owners ADD COLUMN IF NOT EXISTS manager_code VARCHAR(20)`);
+            await pool.query(`CREATE INDEX IF NOT EXISTS idx_owners_manager_code ON owners(manager_code)`);
+        } catch (e) {
+            // Ignore si la colonne/index existe déjà
         }
 
-        // Debug: compter les owners avec manager_code
-        const countCheck = await pool.query(`SELECT COUNT(*) as total, COUNT(manager_code) as with_code FROM owners`);
-        console.log(`[manager-code] owners total=${countCheck.rows[0].total} with_code=${countCheck.rows[0].with_code}`);
+        // Étape 1 : Générer des codes pour tous les owners qui n'en ont pas
+        const genResult = await pool.query(`
+            UPDATE owners SET manager_code = 'AG-' || UPPER(SUBSTRING(MD5(id::text || COALESCE(name,'') || RANDOM()::text), 1, 6))
+            WHERE manager_code IS NULL OR manager_code = ''
+            RETURNING id, manager_code
+        `);
+        if (genResult.rows.length > 0) {
+            console.log(`[manager-code] Auto-generated codes for ${genResult.rows.length} owners:`, 
+                genResult.rows.map((r: any) => `${r.id}→${r.manager_code}`).join(', '));
+        }
 
-        // Debug: check owner_user pour cet user
-        const ouCheck = await pool.query(`SELECT owner_id, role, is_active FROM owner_user WHERE user_id = $1`, [userId]);
-        console.log(`[manager-code] owner_user links for user ${userId}:`, JSON.stringify(ouCheck.rows));
-
-        // Stratégie 1 : Via owner_user (gestionnaires délégués et propriétaires liés)
+        // Étape 2 : Chercher les owners liés à cet utilisateur
+        // Stratégie A : Via owner_user
         let result = await pool.query(
             `SELECT o.id as owner_id, o.name as owner_name, o.manager_code
              FROM owners o
@@ -1570,9 +1569,9 @@ router.post('/manager-code', protect, async (req: any, res) => {
              ORDER BY o.name ASC`,
             [userId]
         );
-        console.log(`[manager-code] Stratégie 1 (owner_user): ${result.rows.length} résultats`);
+        console.log(`[manager-code] Stratégie A (owner_user): ${result.rows.length} résultats`);
 
-        // Stratégie 2 (fallback) : chercher directement par email dans owners
+        // Stratégie B : Par email (case-insensitive)
         if (result.rows.length === 0 && userEmail) {
             result = await pool.query(
                 `SELECT id as owner_id, name as owner_name, manager_code
@@ -1582,20 +1581,39 @@ router.post('/manager-code', protect, async (req: any, res) => {
                  ORDER BY name ASC`,
                 [userEmail]
             );
-            console.log(`[manager-code] Stratégie 2 (email): ${result.rows.length} résultats`);
+            console.log(`[manager-code] Stratégie B (email): ${result.rows.length} résultats`);
+
+            // Si trouvé par email mais pas dans owner_user, créer le lien owner_user
+            if (result.rows.length > 0) {
+                const ownerId = result.rows[0].owner_id;
+                try {
+                    await pool.query(`
+                        INSERT INTO owner_user (owner_id, user_id, role, is_active, start_date,
+                            can_view_finances, can_manage_tenants, can_manage_properties, can_manage_leases, can_manage_documents)
+                        VALUES ($1, $2, 'owner', TRUE, CURRENT_DATE, TRUE, TRUE, TRUE, TRUE, TRUE)
+                        ON CONFLICT (owner_id, user_id) DO NOTHING
+                    `, [ownerId, userId]);
+                    console.log(`[manager-code] Auto-created owner_user link: owner=${ownerId} user=${userId}`);
+                } catch (e) {
+                    console.warn(`[manager-code] Could not auto-create owner_user link:`, e);
+                }
+            }
         }
 
-        // Stratégie 3 (fallback ultime) : si l'utilisateur est propriétaire, chercher par user_id dans owners
+        // Stratégie C : Chercher un owner avec le même téléphone
         if (result.rows.length === 0) {
-            result = await pool.query(
-                `SELECT id as owner_id, name as owner_name, manager_code
-                 FROM owners
-                 WHERE user_id = $1
-                   AND manager_code IS NOT NULL AND manager_code != ''
-                 ORDER BY name ASC`,
-                [userId]
-            );
-            console.log(`[manager-code] Stratégie 3 (owners.user_id): ${result.rows.length} résultats`);
+            const userPhone = await pool.query(`SELECT telephone FROM users WHERE id = $1`, [userId]);
+            if (userPhone.rows.length > 0 && userPhone.rows[0].telephone) {
+                result = await pool.query(
+                    `SELECT id as owner_id, name as owner_name, manager_code
+                     FROM owners
+                     WHERE phone = $1
+                       AND manager_code IS NOT NULL AND manager_code != ''
+                     ORDER BY name ASC`,
+                    [userPhone.rows[0].telephone]
+                );
+                console.log(`[manager-code] Stratégie C (phone): ${result.rows.length} résultats`);
+            }
         }
 
         if (result.rows.length > 0) {
@@ -1605,7 +1623,10 @@ router.post('/manager-code', protect, async (req: any, res) => {
                 owners: result.rows
             });
         } else {
-            console.warn(`[manager-code] FAIL: No manager_code found for user_id=${userId} (email=${userEmail})`);
+            console.warn(`[manager-code] FAIL: No owner found for user_id=${userId} (email=${userEmail})`);
+            // Debug: lister tous les owners pour traçabilité
+            const allOwners = await pool.query(`SELECT id, name, email, phone, manager_code FROM owners LIMIT 10`);
+            console.log(`[manager-code] DEBUG: premiers owners =`, JSON.stringify(allOwners.rows));
             res.json({ managerCode: null, owners: [] });
         }
     } catch (error) {
