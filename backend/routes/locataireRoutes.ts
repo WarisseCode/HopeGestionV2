@@ -7,27 +7,61 @@ import permissions from '../middleware/permissionMiddleware';
 const router = express.Router();
 
 /**
- * Helper: Récupérer l'ID propriétaire géré par l'utilisateur connecté
+ * Helper: Récupérer l'ID propriétaire géré par l'utilisateur connecté.
+ * Retourne:
+ *   - owner_id (number) si l'utilisateur est lié via owner_user (propriétaire/délégué)
+ *   - -1 si l'utilisateur est un admin/gestionnaire global (voit tout)
+ *   - null si aucun accès
  */
-const getManagedOwnerId = async (userId: number): Promise<number | null> => {
-    // 1. Si l'utilisateur est lui-même 'owner' ou 'manager' dans owner_user
+const getManagedOwnerId = async (userId: number, userRole?: string, userType?: string): Promise<number | null> => {
+    // 1. Admin/gestionnaire global → voit tout (sentinel -1)
+    if (userRole === 'admin' || userRole === 'gestionnaire' || userType === 'gestionnaire') {
+        console.log(`[getManagedOwnerId] user=${userId} role=${userRole} type=${userType} → admin/gestionnaire, accès global`);
+        return -1;
+    }
+
+    // 2. Chercher un lien owner_user
     const result = await pool.query(
         `SELECT owner_id FROM owner_user 
          WHERE user_id = $1 AND is_active = TRUE 
          ORDER BY (CASE WHEN role='owner' THEN 1 ELSE 2 END) LIMIT 1`,
         [userId]
     );
-    return result.rows.length > 0 ? result.rows[0].owner_id : null;
+
+    if (result.rows.length > 0) {
+        console.log(`[getManagedOwnerId] user=${userId} → owner_id=${result.rows[0].owner_id} via owner_user`);
+        return result.rows[0].owner_id;
+    }
+
+    // 3. Fallback: peut-être que l'utilisateur est un gestionnaire sans owner_user — chercher dans users
+    const userRes = await pool.query(
+        `SELECT user_type, role FROM users WHERE id = $1`,
+        [userId]
+    );
+    if (userRes.rows.length > 0) {
+        const u = userRes.rows[0];
+        console.log(`[getManagedOwnerId] user=${userId} → user_type=${u.user_type} role=${u.role} (DB lookup)`);
+        if (u.user_type === 'gestionnaire' || u.role === 'admin' || u.role === 'gestionnaire') {
+            return -1; // accès global
+        }
+    }
+
+    console.log(`[getManagedOwnerId] user=${userId} → aucun accès`);
+    return null;
 };
 
 // GET /api/locataires - Liste des locataires
 router.get('/', protect, permissions.canRead('locataires'), async (req: any, res) => {
     try {
         const userId = req.user.id;
-        const ownerId = await getManagedOwnerId(userId);
+        const userRole = req.user.role || req.userRole;
+        const userType = req.user.user_type;
+        const ownerId = await getManagedOwnerId(userId, userRole, userType);
 
-        if (!ownerId) {
-            return res.status(200).json({ locataires: [] }); // Pas d'owner géré = liste vide
+        console.log(`[GET /locataires] userId=${userId} role=${userRole} type=${userType} ownerId=${ownerId}`);
+
+        if (ownerId === null) {
+            return res.status(200).json({ locataires: [] }); // Pas d'accès
         }
 
         const { type, search } = req.query;
@@ -38,13 +72,12 @@ router.get('/', protect, permissions.canRead('locataires'), async (req: any, res
                    al.loyer_mensuel as loyer_actuel,
                    al.lease_id as active_lease_id,
                    al.lease_statut as bail_statut,
-                   -- Logique de statut de paiement basée sur le dernier paiement
                    CASE 
                      WHEN al.lease_id IS NULL THEN 'unknown'
-                     WHEN lp.last_payment_date IS NULL THEN 'pending' -- Jamais payé
-                     WHEN lp.last_payment_date < CURRENT_DATE - INTERVAL '35 days' THEN 'late' -- Retard > 5 jours après fin de mois (approx)
-                     WHEN EXTRACT(MONTH FROM lp.last_payment_date) = EXTRACT(MONTH FROM CURRENT_DATE) THEN 'paid' -- Payé ce mois-ci
-                     ELSE 'pending' -- Pas encore payé ce mois-ci mais pas encore en retard critique
+                     WHEN lp.last_payment_date IS NULL THEN 'pending'
+                     WHEN lp.last_payment_date < CURRENT_DATE - INTERVAL '35 days' THEN 'late'
+                     WHEN EXTRACT(MONTH FROM lp.last_payment_date) = EXTRACT(MONTH FROM CURRENT_DATE) THEN 'paid'
+                     ELSE 'pending'
                    END as payment_status
             FROM tenants t 
             LEFT JOIN LATERAL (
@@ -60,10 +93,18 @@ router.get('/', protect, permissions.canRead('locataires'), async (req: any, res
                 FROM payments p
                 WHERE p.lease_id = al.lease_id
             ) lp ON true
-            WHERE t.owner_id = $1 AND t.statut != 'Archivé'
+            WHERE t.statut != 'Archivé'
         `;
-        const params: any[] = [ownerId];
-        let paramIndex = 2;
+
+        const params: any[] = [];
+        let paramIndex = 1;
+
+        // Filtre par owner uniquement si pas admin/gestionnaire global
+        if (ownerId !== -1) {
+            query += ` AND t.owner_id = $${paramIndex}`;
+            params.push(ownerId);
+            paramIndex++;
+        }
 
         if (type) {
             query += ` AND t.type = $${paramIndex}`;
@@ -77,9 +118,10 @@ router.get('/', protect, permissions.canRead('locataires'), async (req: any, res
             paramIndex++;
         }
 
-        query += ` ORDER BY t.nom, t.prenoms`;
+        query += ` ORDER BY t.statut DESC, t.nom, t.prenoms`;
 
         const result = await pool.query(query, params);
+        console.log(`[GET /locataires] → ${result.rows.length} résultats`);
         res.json({ locataires: result.rows });
     } catch (error) {
         console.error('Error fetching tenants:', error);
@@ -313,12 +355,16 @@ router.post('/:id/approve', protect, async (req: any, res) => {
     try {
         const userId = req.user.id;
         const tenantId = req.params.id;
-        const ownerId = await getManagedOwnerId(userId);
+        const userRole = req.user.role || req.userRole;
+        const userType = req.user.user_type;
+        const ownerId = await getManagedOwnerId(userId, userRole, userType);
 
-        if (!ownerId) return res.status(403).json({ message: "Non autorisé" });
+        if (ownerId === null) return res.status(403).json({ message: "Non autorisé" });
 
-        // Vérif appartenance
-        const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
+        // Vérif appartenance — si admin (ownerId=-1), on vérifie juste l'existence du tenant
+        const tenantCheck = ownerId === -1
+            ? await pool.query('SELECT id FROM tenants WHERE id = $1', [tenantId])
+            : await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
         if (tenantCheck.rows.length === 0) return res.status(404).json({ message: "Locataire non trouvé" });
 
         await pool.query("UPDATE tenants SET statut = 'Actif' WHERE id = $1", [tenantId]);
@@ -351,15 +397,18 @@ router.post('/:id/reject', protect, async (req: any, res) => {
     try {
         const userId = req.user.id;
         const tenantId = req.params.id;
-        const ownerId = await getManagedOwnerId(userId);
+        const userRole = req.user.role || req.userRole;
+        const userType = req.user.user_type;
+        const ownerId = await getManagedOwnerId(userId, userRole, userType);
 
-        if (!ownerId) return res.status(403).json({ message: "Non autorisé" });
+        if (ownerId === null) return res.status(403).json({ message: "Non autorisé" });
 
-        const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
+        // Vérif appartenance — si admin (ownerId=-1), on vérifie juste l'existence du tenant
+        const tenantCheck = ownerId === -1
+            ? await pool.query('SELECT id FROM tenants WHERE id = $1', [tenantId])
+            : await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
         if (tenantCheck.rows.length === 0) return res.status(404).json({ message: "Locataire non trouvé" });
 
-        // On supprime ou on archive ? 'Rejeté' permet de garder une trace, mais 'DELETE' est plus propre pour un refus initial.
-        // On va mettre statut = 'Rejeté' pour l'instant.
         await pool.query("UPDATE tenants SET statut = 'Rejeté' WHERE id = $1", [tenantId]);
 
         // Notification au locataire
