@@ -108,6 +108,18 @@ async function runMigration() {
             ALTER TABLE owner_user ADD COLUMN IF NOT EXISTS can_access_audit_logs BOOLEAN DEFAULT FALSE;
         `);
 
+        // === COLONNES MANQUANTES DANS TENANTS (CRITIQUE pour link-tenant) ===
+        await runStep(client, '24 tenants user_id + invitation_code + statut', `
+            ALTER TABLE tenants ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+            ALTER TABLE tenants ADD COLUMN IF NOT EXISTS invitation_code VARCHAR(50);
+            ALTER TABLE tenants ADD COLUMN IF NOT EXISTS statut VARCHAR(50) DEFAULT 'Actif';
+            ALTER TABLE tenants ADD COLUMN IF NOT EXISTS owner_id INTEGER;
+            CREATE INDEX IF NOT EXISTS idx_tenants_user_id ON tenants(user_id);
+            CREATE INDEX IF NOT EXISTS idx_tenants_invitation_code ON tenants(invitation_code);
+        `);
+
+        await runStep(client, '25 migration_tenant_invitation', path.join(dbDir, 'migration_tenant_invitation.sql'), true);
+
         console.log('\n✅ Migration exécutée avec succès (mode résilient) !');
         
     } catch (error: any) {

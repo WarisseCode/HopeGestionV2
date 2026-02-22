@@ -203,6 +203,18 @@ const MIGRATIONS: Migration[] = [
             WHERE o.email IS NOT NULL AND o.email != ''
             ON CONFLICT (owner_id, user_id) DO NOTHING;
         `
+    },
+    {
+        name: '014_tenants_user_id_invitation_code',
+        // CRITIQUE: La colonne user_id dans tenants N'EXISTE PAS en prod
+        // C'est la cause directe du 500 sur link-tenant
+        sql: `
+            ALTER TABLE tenants ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+            ALTER TABLE tenants ADD COLUMN IF NOT EXISTS invitation_code VARCHAR(50);
+            ALTER TABLE tenants ADD COLUMN IF NOT EXISTS statut VARCHAR(50) DEFAULT 'Actif';
+            CREATE INDEX IF NOT EXISTS idx_tenants_user_id ON tenants(user_id);
+            CREATE INDEX IF NOT EXISTS idx_tenants_invitation_code ON tenants(invitation_code);
+        `
     }
 ];
 
