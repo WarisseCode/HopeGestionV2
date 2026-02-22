@@ -1537,6 +1537,28 @@ router.post('/manager-code', protect, async (req: any, res) => {
     try {
         const userId = req.user.id;
         const userEmail = req.user.email;
+        console.log(`[manager-code] START user_id=${userId} email=${userEmail}`);
+
+        // Debug: vérifier si la colonne manager_code existe
+        const colCheck = await pool.query(`
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'owners' AND column_name = 'manager_code'
+        `);
+        console.log(`[manager-code] column manager_code exists?`, colCheck.rows.length > 0);
+
+        if (colCheck.rows.length === 0) {
+            // La colonne n'existe pas encore — la migration n'a pas tourné
+            console.error(`[manager-code] CRITICAL: colonne manager_code n'existe PAS dans owners !`);
+            return res.json({ managerCode: null, owners: [], debug: 'column_missing' });
+        }
+
+        // Debug: compter les owners avec manager_code
+        const countCheck = await pool.query(`SELECT COUNT(*) as total, COUNT(manager_code) as with_code FROM owners`);
+        console.log(`[manager-code] owners total=${countCheck.rows[0].total} with_code=${countCheck.rows[0].with_code}`);
+
+        // Debug: check owner_user pour cet user
+        const ouCheck = await pool.query(`SELECT owner_id, role, is_active FROM owner_user WHERE user_id = $1`, [userId]);
+        console.log(`[manager-code] owner_user links for user ${userId}:`, JSON.stringify(ouCheck.rows));
 
         // Stratégie 1 : Via owner_user (gestionnaires délégués et propriétaires liés)
         let result = await pool.query(
@@ -1548,33 +1570,49 @@ router.post('/manager-code', protect, async (req: any, res) => {
              ORDER BY o.name ASC`,
             [userId]
         );
+        console.log(`[manager-code] Stratégie 1 (owner_user): ${result.rows.length} résultats`);
 
         // Stratégie 2 (fallback) : chercher directement par email dans owners
         if (result.rows.length === 0 && userEmail) {
             result = await pool.query(
                 `SELECT id as owner_id, name as owner_name, manager_code
                  FROM owners
-                 WHERE email = $1
+                 WHERE LOWER(email) = LOWER($1)
                    AND manager_code IS NOT NULL AND manager_code != ''
                  ORDER BY name ASC`,
                 [userEmail]
             );
+            console.log(`[manager-code] Stratégie 2 (email): ${result.rows.length} résultats`);
+        }
+
+        // Stratégie 3 (fallback ultime) : si l'utilisateur est propriétaire, chercher par user_id dans owners
+        if (result.rows.length === 0) {
+            result = await pool.query(
+                `SELECT id as owner_id, name as owner_name, manager_code
+                 FROM owners
+                 WHERE user_id = $1
+                   AND manager_code IS NOT NULL AND manager_code != ''
+                 ORDER BY name ASC`,
+                [userId]
+            );
+            console.log(`[manager-code] Stratégie 3 (owners.user_id): ${result.rows.length} résultats`);
         }
 
         if (result.rows.length > 0) {
+            console.log(`[manager-code] SUCCESS → code=${result.rows[0].manager_code}`);
             res.json({
                 managerCode: result.rows[0].manager_code,
                 owners: result.rows
             });
         } else {
-            // Retourner 200 avec liste vide plutôt que 404 pour éviter les erreurs silencieuses
-            console.warn(`[Auth] No manager_code found for user_id=${userId} (email=${userEmail})`);
+            console.warn(`[manager-code] FAIL: No manager_code found for user_id=${userId} (email=${userEmail})`);
             res.json({ managerCode: null, owners: [] });
         }
     } catch (error) {
-        console.error('Error fetching manager code:', error);
+        console.error('[manager-code] Error:', error);
         res.status(500).json({ message: "Erreur serveur" });
     }
 });
+
 
 export default router;

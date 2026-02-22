@@ -45,22 +45,32 @@ const ProprietaireDashboard: React.FC = () => {
   React.useEffect(() => {
       const fetchCode = async () => {
           const token = getToken();
+          console.log('[ProprietaireDashboard] fetchCode: token exists?', !!token);
           if (!token) return;
           try {
-              const res = await fetch(`${API_URL}/auth/manager-code`, {
+              const url = `${API_URL}/auth/manager-code`;
+              console.log('[ProprietaireDashboard] fetchCode: calling', url);
+              const res = await fetch(url, {
                   method: 'POST',
                   headers: { 'Authorization': `Bearer ${token}` }
               });
-              if (res.ok) {
-                  const data = await res.json();
+              console.log('[ProprietaireDashboard] fetchCode: status=', res.status);
+              const data = await res.json();
+              console.log('[ProprietaireDashboard] fetchCode: response=', JSON.stringify(data));
+              if (res.ok && data.managerCode) {
                   setManagerCode(data.managerCode);
+              } else {
+                  console.warn('[ProprietaireDashboard] fetchCode: managerCode is null/empty', data);
               }
-          } catch (e) { console.error(e); }
+          } catch (e) { 
+              console.error('[ProprietaireDashboard] fetchCode error:', e); 
+          }
       };
       if (user) {
           fetchCode();
       }
   }, [user]);
+
 
   // New State for Real Data
   const [chartData, setChartData] = useState<{ name: string; revenus: number; depenses: number }[]>([]);
