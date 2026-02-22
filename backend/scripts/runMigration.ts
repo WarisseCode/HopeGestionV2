@@ -125,6 +125,8 @@ async function runMigration() {
             UPDATE tenants SET type = 'Locataire' WHERE type IS NULL;
         `);
 
+        await runStep(client, '27 create notification_settings', path.join(process.cwd(), 'migrations', 'create_notification_settings.sql'), true);
+
         console.log('\n✅ Migration exécutée avec succès (mode résilient) !');
         
     } catch (error: any) {

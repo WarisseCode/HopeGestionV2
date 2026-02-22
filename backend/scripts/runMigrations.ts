@@ -221,6 +221,23 @@ const MIGRATIONS: Migration[] = [
         sql: `
             UPDATE tenants SET type = 'Locataire' WHERE type IS NULL;
         `
+    },
+    {
+        name: '016_create_notification_settings',
+        sql: `
+            CREATE TABLE IF NOT EXISTS notification_settings (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                alert_type VARCHAR(50) NOT NULL,
+                channel_email BOOLEAN DEFAULT TRUE,
+                channel_whatsapp BOOLEAN DEFAULT FALSE,
+                channel_sms BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, alert_type)
+            );
+            CREATE INDEX IF NOT EXISTS idx_notification_settings_user ON notification_settings(user_id);
+        `
     }
 ];
 
