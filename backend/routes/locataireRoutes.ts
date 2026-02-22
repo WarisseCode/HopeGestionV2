@@ -7,46 +7,61 @@ import permissions from '../middleware/permissionMiddleware';
 const router = express.Router();
 
 /**
- * Helper: Récupérer l'ID propriétaire géré par l'utilisateur connecté.
+ * Helper: Récupérer TOUS les IDs propriétaires gérés par l'utilisateur connecté.
  * Retourne:
- *   - owner_id (number) si l'utilisateur est lié via owner_user (propriétaire/délégué)
- *   - -1 si l'utilisateur est un admin/gestionnaire global (voit tout)
- *   - null si aucun accès
+ *   - number[] (liste d'owner_ids) pour les utilisateurs liés via owner_user
+ *   - null (accès global, sans filtre) uniquement pour role='admin' (super-admin plateforme)
+ *   - [] (tableau vide) si aucun accès
+ * 
+ * SÉCURITÉ: Seul role='admin' voit toute la plateforme. Un gestionnaire ne voit
+ * que les locataires des owners auxquels il est explicitement lié via owner_user.
  */
-const getManagedOwnerId = async (userId: number, userRole?: string, userType?: string): Promise<number | null> => {
-    // 1. Admin/gestionnaire global → voit tout (sentinel -1)
-    if (userRole === 'admin' || userRole === 'gestionnaire' || userType === 'gestionnaire') {
-        console.log(`[getManagedOwnerId] user=${userId} role=${userRole} type=${userType} → admin/gestionnaire, accès global`);
-        return -1;
+const getManagedOwnerIds = async (userId: number, userRole?: string): Promise<number[] | null> => {
+    // 1. Super-admin plateforme uniquement → accès global (null = pas de filtre)
+    if (userRole === 'admin') {
+        console.log(`[getManagedOwnerIds] user=${userId} → admin plateforme, accès global`);
+        return null;
     }
 
-    // 2. Chercher un lien owner_user
+    // 2. Chercher TOUS les liens owner_user actifs
     const result = await pool.query(
-        `SELECT owner_id FROM owner_user 
-         WHERE user_id = $1 AND is_active = TRUE 
-         ORDER BY (CASE WHEN role='owner' THEN 1 ELSE 2 END) LIMIT 1`,
+        `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
         [userId]
     );
 
     if (result.rows.length > 0) {
-        console.log(`[getManagedOwnerId] user=${userId} → owner_id=${result.rows[0].owner_id} via owner_user`);
-        return result.rows[0].owner_id;
+        const ids = result.rows.map((r: any) => r.owner_id);
+        console.log(`[getManagedOwnerIds] user=${userId} → owners=[${ids}] via owner_user`);
+        return ids;
     }
 
-    // 3. Fallback: peut-être que l'utilisateur est un gestionnaire sans owner_user — chercher dans users
+    // 3. Fallback DB : vérifier le rôle réel dans users
     const userRes = await pool.query(
         `SELECT user_type, role FROM users WHERE id = $1`,
         [userId]
     );
     if (userRes.rows.length > 0) {
         const u = userRes.rows[0];
-        console.log(`[getManagedOwnerId] user=${userId} → user_type=${u.user_type} role=${u.role} (DB lookup)`);
-        if (u.user_type === 'gestionnaire' || u.role === 'admin' || u.role === 'gestionnaire') {
-            return -1; // accès global
+        console.log(`[getManagedOwnerIds] user=${userId} → user_type=${u.user_type} role=${u.role} (DB lookup)`);
+        if (u.role === 'admin') {
+            return null; // accès global uniquement pour vrai admin
         }
     }
 
-    console.log(`[getManagedOwnerId] user=${userId} → aucun accès`);
+    console.log(`[getManagedOwnerIds] user=${userId} → aucun accès (owner_user vide)`);
+    return []; // Aucun owner lié = aucun accès
+};
+
+// Compatibilité : helper retournant un seul owner_id (pour les endpoints non‑liste)
+const getManagedOwnerId = async (userId: number, userRole?: string, userType?: string): Promise<number | null> => {
+    if (userRole === 'admin') return -1;
+    const result = await pool.query(
+        `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE ORDER BY (CASE WHEN role='owner' THEN 1 ELSE 2 END) LIMIT 1`,
+        [userId]
+    );
+    if (result.rows.length > 0) return result.rows[0].owner_id;
+    const userRes = await pool.query(`SELECT role FROM users WHERE id = $1`, [userId]);
+    if (userRes.rows.length > 0 && userRes.rows[0].role === 'admin') return -1;
     return null;
 };
 
@@ -55,13 +70,13 @@ router.get('/', protect, permissions.canRead('locataires'), async (req: any, res
     try {
         const userId = req.user.id;
         const userRole = req.user.role || req.userRole;
-        const userType = req.user.user_type;
-        const ownerId = await getManagedOwnerId(userId, userRole, userType);
+        const ownerIds = await getManagedOwnerIds(userId, userRole);
 
-        console.log(`[GET /locataires] userId=${userId} role=${userRole} type=${userType} ownerId=${ownerId}`);
+        console.log(`[GET /locataires] userId=${userId} role=${userRole} ownerIds=${JSON.stringify(ownerIds)}`);
 
-        if (ownerId === null) {
-            return res.status(200).json({ locataires: [] }); // Pas d'accès
+        // Tableau vide = aucun accès
+        if (ownerIds !== null && ownerIds.length === 0) {
+            return res.status(200).json({ locataires: [] });
         }
 
         const { type, search } = req.query;
@@ -99,10 +114,10 @@ router.get('/', protect, permissions.canRead('locataires'), async (req: any, res
         const params: any[] = [];
         let paramIndex = 1;
 
-        // Filtre par owner uniquement si pas admin/gestionnaire global
-        if (ownerId !== -1) {
-            query += ` AND t.owner_id = $${paramIndex}`;
-            params.push(ownerId);
+        // Filtre strict par owner_ids — null = admin plateforme (pas de filtre)
+        if (ownerIds !== null) {
+            query += ` AND t.owner_id = ANY($${paramIndex}::int[])`;
+            params.push(ownerIds);
             paramIndex++;
         }
 
