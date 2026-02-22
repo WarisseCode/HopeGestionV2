@@ -122,7 +122,9 @@ const LocataireDashboard: React.FC = () => {
             window.location.reload();
         }
     } catch (err: any) {
-        toast.error(err.message || 'Erreur lors de la liaison');
+        const msg = err.message || 'Erreur lors de la liaison';
+        toast.error(msg, { duration: 8000 });
+        console.error('[LinkTenant] Erreur détaillée:', msg);
     } finally {
         setLinking(false);
     }

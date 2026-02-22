@@ -1,7 +1,7 @@
 // frontend/src/utils/apiUtils.ts
 
 /**
- * Fonction utilitaire pour effectuer des appels API avec une gestion d'erreur améliorée
+ * Fonction utilitaire pour effectuer des appels API avec une gestion d'erreur détaillée
  */
 export async function apiCall<T>(
   url: string,
@@ -16,10 +16,18 @@ export async function apiCall<T>(
       },
     });
 
-    // Si la réponse est une erreur réseau (ex: serveur inaccessible)
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.message || `Erreur HTTP ${response.status}: ${response.statusText}`;
+      // Construire un message d'erreur détaillé
+      const parts: string[] = [];
+      if (errorData.message) parts.push(errorData.message);
+      if (errorData.detail) parts.push(`[Détail: ${errorData.detail}]`);
+      if (errorData.errorCode) parts.push(`[Code: ${errorData.errorCode}]`);
+      
+      const errorMessage = parts.length > 0 
+        ? parts.join(' — ') 
+        : `Erreur HTTP ${response.status}: ${response.statusText}`;
+      
       throw new Error(errorMessage);
     }
 

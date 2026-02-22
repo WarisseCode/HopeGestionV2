@@ -1512,10 +1512,19 @@ router.post('/link-tenant', protect, async (req: any, res) => {
         await client.query('ROLLBACK');
         return res.status(404).json({ message: 'Code invalide ou déjà utilisé.' });
 
-    } catch (error) {
+    } catch (error: any) {
         await client.query('ROLLBACK');
         console.error('Error linking tenant:', error);
-        res.status(500).json({ message: 'Erreur lors de la liaison.' });
+        const detail = error?.message || 'Erreur inconnue';
+        const sqlDetail = error?.column ? `Colonne: ${error.column}` : '';
+        const sqlTable = error?.table ? `Table: ${error.table}` : '';
+        const sqlConstraint = error?.constraint ? `Contrainte: ${error.constraint}` : '';
+        const fullDetail = [detail, sqlDetail, sqlTable, sqlConstraint].filter(Boolean).join(' | ');
+        res.status(500).json({ 
+            message: 'Erreur lors de la liaison.', 
+            detail: fullDetail,
+            errorCode: error?.code || null
+        });
     } finally {
         client.release();
     }
