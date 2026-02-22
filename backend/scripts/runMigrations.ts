@@ -238,6 +238,15 @@ const MIGRATIONS: Migration[] = [
             );
             CREATE INDEX IF NOT EXISTS idx_notification_settings_user ON notification_settings(user_id);
         `
+    },
+    {
+        name: '017_manager_code',
+        sql: `
+            ALTER TABLE owners ADD COLUMN IF NOT EXISTS manager_code VARCHAR(20);
+            UPDATE owners SET manager_code = 'AG-' || UPPER(SUBSTRING(MD5(id::text || COALESCE(name,'') || RANDOM()::text), 1, 6))
+            WHERE manager_code IS NULL OR manager_code = '';
+            CREATE INDEX IF NOT EXISTS idx_owners_manager_code ON owners(manager_code);
+        `
     }
 ];
 
