@@ -120,6 +120,11 @@ async function runMigration() {
 
         await runStep(client, '25 migration_tenant_invitation', path.join(dbDir, 'migration_tenant_invitation.sql'), true);
 
+        // Fix tenants with NULL type (created by link-tenant without specifying type)
+        await runStep(client, '26 fix tenants NULL type', `
+            UPDATE tenants SET type = 'Locataire' WHERE type IS NULL;
+        `);
+
         console.log('\n✅ Migration exécutée avec succès (mode résilient) !');
         
     } catch (error: any) {

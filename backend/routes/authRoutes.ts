@@ -1462,8 +1462,8 @@ router.post('/link-tenant', protect, async (req: any, res) => {
 
             // Create new tenant linked to this owner and user
             const newTenant = await client.query(
-                `INSERT INTO tenants (nom, prenoms, email, telephone_principal, owner_id, user_id, invitation_code, statut)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, 'En attente')
+                `INSERT INTO tenants (nom, prenoms, email, telephone_principal, owner_id, user_id, invitation_code, statut, type)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, 'En attente', 'Locataire')
                  RETURNING id`,
                 [lastName, firstName, u.email || '', u.telephone || '', ownerId, userId, newCode]
             );

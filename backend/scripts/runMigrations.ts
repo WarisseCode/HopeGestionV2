@@ -215,6 +215,12 @@ const MIGRATIONS: Migration[] = [
             CREATE INDEX IF NOT EXISTS idx_tenants_user_id ON tenants(user_id);
             CREATE INDEX IF NOT EXISTS idx_tenants_invitation_code ON tenants(invitation_code);
         `
+    },
+    {
+        name: '015_fix_tenants_null_type',
+        sql: `
+            UPDATE tenants SET type = 'Locataire' WHERE type IS NULL;
+        `
     }
 ];
 
