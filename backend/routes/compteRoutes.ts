@@ -221,17 +221,18 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
         } = req.body;
         
         // Nettoyage des numéros avec support de multiples noms de champs
-        const rawPhone = phone;
+        const rawPhone = phone?.toString();
         const cleanPhone = rawPhone ? rawPhone.replace(/[\s\-\(\)\.]/g, '') : null;
         
-        const rawPhoneSec = phone_secondary || secondary_phone || telephoneSecondaire;
+        const rawPhoneSec = (phone_secondary || secondary_phone || telephoneSecondaire)?.toString();
         const cleanPhoneSec = rawPhoneSec ? rawPhoneSec.replace(/[\s\-\(\)\.]/g, '') : null;
         
-        const rawMobileMoney = mobile_money_number || mobile_money;
+        const rawMobileMoney = (mobile_money_number || mobile_money)?.toString();
         const cleanMobileMoney = rawMobileMoney ? rawMobileMoney.replace(/[\s\-\(\)\.]/g, '') : null;
 
         let updatedOwner;
         try {
+            // Note: On met à jour id_number ET rccm_number pour être cohérent avec le type de propriétaire
             updatedOwner = await db.query(
                 `UPDATE owners 
                  SET name = COALESCE($1, name), 
@@ -243,10 +244,11 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
                      country = COALESCE($7, country),
                      first_name = COALESCE($8, first_name),
                      id_number = COALESCE($9, id_number), 
+                     rccm_number = COALESCE($14, rccm_number),
                      mobile_money_number = COALESCE($10, mobile_money_number),
                      phone_secondary = COALESCE($11, phone_secondary),
                      management_mode = COALESCE($12, management_mode),
-                     photo_url = COALESCE($14, photo_url),
+                     photo_url = COALESCE($15, photo_url),
                      updated_at = CURRENT_TIMESTAMP
                  WHERE id = $13 RETURNING *`,
                 [
@@ -258,11 +260,12 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
                     city || null,
                     country || null,
                     first_name || prenom || null,
-                    rccm_number || id_number || null, 
+                    id_number || null, 
                     cleanMobileMoney || null, 
                     cleanPhoneSec || null,
                     management_mode || null, 
                     ownerId,
+                    rccm_number || null,
                     photo || photo_url || null
                 ]
             );
@@ -275,9 +278,9 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
                 if (error.constraint === 'owners_email_key') {
                     return res.status(400).json({ message: 'Cette adresse email est déjà utilisée par un autre propriétaire.' });
                 }
-                return res.status(400).json({ message: 'Une donnée unique (téléphone ou email) est déjà utilisée par un autre propriétaire.' });
+                return res.status(400).json({ message: `Une donnée unique est déjà utilisée : ${error.detail || error.message}` });
             }
-            throw error; // Renvoyé au catch général
+            throw error; 
         }
 
         if (updatedOwner.rows.length === 0) {
@@ -292,9 +295,12 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
         });
 
         res.json(updatedOwner.rows[0]);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Erreur modification propriétaire:', error);
-        res.status(500).json({ message: 'Erreur serveur lors de la modification.' });
+        res.status(500).json({ 
+            message: 'Erreur serveur lors de la modification.',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        });
     }
 });
 

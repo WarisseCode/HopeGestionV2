@@ -10,11 +10,12 @@ const pool = new Pool({
 async function check() {
   try {
     const res = await pool.query(`
-      SELECT column_name, data_type, character_maximum_length 
+      SELECT column_name, data_type 
       FROM information_schema.columns 
-      WHERE table_name = 'owners';
+      WHERE table_name = 'owners'
+      ORDER BY column_name;
     `);
-    console.log('Owners table structure:', res.rows);
+    console.log('Owners columns:', res.rows.map(r => r.column_name).join(', '));
   } catch (err) {
     console.error(err);
   } finally {
