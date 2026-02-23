@@ -213,7 +213,7 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
         // Support multiple field names for backward compatibility
         const { 
             name, type, phone, email, address, 
-            company_name, rccm_number, mobile_money, mobile_money_number,
+            company_name, rccm_number, id_number, mobile_money, mobile_money_number,
             telephoneSecondaire, secondary_phone, phone_secondary,
             first_name, prenom,
             management_mode, delegation_start_date, delegation_end_date 
