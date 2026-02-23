@@ -263,7 +263,7 @@ const Proprietaires: React.FC = () => {
                           <span className="text-base-content/80">{owner.total_properties || 0} Biens</span>
                           <span className="text-base-content/40">•</span>
                           <MapPin size={14} className="text-base-content/60" />
-                          <span className="text-base-content/80">{owner.city || 'N/A'}</span>
+                          <span className="text-base-content/80">{owner.address || owner.city || 'N/A'}</span>
                         </div>
                     </div>
 
@@ -293,7 +293,7 @@ const Proprietaires: React.FC = () => {
                 <tr>
                   <th>Propriétaire</th>
                   <th>Contact</th>
-                  <th>Localisation</th>
+                  <th>Adresse</th>
                   <th>Biens</th>
                   <th>Mode</th>
                   <th>Actions</th>
@@ -336,7 +336,7 @@ const Proprietaires: React.FC = () => {
                     <td>
                       <div className="flex items-center gap-2">
                         <MapPin size={14} className="text-base-content/60" />
-                        <span className="text-sm">{owner.city || 'N/A'}</span>
+                        <span className="text-sm">{owner.address || owner.city || 'N/A'}</span>
                       </div>
                     </td>
                     <td>
