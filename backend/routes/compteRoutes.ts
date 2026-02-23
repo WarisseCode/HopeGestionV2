@@ -165,7 +165,7 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
         try {
             await db.query(
                 `INSERT INTO owner_user (user_id, owner_id, role, is_active, start_date) VALUES ($1, $2, 'owner', true, CURRENT_DATE)`,
-                [req.userId, ownerId]
+                [req.userId!, ownerId]
             );
         } catch (linkError) {
             console.error('Erreur liaison owner_user:', linkError);
@@ -174,7 +174,7 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
 
         // Log action
         await AuditService.log({
-            userId: req.userId.toString(),
+            userId: req.userId!.toString(),
             action: 'CREATE_OWNER',
             module: 'COMPTE',
             details: { name: req.body.name || req.body.company_name }
@@ -204,7 +204,7 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
         if (req.userRole === 'proprietaire') {
             const checkLink = await db.query(
                 `SELECT 1 FROM owner_user WHERE user_id = $1 AND owner_id = $2`,
-                [req.userId, ownerId]
+                [req.userId!, ownerId]
             );
             if (checkLink.rows.length === 0) {
                 return res.status(403).json({ message: "Vous n'êtes pas autorisé à modifier ce propriétaire." });
@@ -267,7 +267,7 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
         }
 
         await AuditService.log({
-            userId: req.userId.toString(),
+            userId: req.userId!.toString(),
             action: 'UPDATE_OWNER',
             module: 'COMPTE',
             details: { ownerId, message: `Propriétaire ID: ${ownerId}` }
@@ -311,7 +311,7 @@ router.post('/utilisateurs', async (req: AuthenticatedRequest, res: Response) =>
         }
 
         await AuditService.log({
-            userId: req.userId.toString(),
+            userId: req.userId!.toString(),
             action: id ? 'UPDATE_USER' : 'CREATE_USER',
             module: 'COMPTE',
             details: { nom, message: `Utilisateur: ${nom}` }
@@ -359,7 +359,7 @@ router.post('/autorisations', async (req: AuthenticatedRequest, res: Response) =
         ]);
 
         await AuditService.log({
-            userId: req.userId.toString(),
+            userId: req.userId!.toString(),
             action: 'SET_PERMISSIONS',
             module: 'COMPTE',
             details: { utilisateur, proprietaire, message: `Utilisateur ID: ${utilisateur}, Proprietaire ID: ${proprietaire}` }
@@ -383,7 +383,7 @@ router.delete('/proprietaires/:id', async (req: AuthenticatedRequest, res: Respo
         await db.query('UPDATE owners SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
         
         await AuditService.log({
-            userId: req.userId.toString(),
+            userId: req.userId!.toString(),
             action: 'DEACTIVATE_OWNER',
             module: 'COMPTE',
             details: { ownerId: id, message: `Propriétaire ID: ${id}` }
@@ -407,7 +407,7 @@ router.patch('/utilisateurs/:id/suspend', async (req: AuthenticatedRequest, res:
         await db.query('UPDATE users SET statut = $1 WHERE id = $2', ['Suspendu', id]);
         
         await AuditService.log({
-            userId: req.userId.toString(),
+            userId: req.userId!.toString(),
             action: 'SUSPEND_USER',
             module: 'COMPTE',
             details: { userId: id, message: `Utilisateur ID: ${id}` }
@@ -445,7 +445,7 @@ router.delete('/utilisateurs/:id', async (req: AuthenticatedRequest, res: Respon
         await client.query('DELETE FROM users WHERE id = $1', [id]);
         
         await AuditService.log({
-            userId: req.userId.toString(),
+            userId: req.userId!.toString(),
             action: 'DELETE_USER',
             module: 'COMPTE',
             details: { userId: id, message: `Utilisateur ID: ${id} (Supprimé définitivement)` }
@@ -481,7 +481,7 @@ router.patch('/utilisateurs/:id/reactivate', async (req: AuthenticatedRequest, r
         await db.query('UPDATE users SET statut = $1 WHERE id = $2', ['Actif', id]);
         
         await AuditService.log({
-            userId: req.userId.toString(),
+            userId: req.userId!.toString(),
             action: 'REACTIVATE_USER',
             module: 'COMPTE',
             details: { userId: id, message: `Utilisateur ID: ${id}` }
