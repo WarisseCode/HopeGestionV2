@@ -127,9 +127,11 @@ async function runMigration() {
 
         await runStep(client, '27 create notification_settings', path.join(process.cwd(), 'migrations', 'create_notification_settings.sql'), true);
 
-        // Manager code pour owners (badge code agence)
+        // Manager code pour owners (badge code agence) - Sécurisation
         await runStep(client, '28 manager_code colonne + gen', `
             ALTER TABLE owners ADD COLUMN IF NOT EXISTS manager_code VARCHAR(20);
+            ALTER TABLE owners ALTER COLUMN manager_code DROP NOT NULL;
+            ALTER TABLE owners DROP CONSTRAINT IF EXISTS unique_manager_code;
             UPDATE owners SET manager_code = 'AG-' || UPPER(SUBSTRING(MD5(id::text || COALESCE(name,'') || RANDOM()::text), 1, 6))
             WHERE manager_code IS NULL OR manager_code = '';
             CREATE INDEX IF NOT EXISTS idx_owners_manager_code ON owners(manager_code);
@@ -138,6 +140,7 @@ async function runMigration() {
         await runStep(client, '29 migration_manager_code.sql', path.join(dbDir, 'migration_manager_code.sql'), true);
 
         console.log('\n✅ Migration exécutée avec succès (mode résilient) !');
+
         
     } catch (error: any) {
         // Ce catch n'attrape que les erreurs de connexion ou erreurs fatales

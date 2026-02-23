@@ -124,15 +124,17 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
         const cleanPhone = req.body.phone ? req.body.phone.replace(/[^\d+]/g, '') : null;
         const cleanMobileMoney = req.body.mobile_money_number ? req.body.mobile_money_number.replace(/[^\d+]/g, '') : null;
 
+        // Générer un code manager sécurisé (AG- + 6 alphanum aléatoires)
+        const managerCode = `AG-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        console.log(`[compteRoutes] Creating owner with managerCode: ${managerCode}`);
+
         // Insérer le propriétaire (schema matches ownerRoutes.ts)
         const newOwner = await db.query(
             `INSERT INTO owners (
                 type, name, first_name, phone, phone_secondary, email,
                 address, city, country, id_number, photo, mobile_money_number, management_mode,
                 manager_code
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-                'AG-' || UPPER(SUBSTRING(MD5(RANDOM()::text || $2), 1, 6))
-            ) 
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
             RETURNING *`,
             [
                 req.body.type || 'individual',
@@ -147,9 +149,11 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
                 req.body.id_number || null,
                 req.body.photo || req.body.photo_url || null, // Support both field names
                 cleanMobileMoney || (req.body.mobile_money ? req.body.mobile_money.replace(/[^\d+]/g, '') : null), // Support both
-                req.body.management_mode || 'direct'
+                req.body.management_mode || 'direct',
+                managerCode
             ]
         );
+
 
         
         const ownerId = newOwner.rows[0].id;
