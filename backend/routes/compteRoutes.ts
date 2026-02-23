@@ -128,8 +128,11 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
         const newOwner = await db.query(
             `INSERT INTO owners (
                 type, name, first_name, phone, phone_secondary, email,
-                address, city, country, id_number, photo, mobile_money_number, management_mode
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+                address, city, country, id_number, photo, mobile_money_number, management_mode,
+                manager_code
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+                'AG-' || UPPER(SUBSTRING(MD5(RANDOM()::text || $2), 1, 6))
+            ) 
             RETURNING *`,
             [
                 req.body.type || 'individual',
@@ -147,6 +150,7 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
                 req.body.management_mode || 'direct'
             ]
         );
+
         
         const ownerId = newOwner.rows[0].id;
         

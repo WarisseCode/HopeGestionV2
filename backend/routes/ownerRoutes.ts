@@ -100,13 +100,17 @@ router.post('/', protect, async (req: AuthenticatedRequest, res: Response) => {
         const result = await db.query(
             `INSERT INTO owners (
                 type, name, first_name, phone, phone_secondary, email,
-                address, city, country, id_number, photo, mobile_money_number, management_mode
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
+                address, city, country, id_number, photo, mobile_money_number, management_mode,
+                manager_code
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+                'AG-' || UPPER(SUBSTRING(MD5(RANDOM()::text || $2), 1, 6))
+            ) RETURNING id`,
             [
                 type || 'individual', name, first_name, phone, phone_secondary, email,
                 address, city, country || 'Bénin', id_number, photo, mobile_money_number, management_mode || 'direct'
             ]
         );
+
 
         const ownerId = result.rows[0].id;
         const userId = req.userId;
