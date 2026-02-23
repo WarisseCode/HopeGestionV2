@@ -29,7 +29,7 @@ const CompteProprietaires: React.FC = () => {
     const [visibleColumns, setVisibleColumns] = useState({
         type: true,
         contact: true,
-        localisation: true,
+        adresse: true,
         gestion: true
     });
     
@@ -119,7 +119,7 @@ const CompteProprietaires: React.FC = () => {
                                 </li>
                                 <li><label className="cursor-pointer"><input type="checkbox" className="checkbox checkbox-xs" checked={visibleColumns.type} onChange={(e) => setVisibleColumns({...visibleColumns, type: e.target.checked})}/> Type</label></li>
                                 <li><label className="cursor-pointer"><input type="checkbox" className="checkbox checkbox-xs" checked={visibleColumns.contact} onChange={(e) => setVisibleColumns({...visibleColumns, contact: e.target.checked})}/> Contact</label></li>
-                                <li><label className="cursor-pointer"><input type="checkbox" className="checkbox checkbox-xs" checked={visibleColumns.localisation} onChange={(e) => setVisibleColumns({...visibleColumns, localisation: e.target.checked})}/> Localisation</label></li>
+                                <li><label className="cursor-pointer"><input type="checkbox" className="checkbox checkbox-xs" checked={visibleColumns.adresse} onChange={(e) => setVisibleColumns({...visibleColumns, adresse: e.target.checked})}/> Adresse</label></li>
                                 <li><label className="cursor-pointer"><input type="checkbox" className="checkbox checkbox-xs" checked={visibleColumns.gestion} onChange={(e) => setVisibleColumns({...visibleColumns, gestion: e.target.checked})}/> Mode Gestion</label></li>
                             </ul>
                         </div>
@@ -165,7 +165,7 @@ const CompteProprietaires: React.FC = () => {
                                 <th className="p-4 font-semibold">Propriétaire</th>
                                 {visibleColumns.type && <th className="p-4 font-semibold hidden md:table-cell">Type</th>}
                                 {visibleColumns.contact && <th className="p-4 font-semibold">Contact</th>}
-                                {visibleColumns.localisation && <th className="p-4 font-semibold hidden md:table-cell">Localisation</th>}
+                                {visibleColumns.adresse && <th className="p-4 font-semibold hidden md:table-cell">Adresse</th>}
                                 {visibleColumns.gestion && <th className="p-4 font-semibold">Mode</th>}
                                 <th className="p-4 font-semibold text-right">Actions</th>
                             </tr>
@@ -207,9 +207,9 @@ const CompteProprietaires: React.FC = () => {
                                             </div>
                                         </td>
                                     )}
-                                    {visibleColumns.localisation && (
+                                    {visibleColumns.adresse && (
                                         <td className="p-4 hidden md:table-cell">
-                                            <div className="text-sm text-gray-600">{owner.ville || owner.city || '-'}</div>
+                                            <div className="text-sm text-gray-600">{owner.adresse || owner.address || owner.ville || owner.city || '-'}</div>
                                         </td>
                                     )}
                                     {visibleColumns.gestion && (
