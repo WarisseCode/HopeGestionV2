@@ -247,6 +247,12 @@ const MIGRATIONS: Migration[] = [
             WHERE manager_code IS NULL OR manager_code = '';
             CREATE INDEX IF NOT EXISTS idx_owners_manager_code ON owners(manager_code);
         `
+    },
+    {
+        name: '018_fix_manager_code_not_null',
+        sql: `
+            ALTER TABLE owners ALTER COLUMN manager_code DROP NOT NULL;
+        `
     }
 ];
 

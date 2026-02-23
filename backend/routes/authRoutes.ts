@@ -1539,9 +1539,10 @@ router.post('/manager-code', protect, async (req: any, res) => {
         const userEmail = req.user.email;
         console.log(`[manager-code] START user_id=${userId} email=${userEmail}`);
 
-        // Étape 0 : S'assurer que la colonne manager_code existe (auto-migration)
+        // Étape 0 : S'assurer que la colonne manager_code existe et est NULLABLE (auto-migration)
         try {
             await pool.query(`ALTER TABLE owners ADD COLUMN IF NOT EXISTS manager_code VARCHAR(20)`);
+            await pool.query(`ALTER TABLE owners ALTER COLUMN manager_code DROP NOT NULL`);
             await pool.query(`CREATE INDEX IF NOT EXISTS idx_owners_manager_code ON owners(manager_code)`);
         } catch (e) {
             // Ignore si la colonne/index existe déjà
