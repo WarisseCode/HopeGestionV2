@@ -267,7 +267,7 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
         }
 
         await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, 'UPDATE_OWNER', 'COMPTE', `Propriétaire ID: ${ownerId}`]);
+            [req.userId, 'UPDATE_OWNER', 'COMPTE', JSON.stringify({ ownerId, message: `Propriétaire ID: ${ownerId}` })]);
 
         res.json(updatedOwner.rows[0]);
     } catch (error) {
@@ -307,7 +307,7 @@ router.post('/utilisateurs', async (req: AuthenticatedRequest, res: Response) =>
         }
 
         await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, id ? 'UPDATE_USER' : 'CREATE_USER', 'COMPTE', `Utilisateur: ${nom}`]);
+            [req.userId, id ? 'UPDATE_USER' : 'CREATE_USER', 'COMPTE', JSON.stringify({ nom, message: `Utilisateur: ${nom}` })]);
 
         res.status(200).json(result.rows[0]);
     } catch (error) {
@@ -351,7 +351,7 @@ router.post('/autorisations', async (req: AuthenticatedRequest, res: Response) =
         ]);
 
         await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, 'SET_PERMISSIONS', 'COMPTE', `Utilisateur ID: ${utilisateur}, Proprietaire ID: ${proprietaire}`]);
+            [req.userId, 'SET_PERMISSIONS', 'COMPTE', JSON.stringify({ utilisateur, proprietaire, message: `Utilisateur ID: ${utilisateur}, Proprietaire ID: ${proprietaire}` })]);
 
         res.status(200).json(result.rows[0]);
     } catch (error) {
@@ -371,7 +371,7 @@ router.delete('/proprietaires/:id', async (req: AuthenticatedRequest, res: Respo
         await db.query('UPDATE owners SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
         
         await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, 'DEACTIVATE_OWNER', 'COMPTE', `Propriétaire ID: ${id}`]);
+            [req.userId, 'DEACTIVATE_OWNER', 'COMPTE', JSON.stringify({ ownerId: id, message: `Propriétaire ID: ${id}` })]);
 
         res.status(200).json({ message: 'Propriétaire désactivé avec succès' });
     } catch (error) {
@@ -391,7 +391,7 @@ router.patch('/utilisateurs/:id/suspend', async (req: AuthenticatedRequest, res:
         await db.query('UPDATE users SET statut = $1 WHERE id = $2', ['Suspendu', id]);
         
         await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, 'SUSPEND_USER', 'COMPTE', `Utilisateur ID: ${id}`]);
+            [req.userId, 'SUSPEND_USER', 'COMPTE', JSON.stringify({ userId: id, message: `Utilisateur ID: ${id}` })]);
 
         res.status(200).json({ message: 'Utilisateur suspendu avec succès' });
     } catch (error) {
@@ -425,7 +425,7 @@ router.delete('/utilisateurs/:id', async (req: AuthenticatedRequest, res: Respon
         await client.query('DELETE FROM users WHERE id = $1', [id]);
         
         await client.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, 'DELETE_USER', 'COMPTE', `Utilisateur ID: ${id} (Supprimé définitivement)`]);
+            [req.userId, 'DELETE_USER', 'COMPTE', JSON.stringify({ userId: id, message: `Utilisateur ID: ${id} (Supprimé définitivement)` })]);
 
         await client.query('COMMIT');
         res.status(200).json({ message: 'Utilisateur supprimé définitivement' });
@@ -457,7 +457,7 @@ router.patch('/utilisateurs/:id/reactivate', async (req: AuthenticatedRequest, r
         await db.query('UPDATE users SET statut = $1 WHERE id = $2', ['Actif', id]);
         
         await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, 'REACTIVATE_USER', 'COMPTE', `Utilisateur ID: ${id}`]);
+            [req.userId, 'REACTIVATE_USER', 'COMPTE', JSON.stringify({ userId: id, message: `Utilisateur ID: ${id}` })]);
 
         res.status(200).json({ message: 'Utilisateur réactivé avec succès' });
     } catch (error) {
