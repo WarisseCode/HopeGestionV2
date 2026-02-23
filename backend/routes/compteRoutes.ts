@@ -216,7 +216,8 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
             company_name, rccm_number, id_number, mobile_money, mobile_money_number,
             telephoneSecondaire, secondary_phone, phone_secondary,
             first_name, prenom,
-            management_mode 
+            management_mode,
+            photo, photo_url
         } = req.body;
         
         // Nettoyage des numéros avec support de multiples noms de champs
@@ -245,6 +246,7 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
                      mobile_money_number = COALESCE($10, mobile_money_number),
                      phone_secondary = COALESCE($11, phone_secondary),
                      management_mode = COALESCE($12, management_mode),
+                     photo_url = COALESCE($14, photo_url),
                      updated_at = CURRENT_TIMESTAMP
                  WHERE id = $13 RETURNING *`,
                 [
@@ -260,7 +262,8 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
                     cleanMobileMoney || null, 
                     cleanPhoneSec || null,
                     management_mode || null, 
-                    ownerId
+                    ownerId,
+                    photo || photo_url || null
                 ]
             );
         } catch (error: any) {

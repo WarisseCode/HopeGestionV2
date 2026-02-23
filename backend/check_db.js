@@ -9,11 +9,12 @@ const pool = new Pool({
 
 async function check() {
   try {
-    const res = await pool.query("SELECT id, name, phone, email FROM owners WHERE phone LIKE '%5471370%';");
-    console.log('Owners found:', res.rows);
-    
-    const all = await pool.query("SELECT id, name, phone FROM owners ORDER BY created_at DESC LIMIT 5;");
-    console.log('Recent owners:', all.rows);
+    const res = await pool.query(`
+      SELECT column_name, data_type, character_maximum_length 
+      FROM information_schema.columns 
+      WHERE table_name = 'owners';
+    `);
+    console.log('Owners table structure:', res.rows);
   } catch (err) {
     console.error(err);
   } finally {
