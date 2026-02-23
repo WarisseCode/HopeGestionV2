@@ -229,38 +229,53 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
         const rawMobileMoney = mobile_money_number || mobile_money;
         const cleanMobileMoney = rawMobileMoney ? rawMobileMoney.replace(/[\s\-\(\)\.]/g, '') : null;
 
-        const updatedOwner = await db.query(
-            `UPDATE owners 
-             SET name = COALESCE($1, name), 
-                 type = COALESCE($2, type), 
-                 phone = COALESCE($3, phone), 
-                 email = COALESCE($4, email), 
-                 address = COALESCE($5, address),
-                 city = COALESCE($6, city),
-                 country = COALESCE($7, country),
-                 first_name = COALESCE($8, first_name),
-                 id_number = COALESCE($9, id_number), 
-                 mobile_money_number = COALESCE($10, mobile_money_number),
-                 phone_secondary = COALESCE($11, phone_secondary),
-                 management_mode = COALESCE($12, management_mode),
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $13 RETURNING *`,
-            [
-                name || company_name || null, 
-                type || null, 
-                cleanPhone || null, 
-                email || null, 
-                address || null,
-                city || null,
-                country || null,
-                first_name || prenom || null,
-                rccm_number || id_number || null, 
-                cleanMobileMoney || null, 
-                cleanPhoneSec || null,
-                management_mode || null, 
-                ownerId
-            ]
-        );
+        let updatedOwner;
+        try {
+            updatedOwner = await db.query(
+                `UPDATE owners 
+                 SET name = COALESCE($1, name), 
+                     type = COALESCE($2, type), 
+                     phone = COALESCE($3, phone), 
+                     email = COALESCE($4, email), 
+                     address = COALESCE($5, address),
+                     city = COALESCE($6, city),
+                     country = COALESCE($7, country),
+                     first_name = COALESCE($8, first_name),
+                     id_number = COALESCE($9, id_number), 
+                     mobile_money_number = COALESCE($10, mobile_money_number),
+                     phone_secondary = COALESCE($11, phone_secondary),
+                     management_mode = COALESCE($12, management_mode),
+                     updated_at = CURRENT_TIMESTAMP
+                 WHERE id = $13 RETURNING *`,
+                [
+                    name || company_name || null, 
+                    type || null, 
+                    cleanPhone || null, 
+                    email || null, 
+                    address || null,
+                    city || null,
+                    country || null,
+                    first_name || prenom || null,
+                    rccm_number || id_number || null, 
+                    cleanMobileMoney || null, 
+                    cleanPhoneSec || null,
+                    management_mode || null, 
+                    ownerId
+                ]
+            );
+        } catch (error: any) {
+            console.error('Erreur SQL modification propriétaire:', error);
+            if (error.code === '23505') {
+                if (error.constraint === 'owners_phone_key') {
+                    return res.status(400).json({ message: 'Ce numéro de téléphone est déjà utilisé par un autre propriétaire.' });
+                }
+                if (error.constraint === 'owners_email_key') {
+                    return res.status(400).json({ message: 'Cette adresse email est déjà utilisée par un autre propriétaire.' });
+                }
+                return res.status(400).json({ message: 'Une donnée unique (téléphone ou email) est déjà utilisée par un autre propriétaire.' });
+            }
+            throw error; // Renvoyé au catch général
+        }
 
         if (updatedOwner.rows.length === 0) {
             return res.status(404).json({ message: 'Propriétaire non trouvé' });
