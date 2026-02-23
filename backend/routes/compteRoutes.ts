@@ -2,6 +2,7 @@
 import { Router, Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import db from '../db/database';
+import { AuditService } from '../services/AuditService';
 
 const router = Router();
 
@@ -172,13 +173,12 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
         }
 
         // Log action
-        try {
-            await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-                [req.userId, 'CREATE_OWNER', 'COMPTE', JSON.stringify({ name: req.body.name || req.body.company_name })]);
-        } catch (logError) {
-            console.error('Erreur audit_log:', logError);
-            // On continue même si le log échoue
-        }
+        await AuditService.log({
+            userId: req.userId.toString(),
+            action: 'CREATE_OWNER',
+            module: 'COMPTE',
+            details: { name: req.body.name || req.body.company_name }
+        });
 
         res.status(201).json(newOwner.rows[0]);
     } catch (error: any) {
@@ -266,8 +266,12 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
             return res.status(404).json({ message: 'Propriétaire non trouvé' });
         }
 
-        await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, 'UPDATE_OWNER', 'COMPTE', JSON.stringify({ ownerId, message: `Propriétaire ID: ${ownerId}` })]);
+        await AuditService.log({
+            userId: req.userId.toString(),
+            action: 'UPDATE_OWNER',
+            module: 'COMPTE',
+            details: { ownerId, message: `Propriétaire ID: ${ownerId}` }
+        });
 
         res.json(updatedOwner.rows[0]);
     } catch (error) {
@@ -306,8 +310,12 @@ router.post('/utilisateurs', async (req: AuthenticatedRequest, res: Response) =>
             result = await db.query(query, [nom, telephone, email, role, photo, statut || 'actif', hashedPassword, role || 'gestionnaire']);
         }
 
-        await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, id ? 'UPDATE_USER' : 'CREATE_USER', 'COMPTE', JSON.stringify({ nom, message: `Utilisateur: ${nom}` })]);
+        await AuditService.log({
+            userId: req.userId.toString(),
+            action: id ? 'UPDATE_USER' : 'CREATE_USER',
+            module: 'COMPTE',
+            details: { nom, message: `Utilisateur: ${nom}` }
+        });
 
         res.status(200).json(result.rows[0]);
     } catch (error) {
@@ -350,8 +358,12 @@ router.post('/autorisations', async (req: AuthenticatedRequest, res: Response) =
             modules.paiements || false // Using paiements module for audit logs access check maybe? or just adding 0/1
         ]);
 
-        await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, 'SET_PERMISSIONS', 'COMPTE', JSON.stringify({ utilisateur, proprietaire, message: `Utilisateur ID: ${utilisateur}, Proprietaire ID: ${proprietaire}` })]);
+        await AuditService.log({
+            userId: req.userId.toString(),
+            action: 'SET_PERMISSIONS',
+            module: 'COMPTE',
+            details: { utilisateur, proprietaire, message: `Utilisateur ID: ${utilisateur}, Proprietaire ID: ${proprietaire}` }
+        });
 
         res.status(200).json(result.rows[0]);
     } catch (error) {
@@ -370,8 +382,12 @@ router.delete('/proprietaires/:id', async (req: AuthenticatedRequest, res: Respo
         const { id } = req.params;
         await db.query('UPDATE owners SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
         
-        await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, 'DEACTIVATE_OWNER', 'COMPTE', JSON.stringify({ ownerId: id, message: `Propriétaire ID: ${id}` })]);
+        await AuditService.log({
+            userId: req.userId.toString(),
+            action: 'DEACTIVATE_OWNER',
+            module: 'COMPTE',
+            details: { ownerId: id, message: `Propriétaire ID: ${id}` }
+        });
 
         res.status(200).json({ message: 'Propriétaire désactivé avec succès' });
     } catch (error) {
@@ -390,8 +406,12 @@ router.patch('/utilisateurs/:id/suspend', async (req: AuthenticatedRequest, res:
         const { id } = req.params;
         await db.query('UPDATE users SET statut = $1 WHERE id = $2', ['Suspendu', id]);
         
-        await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, 'SUSPEND_USER', 'COMPTE', JSON.stringify({ userId: id, message: `Utilisateur ID: ${id}` })]);
+        await AuditService.log({
+            userId: req.userId.toString(),
+            action: 'SUSPEND_USER',
+            module: 'COMPTE',
+            details: { userId: id, message: `Utilisateur ID: ${id}` }
+        });
 
         res.status(200).json({ message: 'Utilisateur suspendu avec succès' });
     } catch (error) {
@@ -424,8 +444,12 @@ router.delete('/utilisateurs/:id', async (req: AuthenticatedRequest, res: Respon
         // 3. Remove user
         await client.query('DELETE FROM users WHERE id = $1', [id]);
         
-        await client.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, 'DELETE_USER', 'COMPTE', JSON.stringify({ userId: id, message: `Utilisateur ID: ${id} (Supprimé définitivement)` })]);
+        await AuditService.log({
+            userId: req.userId.toString(),
+            action: 'DELETE_USER',
+            module: 'COMPTE',
+            details: { userId: id, message: `Utilisateur ID: ${id} (Supprimé définitivement)` }
+        });
 
         await client.query('COMMIT');
         res.status(200).json({ message: 'Utilisateur supprimé définitivement' });
@@ -456,8 +480,12 @@ router.patch('/utilisateurs/:id/reactivate', async (req: AuthenticatedRequest, r
         const { id } = req.params;
         await db.query('UPDATE users SET statut = $1 WHERE id = $2', ['Actif', id]);
         
-        await db.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', 
-            [req.userId, 'REACTIVATE_USER', 'COMPTE', JSON.stringify({ userId: id, message: `Utilisateur ID: ${id}` })]);
+        await AuditService.log({
+            userId: req.userId.toString(),
+            action: 'REACTIVATE_USER',
+            module: 'COMPTE',
+            details: { userId: id, message: `Utilisateur ID: ${id}` }
+        });
 
         res.status(200).json({ message: 'Utilisateur réactivé avec succès' });
     } catch (error) {

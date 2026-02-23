@@ -9,6 +9,7 @@ interface AuditLogEntry {
     details?: any;
     ipAddress?: string;
     userAgent?: string;
+    module?: string;
 }
 
 export class AuditService {
@@ -25,8 +26,8 @@ export class AuditService {
     static async log(entry: AuditLogEntry) {
         const query = `
             INSERT INTO audit_logs 
-            (user_id, user_name, action, entity_type, entity_id, details, ip_address, user_agent)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            (user_id, user_name, action, entity_type, entity_id, details, ip_address, user_agent, module)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         `;
 
         // Stocker les ID numériques dans le champ details et laisser les champs UUID NULL
@@ -41,10 +42,11 @@ export class AuditService {
             entry.userName || 'System/Unknown',
             entry.action,
             entry.entityType || null,
-            entry.entityId || null, // Passer l'ID de l'entité
+            entry.entityId || null, 
             JSON.stringify(detailsWithIds),
             entry.ipAddress || null,
-            entry.userAgent || null
+            entry.userAgent || null,
+            entry.module || null
         ];
 
         try {
