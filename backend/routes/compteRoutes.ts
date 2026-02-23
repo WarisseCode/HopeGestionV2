@@ -212,11 +212,11 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
         }
         // Support multiple field names for backward compatibility
         const { 
-            name, type, phone, email, address, 
+            name, type, phone, email, address, city, country,
             company_name, rccm_number, id_number, mobile_money, mobile_money_number,
             telephoneSecondaire, secondary_phone, phone_secondary,
             first_name, prenom,
-            management_mode, delegation_start_date, delegation_end_date 
+            management_mode 
         } = req.body;
         
         // Nettoyage des numéros avec support de multiples noms de champs
@@ -236,26 +236,28 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
                  phone = COALESCE($3, phone), 
                  email = COALESCE($4, email), 
                  address = COALESCE($5, address),
-                 first_name = COALESCE($6, first_name),
-                 company_name = COALESCE($7, company_name), 
-                 id_number = COALESCE($8, id_number), 
-                 mobile_money_number = COALESCE($9, mobile_money_number),
-                 phone_secondary = COALESCE($10, phone_secondary),
-                 management_mode = COALESCE($11, management_mode),
+                 city = COALESCE($6, city),
+                 country = COALESCE($7, country),
+                 first_name = COALESCE($8, first_name),
+                 id_number = COALESCE($9, id_number), 
+                 mobile_money_number = COALESCE($10, mobile_money_number),
+                 phone_secondary = COALESCE($11, phone_secondary),
+                 management_mode = COALESCE($12, management_mode),
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = $12 RETURNING *`,
+             WHERE id = $13 RETURNING *`,
             [
-                name || company_name, 
-                type, 
-                cleanPhone, 
-                email, 
-                address,
+                name || company_name || null, 
+                type || null, 
+                cleanPhone || null, 
+                email || null, 
+                address || null,
+                city || null,
+                country || null,
                 first_name || prenom || null,
-                company_name, 
-                rccm_number || id_number, 
-                cleanMobileMoney, 
-                cleanPhoneSec,
-                management_mode, 
+                rccm_number || id_number || null, 
+                cleanMobileMoney || null, 
+                cleanPhoneSec || null,
+                management_mode || null, 
                 ownerId
             ]
         );
