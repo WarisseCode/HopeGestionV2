@@ -253,6 +253,31 @@ const MIGRATIONS: Migration[] = [
         sql: `
             ALTER TABLE owners ALTER COLUMN manager_code DROP NOT NULL;
         `
+    },
+    {
+        name: '019_fix_audit_logs_schema',
+        sql: `
+            -- S'assurer que la table exists (au cas où elle n'aurait pas été créée par init.sql)
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                user_id VARCHAR(255),
+                action VARCHAR(50) NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+            
+            -- Ajouter les colonnes manquantes
+            ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS module VARCHAR(100);
+            ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS entity_type VARCHAR(100);
+            ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS entity_id VARCHAR(255);
+            ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS details JSONB;
+            ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS user_name VARCHAR(255);
+            ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS ip_address VARCHAR(45);
+            ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS user_agent TEXT;
+            
+            -- Corriger les types si nécessaire (UUID -> VARCHAR pour supporter les IDs numériques)
+            ALTER TABLE audit_logs ALTER COLUMN user_id TYPE VARCHAR(255);
+            ALTER TABLE audit_logs ALTER COLUMN entity_id TYPE VARCHAR(255);
+        `
     }
 ];
 
