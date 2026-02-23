@@ -15,8 +15,10 @@ router.get('/proprietaires', async (req: AuthenticatedRequest, res: Response) =>
     try {
         let query = `
             SELECT id, type, name as nom, first_name as prenom, phone as telephone, 
-                   phone_secondary as "telephoneSecondaire", email, address as adresse, 
+                   phone_secondary as "telephoneSecondaire", phone_secondary as "phone_secondary",
+                   email, address as adresse, address as address,
                    city as ville, country as pays, id_number as "numeroPiece", 
+                   id_number as "id_number",
                    photo, management_mode as "modeGestion",
                    mobile_money_number as "mobileMoney", 
                    id_number as "rccmNumber"
@@ -236,28 +238,24 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
                  address = COALESCE($5, address),
                  first_name = COALESCE($6, first_name),
                  company_name = COALESCE($7, company_name), 
-                 rccm_number = COALESCE($8, rccm_number), 
+                 id_number = COALESCE($8, id_number), 
                  mobile_money_number = COALESCE($9, mobile_money_number),
                  phone_secondary = COALESCE($10, phone_secondary),
                  management_mode = COALESCE($11, management_mode),
-                 delegation_start_date = COALESCE($12, delegation_start_date),
-                 delegation_end_date = COALESCE($13, delegation_end_date),
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = $14 RETURNING *`,
+             WHERE id = $12 RETURNING *`,
             [
-                name || company_name, // Support both
+                name || company_name, 
                 type, 
                 cleanPhone, 
                 email, 
                 address,
-                first_name || prenom || null, // Support both field names
+                first_name || prenom || null,
                 company_name, 
-                rccm_number, 
+                rccm_number || id_number, 
                 cleanMobileMoney, 
                 cleanPhoneSec,
                 management_mode, 
-                delegation_start_date, 
-                delegation_end_date,
                 ownerId
             ]
         );

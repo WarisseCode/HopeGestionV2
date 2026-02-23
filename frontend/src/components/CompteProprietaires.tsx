@@ -20,11 +20,13 @@ interface Owner {
     city?: string;
     company_name?: string;
     rccm_number?: string;
+    id_number?: string;
     mobile_money?: string;
     management_mode?: 'direct' | 'delegated';
     total_properties?: number;
     total_lots?: number;
     photo_url?: string;
+    phone_secondary?: string;
 }
 
 interface CompteProprietairesProps {
@@ -74,12 +76,14 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                 address: o.adresse || o.address || '',
                 city: o.ville || o.city || '',
                 company_name: o.company_name || (o.type === 'company' ? (o.nom || o.name) : ''),
-                rccm_number: o.rccm_number || o.rccmNumber || '',
+                rccm_number: o.id_number || o.rccm_number || o.rccmNumber || '',
+                id_number: o.id_number || o.numeroPiece || '',
                 mobile_money: o.mobile_money || o.mobileMoney || '',
                 management_mode: o.management_mode || o.modeGestion || 'direct',
                 total_properties: o.total_properties || 0,
                 total_lots: o.total_lots || 0,
-                photo_url: o.photo_url || o.photo || ''
+                photo_url: o.photo_url || o.photo || '',
+                phone_secondary: o.phone_secondary || o.telephoneSecondaire || ''
             }));
             
             setOwners(mapped);
@@ -105,9 +109,10 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
     const handleEdit = (owner: Owner) => {
         setEditingProp({
             ...owner,
-            prenom: owner.first_name, // Map back to what form expects if different
+            prenom: owner.first_name, 
             photo_url: owner.photo_url,
-            secondary_phone: (owner as any).phone_secondary || (owner as any).telephoneSecondaire || ''
+            secondary_phone: owner.phone_secondary || '',
+            id_number: owner.id_number || owner.rccm_number || ''
         });
         setShowForm(true);
     };
