@@ -151,8 +151,8 @@ const Locations: React.FC = () => {
             setShowDetailModal(false);
             loadData();
         } catch (err: any) {
-            console.error(err);
-            const message = err.response?.data?.message || "Erreur lors de la génération du bail";
+            console.error("Erreur génération bail:", err);
+            const message = err.response?.data?.message || err.response?.data?.error || "Erreur lors de la génération du bail";
             setError(message);
             toast.error(message);
         } finally {
