@@ -295,7 +295,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                 <div className="space-y-8">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-3">
-                                            <label className="text-sm font-bold text-gray-700">Durée (mois)</label>
+                                            <label className="text-sm font-bold text-gray-700">Durée du contrat</label>
                                             <input 
                                                 type="number"
                                                 className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
