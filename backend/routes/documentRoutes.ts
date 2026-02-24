@@ -295,6 +295,18 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
     try {
         const leaseId = req.params.id;
 
+        // Check if document already exists for this lease
+        const existingDoc = await pool.query(
+            "SELECT id FROM documents WHERE entity_type = 'lease' AND entity_id = $1 AND categorie = 'baux'",
+            [leaseId]
+        );
+
+        if (existingDoc.rows.length > 0) {
+            return res.status(400).json({ 
+                message: 'Un contrat de bail existe déjà pour cette location dans la liste des documents.' 
+            });
+        }
+
         // Fetch lease data with correct joins
         const leaseQuery = `
             SELECT 
