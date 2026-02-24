@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, Plus, Search, Filter, AlertTriangle, FileText, Check, XCircle, Pen, DollarSign, X, RefreshCw } from 'lucide-react';
+import toast from 'react-hot-toast';
 import LocationForm from '../components/locations/LocationForm';
 import locationApi from '../api/locationApi';
 import { getLocataires } from '../api/locataireApi';
@@ -18,7 +19,6 @@ const Locations: React.FC = () => {
     const [locations, setLocations] = useState<Location[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
@@ -76,7 +76,7 @@ const Locations: React.FC = () => {
     const handleCreate = async (data: CreateLocationData) => {
         try {
             await locationApi.createLocation(data);
-            setSuccess('Nouveau bail créé avec succès');
+            toast.success('Nouveau bail créé avec succès');
             setShowAddModal(false);
             // Reset form data if needed or just rely on form unmount
             setFormData({
@@ -105,7 +105,7 @@ const Locations: React.FC = () => {
         try {
             setLoading(true);
             await locationApi.signLease(selectedLeaseId, signatureImage);
-            setSuccess("Contrat signé avec succès !");
+            toast.success("Contrat signé avec succès !");
             // Refresh locations
             const updatedLocations = await locationApi.getLocations();
             setLocations(updatedLocations);
@@ -122,7 +122,7 @@ const Locations: React.FC = () => {
         if (!window.confirm("Êtes-vous sûr de vouloir résilier ce bail ?")) return;
         try {
             await locationApi.resilierLocation(id);
-            setSuccess("Bail résilié");
+            toast.success("Bail résilié");
             loadData();
         } catch (err) {
             setError("Erreur lors de la résiliation");
@@ -133,7 +133,7 @@ const Locations: React.FC = () => {
         try {
             setLoading(true);
             await documentApi.generateLease(locationId);
-            setSuccess("Contrat de bail généré avec succès dans Documents !");
+            toast.success("Contrat de bail généré avec succès dans Documents !");
             setShowDetailModal(false);
         } catch (err: any) {
             console.error(err);
@@ -222,7 +222,6 @@ const Locations: React.FC = () => {
 
             {/* Alerts */}
             {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
-            {success && <Alert variant="success" onClose={() => setSuccess(null)}>{success}</Alert>}
 
             {/* Filters */}
             <div className="flex flex-col md:flex-row gap-4">
