@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, Plus, Search, Filter, AlertTriangle, FileText, Check, XCircle, Pen, DollarSign, X, RefreshCw } from 'lucide-react';
+import { Eye, Plus, Search, Filter, AlertTriangle, FileText, Check, XCircle, Pen, DollarSign, X, RefreshCw, MoreHorizontal } from 'lucide-react';
 import toast from 'react-hot-toast';
 import LocationForm from '../components/locations/LocationForm';
 import locationApi from '../api/locationApi';
@@ -375,42 +375,55 @@ const Locations: React.FC = () => {
                                         </span>
                                     </td>
                                     <td className="p-4 text-right" onClick={e => e.stopPropagation()}>
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button 
-                                                onClick={() => openDetail(location)}
-                                                className="p-2 hover:bg-gray-100 rounded-lg transition"
-                                                title="Voir détails"
-                                            >
-                                                <Eye size={16} className="text-gray-600" />
-                                            </button>
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); handleEdit(location); }}
-                                                className="p-2 hover:bg-gray-100 rounded-lg transition"
-                                                title="Modifier le bail"
-                                            >
-                                                <Pen size={16} className="text-blue-600" />
-                                            </button>
-                                            {(location.statut === 'actif' || location.statut === 'signe') && (
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); handleResilier(location.id); }}
-                                                    className="p-2 hover:bg-red-50 rounded-lg transition"
-                                                    title="Résilier"
+                                        <div className="flex items-center justify-end">
+                                            <div className="dropdown dropdown-left dropdown-end">
+                                                <div 
+                                                    tabIndex={0} 
+                                                    role="button" 
+                                                    className="p-2 hover:bg-gray-100 rounded-lg transition"
                                                 >
-                                                    <XCircle size={16} className="text-red-500" />
-                                                </button>
-                                            )}
-                                            {location.statut === 'actif' && !location.signature_url && (
-                                                <button 
-                                                    onClick={() => {
-                                                        setSelectedLeaseId(location.id);
-                                                        setShowSignatureModal(true);
-                                                    }}
-                                                    className="p-2 hover:bg-blue-50 rounded-lg transition"
-                                                    title="Signer le contrat"
-                                                >
-                                                    <Pen size={16} className="text-blue-500" />
-                                                </button>
-                                            )}
+                                                    <MoreHorizontal size={20} className="text-gray-600" />
+                                                </div>
+                                                <ul tabIndex={0} className="dropdown-content z-[20] menu p-2 shadow-xl bg-white rounded-xl w-56 border border-gray-100">
+                                                    <li>
+                                                        <button onClick={() => openDetail(location)} className="flex items-center gap-2 py-3">
+                                                            <Eye size={16} className="text-gray-500" />
+                                                            <span>Voir les détails</span>
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button onClick={() => handleEdit(location)} className="flex items-center gap-2 py-3 text-blue-600">
+                                                            <Pen size={16} />
+                                                            <span>Modifier le bail</span>
+                                                        </button>
+                                                    </li>
+                                                    {location.statut === 'actif' && !location.signature_url && (
+                                                        <li>
+                                                            <button 
+                                                                onClick={() => {
+                                                                    setSelectedLeaseId(location.id);
+                                                                    setShowSignatureModal(true);
+                                                                }}
+                                                                className="flex items-center gap-2 py-3 text-indigo-600"
+                                                            >
+                                                                <Pen size={16} />
+                                                                <span>Signer le contrat</span>
+                                                            </button>
+                                                        </li>
+                                                    )}
+                                                    {(location.statut === 'actif' || location.statut === 'signe') && (
+                                                        <li>
+                                                            <button 
+                                                                onClick={() => handleResilier(location.id)}
+                                                                className="flex items-center gap-2 py-3 text-red-600"
+                                                            >
+                                                                <XCircle size={16} />
+                                                                <span>Résilier le bail</span>
+                                                            </button>
+                                                        </li>
+                                                    )}
+                                                </ul>
+                                            </div>
                                         </div>
                                     </td>
                                 </motion.tr>
