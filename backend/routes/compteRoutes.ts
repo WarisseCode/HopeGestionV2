@@ -20,7 +20,8 @@ router.get('/proprietaires', async (req: AuthenticatedRequest, res: Response) =>
                    email, address as adresse, address as address,
                    city as ville, country as pays, id_number as "numeroPiece", 
                    id_number as "id_number",
-                   photo, management_mode as "modeGestion",
+                   photo, photo_url, phone_secondary,
+                   management_mode as "modeGestion",
                    mobile_money_number as "mobileMoney", 
                    id_number as "rccmNumber"
             FROM owners
