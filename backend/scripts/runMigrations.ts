@@ -278,6 +278,21 @@ const MIGRATIONS: Migration[] = [
             ALTER TABLE audit_logs ALTER COLUMN user_id TYPE VARCHAR(255);
             ALTER TABLE audit_logs ALTER COLUMN entity_id TYPE VARCHAR(255);
         `
+    },
+    {
+        name: '020_owners_missing_columns',
+        sql: `
+            -- Ajouter les colonnes manquantes à la table owners
+            -- Ces colonnes existent en local mais manquent en production
+            ALTER TABLE owners ADD COLUMN IF NOT EXISTS photo_url TEXT;
+            ALTER TABLE owners ADD COLUMN IF NOT EXISTS rccm_number VARCHAR(100);
+            ALTER TABLE owners ADD COLUMN IF NOT EXISTS company_name VARCHAR(255);
+            ALTER TABLE owners ADD COLUMN IF NOT EXISTS contact_person VARCHAR(255);
+            ALTER TABLE owners ADD COLUMN IF NOT EXISTS secondary_phone VARCHAR(50);
+            ALTER TABLE owners ADD COLUMN IF NOT EXISTS mobile_money_coordinates VARCHAR(255);
+            ALTER TABLE owners ADD COLUMN IF NOT EXISTS delegation_start_date DATE;
+            ALTER TABLE owners ADD COLUMN IF NOT EXISTS delegation_end_date DATE;
+        `
     }
 ];
 
