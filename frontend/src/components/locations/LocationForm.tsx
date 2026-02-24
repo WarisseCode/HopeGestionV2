@@ -25,7 +25,7 @@ const STEPS = [
 ];
 
 const LocationForm: React.FC<LocationFormProps> = ({ 
-    onSubmit, onCancel, locataires, lots, owners, loading = false 
+    onSubmit, onCancel, initialData, locataires, lots, owners, loading = false 
 }) => {
     const [currentStep, setCurrentStep] = useState(0);
     const [formData, setFormData] = useState<CreateLocationData>(initialData ? {
