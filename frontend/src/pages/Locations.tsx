@@ -153,7 +153,6 @@ const Locations: React.FC = () => {
         } catch (err: any) {
             console.error("Erreur génération bail:", err);
             const message = err.response?.data?.message || err.response?.data?.error || "Erreur lors de la génération du bail";
-            setError(message);
             toast.error(message);
         } finally {
             setLoading(false);
