@@ -67,6 +67,9 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                 onChange(fileUrl);
                 if (clearOnSuccess) {
                     setPreview(null);
+                    if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                    }
                 } else {
                     setPreview(fileUrl);
                 }

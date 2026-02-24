@@ -452,6 +452,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                                             onChange={handlePhotoAdd} 
                                             folder="property" 
                                             label=""
+                                            clearOnSuccess={true}
                                             className="aspect-square bg-gray-50 border-dashed border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors rounded-xl"
                                         />
                                     )}
