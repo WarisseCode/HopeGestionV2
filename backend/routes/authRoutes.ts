@@ -666,13 +666,15 @@ router.post('/invite-user', verifyToken, async (req: any, res) => {
             return res.status(400).json({ message: 'Nom, Téléphone et Rôle sont requis.' });
         }
 
+        // Générer un email placeholder si non fourni (la colonne email est NOT NULL)
+        const userEmail = email || `invite_${telephone.replace(/[^0-9]/g, '')}@hopegestion.local`;
 
-        // 1. Créer le compte utilisateur en statut "invited" (ou "inactif" si "invited" n'est pas dans l'enum)
+        // 1. Créer le compte utilisateur en statut "invited"
         // On met un hash impossible pour le password temporairement.
         const tempHash = '$2b$10$INVALIDHASHForInvitedUserOnlyXXXXXXXXXXXXXXXXXXXXX'; 
         
         // Check duplicate
-        const check = await pool.query('SELECT id FROM users WHERE email = $1 OR telephone = $2', [email || '', telephone]);
+        const check = await pool.query('SELECT id FROM users WHERE email = $1 OR telephone = $2', [userEmail, telephone]);
         if (check.rows.length > 0) {
             return res.status(409).json({ message: 'Un utilisateur existe déjà avec cet email ou téléphone.' });
         }
@@ -685,7 +687,7 @@ router.post('/invite-user', verifyToken, async (req: any, res) => {
                 `INSERT INTO users (email, password_hash, nom, user_type, role, telephone, statut, access_scope, created_by) 
                  VALUES ($1, $2, TRIM($3 || ' ' || $4), $5, $5, $6, 'invited', $7, $8) 
                  RETURNING id`,
-                [email || null, tempHash, nom, prenom || '', role, telephone, access_scope || 'assigned', issuerId]
+                [userEmail, tempHash, nom, prenom || '', role, telephone, access_scope || 'assigned', issuerId]
             );
             const userId = insertRes.rows[0].id;
 
@@ -694,11 +696,10 @@ router.post('/invite-user', verifyToken, async (req: any, res) => {
             const expiresAt = new Date(Date.now() + 48 * 3600 * 1000); // 48h
 
             // 3. Stocker Invitation
-            // Using user_id column directly (added in migration 28)
             await client.query(
                 `INSERT INTO user_invitations (token, email, role, issuer_id, permissions, expires_at, user_id)
                  VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                [token, email || telephone, role, issuerId, {}, expiresAt, userId]
+                [token, userEmail, role, issuerId, JSON.stringify({}), expiresAt, userId]
             );
 
             await client.query('COMMIT');
@@ -722,8 +723,8 @@ router.post('/invite-user', verifyToken, async (req: any, res) => {
         }
 
     } catch (error: any) {
-        console.error('Erreur invitation:', error);
-        res.status(500).json({ message: 'Erreur serveur.' });
+        console.error('Erreur invitation:', error.message, error.stack);
+        res.status(500).json({ message: `Erreur serveur: ${error.message}` });
     }
 });
 
