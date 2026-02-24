@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { accountApi } from '../api/accountApi';
 import { 
-  User, Plus, Trash2, MoreVertical, Edit3, Ban, Columns, 
+  User, Plus, Trash2, MoreVertical, Edit3, Ban, Columns, Filter, X,
   Search, Building2, UserPlus, Users, Phone, Mail, MapPin 
 } from 'lucide-react';
 import Alert from './ui/Alert';
@@ -46,6 +46,8 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterType, setFilterType] = useState<'all' | 'individual' | 'company'>('all');
+    const [filterMode, setFilterMode] = useState<'all' | 'direct' | 'delegated'>('all');
 
     const [visibleColumns, setVisibleColumns] = useState({
         type: true,
@@ -118,14 +120,27 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
     };
 
     const filteredOwners = owners.filter(o => {
+        // Filtre texte
         const search = searchTerm.toLowerCase();
         const fullName = `${o.name} ${o.first_name}`.toLowerCase();
         const company = (o.company_name || '').toLowerCase();
-        return fullName.includes(search) || 
+        const matchesSearch = fullName.includes(search) || 
                company.includes(search) || 
                o.email.toLowerCase().includes(search) || 
                o.phone.includes(search);
+        
+        if (!matchesSearch) return false;
+
+        // Filtre Type
+        if (filterType !== 'all' && o.type !== filterType) return false;
+
+        // Filtre Mode Gestion
+        if (filterMode !== 'all' && o.management_mode !== filterMode) return false;
+
+        return true;
     });
+
+    const activeFiltersCount = (filterType !== 'all' ? 1 : 0) + (filterMode !== 'all' ? 1 : 0);
 
     if (loading) return <div className="p-8 text-center text-gray-500">Chargement des propriétaires...</div>;
 
@@ -194,7 +209,83 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                         </div>
 
                         <div className="dropdown dropdown-end">
-                            <div tabIndex={0} role="button" className="btn btn-ghost btn-sm bg-white border border-gray-200 gap-2 h-10">
+                            <div tabIndex={0} role="button" className={`btn btn-sm gap-2 h-10 border shadow-sm ${activeFiltersCount > 0 ? 'btn-primary border-primary' : 'bg-white border-gray-200 text-gray-700'}`}>
+                                <Filter size={18} />
+                                <span className="hidden sm:inline">Filtres</span>
+                                {activeFiltersCount > 0 && (
+                                    <span className="badge badge-xs badge-white text-primary font-bold p-1 px-1.5">{activeFiltersCount}</span>
+                                )}
+                            </div>
+                            <div tabIndex={0} className="dropdown-content z-[20] menu p-4 shadow-xl bg-base-100 rounded-xl w-72 border border-gray-200 mt-2">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-bold text-sm">Filtres avancés</h3>
+                                    {activeFiltersCount > 0 && (
+                                        <button 
+                                            onClick={() => {
+                                                setFilterType('all');
+                                                setFilterMode('all');
+                                            }}
+                                            className="text-[10px] text-primary hover:underline font-bold uppercase"
+                                        >
+                                            Réinitialiser
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] uppercase font-bold text-gray-400">Type de propriétaire</label>
+                                        <div className="flex bg-gray-100 p-1 rounded-lg">
+                                            <button 
+                                                onClick={() => setFilterType('all')}
+                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterType === 'all' ? 'bg-white shadow-sm font-bold text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                            >
+                                                Tous
+                                            </button>
+                                            <button 
+                                                onClick={() => setFilterType('individual')}
+                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterType === 'individual' ? 'bg-white shadow-sm font-bold text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                            >
+                                                Particulier
+                                            </button>
+                                            <button 
+                                                onClick={() => setFilterType('company')}
+                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterType === 'company' ? 'bg-white shadow-sm font-bold text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                            >
+                                                Entreprise
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] uppercase font-bold text-gray-400">Mode de gestion</label>
+                                        <div className="flex bg-gray-100 p-1 rounded-lg">
+                                            <button 
+                                                onClick={() => setFilterMode('all')}
+                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterMode === 'all' ? 'bg-white shadow-sm font-bold text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                            >
+                                                Tous
+                                            </button>
+                                            <button 
+                                                onClick={() => setFilterMode('direct')}
+                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterMode === 'direct' ? 'bg-white shadow-sm font-bold text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                            >
+                                                Directe
+                                            </button>
+                                            <button 
+                                                onClick={() => setFilterMode('delegated')}
+                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterMode === 'delegated' ? 'bg-white shadow-sm font-bold text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                            >
+                                                Déléguée
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="dropdown dropdown-end">
+                            <div tabIndex={0} role="button" className="btn btn-ghost btn-sm bg-white border border-gray-200 gap-2 h-10 shadow-sm text-gray-700">
                                 <Columns size={18} />
                                 <span className="hidden sm:inline">Colonnes</span>
                             </div>
