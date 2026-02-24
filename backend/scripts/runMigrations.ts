@@ -300,6 +300,14 @@ const MIGRATIONS: Migration[] = [
             -- Ajouter le champ total_lots à la table buildings
             ALTER TABLE buildings ADD COLUMN IF NOT EXISTS total_lots INTEGER DEFAULT 0;
         `
+    },
+    {
+        name: '022_user_invitations_user_id',
+        sql: `
+            -- Ajouter la colonne user_id à user_invitations (requise par invite-user)
+            ALTER TABLE user_invitations ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+            CREATE INDEX IF NOT EXISTS idx_user_invitations_user_id ON user_invitations(user_id);
+        `
     }
 ];
 
