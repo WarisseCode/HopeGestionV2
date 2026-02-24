@@ -88,6 +88,10 @@ const Biens: React.FC = () => {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [activeAssignmentLot, setActiveAssignmentLot] = useState<Lot | null>(null);
 
+  // Gallery state
+  const [gallerySelectedBuilding, setGallerySelectedBuilding] = useState<Immeuble | null>(null);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
+
   // Filter configurations
   const immeubleFilters: FilterConfig[] = [
     {
@@ -444,12 +448,14 @@ const Biens: React.FC = () => {
             <button 
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Vue Grille"
             >
               <LayoutGrid size={18} />
             </button>
             <button 
               onClick={() => setViewMode('list')}
               className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Vue Liste"
             >
               <List size={18} />
             </button>
@@ -535,6 +541,15 @@ const Biens: React.FC = () => {
                           <span className={`absolute top-4 right-4 z-20 badge border-none text-white font-bold ${immeuble.statut === 'Actif' ? 'bg-green-500' : 'bg-orange-500'}`}>
                             {immeuble.statut || 'Actif'}
                           </span>
+                          <div 
+                            className="absolute inset-0 z-25 cursor-zoom-in" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setGallerySelectedBuilding(immeuble);
+                              setShowGalleryModal(true);
+                            }}
+                            title="Ouvrir la galerie"
+                          />
                           {immeuble.photo ? (
                             <img src={immeuble.photo} alt={immeuble.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                           ) : (
@@ -603,7 +618,14 @@ const Biens: React.FC = () => {
                         {(paginatedData as Immeuble[]).map((immeuble) => (
                           <tr key={immeuble.id} className="hover:bg-gray-50/50 transition-colors">
                             <td className="pl-6">
-                                <div className="avatar h-12 w-16 rounded cursor-pointer overflow-hidden relative shadow-sm" onClick={() => { setEditingImmeuble(immeuble); setShowImmeubleModal(true); }}>
+                                <div 
+                                  className="avatar h-12 w-16 rounded cursor-pointer overflow-hidden relative shadow-sm" 
+                                  onClick={() => { 
+                                    setGallerySelectedBuilding(immeuble); 
+                                    setShowGalleryModal(true); 
+                                  }}
+                                  title="Ouvrir la galerie"
+                                >
                                     <img 
                                         src={immeuble.photo || (immeuble.photos && immeuble.photos.length > 0 ? immeuble.photos[0] : getPlaceholderImage(immeuble.id))} 
                                         alt={immeuble.nom}
@@ -635,90 +657,139 @@ const Biens: React.FC = () => {
               )
             ) : (
               // Lots view
-              <Card className="border-none shadow-xl bg-white overflow-hidden p-0">
-                <div className="overflow-x-auto">
-                  <table className="table w-full">
-                    <thead className="bg-gray-50/50">
-                      <tr>
-                        <th className="py-4 pl-6">Photo</th>
-                        <th className="py-4">Référence</th>
-                        <th className="py-4">Immeuble</th>
-                        <th className="py-4">Statut</th>
-                        <th className="py-4">Loyer / Prix</th>
-                        <th className="py-4 pr-6 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {(paginatedData as Lot[]).length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="text-center py-12 text-gray-400">
-                            Aucun lot trouvé
-                          </td>
-                        </tr>
-                      ) : (
-                        (paginatedData as Lot[]).map((lot) => (
-                          <tr key={lot.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer" onClick={() => { setEditingLot(lot); setShowLotModal(true); }}>
-                            <td className="pl-6">
-                                <div className="avatar h-10 w-16 rounded cursor-pointer overflow-hidden relative shadow-sm">
-                                    <img 
-                                        src={lot.photos && lot.photos.length > 0 ? lot.photos[0] : getPlaceholderImage(lot.id)} 
-                                        alt={lot.reference}
-                                        className="h-full w-full object-cover transition-transform hover:scale-110"
-                                    />
-                                </div>
-                            </td>
-                            <td className="font-bold text-gray-800">{lot.reference}</td>
-                            <td className="text-gray-600">{lot.immeuble}</td>
-                            <td>
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                                lot.statut === 'libre' ? 'bg-green-100 text-green-700' :
-                                lot.statut === 'occupe' || lot.statut === 'occupé' || lot.statut === 'loue' ? 'bg-blue-100 text-blue-700' : 
-                                lot.statut === 'vendu' ? 'bg-purple-100 text-purple-700' :
-                                'bg-orange-100 text-orange-700'
-                              }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${
-                                  lot.statut === 'libre' ? 'bg-green-500' :
-                                  lot.statut === 'occupe' || lot.statut === 'occupé' || lot.statut === 'loue' ? 'bg-blue-500' : 
-                                  lot.statut === 'vendu' ? 'bg-purple-500' :
-                                  'bg-orange-500'
-                                }`}></span>
-                                {lot.statut || 'libre'}
+              viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                  {(paginatedData as Lot[]).length === 0 ? (
+                    <div className="col-span-full text-center py-12 text-gray-400">
+                      <Home size={48} className="mx-auto mb-4 opacity-50" />
+                      <p className="font-medium">Aucun lot trouvé</p>
+                    </div>
+                  ) : (
+                    (paginatedData as Lot[]).map((lot) => (
+                      <div 
+                        key={lot.id} 
+                        className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all group flex flex-col"
+                        onClick={() => { setEditingLot(lot); setShowLotModal(true); }}
+                      >
+                        <div className="h-40 bg-gray-200 relative overflow-hidden shrink-0">
+                          <img 
+                            src={lot.photos && lot.photos.length > 0 ? lot.photos[0] : getPlaceholderImage(lot.id)} 
+                            alt={lot.reference} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <span className={`absolute top-3 right-3 z-20 badge border-none text-white font-bold ${
+                            lot.statut === 'libre' ? 'bg-green-500' : 'bg-blue-500'
+                          }`}>
+                            {lot.statut || 'libre'}
+                          </span>
+                        </div>
+                        <div className="p-4 flex-1 flex flex-col">
+                          <h3 className="font-bold text-gray-800 text-lg truncate mb-1">{lot.reference}</h3>
+                          <p className="text-gray-500 text-sm flex items-center gap-1 mb-3">
+                            <Building2 size={14}/> {lot.immeuble}
+                          </p>
+                          <div className="mt-auto">
+                            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                              <span className="font-mono font-bold text-gray-900">
+                                {lot.loyer?.toLocaleString()} <small>FCFA</small>
                               </span>
-                            </td>
-                            <td className="font-mono font-medium text-gray-700">
-                                {lot.type === 'Vente' || lot.prix_vente ? (
-                                    <span className="text-purple-700">{lot.prix_vente?.toLocaleString()} FCFA (Vente)</span>
-                                ) : (
-                                    <span>{lot.loyer?.toLocaleString()} FCFA/mois</span>
-                                )}
-                            </td>
-                            <td className="pr-6 text-right">
-                              <div className="flex justify-end gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                {(lot.statut === 'libre') && (
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setEditingLot(lot);
-                                      setActiveAssignmentLot(lot);
-                                      setShowAssignmentModal(true);
-                                    }} 
-                                    className="btn btn-ghost btn-xs btn-square text-primary tooltip tooltip-left"
-                                    data-tip="Affecter (Louer/Vendre)"
-                                  >
-                                    <UserPlus size={14} />
-                                  </button>
-                                )}
+                              <div className="flex gap-1">
                                 <button onClick={(e) => { e.stopPropagation(); setEditingLot(lot); setShowLotModal(true); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>
-                                <button onClick={(e) => { e.stopPropagation(); handleDeleteLot(lot.id); }} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>
                               </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              ) : (
+                // Lots List view
+                <Card className="border-none shadow-xl bg-white overflow-hidden p-0">
+                  <div className="overflow-x-auto">
+                    <table className="table w-full">
+                      <thead className="bg-gray-50/50">
+                        <tr>
+                          <th className="py-4 pl-6">Photo</th>
+                          <th className="py-4">Référence</th>
+                          <th className="py-4">Immeuble</th>
+                          <th className="py-4">Statut</th>
+                          <th className="py-4">Loyer / Prix</th>
+                          <th className="py-4 pr-6 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {(paginatedData as Lot[]).length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="text-center py-12 text-gray-400">
+                              Aucun lot trouvé
                             </td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
+                        ) : (
+                          (paginatedData as Lot[]).map((lot) => (
+                            <tr key={lot.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer" onClick={() => { setEditingLot(lot); setShowLotModal(true); }}>
+                              <td className="pl-6">
+                                  <div className="avatar h-10 w-16 rounded cursor-pointer overflow-hidden relative shadow-sm">
+                                      <img 
+                                          src={lot.photos && lot.photos.length > 0 ? lot.photos[0] : getPlaceholderImage(lot.id)} 
+                                          alt={lot.reference}
+                                          className="h-full w-full object-cover transition-transform hover:scale-110"
+                                      />
+                                  </div>
+                              </td>
+                              <td className="font-bold text-gray-800">{lot.reference}</td>
+                              <td className="text-gray-600">{lot.immeuble}</td>
+                              <td>
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                                  lot.statut === 'libre' ? 'bg-green-100 text-green-700' :
+                                  lot.statut === 'occupe' || lot.statut === 'occupé' || lot.statut === 'loue' ? 'bg-blue-100 text-blue-700' : 
+                                  lot.statut === 'vendu' ? 'bg-purple-100 text-purple-700' :
+                                  'bg-orange-100 text-orange-700'
+                                }`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${
+                                    lot.statut === 'libre' ? 'bg-green-500' :
+                                    lot.statut === 'occupe' || lot.statut === 'occupé' || lot.statut === 'loue' ? 'bg-blue-500' : 
+                                    lot.statut === 'vendu' ? 'bg-purple-500' :
+                                    'bg-orange-500'
+                                  }`}></span>
+                                  {lot.statut || 'libre'}
+                                </span>
+                              </td>
+                              <td className="font-mono font-medium text-gray-700">
+                                  {lot.type === 'Vente' || lot.prix_vente ? (
+                                      <span className="text-purple-700">{lot.prix_vente?.toLocaleString()} FCFA (Vente)</span>
+                                  ) : (
+                                      <span>{lot.loyer?.toLocaleString()} FCFA/mois</span>
+                                  )}
+                              </td>
+                              <td className="pr-6 text-right">
+                                <div className="flex justify-end gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {(lot.statut === 'libre') && (
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingLot(lot);
+                                        setActiveAssignmentLot(lot);
+                                        setShowAssignmentModal(true);
+                                      }} 
+                                      className="btn btn-ghost btn-xs btn-square text-primary tooltip tooltip-left"
+                                      data-tip="Affecter (Louer/Vendre)"
+                                    >
+                                      <UserPlus size={14} />
+                                    </button>
+                                  )}
+                                  <button onClick={(e) => { e.stopPropagation(); setEditingLot(lot); setShowLotModal(true); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>
+                                  <button onClick={(e) => { e.stopPropagation(); handleDeleteLot(lot.id); }} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              )
             )}
 
             {/* Pagination */}
@@ -852,6 +923,33 @@ const Biens: React.FC = () => {
             />
           </div>
         )}
+      </Modal>
+
+      {/* Gallery Modal */}
+      <Modal
+        isOpen={showGalleryModal}
+        onClose={() => setShowGalleryModal(false)}
+        title={`Galerie - ${gallerySelectedBuilding?.nom}`}
+        size="lg"
+      >
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {(gallerySelectedBuilding?.photos && gallerySelectedBuilding.photos.length > 0) ? (
+              gallerySelectedBuilding.photos.map((url, idx) => (
+                <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                  <img src={url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full py-12 text-center text-gray-400">
+                <p>Aucune photo disponible pour cet immeuble.</p>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={() => setShowGalleryModal(false)}>Fermer</Button>
+          </div>
+        </div>
       </Modal>
     </motion.div>
   );
