@@ -149,9 +149,12 @@ const Locations: React.FC = () => {
             await documentApi.generateLease(locationId);
             toast.success("Contrat de bail généré avec succès dans Documents !");
             setShowDetailModal(false);
+            loadData();
         } catch (err: any) {
             console.error(err);
-            setError("Erreur lors de la génération du bail");
+            const message = err.response?.data?.message || "Erreur lors de la génération du bail";
+            setError(message);
+            toast.error(message);
         } finally {
             setLoading(false);
         }
