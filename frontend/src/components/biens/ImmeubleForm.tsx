@@ -11,7 +11,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import ImageUpload from '../ui/ImageUpload';
 import type { Immeuble } from '../../api/bienApi';
-import type { Proprietaire } from '../../api/accountApi';
+import type { Proprietaire, Utilisateur } from '../../api/accountApi';
 
 interface User {
   id: number;
@@ -22,7 +22,7 @@ interface User {
 interface ImmeubleFormProps {
   immeuble: Partial<Immeuble>;
   proprietaires: Proprietaire[];
-  gestionnaires?: User[];
+  gestionnaires?: Utilisateur[];
   onSave: (immeuble: Partial<Immeuble>) => Promise<void>;
   onSaveAndAddLots?: (immeuble: Partial<Immeuble>) => Promise<void>;
   onCancel: () => void;
@@ -61,7 +61,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<Partial<Immeuble>>({
     type: 'Immeuble',
-    nombre_etages: 1,
+    nombre_etages: 0,
     statut: 'actif',
     pays: 'Bénin',
     ...immeuble
@@ -71,7 +71,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
   useEffect(() => {
     const updatedData = {
         type: 'Immeuble',
-        nombre_etages: 1,
+        nombre_etages: 0,
         statut: 'actif',
         pays: 'Bénin',
         ...immeuble
@@ -131,7 +131,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
   const isStepValid = () => {
     switch (currentStep) {
       case 0: // Identité
-        return !!formData.nom && !!formData.type;
+        return !!formData.nom && !!formData.type && !!formData.total_lots;
       case 1: // Localisation
         return !!formData.ville;
       case 2: // Gestion
@@ -245,10 +245,20 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                                     <Input
                                         label="Nbre d'étages"
                                         type="number"
-                                        min={1}
-                                        value={formData.nombre_etages || 1}
-                                        onChange={(e) => handleChange('nombre_etages', parseInt(e.target.value))}
+                                        min={0}
+                                        value={formData.nombre_etages ?? ''}
+                                        onChange={(e) => handleChange('nombre_etages', e.target.value === '' ? '' : parseInt(e.target.value))}
                                         className="bg-gray-50 border-gray-200 focus:bg-white"
+                                    />
+                                    <Input
+                                        label="Nbre total de lots *"
+                                        type="number"
+                                        min={1}
+                                        value={formData.total_lots ?? ''}
+                                        onChange={(e) => handleChange('total_lots', e.target.value === '' ? '' : parseInt(e.target.value))}
+                                        placeholder="Ex: 12"
+                                        required
+                                        className={`bg-gray-50 border-gray-200 focus:bg-white ${!formData.total_lots ? 'border-red-200' : ''}`}
                                     />
                                 </div>
                                 <div className="form-control">

@@ -38,6 +38,7 @@ router.get('/immeubles', permissions.canRead('biens'), filterByOwner, async (req
                 b.video_url,
                 b.plan_masse_url,
                 b.nombre_etages,
+                b.total_lots,
                 o.name as owner_name,
                 o.first_name as owner_first_name,
                 o.type as owner_type,
@@ -151,6 +152,7 @@ router.post('/immeubles', permissions.canWrite('biens'), async (req: Authenticat
         // Nouveaux champs
         latitude, longitude, quartier, gestionnaire_id, statut,
         photos, video_url, plan_masse_url, nombre_etages,
+        total_lots,
         photo // Main photo
     } = req.body;
 
@@ -178,14 +180,14 @@ router.post('/immeubles', permissions.canWrite('biens'), async (req: Authenticat
                  SET nom = $1, type = $2, adresse = $3, ville = $4, pays = $5, description = $6, owner_id = $7,
                      latitude = $8, longitude = $9, quartier = $10, gestionnaire_id = $11, statut = $12,
                      photos = $13, video_url = $14, plan_masse_url = $15, nombre_etages = $16,
-                     photo_url = $17,
+                     photo_url = $17, total_lots = $18,
                      updated_at = CURRENT_TIMESTAMP
-                 WHERE id = $18
+                 WHERE id = $19
                  RETURNING *`,
                 [nom, type, adresse, ville, pays, description, owner_id,
                  latitude || null, longitude || null, quartier || null, gestionnaire_id || null, statut || 'actif',
                  photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, nombre_etages || 1,
-                 photo || null,
+                 photo || null, total_lots || 0,
                  id]
             );
 
@@ -198,13 +200,13 @@ router.post('/immeubles', permissions.canWrite('biens'), async (req: Authenticat
             const result = await pool.query(
                 `INSERT INTO buildings (owner_id, nom, type, adresse, ville, pays, description,
                                         latitude, longitude, quartier, gestionnaire_id, statut,
-                                        photos, video_url, plan_masse_url, nombre_etages, photo_url) 
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) 
+                                        photos, video_url, plan_masse_url, nombre_etages, photo_url, total_lots) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) 
                  RETURNING *`,
                 [owner_id, nom, type, adresse, ville, pays, description,
                  latitude || null, longitude || null, quartier || null, gestionnaire_id || null, statut || 'actif',
                  photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, nombre_etages || 1,
-                 photo || null]
+                 photo || null, total_lots || 0]
             );
             res.status(200).json(result.rows[0]);
         }

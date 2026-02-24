@@ -293,6 +293,13 @@ const MIGRATIONS: Migration[] = [
             ALTER TABLE owners ADD COLUMN IF NOT EXISTS delegation_start_date DATE;
             ALTER TABLE owners ADD COLUMN IF NOT EXISTS delegation_end_date DATE;
         `
+    },
+    {
+        name: '021_buildings_total_lots',
+        sql: `
+            -- Ajouter le champ total_lots à la table buildings
+            ALTER TABLE buildings ADD COLUMN IF NOT EXISTS total_lots INTEGER DEFAULT 0;
+        `
     }
 ];
 

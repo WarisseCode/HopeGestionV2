@@ -29,6 +29,7 @@ export interface Immeuble {
   video_url?: string | null;
   plan_masse_url?: string | null;
   nombre_etages?: number;
+  total_lots?: number;
 }
 
 export interface Lot {

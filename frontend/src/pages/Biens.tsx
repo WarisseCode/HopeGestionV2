@@ -29,8 +29,8 @@ import LotForm from '../components/biens/LotForm';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getImmeubles, getLots, saveImmeuble, saveLot, deleteImmeuble, deleteLot } from '../api/bienApi';
 import type { Immeuble, Lot } from '../api/bienApi';
-import { getProprietaires } from '../api/accountApi';
-import type { Proprietaire } from '../api/accountApi';
+import { getProprietaires, accountApi } from '../api/accountApi';
+import type { Proprietaire, Utilisateur } from '../api/accountApi';
 import AssignmentForm from '../components/biens/AssignmentForm';
 
 
@@ -64,6 +64,7 @@ const Biens: React.FC = () => {
   const [immeubles, setImmeubles] = useState<Immeuble[]>([]);
   const [lots, setLots] = useState<Lot[]>([]);
   const [proprietaires, setProprietaires] = useState<Proprietaire[]>([]);
+  const [users, setUsers] = useState<Utilisateur[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -154,14 +155,16 @@ const Biens: React.FC = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [immeublesData, lotsData, propsData] = await Promise.all([
+      const [immeublesData, lotsData, propsData, usersData] = await Promise.all([
         getImmeubles(),
         getLots(),
-        getProprietaires()
+        getProprietaires(),
+        accountApi.getUsers()
       ]);
       setImmeubles(immeublesData);
       setLots(lotsData);
       setProprietaires(propsData);
+      setUsers(usersData);
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Erreur lors du chargement des données');
@@ -767,6 +770,7 @@ const Biens: React.FC = () => {
           <ImmeubleForm
             immeuble={editingImmeuble}
             proprietaires={proprietaires}
+            gestionnaires={users}
             onSave={async (data) => {
               await handleSaveImmeuble(data);
             }}
