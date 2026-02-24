@@ -10,6 +10,7 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import ImageUpload from '../ui/ImageUpload';
+import PhoneInput from '../ui/PhoneInput';
 import type { Locataire } from '../../api/locataireApi';
 
 interface LocataireFormProps {
@@ -78,7 +79,17 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
   }, [locataire?.id]);
 
   const handleChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    let formattedValue = value;
+    
+    // Auto-formatting for names
+    if (field === 'nom' && typeof value === 'string') {
+      formattedValue = value.toUpperCase();
+    } else if (field === 'prenoms' && typeof value === 'string') {
+      // Capitalize first letter of each word
+      formattedValue = value.replace(/\b\w/g, char => char.toUpperCase());
+    }
+    
+    setFormData(prev => ({ ...prev, [field]: formattedValue }));
   };
 
   const handleSubmit = async () => {
@@ -88,7 +99,7 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
   const isStepValid = () => {
     switch (currentStep) {
       case 0: // Identité
-        return !!formData.nom && !!formData.telephone_principal;
+        return !!formData.nom && !!formData.prenoms && !!formData.telephone_principal;
       case 1: // Documents
         return true; // Optional
       case 2: // Finances
@@ -234,24 +245,22 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
                     placeholder="Prénoms"
                     value={formData.prenoms}
                     onChange={(e) => handleChange('prenoms', e.target.value)}
+                    required
+                    startIcon={<User size={16} />}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Input
+                  <PhoneInput
                     label="Téléphone Principal (WhatsApp)"
-                    placeholder="+229 XX XX XX XX"
                     value={formData.telephone_principal}
-                    onChange={(e) => handleChange('telephone_principal', e.target.value)}
+                    onChange={(full) => handleChange('telephone_principal', full)}
                     required
-                    startIcon={<Phone size={16} />}
                   />
-                  <Input
+                  <PhoneInput
                     label="Téléphone Secondaire"
-                    placeholder="+229 XX XX XX XX"
                     value={formData.telephone_secondaire || ''}
-                    onChange={(e) => handleChange('telephone_secondaire', e.target.value)}
-                    startIcon={<Phone size={16} />}
+                    onChange={(full) => handleChange('telephone_secondaire', full)}
                   />
                 </div>
 
