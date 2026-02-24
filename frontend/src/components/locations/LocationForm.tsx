@@ -28,24 +28,48 @@ const LocationForm: React.FC<LocationFormProps> = ({
     onSubmit, onCancel, locataires, lots, owners, loading = false 
 }) => {
     const [currentStep, setCurrentStep] = useState(0);
-    const [formData, setFormData] = useState<CreateLocationData>({
+    const [formData, setFormData] = useState<CreateLocationData>(initialData ? {
+        tenant_id: initialData.tenant_id || 0,
+        lot_id: initialData.lot_id || 0,
+        owner_id: initialData.owner_id || 0,
+        date_debut: initialData.date_debut ? new Date(initialData.date_debut).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        date_fin: initialData.date_fin ? new Date(initialData.date_fin).toISOString().split('T')[0] : '',
+        duree_contrat: initialData.duree_contrat || 12,
+        loyer_mensuel: initialData.loyer_mensuel || 0,
+        caution: initialData.caution || 0,
+        avance: initialData.avance || 0,
+        charges_mensuelles: initialData.charges_mensuelles || 0,
+        type_charges: initialData.type_charges || 'forfaitaire',
+        devise: initialData.devise || 'XOF',
+        type_paiement: initialData.type_paiement || 'classique',
+        jour_echeance: initialData.jour_echeance || 5,
+        frequence_paiement: initialData.frequence_paiement || 'mensuel',
+        nombre_echeances: initialData.nombre_echeances || 12,
+        prix_vente: initialData.prix_vente,
+        apport_initial: initialData.apport_initial,
+        modalite_paiement: initialData.modalite_paiement,
+        date_expiration: initialData.date_expiration,
+        conditions_particulieres: initialData.conditions_particulieres
+    } : {
         tenant_id: 0,
         lot_id: 0,
         owner_id: 0,
         date_debut: new Date().toISOString().split('T')[0],
-        date_fin: '', // Added
+        date_fin: '', 
         duree_contrat: 12,
         loyer_mensuel: 0,
         caution: 0,
         avance: 0,
         charges_mensuelles: 0,
-        type_charges: 'forfaitaire', // Added
+        type_charges: 'forfaitaire', 
         devise: 'XOF',
         type_paiement: 'classique',
         jour_echeance: 5,
         frequence_paiement: 'mensuel',
         nombre_echeances: 12
     });
+
+    const isEditing = !!initialData?.tenant_id;
 
     // Auto-selection du propriétaire s'il n'y en a qu'un
     useEffect(() => {
@@ -199,9 +223,10 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                                 {formData.tenant_id > 0 && <Check size={16} className="text-green-500" />}
                                             </div>
                                             <select
-                                                className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition shadow-sm outline-none appearance-none"
+                                                className={`w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition shadow-sm outline-none appearance-none ${isEditing ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                 value={formData.tenant_id}
                                                 onChange={e => setFormData({...formData, tenant_id: parseInt(e.target.value)})}
+                                                disabled={isEditing}
                                             >
                                                 <option value={0}>Sélectionner le locataire</option>
                                                 {locataires.map(l => (
@@ -216,13 +241,14 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                                 {formData.lot_id > 0 && <Check size={16} className="text-green-500" />}
                                             </div>
                                             <select
-                                                className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition shadow-sm outline-none appearance-none"
+                                                className={`w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition shadow-sm outline-none appearance-none ${isEditing ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                 value={formData.lot_id}
                                                 onChange={e => setFormData({...formData, lot_id: parseInt(e.target.value)})}
+                                                disabled={isEditing}
                                             >
                                                 <option value={0}>Choisir un lot</option>
                                                 {lots.map(l => (
-                                                    <option key={l.id} value={l.id} disabled={l.statut !== 'libre'}>
+                                                    <option key={l.id} value={l.id} disabled={l.statut !== 'libre' && l.id !== initialData?.lot_id}>
                                                         {l.ref_lot} - {l.immeuble} ({l.statut})
                                                     </option>
                                                 ))}
@@ -240,9 +266,10 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                                 </div>
                                                 {owners.length > 1 ? (
                                                     <select
-                                                        className="w-full p-3 bg-transparent font-bold text-blue-900 outline-none border-b border-blue-200 focus:border-blue-500 transition"
+                                                        className={`w-full p-3 bg-transparent font-bold text-blue-900 outline-none border-b border-blue-200 focus:border-blue-500 transition ${isEditing ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                         value={formData.owner_id}
                                                         onChange={e => setFormData({...formData, owner_id: parseInt(e.target.value)})}
+                                                        disabled={isEditing}
                                                     >
                                                         <option value={0}>Sélectionner un propriétaire</option>
                                                         {owners.map(o => (
@@ -486,12 +513,12 @@ const LocationForm: React.FC<LocationFormProps> = ({
                     </button>
                 ) : (
                     <button
-                        onClick={handleSubmit}
-                        disabled={loading}
-                        className="px-8 py-3 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 hover:shadow-lg hover:shadow-green-500/30 hover:scale-[1.02] transition disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
-                    >
-                        {loading ? 'Création...' : <>Confirmer le Bail <Check size={18} /></>}
-                    </button>
+                                onClick={handleSubmit}
+                                disabled={loading}
+                                className="px-8 py-3 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 hover:shadow-lg hover:shadow-green-500/30 hover:scale-[1.02] transition disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
+                            >
+                                {loading ? 'Enregistrement...' : <> {isEditing ? 'Enregistrer les modifications' : 'Confirmer le Bail'} <Check size={18} /></>}
+                            </button>
                 )}
             </div>
         </div>

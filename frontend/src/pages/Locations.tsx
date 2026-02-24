@@ -22,6 +22,7 @@ const Locations: React.FC = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
     const [filterStatus, setFilterStatus] = useState<string>('');
     const [searchTerm, setSearchTerm] = useState('');
     const [showSignatureModal, setShowSignatureModal] = useState(false);
@@ -75,9 +76,16 @@ const Locations: React.FC = () => {
 
     const handleCreate = async (data: CreateLocationData) => {
         try {
-            await locationApi.createLocation(data);
-            toast.success('Nouveau bail créé avec succès');
+            if (isEditing && selectedLocation) {
+                await locationApi.updateLocation(selectedLocation.id, data);
+                toast.success('Bail mis à jour avec succès');
+            } else {
+                await locationApi.createLocation(data);
+                toast.success('Nouveau bail créé avec succès');
+            }
             setShowAddModal(false);
+            setIsEditing(false);
+            setSelectedLocation(null);
             // Reset form data if needed or just rely on form unmount
             setFormData({
                 tenant_id: 0,
@@ -97,6 +105,12 @@ const Locations: React.FC = () => {
         } catch (err: any) {
             setError(err.message);
         }
+    };
+
+    const handleEdit = (location: Location) => {
+        setSelectedLocation(location);
+        setIsEditing(true);
+        setShowAddModal(true);
     };
 
     const handleSaveSignature = async (signatureImage: string) => {
@@ -213,7 +227,7 @@ const Locations: React.FC = () => {
                     <p className="text-gray-500 text-sm">Gérez les contrats de location</p>
                 </div>
                 <button 
-                    onClick={() => { setError(null); setShowAddModal(true); }}
+                    onClick={() => { setError(null); setIsEditing(false); setSelectedLocation(null); setShowAddModal(true); }}
                     className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg hover:bg-primary/90 transition shadow-md"
                 >
                     <Plus size={18} /> Nouveau Bail
@@ -369,6 +383,13 @@ const Locations: React.FC = () => {
                                             >
                                                 <Eye size={16} className="text-gray-600" />
                                             </button>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleEdit(location); }}
+                                                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                                                title="Modifier le bail"
+                                            >
+                                                <Pen size={16} className="text-blue-600" />
+                                            </button>
                                             {(location.statut === 'actif' || location.statut === 'signe') && (
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); handleResilier(location.id); }}
@@ -422,19 +443,20 @@ const Locations: React.FC = () => {
                             className="bg-white rounded-xl shadow-xl w-full max-w-[95%] md:max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
                         >
                             <div className="p-6 border-b sticky top-0 bg-white z-10 flex justify-between items-center">
-                                <h3 className="text-xl font-bold">Nouveau Bail</h3>
-                                <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600 transition">
+                                <h3 className="text-xl font-bold">{isEditing ? 'Modifier le Bail' : 'Nouveau Bail'}</h3>
+                                <button onClick={() => { setShowAddModal(false); setIsEditing(false); }} className="text-gray-400 hover:text-gray-600 transition">
                                     <XCircle size={24} />
                                 </button>
                             </div>
                             
                             <LocationForm 
                                 onSubmit={handleCreate}
-                                onCancel={() => setShowAddModal(false)}
+                                onCancel={() => { setShowAddModal(false); setIsEditing(false); }}
                                 locataires={locataires}
                                 lots={lots}
                                 owners={owners}
                                 loading={loading}
+                                initialData={isEditing ? selectedLocation || undefined : undefined}
                             />
                         </motion.div>
                     </motion.div>
