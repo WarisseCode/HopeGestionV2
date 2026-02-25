@@ -308,6 +308,15 @@ const MIGRATIONS: Migration[] = [
             ALTER TABLE user_invitations ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
             CREATE INDEX IF NOT EXISTS idx_user_invitations_user_id ON user_invitations(user_id);
         `
+    },
+    {
+        name: '023_users_invite_columns',
+        sql: `
+            -- Colonnes requises par l'endpoint invite-user
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS access_scope VARCHAR(20) DEFAULT 'assigned';
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS created_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
+            CREATE INDEX IF NOT EXISTS idx_users_created_by ON users(created_by);
+        `
     }
 ];
 
