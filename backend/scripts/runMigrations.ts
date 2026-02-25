@@ -333,6 +333,60 @@ const MIGRATIONS: Migration[] = [
             ALTER TABLE users ADD COLUMN IF NOT EXISTS created_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
             CREATE INDEX IF NOT EXISTS idx_users_created_by ON users(created_by);
         `
+    },
+    {
+        name: '024_permission_matrix',
+        sql: `
+            CREATE TABLE IF NOT EXISTS permission_matrix (
+                role VARCHAR(50) NOT NULL,
+                module VARCHAR(50) NOT NULL,
+                can_read BOOLEAN DEFAULT FALSE,
+                can_write BOOLEAN DEFAULT FALSE,
+                can_delete BOOLEAN DEFAULT FALSE,
+                can_validate BOOLEAN DEFAULT FALSE,
+                PRIMARY KEY (role, module)
+            );
+
+            INSERT INTO permission_matrix (role, module, can_read, can_write, can_delete, can_validate)
+            VALUES 
+            ('admin', 'dashboard', TRUE, TRUE, TRUE, TRUE),
+            ('admin', 'biens', TRUE, TRUE, TRUE, TRUE),
+            ('admin', 'locataires', TRUE, TRUE, TRUE, TRUE),
+            ('admin', 'finance', TRUE, TRUE, TRUE, TRUE),
+            ('admin', 'users', TRUE, TRUE, TRUE, TRUE),
+            ('admin', 'owners', TRUE, TRUE, TRUE, TRUE),
+            ('gestionnaire', 'dashboard', TRUE, FALSE, FALSE, FALSE),
+            ('gestionnaire', 'biens', TRUE, TRUE, FALSE, FALSE),
+            ('gestionnaire', 'locataires', TRUE, TRUE, FALSE, FALSE),
+            ('gestionnaire', 'finance', TRUE, FALSE, FALSE, FALSE),
+            ('gestionnaire', 'users', FALSE, FALSE, FALSE, FALSE),
+            ('gestionnaire', 'owners', TRUE, FALSE, FALSE, FALSE),
+            ('manager', 'dashboard', TRUE, TRUE, FALSE, TRUE),
+            ('manager', 'biens', TRUE, TRUE, TRUE, TRUE),
+            ('manager', 'locataires', TRUE, TRUE, TRUE, TRUE),
+            ('manager', 'finance', TRUE, TRUE, FALSE, TRUE),
+            ('manager', 'users', TRUE, TRUE, FALSE, FALSE),
+            ('manager', 'owners', TRUE, TRUE, FALSE, TRUE),
+            ('guest', 'dashboard', TRUE, FALSE, FALSE, FALSE),
+            ('guest', 'biens', TRUE, FALSE, FALSE, FALSE),
+            ('guest', 'locataires', TRUE, FALSE, FALSE, FALSE),
+            ('guest', 'finance', FALSE, FALSE, FALSE, FALSE)
+            ON CONFLICT (role, module) DO NOTHING;
+        `
+    },
+    {
+        name: '025_users_guest_columns',
+        sql: `
+            ALTER TABLE users 
+            ADD COLUMN IF NOT EXISTS access_key VARCHAR(50) UNIQUE DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS access_key_expires_at TIMESTAMP DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS is_guest BOOLEAN DEFAULT FALSE,
+            ADD COLUMN IF NOT EXISTS agency_id INTEGER,
+            ADD COLUMN IF NOT EXISTS is_super_admin BOOLEAN DEFAULT FALSE;
+            
+            CREATE INDEX IF NOT EXISTS idx_users_access_key ON users(access_key);
+            CREATE INDEX IF NOT EXISTS idx_users_agency ON users(agency_id);
+        `
     }
 ];
 
