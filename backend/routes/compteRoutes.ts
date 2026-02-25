@@ -77,11 +77,11 @@ router.get('/utilisateurs', async (req: AuthenticatedRequest, res: Response) => 
                 ORDER BY nom ASC
             `;
         } else {
-            // Gestionnaire/Proprietaire see only users they created
+            // Gestionnaire/Proprietaire see themselves AND users they created/invited
             query = `
-                SELECT id, nom, '' as prenom, telephone, email, role, photo_url as photo, statut, created_at
+                SELECT id, nom, prenom, telephone, email, role, photo_url as photo, statut, created_at
                 FROM users
-                WHERE id = $1
+                WHERE id = $1 OR created_by = $1
                 ORDER BY nom ASC
             `;
             queryParams = [req.userId];

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { accountApi } from '../api/accountApi';
 import { Plus, Trash2, Shield, Link2, X, Check, RefreshCw, Ban, Send, MessageCircle, Settings, Key, Clock, MoreVertical } from 'lucide-react';
+import toast from 'react-hot-toast';
 
-import Alert from './ui/Alert';
 import ConfirmModal from './ui/ConfirmModal';
 
 interface PermissionFlags {
@@ -44,8 +44,6 @@ const CompteUtilisateurs: React.FC = () => {
     const [users, setUsers] = useState<UserData[]>([]);
     const [owners, setOwners] = useState<Owner[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
     
     // Ajout de l'état pour le modal de confirmation
     const [confirmModal, setConfirmModal] = useState<{
@@ -96,10 +94,10 @@ const CompteUtilisateurs: React.FC = () => {
         try {
             const res = await accountApi.createGuestAccess(guestForm);
             setGeneratedKey({ key: res.accessKey, expiresAt: res.expiresAt });
-            setSuccess("Clé d'accès générée avec succès !");
+            toast.success("Clé d'accès générée avec succès !");
             loadUsers(); // Refresh list to see the guest
         } catch (err: any) {
-            setError(err.message || "Erreur lors de la génération de la clé.");
+            toast.error(err.message || "Erreur lors de la génération de la clé.");
         }
     };
 
@@ -121,7 +119,7 @@ const CompteUtilisateurs: React.FC = () => {
             const data = await accountApi.getUsers();
             setUsers(data);
         } catch (err) {
-            setError("Impossible de charger les utilisateurs.");
+            toast.error("Impossible de charger les utilisateurs.");
             console.error(err);
         } finally {
             setLoading(false);
@@ -162,9 +160,9 @@ const CompteUtilisateurs: React.FC = () => {
                     await accountApi.suspendUser(id);
                     const updatedUsers = users.map(u => u.id === id ? { ...u, statut: 'Suspendu' } : u);
                     setUsers(updatedUsers);
-                    setSuccess("Utilisateur suspendu avec succès.");
+                    toast.success("Utilisateur suspendu avec succès.");
                 } catch (err) {
-                    setError("Erreur lors de la suspension.");
+                    toast.error("Erreur lors de la suspension.");
                     throw err;
                 }
             }
@@ -182,9 +180,9 @@ const CompteUtilisateurs: React.FC = () => {
                 try {
                     await accountApi.deleteUser(id);
                     setUsers(users.filter(u => u.id !== id));
-                    setSuccess("Utilisateur supprimé définitivement.");
+                    toast.success("Utilisateur supprimé définitivement.");
                 } catch (err) {
-                    setError("Erreur lors de la suppression.");
+                    toast.error("Erreur lors de la suppression.");
                     throw err;
                 }
             }
@@ -203,9 +201,9 @@ const CompteUtilisateurs: React.FC = () => {
                     await accountApi.reactivateUser(id);
                     const updatedUsers = users.map(u => u.id === id ? { ...u, statut: 'Actif' } : u);
                     setUsers(updatedUsers);
-                    setSuccess("Utilisateur réactivé avec succès.");
+                    toast.success("Utilisateur réactivé avec succès.");
                 } catch (err) {
-                    setError("Erreur lors de la réactivation.");
+                    toast.error("Erreur lors de la réactivation.");
                     throw err;
                 }
             }
@@ -218,24 +216,24 @@ const CompteUtilisateurs: React.FC = () => {
             if (creationMode === 'invite') {
                 const res = await accountApi.inviteUser(newUser);
                 setInvitationLink(res.link);
-                setSuccess("Invitation générée avec succès !");
+                toast.success("Invitation générée avec succès !");
                 // Don't close modal yet, show link
             } else {
                 await accountApi.createUser(newUser);
                 setShowAddModal(false);
-                setSuccess("Utilisateur créé avec succès.");
+                toast.success("Utilisateur créé avec succès.");
                 setNewUser({ nom: '', prenom: '', email: '', telephone: '', password: '', role: 'gestionnaire', access_scope: 'assigned' });
                 loadUsers();
             }
         } catch (err: any) {
-            setError(err.message || "Erreur lors de la création.");
+            toast.error(err.message || "Erreur lors de la création.");
         }
     };
     
     const copyLink = () => {
         if (invitationLink) {
             navigator.clipboard.writeText(invitationLink);
-            alert("Lien copié !");
+            toast.success("Lien copié !");
         }
     };
 
@@ -272,7 +270,7 @@ const CompteUtilisateurs: React.FC = () => {
             setAssignmentsMap(newMap);
             setShowAssignModal(true);
         } catch (err) {
-            setError("Erreur chargement des affectations.");
+            toast.error("Erreur chargement des affectations.");
         }
     };
 
@@ -346,10 +344,10 @@ const CompteUtilisateurs: React.FC = () => {
                 permissions: a.permissions
             }));
             await accountApi.bulkUpdateAssignments(selectedUser.id, payload);
-            setSuccess(`Affectations mises à jour pour ${selectedUser.prenom} ${selectedUser.nom}`);
+            toast.success(`Affectations mises à jour pour ${selectedUser.prenom || ''} ${selectedUser.nom}`);
             setShowAssignModal(false);
         } catch (err) {
-            setError("Erreur lors de la sauvegarde des affectations.");
+            toast.error("Erreur lors de la sauvegarde des affectations.");
         }
     };
 
@@ -376,8 +374,7 @@ const CompteUtilisateurs: React.FC = () => {
                 </button>
             </div>
 
-            {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
-            {success && <Alert variant="success" onClose={() => setSuccess(null)}>{success}</Alert>}
+
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto max-h-[65vh] overflow-y-auto">
                 <table className="w-full text-left border-collapse min-w-[700px]">
@@ -399,10 +396,12 @@ const CompteUtilisateurs: React.FC = () => {
                             }`}>
                                 <td className="p-4 flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                                        {user.prenom?.[0]}{user.nom?.[0]}
+                                        {user.prenom?.[0] || user.nom?.[0]}
                                     </div>
                                     <div>
-                                        <div className="font-medium text-gray-900">{user.prenom} {user.nom}</div>
+                                        <div className="font-medium text-gray-900">
+                                            {user.prenom ? `${user.prenom} ${user.nom}` : user.nom}
+                                        </div>
                                     </div>
                                 </td>
                                 <td className="p-4 text-gray-600">{user.email}</td>
@@ -641,7 +640,7 @@ const CompteUtilisateurs: React.FC = () => {
                             <div>
                                 <h3 className="text-xl font-bold">Affectation aux Propriétaires</h3>
                                 <p className="text-sm text-gray-500">
-                                    {selectedUser.prenom} {selectedUser.nom} ({selectedUser.role})
+                                    {selectedUser.prenom ? `${selectedUser.prenom} ${selectedUser.nom}` : selectedUser.nom} ({selectedUser.role})
                                 </p>
                             </div>
                             <button onClick={() => setShowAssignModal(false)} className="text-gray-400 hover:text-gray-600">
