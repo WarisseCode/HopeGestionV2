@@ -302,11 +302,27 @@ const MIGRATIONS: Migration[] = [
         `
     },
     {
-        name: '022_user_invitations_user_id',
+        name: '022_user_invitations_table',
         sql: `
-            -- Ajouter la colonne user_id à user_invitations (requise par invite-user)
-            ALTER TABLE user_invitations ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+            -- Créer la table user_invitations si elle n'existe pas (avec user_id inclus)
+            CREATE TABLE IF NOT EXISTS user_invitations (
+                id SERIAL PRIMARY KEY,
+                token VARCHAR(255) NOT NULL UNIQUE,
+                email VARCHAR(255) NOT NULL,
+                role VARCHAR(50) NOT NULL DEFAULT 'viewer',
+                issuer_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                owner_id INTEGER REFERENCES owners(id) ON DELETE CASCADE,
+                permissions JSONB DEFAULT '{}',
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                used_at TIMESTAMP,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_invitations_token ON user_invitations(token);
+            CREATE INDEX IF NOT EXISTS idx_invitations_email ON user_invitations(email);
             CREATE INDEX IF NOT EXISTS idx_user_invitations_user_id ON user_invitations(user_id);
+            -- Au cas où la table existait déjà sans user_id
+            ALTER TABLE user_invitations ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
         `
     },
     {
