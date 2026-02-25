@@ -387,6 +387,35 @@ const MIGRATIONS: Migration[] = [
             CREATE INDEX IF NOT EXISTS idx_users_access_key ON users(access_key);
             CREATE INDEX IF NOT EXISTS idx_users_agency ON users(agency_id);
         `
+    },
+    {
+        name: '026_additional_permissions',
+        sql: `
+            -- Add missing roles to permission_matrix
+            INSERT INTO permission_matrix (role, module, can_read, can_write, can_delete, can_validate)
+            VALUES 
+            ('comptable', 'dashboard', TRUE, FALSE, FALSE, FALSE),
+            ('comptable', 'biens', TRUE, FALSE, FALSE, FALSE),
+            ('comptable', 'locataires', TRUE, FALSE, FALSE, FALSE),
+            ('comptable', 'finance', TRUE, FALSE, FALSE, TRUE),
+            ('comptable', 'owners', TRUE, FALSE, FALSE, FALSE),
+            
+            ('agent_recouvreur', 'dashboard', TRUE, FALSE, FALSE, FALSE),
+            ('agent_recouvreur', 'biens', TRUE, FALSE, FALSE, FALSE),
+            ('agent_recouvreur', 'locataires', TRUE, FALSE, FALSE, FALSE),
+            ('agent_recouvreur', 'finance', TRUE, FALSE, FALSE, TRUE),
+            
+            ('viewer', 'dashboard', TRUE, FALSE, FALSE, FALSE),
+            ('viewer', 'biens', TRUE, FALSE, FALSE, FALSE),
+            ('viewer', 'locataires', TRUE, FALSE, FALSE, FALSE),
+            ('viewer', 'finance', TRUE, FALSE, FALSE, FALSE),
+            ('viewer', 'owners', TRUE, FALSE, FALSE, FALSE)
+            ON CONFLICT (role, module) DO NOTHING;
+
+            -- Cleanup: Some older migrations might have used 'guest' instead of 'viewer'
+            -- We ensure 'viewer' is the standard for read-only guests
+            UPDATE users SET role = 'viewer' WHERE role = 'guest' AND is_guest = true;
+        `
     }
 ];
 

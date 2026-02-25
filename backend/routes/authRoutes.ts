@@ -798,6 +798,7 @@ router.post('/create-guest', verifyToken, async (req: any, res) => {
 
     try {
         if (!nom) return res.status(400).json({ message: 'Le nom est requis.' });
+        if (!telephone) return res.status(400).json({ message: 'Le numéro de téléphone est requis.' });
 
         // 1. Generate unique Guest Key
         // Format: GUEST-XXXX-YYYY (Random hex)
@@ -816,6 +817,20 @@ router.post('/create-guest', verifyToken, async (req: any, res) => {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
+
+            // Check for duplicate telephone or dummy email (unlikely for email but safe)
+            const duplicateCheck = await client.query(
+                'SELECT id FROM users WHERE telephone = $1 OR email = $2',
+                [telephone, dummyEmail]
+            );
+
+            if (duplicateCheck.rows.length > 0) {
+                await client.query('ROLLBACK');
+                client.release();
+                return res.status(409).json({ 
+                    message: `Un utilisateur existe déjà avec ce numéro de téléphone (${telephone}). Chaque accès invité doit avoir un numéro unique.` 
+                });
+            }
 
             // Get issuer's agency_id
             const issuerRes = await client.query('SELECT agency_id FROM users WHERE id = $1', [issuerId]);
@@ -972,15 +987,19 @@ router.post('/create-guest', verifyToken, async (req: any, res) => {
                 role: guestRole
             });
 
-        } catch (err) {
+        } catch (err: any) {
             await client.query('ROLLBACK');
-            throw err;
+            console.error('ERROR in /create-guest:', err);
+            res.status(500).json({ 
+                message: 'Erreur serveur lors de la création de l\'accès invité.',
+                error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+                stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+            });
         } finally {
             client.release();
         }
-
-    } catch (error) {
-        console.error('Erreur création invité:', error);
+    } catch (err: any) {
+        console.error('OUTER ERROR in /create-guest:', err);
         res.status(500).json({ message: 'Erreur serveur.' });
     }
 });
