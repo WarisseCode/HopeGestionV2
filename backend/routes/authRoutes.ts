@@ -992,7 +992,7 @@ router.post('/create-guest', verifyToken, async (req: any, res) => {
             console.error('ERROR in /create-guest:', err);
             res.status(500).json({ 
                 message: 'Erreur serveur lors de la création de l\'accès invité.',
-                error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+                error: err.message, // Temporairement pour débugger
                 stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
             });
         } finally {
