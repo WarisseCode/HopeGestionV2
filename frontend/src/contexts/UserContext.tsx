@@ -12,6 +12,7 @@ export interface UserProfile {
   userType: string;
   role: string;
   photo_url?: string;
+  preferences?: any;
   isGuest?: boolean;
   permissions?: {
       // Biens Immobiliers
