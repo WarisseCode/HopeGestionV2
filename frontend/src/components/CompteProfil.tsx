@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Camera, Globe, DollarSign, Clock, Save, Lock, MessageCircle, X, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Phone, Camera, Globe, DollarSign, Clock, Save, Lock, MessageCircle, X, Eye, EyeOff, Shield, ShieldCheck, Smartphone, Monitor, ChevronRight, Moon, Sun } from 'lucide-react';
 import { accountApi } from '../api/accountApi';
 import { motion } from 'framer-motion';
-import ImageUpload from './ui/ImageUpload';
+import toast from 'react-hot-toast';
 
 interface UserProfile {
     id: number;
@@ -16,6 +16,7 @@ interface UserProfile {
         language: string;
         currency: string;
         timezone: string;
+        theme?: string;
         notifications: {
             email: boolean;
             whatsapp: boolean;
@@ -27,9 +28,8 @@ const CompteProfil: React.FC = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-    // États pour le formulaire
+    // Form State
     const [formData, setFormData] = useState({
         nom: '',
         prenom: '',
@@ -37,15 +37,16 @@ const CompteProfil: React.FC = () => {
         telephone: '',
         language: 'fr',
         currency: 'XOF',
-        timezone: 'GMT+1'
+        timezone: 'GMT+1',
+        theme: 'light',
+        notifEmail: true,
+        notifWhatsApp: false
     });
 
     // Password Modal State
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [passwordData, setPasswordData] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
     const [showPassword, setShowPassword] = useState(false);
-    const [passwordError, setPasswordError] = useState<string | null>(null);
-    const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
     useEffect(() => {
         loadProfile();
@@ -62,53 +63,70 @@ const CompteProfil: React.FC = () => {
                 telephone: data.telephone || '',
                 language: data.preferences?.language || 'fr',
                 currency: data.preferences?.currency || 'XOF',
-                timezone: data.preferences?.timezone || 'GMT+1'
+                timezone: data.preferences?.timezone || 'GMT+1',
+                theme: data.preferences?.theme || 'light',
+                notifEmail: data.preferences?.notifications?.email ?? true,
+                notifWhatsApp: data.preferences?.notifications?.whatsapp ?? false
             });
         } catch (error) {
             console.error('Erreur chargement profil:', error);
+            toast.error('Erreur lors du chargement du profil.');
         } finally {
             setLoading(false);
         }
     };
 
-    const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64String = reader.result as string;
-                // Update local state immediately for preview
-                if (profile) {
-                    setProfile({ ...profile, photo_url: base64String });
-                }
-                // Trigger save strictly for photo? Or wait for global save?
-                // Let's autosave photo for better UX
-                savePhoto(base64String);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+        if (!file) return;
 
-    const savePhoto = async (photoUrl: string) => {
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', file);
+        formDataUpload.append('type', 'avatar');
+
+        const loadingToast = toast.loading('Téléchargement de la photo...');
+        
         try {
-            await accountApi.updateProfile({ ...formData, photo_url: photoUrl });
-            setMessage({ type: 'success', text: 'Photo mise à jour !' });
-        } catch (error) {
-            setMessage({ type: 'error', text: 'Erreur lors de l\'upload de la photo.' });
+            // Adjust this URL to your actual backend URL if different
+            const response = await fetch('http://localhost:5000/api/upload', {
+                method: 'POST',
+                body: formDataUpload,
+            });
+            const data = await response.json();
+            
+            if (response.ok && data.files?.[0]) {
+                const photoUrl = `http://localhost:5000${data.files[0].path}`;
+                
+                // Immediately update backend profile
+                await accountApi.updateProfile({ ...formData, photo_url: photoUrl });
+                
+                // Update local state
+                if (profile) setProfile({ ...profile, photo_url: photoUrl });
+                toast.success('Photo de profil mise à jour !', { id: loadingToast });
+            } else {
+                throw new Error(data.message || 'Erreur inconnue');
+            }
+        } catch (err) {
+            console.error('Upload error:', err);
+            toast.error("Erreur lors de l'upload de la photo.", { id: loadingToast });
         }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
-        setMessage(null);
+        const saveToast = toast.loading('Enregistrement des modifications...');
 
         try {
             const preferences = {
                 language: formData.language,
                 currency: formData.currency,
                 timezone: formData.timezone,
-                notifications: profile?.preferences?.notifications || { email: true, whatsapp: false }
+                theme: formData.theme,
+                notifications: {
+                    email: formData.notifEmail,
+                    whatsapp: formData.notifWhatsApp
+                }
             };
 
             const payload = {
@@ -121,14 +139,14 @@ const CompteProfil: React.FC = () => {
             };
 
             await accountApi.updateProfile(payload);
-            setMessage({ type: 'success', text: 'Profil mis à jour avec succès !' });
+            toast.success('Profil mis à jour avec succès !', { id: saveToast });
             
-            // Recharger pour être sûr de la synchro
+            // Reload to ensure sync
             const updated = await accountApi.getProfile();
             setProfile(updated);
 
         } catch (error) {
-            setMessage({ type: 'error', text: 'Erreur lors de la mise à jour.' });
+            toast.error('Erreur lors de la mise à jour.', { id: saveToast });
         } finally {
             setSaving(false);
         }
@@ -136,306 +154,433 @@ const CompteProfil: React.FC = () => {
 
     const handlePasswordChange = async (e: React.FormEvent) => {
         e.preventDefault();
-        setPasswordError(null);
-        setPasswordSuccess(null);
 
         if (passwordData.newPassword !== passwordData.confirmPassword) {
-            setPasswordError("Les nouveaux mots de passe ne correspondent pas.");
+            toast.error("Les nouveaux mots de passe ne correspondent pas.");
             return;
         }
 
+        const passToast = toast.loading('Modification du mot de passe...');
         try {
             await accountApi.changePassword({ 
                 currentPassword: passwordData.oldPassword, 
                 newPassword: passwordData.newPassword 
             });
-            setPasswordSuccess("Mot de passe modifié avec succès !");
+            toast.success("Mot de passe modifié avec succès !", { id: passToast });
             setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
-            setTimeout(() => setShowPasswordModal(false), 2000);
+            setShowPasswordModal(false);
         } catch (err: any) {
-            setPasswordError(err.message || "Erreur lors du changement de mot de passe.");
+            toast.error(err.message || "Erreur lors du changement de mot de passe.", { id: passToast });
         }
     };
 
-    if (loading) return <div className="p-8 text-center text-gray-500">Chargement du profil...</div>;
+    if (loading) return (
+        <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+    );
+
+    // Animation variants
+    const cardVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
+    };
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 animate-fade-in">
+        <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-12">
             
-            {/* Header: Photo + Identité rapide (Style Page 10 PDF) */}
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center gap-8">
-                
+            {/* Header: Photo + Identity (Glassmorphism inspired) */}
+            <motion.div 
+                variants={cardVariants}
+                initial="hidden"
+                animate="visible"
+                className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-sm border border-gray-100/50 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden"
+            >
+                {/* Decorative background blur */}
+                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-blue-100/40 rounded-full blur-3xl pointer-events-none"></div>
+
                 {/* Photo Section */}
-                <div className="relative group">
-                    <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100">
+                <div className="relative group z-10 w-32 h-32">
+                    <div className="w-full h-full rounded-full overflow-hidden border-4 border-white shadow-xl bg-gray-50 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
                         {profile?.photo_url ? (
                             <img src={profile.photo_url} alt="Profil" className="w-full h-full object-cover" />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">
-                                <User size={48} />
-                            </div>
+                            <span className="text-4xl font-bold text-gray-300">
+                                {formData.prenom.charAt(0)}{formData.nom.charAt(0)}
+                            </span>
                         )}
                     </div>
-                    {/* Simple clickable overlay for upload */}
-                    <label className="absolute inset-0 cursor-pointer rounded-full bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
+                    
+                    <label className="absolute inset-0 cursor-pointer rounded-full bg-black/0 hover:bg-black/30 transition-all flex items-center justify-center backdrop-blur-[2px] opacity-0 hover:opacity-100">
                         <input 
                             type="file" 
                             accept="image/*" 
                             className="hidden"
-                            onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                
-                                // Create FormData and upload
-                                const formDataUpload = new FormData();
-                                formDataUpload.append('file', file);
-                                formDataUpload.append('type', 'avatar');
-                                
-                                try {
-                                    const response = await fetch('http://localhost:5000/api/upload', {
-                                        method: 'POST',
-                                        body: formDataUpload,
-                                    });
-                                    const data = await response.json();
-                                    if (response.ok && data.files?.[0]) {
-                                        const photoUrl = `http://localhost:5000${data.files[0].path}`;
-                                        // Update state immediately
-                                        if (profile) setProfile({ ...profile, photo_url: photoUrl });
-                                        // Save to backend
-                                        await savePhoto(photoUrl);
-                                    }
-                                } catch (err) {
-                                    console.error('Upload error:', err);
-                                    setMessage({ type: 'error', text: "Erreur lors de l'upload" });
-                                }
-                            }}
+                            onChange={handlePhotoUpload}
                         />
+                        <span className="text-white text-xs font-medium flex flex-col items-center gap-1">
+                            <Camera size={20} />
+                            Modifier
+                        </span>
                     </label>
-                    <div className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full pointer-events-none shadow-md z-10">
-                        <Camera size={18} />
+                    <div className="absolute bottom-1 right-1 bg-primary text-white p-2 rounded-full pointer-events-none shadow-lg border-2 border-white transition-transform group-hover:scale-110">
+                        <Camera size={14} />
                     </div>
                 </div>
 
                 {/* Info Essentielle */}
-                <div className="text-center md:text-left flex-1">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                <div className="text-center md:text-left flex-1 z-10">
+                    <h2 className="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">
                         {formData.prenom} {formData.nom}
                     </h2>
-                    <div className="flex flex-wrap justify-center md:justify-start gap-4 text-gray-600 text-sm">
-                        <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full border border-gray-200">
-                            <Phone size={14} className="text-blue-500" />
-                            {formData.telephone || "Non renseigné"}
-                        </div>
-                        <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full border border-gray-200">
-                            <Mail size={14} className="text-blue-500" />
-                            <span className="truncate max-w-[200px]">{formData.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2 bg-green-50 px-3 py-1 rounded-full border border-green-200 text-green-700">
-                            <MessageCircle size={14} />
-                            WhatsApp {profile?.preferences?.notifications.whatsapp ? 'Actif' : 'Inactif'}
+                    <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-4">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                            <User size={12} className="mr-1.5" />
+                            {profile?.role === 'admin' ? 'Administrateur' : profile?.role === 'owner' ? 'Propriétaire' : profile?.role}
+                        </span>
+                        <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full border border-gray-200 text-sm text-gray-600 shadow-sm">
+                            <Mail size={14} className="text-gray-400" />
+                            {formData.email}
                         </div>
                     </div>
                 </div>
+            </motion.div>
 
-                {/* Badge Rôle */}
-                <div className="hidden md:block">
-                     <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm font-semibold border border-blue-200 capitalize">
-                        {profile?.role || 'Utilisateur'}
-                     </span>
-                </div>
-            </div>
-
-            {/* Formulaire Principal (Grille) */}
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Main Content Grid */}
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
-                {/* Colonne Gauche : Infos Personnelles */}
-                <div className="md:col-span-2 space-y-6">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2 border-b pb-2">
-                            <User size={20} className="text-blue-600" /> Information Personnelles
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-                                <input
-                                    type="text"
-                                    value={formData.nom}
-                                    onChange={(e) => setFormData({...formData, nom: e.target.value})}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                />
+                {/* Left Column: Personal Info & Appearance */}
+                <div className="lg:col-span-2 space-y-8">
+                    
+                    {/* Information Personnelles Card */}
+                    <motion.div variants={cardVariants} initial="hidden" animate="visible" className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 transition-shadow hover:shadow-md">
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-50">
+                            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                                <User size={20} />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
+                            <h3 className="text-xl font-bold text-gray-800">Informations Personnelles</h3>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-gray-600">Prénom</label>
                                 <input
                                     type="text"
                                     value={formData.prenom}
                                     onChange={(e) => setFormData({...formData, prenom: e.target.value})}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50/50"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                <input
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-gray-600">Nom</label>
                                 <input
                                     type="text"
-                                    value={formData.telephone}
-                                    onChange={(e) => setFormData({...formData, telephone: e.target.value})}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    value={formData.nom}
+                                    onChange={(e) => setFormData({...formData, nom: e.target.value})}
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50/50"
                                 />
                             </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2 border-b pb-2">
-                            <Lock size={20} className="text-blue-600" /> Sécurité
-                        </h3>
-                        <div className="bg-blue-50 text-blue-800 p-4 rounded-lg flex justify-between items-center">
-                            <div>
-                                <p className="font-medium">Mot de passe</p>
-                                <p className="text-sm opacity-80">Dernière modification il y a 3 mois</p>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-gray-600">Email professionnel</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <Mail size={16} className="text-gray-400" />
+                                    </div>
+                                    <input
+                                        type="email"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50/50"
+                                    />
+                                </div>
                             </div>
-                            <button 
-                                type="button" 
-                                onClick={() => setShowPasswordModal(true)}
-                                className="px-4 py-2 bg-white text-blue-600 rounded-lg text-sm font-medium shadow-sm hover:bg-gray-50 border border-blue-100 transition-colors"
-                            >
-                                Changer
-                            </button>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-gray-600">Téléphone de contact</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <Phone size={16} className="text-gray-400" />
+                                    </div>
+                                    <input
+                                        type="tel"
+                                        value={formData.telephone}
+                                        onChange={(e) => setFormData({...formData, telephone: e.target.value})}
+                                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50/50"
+                                        placeholder="+229 XX XX XX XX"
+                                    />
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </motion.div>
+
+                    {/* Security Card */}
+                    <motion.div variants={cardVariants} initial="hidden" animate="visible" className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 transition-shadow hover:shadow-md">
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-50">
+                            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                                <Shield size={20} />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800">Sécurité & Connexion</h3>
+                        </div>
+
+                        <div className="space-y-4">
+                            {/* Password Section */}
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                                <div className="flex items-center gap-4 mb-4 sm:mb-0">
+                                    <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100">
+                                        <Lock className="text-gray-500" size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-gray-800">Mot de passe</h4>
+                                        <p className="text-sm text-gray-500 mt-0.5">Renforcez la sécurité de votre compte</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    onClick={() => setShowPasswordModal(true)}
+                                    className="w-full sm:w-auto px-5 py-2.5 bg-white text-gray-700 rounded-xl text-sm font-semibold shadow-sm border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all"
+                                >
+                                    Modifier
+                                </button>
+                            </div>
+
+                            {/* 2FA Mock */}
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 rounded-2xl border border-gray-100 bg-gray-50/50 opacity-75">
+                                <div className="flex items-center gap-4 mb-4 sm:mb-0">
+                                    <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100">
+                                        <ShieldCheck className="text-emerald-500" size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                                            Double Authentification (A2F)
+                                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wide">Bientôt</span>
+                                        </h4>
+                                        <p className="text-sm text-gray-500 mt-0.5">Protégez votre compte avec un code SMS/App</p>
+                                    </div>
+                                </div>
+                                <button type="button" disabled className="w-full sm:w-auto px-5 py-2.5 bg-gray-100 text-gray-400 rounded-xl text-sm font-semibold border border-transparent cursor-not-allowed">
+                                    Activer
+                                </button>
+                            </div>
+
+                            {/* Sessions Mock */}
+                            <div className="mt-8 pt-6 border-t border-gray-100">
+                                <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                    Appareils connectés <span className="text-xs font-normal text-gray-500">(1 session active)</span>
+                                </h4>
+                                <div className="flex items-center justify-between p-4 rounded-xl border border-blue-100 bg-blue-50/30">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-2.5 bg-blue-100 text-blue-600 rounded-lg">
+                                            <Monitor size={20} />
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-800 text-sm">Windows • Chrome</p>
+                                            <p className="text-xs text-gray-500">Cotonou, Bénin • Actif en ce moment</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-md">Cet appareil</span>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
                 </div>
 
-                {/* Colonne Droite : Préférences */}
-                <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2 border-b pb-2">
-                            <Globe size={20} className="text-pink-600" /> Préférences
-                        </h3>
+                {/* Right Column: Preferences */}
+                <div className="space-y-8">
+                    
+                    {/* Appearance & Theme */}
+                    <motion.div variants={cardVariants} initial="hidden" animate="visible" className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 transition-shadow hover:shadow-md">
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-50">
+                            <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+                                <Sun size={20} />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800">Apparence</h3>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                            <button
+                                type="button"
+                                onClick={() => setFormData({...formData, theme: 'light'})}
+                                className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all ${
+                                    formData.theme === 'light' ? 'border-purple-500 bg-purple-50/30 shadow-sm' : 'border-gray-100 bg-white hover:border-gray-200'
+                                }`}
+                            >
+                                <div className="p-3 rounded-full bg-gray-100 text-gray-600">
+                                    <Sun size={20} />
+                                </div>
+                                <span className="font-medium text-sm text-gray-700">Clair</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setFormData({...formData, theme: 'dark'})}
+                                className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all ${
+                                    formData.theme === 'dark' ? 'border-purple-500 bg-purple-50/30 shadow-sm' : 'border-gray-100 bg-white hover:border-gray-200'
+                                }`}
+                            >
+                                <div className="p-3 rounded-full bg-gray-800 text-gray-300">
+                                    <Moon size={20} />
+                                </div>
+                                <span className="font-medium text-sm text-gray-700">Sombre</span>
+                            </button>
+                        </div>
+                    </motion.div>
+
+                    {/* General Preferences */}
+                    <motion.div variants={cardVariants} initial="hidden" animate="visible" className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 transition-shadow hover:shadow-md">
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-50">
+                            <div className="p-2 bg-pink-50 text-pink-600 rounded-xl">
+                                <Globe size={20} />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800">Préférences</h3>
+                        </div>
                         
                         <div className="space-y-5">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                                    <Globe size={16} className="text-gray-400" /> Langue
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+                                    Langue de l'interface
                                 </label>
                                 <select 
                                     value={formData.language} 
                                     onChange={(e) => setFormData({...formData, language: e.target.value})}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all bg-gray-50/50"
                                 >
-                                    <option value="fr">Français</option>
-                                    <option value="en">English</option>
+                                    <option value="fr">Français (France)</option>
+                                    <option value="en">English (US)</option>
                                 </select>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                                    <DollarSign size={16} className="text-gray-400" /> Devise
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+                                    Devise par défaut
                                 </label>
                                 <select 
                                     value={formData.currency}
                                     onChange={(e) => setFormData({...formData, currency: e.target.value})}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all bg-gray-50/50"
                                 >
-                                    <option value="XOF">XOF (CFA)</option>
-                                    <option value="EUR">EUR (€)</option>
-                                    <option value="USD">USD ($)</option>
+                                    <option value="XOF">FCFA (XOF)</option>
+                                    <option value="EUR">Euro (€)</option>
+                                    <option value="USD">Dollar ($)</option>
                                 </select>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                                    <Clock size={16} className="text-gray-400" /> Fuseau Horaire
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+                                    Fuseau Horaire
                                 </label>
                                 <select 
                                     value={formData.timezone}
                                     onChange={(e) => setFormData({...formData, timezone: e.target.value})}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all bg-gray-50/50"
                                 >
-                                    <option value="GMT">GMT</option>
-                                    <option value="GMT+1">GMT+1 (Benin, Nigeria)</option>
-                                    <option value="GMT+2">GMT+2</option>
+                                    <option value="GMT">GMT (Abidjan, Dakar)</option>
+                                    <option value="GMT+1">GMT+1 (Cotonou, Lagos, Paris)</option>
                                 </select>
                             </div>
 
-                            <div className="pt-4 mt-4 border-t border-gray-100">
-                                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                    <span className="text-sm font-medium text-gray-700">Notifications Email</span>
-                                    <input type="checkbox" defaultChecked={true} className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" />
+                            {/* Notifications */}
+                            <div className="pt-6 mt-6 border-t border-gray-100 space-y-4">
+                                <h4 className="font-semibold text-gray-800 text-sm">Canaux de notification</h4>
+                                
+                                <label className="flex items-center justify-between cursor-pointer p-4 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50/50 transition-all group">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-white group-hover:shadow-sm transition-all">
+                                            <Mail size={16} />
+                                        </div>
+                                        <span className="text-sm font-medium text-gray-700">Emails système</span>
+                                    </div>
+                                    <div className={`w-10 h-5.5 rounded-full relative transition-colors duration-300 ease-in-out ${formData.notifEmail ? 'bg-primary' : 'bg-gray-200'}`}>
+                                        <div className={`absolute top-0.5 left-0.5 bg-white w-4.5 h-4.5 rounded-full shadow-sm transition-transform duration-300 ease-in-out ${formData.notifEmail ? 'transform translate-x-4.5' : ''}`}></div>
+                                        <input 
+                                            type="checkbox" 
+                                            className="hidden"
+                                            checked={formData.notifEmail}
+                                            onChange={(e) => setFormData({...formData, notifEmail: e.target.checked})}
+                                        />
+                                    </div>
                                 </label>
-                                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                    <span className="text-sm font-medium text-gray-700">Notifications WhatsApp</span>
-                                    <input type="checkbox" defaultChecked={profile?.preferences?.notifications.whatsapp} className="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
+
+                                <label className="flex items-center justify-between cursor-pointer p-4 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50/50 transition-all group">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-green-50 text-green-600 rounded-lg group-hover:bg-white group-hover:shadow-sm transition-all">
+                                            <MessageCircle size={16} />
+                                        </div>
+                                        <div>
+                                            <span className="text-sm font-medium text-gray-700 block">WhatsApp</span>
+                                            <span className="text-[10px] text-gray-400">Alertes importantes</span>
+                                        </div>
+                                    </div>
+                                    <div className={`w-10 h-5.5 rounded-full relative transition-colors duration-300 ease-in-out ${formData.notifWhatsApp ? 'bg-green-500' : 'bg-gray-200'}`}>
+                                        <div className={`absolute top-0.5 left-0.5 bg-white w-4.5 h-4.5 rounded-full shadow-sm transition-transform duration-300 ease-in-out ${formData.notifWhatsApp ? 'transform translate-x-4.5' : ''}`}></div>
+                                        <input 
+                                            type="checkbox" 
+                                            className="hidden"
+                                            checked={formData.notifWhatsApp}
+                                            onChange={(e) => setFormData({...formData, notifWhatsApp: e.target.checked})}
+                                        />
+                                    </div>
                                 </label>
                             </div>
+
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
 
-                {/* Actions globales */}
-                <div className="md:col-span-3 flex justify-end gap-4 pt-4">
-                    {message && (
-                        <div className={`px-4 py-2 rounded-lg text-sm flex items-center ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {message.text}
-                        </div>
-                    )}
+                {/* Floating Save Button */}
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40">
                     <button
                         type="submit"
                         disabled={saving}
-                        className={`flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold shadow-md transition-all transform hover:translate-y-[-1px] ${saving ? 'opacity-75 cursor-not-allowed' : ''}`}
+                        className={`flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3.5 rounded-full font-bold shadow-lg shadow-blue-500/30 transition-all transform hover:scale-105 active:scale-95 ${saving ? 'opacity-75 cursor-not-allowed' : ''}`}
                     >
                         <Save size={18} />
-                        {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+                        {saving ? 'Enregistrement en cours...' : 'Enregistrer le profil'}
                     </button>
                 </div>
 
             </form>
 
-            {/* Password Modal */}
+            {/* Password Modal (Refined) */}
             {showPasswordModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-scale-in relative">
-                        <button 
-                            onClick={() => setShowPasswordModal(false)}
-                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-                        >
-                            <X size={24} />
-                        </button>
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative"
+                    >
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <h3 className="text-xl font-bold flex items-center gap-2 text-gray-800">
+                                <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                                    <Lock size={20} />
+                                </div>
+                                Changer de mot de passe
+                            </h3>
+                            <button 
+                                onClick={() => setShowPasswordModal(false)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
                         
-                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                            <Lock className="text-blue-600"/> Changer de mot de passe
-                        </h3>
-                        
-                        {passwordError && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">{passwordError}</div>}
-                        {passwordSuccess && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm">{passwordSuccess}</div>}
-
-                        <form onSubmit={handlePasswordChange} className="space-y-4">
+                        <form onSubmit={handlePasswordChange} className="p-6 space-y-5">
                             {[
                                 { label: 'Mot de passe actuel', value: passwordData.oldPassword, key: 'oldPassword' },
                                 { label: 'Nouveau mot de passe', value: passwordData.newPassword, key: 'newPassword' },
-                                { label: 'Confirmer le nouveau mot de passe', value: passwordData.confirmPassword, key: 'confirmPassword' }
+                                { label: 'Confirmer le nouveau', value: passwordData.confirmPassword, key: 'confirmPassword' }
                             ].map((field) => (
-                                <div key={field.key} className="relative">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
+                                <div key={field.key} className="space-y-1.5">
+                                    <label className="block text-sm font-semibold text-gray-700">{field.label}</label>
                                     <div className="relative">
                                         <input 
                                             type={showPassword ? "text" : "password"}
-                                            className="w-full p-2 border rounded-lg pr-10"
+                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 pr-12 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-gray-50/50"
                                             value={field.value}
                                             onChange={e => setPasswordData({...passwordData, [field.key]: e.target.value})}
                                             required
                                         />
                                         <button
                                             type="button"
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
                                             onClick={() => setShowPassword(!showPassword)}
                                         >
                                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -444,23 +589,23 @@ const CompteProfil: React.FC = () => {
                                 </div>
                             ))}
                             
-                            <div className="flex justify-end gap-3 mt-6">
+                            <div className="pt-4 flex gap-3">
                                 <button 
                                     type="button"
                                     onClick={() => setShowPasswordModal(false)}
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                                    className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 font-semibold rounded-xl transition-colors"
                                 >
                                     Annuler
                                 </button>
                                 <button 
                                     type="submit"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                    className="flex-1 px-4 py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-md shadow-indigo-500/20 hover:bg-indigo-700 transition-all"
                                 >
                                     Valider
                                 </button>
                             </div>
                         </form>
-                    </div>
+                    </motion.div>
                 </div>
             )}
         </div>
@@ -468,3 +613,4 @@ const CompteProfil: React.FC = () => {
 };
 
 export default CompteProfil;
+
