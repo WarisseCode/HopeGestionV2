@@ -84,7 +84,21 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       }
 
       const profile = await getProfile();
-      setUser(profile.user as UserProfile);
+      const userData = profile.user as UserProfile;
+      setUser(userData);
+
+      // Set explicit theme
+      if (userData.preferences?.theme) {
+        const themePref = userData.preferences.theme;
+        localStorage.setItem('theme', themePref);
+        if (themePref === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'hopegestion');
+          document.documentElement.classList.remove('dark');
+        }
+      }
     } catch (err) {
       console.error('Erreur lors de la récupération du profil:', err);
       setError('Impossible de récupérer le profil utilisateur');
