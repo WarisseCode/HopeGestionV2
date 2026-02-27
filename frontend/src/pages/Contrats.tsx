@@ -245,8 +245,8 @@ const Contrats: React.FC = () => {
                                         <td><span className="badge badge-success badge-sm gap-1">ACTIF</span></td>
                                         <td className="pr-6 text-right">
                                             <div className="flex justify-end gap-1">
-                                                <Button variant="ghost" size="sm" className="btn-square btn-xs"><Eye size={14}/></Button>
-                                                <Button variant="ghost" size="sm" className="btn-square btn-xs"><Download size={14}/></Button>
+                                                <Button variant="ghost" size="sm" className="w-8 h-8 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"><Eye size={16}/></Button>
+                                                <Button variant="ghost" size="sm" className="w-8 h-8 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"><Download size={16}/></Button>
                                             </div>
                                         </td>
                                     </tr>
@@ -265,8 +265,8 @@ const Contrats: React.FC = () => {
                                         <td><span className="badge badge-warning badge-sm gap-1">EN COURS</span></td>
                                         <td className="pr-6 text-right">
                                             <div className="flex justify-end gap-1">
-                                                <Button variant="ghost" size="sm" className="btn-square btn-xs"><Eye size={14}/></Button>
-                                                <Button variant="ghost" size="sm" className="btn-square btn-xs"><Download size={14}/></Button>
+                                                <Button variant="ghost" size="sm" className="w-8 h-8 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"><Eye size={16}/></Button>
+                                                <Button variant="ghost" size="sm" className="w-8 h-8 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"><Download size={16}/></Button>
                                             </div>
                                         </td>
                                     </tr>
@@ -285,8 +285,8 @@ const Contrats: React.FC = () => {
                                         <td><span className="badge badge-info badge-sm gap-1">EN COURS</span></td>
                                         <td className="pr-6 text-right">
                                             <div className="flex justify-end gap-1">
-                                                <Button variant="ghost" size="sm" className="btn-square btn-xs"><Eye size={14}/></Button>
-                                                <Button variant="ghost" size="sm" className="btn-square btn-xs"><Download size={14}/></Button>
+                                                <Button variant="ghost" size="sm" className="w-8 h-8 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"><Eye size={16}/></Button>
+                                                <Button variant="ghost" size="sm" className="w-8 h-8 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"><Download size={16}/></Button>
                                             </div>
                                         </td>
                                     </tr>
