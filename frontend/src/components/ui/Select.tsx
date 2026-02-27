@@ -122,19 +122,19 @@ const Select: React.FC<SelectProps> = ({
     return (
       <div className={`w-full ${className}`}>
         {label && (
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+          <label className="block text-sm font-semibold text-base-content/80 mb-1.5">
             {label} {required && <span className="text-error">*</span>}
           </label>
         )}
         <div
           className={`
             relative rounded-xl 
-            ${hasError ? 'border-error' : 'border-gray-200'} 
+            ${hasError ? 'border-error' : 'border-base-300'} 
             border-2
             ${hasError ? 'focus-within:border-error focus-within:ring-error/20' : 'focus-within:border-primary focus-within:ring-primary/20'} 
             focus-within:ring-2
             transition-all duration-200
-            bg-white
+            bg-base-100
           `}
         >
           {startIcon && (
@@ -153,7 +153,7 @@ const Select: React.FC<SelectProps> = ({
               pr-10 
               bg-transparent border-0 
               focus:ring-0 focus:outline-none 
-              text-gray-900 
+              text-base-content 
               appearance-none cursor-pointer
               disabled:opacity-60 disabled:cursor-not-allowed
               text-sm
@@ -176,7 +176,7 @@ const Select: React.FC<SelectProps> = ({
           </div>
         </div>
         {helperText && !hasError && (
-          <p className="mt-1.5 text-sm text-gray-500">{helperText}</p>
+          <p className="mt-1.5 text-sm text-base-content/60">{helperText}</p>
         )}
         {hasError && (
           <p className="mt-1.5 text-sm text-error font-medium">{error}</p>
@@ -189,7 +189,7 @@ const Select: React.FC<SelectProps> = ({
   return (
     <div className={`w-full relative ${className}`} ref={containerRef}>
       {label && (
-        <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+        <label className="block text-sm font-semibold text-base-content/80 mb-1.5">
           {label} {required && <span className="text-error">*</span>}
         </label>
       )}
@@ -219,10 +219,10 @@ const Select: React.FC<SelectProps> = ({
         onKeyDown={handleKeyDown}
         className={`
           relative rounded-xl cursor-pointer
-          ${hasError ? 'border-error' : 'border-gray-200'} 
+          ${hasError ? 'border-error' : 'border-base-300'} 
           border-2
           ${isOpen ? (hasError ? 'border-error ring-2 ring-error/20' : 'border-primary ring-2 ring-primary/20') : ''}
-          ${disabled ? 'bg-gray-100 cursor-not-allowed opacity-60' : 'bg-white hover:border-gray-300'}
+          ${disabled ? 'bg-base-300 cursor-not-allowed opacity-60' : 'bg-base-100 hover:border-gray-300'}
           transition-all duration-200
         `}
       >
@@ -235,7 +235,7 @@ const Select: React.FC<SelectProps> = ({
           
           <div className={`flex-1 py-3 px-4 ${startIcon ? 'pl-2' : ''} text-sm truncate`}>
             {selectedOption ? (
-              <span className="text-gray-900">{selectedOption.label}</span>
+              <span className="text-base-content">{selectedOption.label}</span>
             ) : (
               <span className="text-gray-400">{placeholder}</span>
             )}
@@ -246,9 +246,9 @@ const Select: React.FC<SelectProps> = ({
               <button
                 type="button"
                 onClick={handleClear}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-1 hover:bg-base-300 rounded-full transition-colors"
               >
-                <X size={14} className="text-gray-400 hover:text-gray-600" />
+                <X size={14} className="text-gray-400 hover:text-base-content/70" />
               </button>
             )}
             <ChevronDown 
@@ -267,10 +267,10 @@ const Select: React.FC<SelectProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden"
+            className="absolute z-50 mt-2 w-full bg-base-100 rounded-xl shadow-xl border border-base-300 overflow-hidden"
           >
             {/* Search Input */}
-            <div className="p-2 border-b border-gray-100">
+            <div className="p-2 border-b border-base-200">
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -279,7 +279,7 @@ const Select: React.FC<SelectProps> = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={searchPlaceholder}
-                  className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                  className="w-full pl-9 pr-4 py-2 text-sm border border-base-300 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                 />
               </div>
             </div>
@@ -305,7 +305,7 @@ const Select: React.FC<SelectProps> = ({
                       className={`
                         px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between
                         ${option.disabled ? 'text-gray-300 cursor-not-allowed' : ''}
-                        ${isSelected ? 'bg-primary/5 text-primary font-medium' : 'text-gray-700 hover:bg-gray-50'}
+                        ${isSelected ? 'bg-primary/5 text-primary font-medium' : 'text-base-content/80 hover:bg-base-200'}
                         transition-colors
                       `}
                     >
@@ -334,7 +334,7 @@ const Select: React.FC<SelectProps> = ({
 
       {/* Helper/Error Text */}
       {helperText && !hasError && (
-        <p className="mt-1.5 text-sm text-gray-500">{helperText}</p>
+        <p className="mt-1.5 text-sm text-base-content/60">{helperText}</p>
       )}
       {hasError && (
         <p className="mt-1.5 text-sm text-error font-medium">{error}</p>

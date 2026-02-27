@@ -77,14 +77,14 @@ const CarnetField: React.FC = () => {
             case 'visite': return 'bg-blue-100 text-blue-800 border-blue-200';
             case 'intervention': return 'bg-red-100 text-red-800 border-red-200';
             case 'check': return 'bg-green-100 text-green-800 border-green-200';
-            default: return 'bg-gray-100 text-gray-800';
+            default: return 'bg-base-300 text-base-content/90';
         }
     };
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-gray-800">Journal Terrain</h2>
+                <h2 className="text-xl font-bold text-base-content/90">Journal Terrain</h2>
                 <Button onClick={() => setIsCreating(!isCreating)}>
                     <Plus size={18} className="mr-2" /> Nouvelle Action
                 </Button>
@@ -98,7 +98,7 @@ const CarnetField: React.FC = () => {
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Type d'action</label>
+                                <label className="block text-sm font-medium text-base-content/80 mb-1">Type d'action</label>
                                 <select 
                                     className="w-full border rounded-lg p-2"
                                     value={type}
@@ -110,11 +110,11 @@ const CarnetField: React.FC = () => {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
+                                <label className="block text-sm font-medium text-base-content/80 mb-1">Localisation</label>
                                 <div className="flex gap-2">
                                     <input 
                                         readOnly 
-                                        className="w-full border rounded-lg p-2 bg-gray-50 text-xs"
+                                        className="w-full border rounded-lg p-2 bg-base-200 text-xs"
                                         value={address || "Non localisé"}
                                     />
                                     <Button 
@@ -131,7 +131,7 @@ const CarnetField: React.FC = () => {
                         </div>
 
                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Description / Constat</label>
+                            <label className="block text-sm font-medium text-base-content/80 mb-1">Description / Constat</label>
                             <textarea 
                                 className="w-full border rounded-lg p-3 min-h-[80px]"
                                 value={description}
@@ -148,7 +148,7 @@ const CarnetField: React.FC = () => {
                 </Card>
             )}
 
-            <div className="relative border-l-2 border-gray-200 ml-4 space-y-8">
+            <div className="relative border-l-2 border-base-300 ml-4 space-y-8">
                 {actions.map((action, index) => (
                     <div key={action.id} className="relative pl-8">
                         {/* Timeline Dot */}
@@ -163,7 +163,7 @@ const CarnetField: React.FC = () => {
                                     <span className={`px-2 py-0.5 rounded text-xs font-bold border ${getTypeColor(action.type)} uppercase`}>
                                         {action.type}
                                     </span>
-                                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                                    <span className="text-xs text-base-content/60 flex items-center gap-1">
                                         <Clock size={12}/> {new Date(action.created_at).toLocaleString()}
                                     </span>
                                 </div>
@@ -173,7 +173,7 @@ const CarnetField: React.FC = () => {
                                     </span>
                                 )}
                             </div>
-                            <p className="text-gray-800 text-sm whitespace-pre-wrap">{action.description}</p>
+                            <p className="text-base-content/90 text-sm whitespace-pre-wrap">{action.description}</p>
                             
                             {/* Photo placeholder */}
                             {action.photo_url && (

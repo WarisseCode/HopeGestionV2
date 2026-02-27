@@ -88,19 +88,19 @@ const FinanceTax: React.FC = () => {
                     
                     <div className="space-y-4">
                         <div className="relative">
-                            <label className="block text-sm font-bold text-gray-700 mb-1">Propriétaire / Entité</label>
+                            <label className="block text-sm font-bold text-base-content/80 mb-1">Propriétaire / Entité</label>
                             <div className="dropdown w-full">
                                 <div 
                                     tabIndex={0} 
                                     role="button" 
-                                    className="btn btn-outline w-full justify-between bg-white text-black hover:bg-gray-100 hover:text-black font-normal"
+                                    className="btn btn-outline w-full justify-between bg-base-100 text-black hover:bg-base-300 hover:text-black font-normal"
                                 >
                                     {selectedOwner 
                                         ? owners.find(o => o.id === parseInt(selectedOwner))?.name || 'Inconnu'
                                         : 'Choisir...'}
-                                    <span className="text-gray-500">▼</span>
+                                    <span className="text-base-content/60">▼</span>
                                 </div>
-                                <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-white rounded-box w-full mt-1 border border-gray-200">
+                                <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full mt-1 border border-base-300">
                                     {owners.map(o => (
                                         <li key={o.id}>
                                             <button 
@@ -126,9 +126,9 @@ const FinanceTax: React.FC = () => {
                         {selectedOwner && (
                             <>
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Régime Fiscal</label>
+                                    <label className="block text-sm font-bold text-base-content/80 mb-1">Régime Fiscal</label>
                                     <select 
-                                        className="select select-bordered w-full bg-gray-50 border p-2 rounded"
+                                        className="select select-bordered w-full bg-base-200 border p-2 rounded"
                                         value={settings.fiscal_regime}
                                         onChange={(e) => setSettings({...settings, fiscal_regime: e.target.value})}
                                     >
@@ -169,7 +169,7 @@ const FinanceTax: React.FC = () => {
             {/* Right Col: Report */}
             <div className="lg:col-span-2">
                 {!selectedOwner ? (
-                    <div className="h-full flex flex-col items-center justify-center bg-gray-50 rounded-xl border border-dashed border-gray-300 p-12 text-gray-400">
+                    <div className="h-full flex flex-col items-center justify-center bg-base-200 rounded-xl border border-dashed border-gray-300 p-12 text-gray-400">
                         <FileText size={48} className="mb-4" />
                         <p>Sélectionnez un propriétaire pour voir sa situation fiscale</p>
                     </div>
@@ -181,7 +181,7 @@ const FinanceTax: React.FC = () => {
                                     <h2 className="text-2xl font-bold">Situation Fiscale Estimée</h2>
                                     <p className="text-blue-200">Année {new Date().getFullYear()}</p>
                                 </div>
-                                <Button variant="secondary" onClick={generateReport} disabled={loading} className="bg-white/10 text-white hover:bg-white/20 border-none">
+                                <Button variant="secondary" onClick={generateReport} disabled={loading} className="bg-base-100/10 text-white hover:bg-base-100/20 border-none">
                                     {loading ? 'Calcul...' : 'Actualiser le calcul'}
                                 </Button>
                             </div>
@@ -203,7 +203,7 @@ const FinanceTax: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="bg-white/10 p-6 rounded-xl flex flex-col justify-center items-center text-center">
+                                    <div className="bg-base-100/10 p-6 rounded-xl flex flex-col justify-center items-center text-center">
                                         <span className="text-sm text-blue-200 uppercase tracking-wider mb-2">Base Imposable Estimée</span>
                                         <span className="text-4xl font-extrabold">{formatMoney(report.taxable_base)}</span>
                                         <div className="mt-4 pt-4 border-t border-white/10 w-full flex justify-between text-sm">

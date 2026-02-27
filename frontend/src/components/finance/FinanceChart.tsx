@@ -34,8 +34,8 @@ const formatXOF = (value: number) => {
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload) return null;
     return (
-        <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-100 text-sm">
-            <p className="font-bold text-gray-800 mb-2">{label}</p>
+        <div className="bg-base-100 p-3 rounded-lg shadow-lg border border-base-200 text-sm">
+            <p className="font-bold text-base-content/90 mb-2">{label}</p>
             {payload.map((entry: any, i: number) => (
                 <p key={i} style={{ color: entry.color }} className="flex justify-between gap-4">
                     <span>{entry.name} :</span>
@@ -85,9 +85,9 @@ const FinanceChart: React.FC = () => {
     }
 
     return (
-        <Card className="border-none shadow-xl bg-white">
+        <Card className="border-none shadow-xl bg-base-100">
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-800">
+                <h3 className="text-lg font-bold text-base-content/90">
                     📊 Évolution Revenus vs Dépenses
                 </h3>
                 <span className="text-xs text-gray-400">6 derniers mois</span>

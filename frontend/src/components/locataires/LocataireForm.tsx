@@ -135,7 +135,7 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-base-200 overflow-hidden">
+    <div className="bg-base-100 rounded-xl shadow-lg border border-base-200 overflow-hidden">
       {/* Wizard Header */}
       <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-6 border-b border-base-200">
         <h2 className="text-xl font-bold text-base-content">
@@ -193,7 +193,7 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
             {currentStep === 0 && (
               <div className="space-y-6">
                 <div className="flex flex-col items-center justify-center gap-4">
-                   <div className="w-32 h-32 rounded-full overflow-hidden shadow-lg border-4 border-white ring-1 ring-gray-100 bg-gray-50">
+                   <div className="w-32 h-32 rounded-full overflow-hidden shadow-lg border-4 border-white ring-1 ring-gray-100 bg-base-200">
                       <ImageUpload 
                         value={formData.photo_profil_url}
                         onChange={(url) => handleChange('photo_profil_url', url)}
@@ -203,7 +203,7 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
                         clearOnSuccess={false}
                       />
                    </div>
-                   <span className="text-xs text-gray-500 font-medium">Photo de profil</span>
+                   <span className="text-xs text-base-content/60 font-medium">Photo de profil</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -317,8 +317,8 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
                 />
 
                 <div className="grid grid-cols-2 gap-6">
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                     <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <div className="bg-base-200 border border-base-300 rounded-xl p-4">
+                     <h4 className="text-sm font-semibold text-base-content/80 mb-3 flex items-center gap-2">
                         <FileText size={16} /> Photo de la pièce
                      </h4>
                      <ImageUpload 
@@ -329,8 +329,8 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
                      />
                   </div>
                   
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                     <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <div className="bg-base-200 border border-base-300 rounded-xl p-4">
+                     <h4 className="text-sm font-semibold text-base-content/80 mb-3 flex items-center gap-2">
                         <User size={16} /> Photo du locataire
                      </h4>
                      <ImageUpload 
@@ -382,7 +382,7 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
                   />
                 </div>
 
-                <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                <div className="flex items-center gap-3 p-4 bg-base-200 rounded-xl">
                   <input
                     type="checkbox"
                     id="paiement_echelonne"
@@ -390,7 +390,7 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
                     onChange={(e) => handleChange('paiement_echelonne', e.target.checked)}
                     className="checkbox checkbox-primary"
                   />
-                  <label htmlFor="paiement_echelonne" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="paiement_echelonne" className="text-sm font-medium text-base-content/80">
                     Paiement échelonné autorisé
                   </label>
                 </div>
@@ -423,8 +423,8 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
                 />
 
                 {locataire?.id && (
-                  <div className="p-4 bg-gray-50 rounded-xl space-y-3">
-                    <p className="text-sm font-medium text-gray-700">Actions rapides</p>
+                  <div className="p-4 bg-base-200 rounded-xl space-y-3">
+                    <p className="text-sm font-medium text-base-content/80">Actions rapides</p>
                     <div className="flex gap-2">
                       <Button variant="primary" size="sm">
                         <Key size={14} className="mr-1" /> Activer accès portail

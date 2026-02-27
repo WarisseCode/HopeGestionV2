@@ -224,7 +224,7 @@ const FonctionnalitesPage: React.FC = () => {
             <Link to="/signup" className="btn btn-secondary btn-lg rounded-full">
               Créer un compte gratuit
             </Link>
-            <Link to="/#contact" className="btn btn-outline btn-lg rounded-full border-white text-white hover:bg-white hover:text-primary">
+            <Link to="/#contact" className="btn btn-outline btn-lg rounded-full border-white text-white hover:bg-base-100 hover:text-primary">
               Demander une démo
             </Link>
           </div>

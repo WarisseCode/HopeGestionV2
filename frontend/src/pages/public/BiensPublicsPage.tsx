@@ -418,7 +418,7 @@ const BiensPublicsPage: React.FC = () => {
                 ref={(el) => {
                   if (el) propertyRefs.current.set(property.id, el);
                 }}
-                className={`bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-200 hover:shadow-2xl transition-all duration-300 group cursor-pointer ${
+                className={`bg-base-100 rounded-2xl overflow-hidden shadow-lg border border-base-300 hover:shadow-2xl transition-all duration-300 group cursor-pointer ${
                   viewMode === 'list' ? 'flex' : ''
                 } ${
                   highlightedPropertyId === property.id 
@@ -457,19 +457,19 @@ const BiensPublicsPage: React.FC = () => {
                         {calculateDistance(property.latitude, property.longitude)?.toFixed(1)} km
                       </span>
                     )}
-                    <button className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors opacity-0 group-hover:opacity-100">
-                      <Heart size={16} className="text-gray-600" />
+                    <button className="p-2 bg-base-100/90 rounded-full hover:bg-base-100 transition-colors opacity-0 group-hover:opacity-100">
+                      <Heart size={16} className="text-base-content/70" />
                     </button>
-                    <button className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors opacity-0 group-hover:opacity-100">
-                      <Share2 size={16} className="text-gray-600" />
+                    <button className="p-2 bg-base-100/90 rounded-full hover:bg-base-100 transition-colors opacity-0 group-hover:opacity-100">
+                      <Share2 size={16} className="text-base-content/70" />
                     </button>
                   </div>
                   
                   {/* Price */}
                   <div className="absolute bottom-3 left-3">
-                    <div className="bg-white/95 backdrop-blur px-4 py-2 rounded-xl">
+                    <div className="bg-base-100/95 backdrop-blur px-4 py-2 rounded-xl">
                       <span className="text-xl font-extrabold text-primary">{formatPrice(property.loyer)}</span>
-                      <span className="text-xs text-gray-600 ml-1">FCFA/mois</span>
+                      <span className="text-xs text-base-content/70 ml-1">FCFA/mois</span>
                     </div>
                   </div>
                 </div>
@@ -581,7 +581,7 @@ const BiensPublicsPage: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                 <button
                   onClick={() => setSelectedProperty(null)}
-                  className="absolute top-4 right-4 p-2 bg-white/90 rounded-full hover:bg-white"
+                  className="absolute top-4 right-4 p-2 bg-base-100/90 rounded-full hover:bg-base-100"
                 >
                   <X size={20} />
                 </button>

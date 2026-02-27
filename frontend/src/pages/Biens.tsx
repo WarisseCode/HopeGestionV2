@@ -310,7 +310,7 @@ const Biens: React.FC = () => {
   const GridSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       {[1, 2, 3, 4, 5, 6].map(i => (
-        <div key={i} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden animate-pulse">
+        <div key={i} className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden animate-pulse">
           <SkeletonLoader variant="rectangular" height={192} />
           <div className="p-5 space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -326,10 +326,10 @@ const Biens: React.FC = () => {
 
   // Skeleton loader for table
   const TableSkeleton = () => (
-    <Card className="border-none shadow-xl bg-white overflow-hidden p-0">
+    <Card className="border-none shadow-xl bg-base-100 overflow-hidden p-0">
       <div className="overflow-x-auto">
         <table className="table w-full">
-          <thead className="bg-gray-50/50">
+          <thead className="bg-base-200/50">
             <tr>
               {['Référence', 'Type', 'Immeuble', 'Loyer', 'Statut', 'Actions'].map(h => (
                 <th key={h} className="py-4 text-xs uppercase font-bold text-gray-400">
@@ -340,7 +340,7 @@ const Biens: React.FC = () => {
           </thead>
           <tbody>
             {[1, 2, 3, 4, 5].map(i => (
-              <tr key={i} className="border-b border-gray-100">
+              <tr key={i} className="border-b border-base-200">
                 {[1, 2, 3, 4, 5, 6].map(j => (
                   <td key={j} className="py-4">
                     <SkeletonLoader variant="text" width={j === 6 ? 60 : 100} />
@@ -374,10 +374,10 @@ const Biens: React.FC = () => {
       {/* Header Section */}
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+          <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
             Parc Immobilier <span className="text-primary">.</span>
           </h1>
-          <p className="text-gray-500 font-medium mt-1">
+          <p className="text-base-content/60 font-medium mt-1">
             Gérez vos immeubles, lots et disponibilités.
           </p>
         </div>
@@ -412,15 +412,15 @@ const Biens: React.FC = () => {
       {success && <Alert variant="success" onClose={() => setSuccess(null)}>{success}</Alert>}
 
       {/* Tabs & Filters Bar */}
-      <motion.div variants={itemVariants} className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
+      <motion.div variants={itemVariants} className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200">
         {/* Tabs */}
-        <div className="flex p-1 bg-gray-100/50 rounded-xl">
+        <div className="flex p-1 bg-base-300/50 rounded-xl">
           <button
             onClick={() => { setActiveTab('immeubles'); setFilterValues({}); }}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
               activeTab === 'immeubles' 
-                ? 'bg-white text-primary shadow-md' 
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-base-100 text-primary shadow-md' 
+                : 'text-base-content/60 hover:text-base-content/80'
             }`}
           >
             <Building2 size={18} />
@@ -431,8 +431,8 @@ const Biens: React.FC = () => {
             onClick={() => { setActiveTab('lots'); setFilterValues({}); }}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
               activeTab === 'lots' 
-                ? 'bg-white text-primary shadow-md' 
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-base-100 text-primary shadow-md' 
+                : 'text-base-content/60 hover:text-base-content/80'
             }`}
           >
             <Home size={18} />
@@ -444,17 +444,17 @@ const Biens: React.FC = () => {
         {/* Right side controls */}
         <div className="flex items-center gap-3">
           {/* View mode toggle */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
+          <div className="flex bg-base-300 rounded-lg p-1">
             <button 
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-base-100 shadow-sm text-primary' : 'text-gray-400 hover:text-base-content/70'}`}
               title="Vue Grille"
             >
               <LayoutGrid size={18} />
             </button>
             <button 
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-base-100 shadow-sm text-primary' : 'text-gray-400 hover:text-base-content/70'}`}
               title="Vue Liste"
             >
               <List size={18} />
@@ -466,7 +466,7 @@ const Biens: React.FC = () => {
             variant={showFilters ? 'primary' : 'ghost'} 
             size="sm"
             onClick={() => setShowFilters(!showFilters)}
-            className={showFilters ? '' : 'text-gray-500'}
+            className={showFilters ? '' : 'text-base-content/60'}
           >
             {showFilters ? <X size={16} className="mr-1" /> : null}
             Filtres
@@ -479,7 +479,7 @@ const Biens: React.FC = () => {
 
           <div className="h-6 w-px bg-gray-200"></div>
           
-          <span className="text-sm font-semibold text-gray-500">
+          <span className="text-sm font-semibold text-base-content/60">
             {currentData.length} résultats
           </span>
         </div>
@@ -535,7 +535,7 @@ const Biens: React.FC = () => {
                     </div>
                   ) : (
                     (paginatedData as Immeuble[]).map((immeuble) => (
-                      <div key={immeuble.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all group">
+                      <div key={immeuble.id} className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden hover:shadow-xl transition-all group">
                         <div className="h-48 bg-gray-200 relative overflow-hidden">
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
                           <span className={`absolute top-4 right-4 z-20 badge border-none text-white font-bold ${immeuble.statut === 'Actif' ? 'bg-green-500' : 'bg-orange-500'}`}>
@@ -562,20 +562,20 @@ const Biens: React.FC = () => {
                         </div>
                         <div className="p-5">
                           <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div className="p-3 bg-gray-50 rounded-xl">
+                            <div className="p-3 bg-base-200 rounded-xl">
                               <p className="text-xs text-gray-400 font-bold uppercase">Lots</p>
-                              <p className="font-bold text-gray-800 text-lg">
+                              <p className="font-bold text-base-content/90 text-lg">
                                 {immeuble.nbLots || 0}
                               </p>
                             </div>
-                            <div className="p-3 bg-gray-50 rounded-xl">
+                            <div className="p-3 bg-base-200 rounded-xl">
                               <p className="text-xs text-gray-400 font-bold uppercase">Propriétaire</p>
-                              <p className="font-medium text-gray-700 text-sm truncate">
+                              <p className="font-medium text-base-content/80 text-sm truncate">
                                 {immeuble.proprietaire || 'Non assigné'}
                               </p>
                             </div>
                           </div>
-                          <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                          <div className="flex justify-between items-center pt-2 border-t border-base-200">
                             <div className="flex gap-1">
                               <button 
                                 onClick={() => { setEditingImmeuble(immeuble); setShowImmeubleModal(true); }}
@@ -601,10 +601,10 @@ const Biens: React.FC = () => {
                 </div>
               ) : (
                 // List view for immeubles
-                <Card className="border-none shadow-xl bg-white overflow-hidden p-0">
+                <Card className="border-none shadow-xl bg-base-100 overflow-hidden p-0">
                   <div className="overflow-x-auto">
                     <table className="table w-full">
-                      <thead className="bg-gray-50/50">
+                      <thead className="bg-base-200/50">
                         <tr>
                           <th className="py-4 pl-6">Photo</th>
                           <th className="py-4">Nom</th>
@@ -616,7 +616,7 @@ const Biens: React.FC = () => {
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {(paginatedData as Immeuble[]).map((immeuble) => (
-                          <tr key={immeuble.id} className="hover:bg-gray-50/50 transition-colors">
+                          <tr key={immeuble.id} className="hover:bg-base-200/50 transition-colors">
                             <td className="pl-6">
                                 <div 
                                   className="avatar h-12 w-16 rounded cursor-pointer overflow-hidden relative shadow-sm" 
@@ -633,8 +633,8 @@ const Biens: React.FC = () => {
                                     />
                                 </div>
                             </td>
-                            <td className="font-bold text-gray-800">{immeuble.nom}</td>
-                            <td className="text-gray-600">{immeuble.ville}</td>
+                            <td className="font-bold text-base-content/90">{immeuble.nom}</td>
+                            <td className="text-base-content/70">{immeuble.ville}</td>
                             <td className="font-mono">{immeuble.nbLots || 0}</td>
                             <td>
                                 <div className="flex items-center gap-2">
@@ -668,7 +668,7 @@ const Biens: React.FC = () => {
                     (paginatedData as Lot[]).map((lot) => (
                       <div 
                         key={lot.id} 
-                        className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all group flex flex-col"
+                        className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden hover:shadow-xl transition-all group flex flex-col"
                         onClick={() => { setEditingLot(lot); setShowLotModal(true); }}
                       >
                         <div className="h-40 bg-gray-200 relative overflow-hidden shrink-0">
@@ -684,13 +684,13 @@ const Biens: React.FC = () => {
                           </span>
                         </div>
                         <div className="p-4 flex-1 flex flex-col">
-                          <h3 className="font-bold text-gray-800 text-lg truncate mb-1">{lot.reference}</h3>
-                          <p className="text-gray-500 text-sm flex items-center gap-1 mb-3">
+                          <h3 className="font-bold text-base-content/90 text-lg truncate mb-1">{lot.reference}</h3>
+                          <p className="text-base-content/60 text-sm flex items-center gap-1 mb-3">
                             <Building2 size={14}/> {lot.immeuble}
                           </p>
                           <div className="mt-auto">
-                            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                              <span className="font-mono font-bold text-gray-900">
+                            <div className="flex items-center justify-between pt-3 border-t border-base-200">
+                              <span className="font-mono font-bold text-base-content">
                                 {lot.loyer?.toLocaleString()} <small>FCFA</small>
                               </span>
                               <div className="flex gap-1">
@@ -705,10 +705,10 @@ const Biens: React.FC = () => {
                 </div>
               ) : (
                 // Lots List view
-                <Card className="border-none shadow-xl bg-white overflow-hidden p-0">
+                <Card className="border-none shadow-xl bg-base-100 overflow-hidden p-0">
                   <div className="overflow-x-auto">
                     <table className="table w-full">
-                      <thead className="bg-gray-50/50">
+                      <thead className="bg-base-200/50">
                         <tr>
                           <th className="py-4 pl-6">Photo</th>
                           <th className="py-4">Référence</th>
@@ -727,7 +727,7 @@ const Biens: React.FC = () => {
                           </tr>
                         ) : (
                           (paginatedData as Lot[]).map((lot) => (
-                            <tr key={lot.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer" onClick={() => { setEditingLot(lot); setShowLotModal(true); }}>
+                            <tr key={lot.id} className="hover:bg-base-200/50 transition-colors group cursor-pointer" onClick={() => { setEditingLot(lot); setShowLotModal(true); }}>
                               <td className="pl-6">
                                   <div className="avatar h-10 w-16 rounded cursor-pointer overflow-hidden relative shadow-sm">
                                       <img 
@@ -737,8 +737,8 @@ const Biens: React.FC = () => {
                                       />
                                   </div>
                               </td>
-                              <td className="font-bold text-gray-800">{lot.reference}</td>
-                              <td className="text-gray-600">{lot.immeuble}</td>
+                              <td className="font-bold text-base-content/90">{lot.reference}</td>
+                              <td className="text-base-content/70">{lot.immeuble}</td>
                               <td>
                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
                                   lot.statut === 'libre' ? 'bg-green-100 text-green-700' :
@@ -755,7 +755,7 @@ const Biens: React.FC = () => {
                                   {lot.statut || 'libre'}
                                 </span>
                               </td>
-                              <td className="font-mono font-medium text-gray-700">
+                              <td className="font-mono font-medium text-base-content/80">
                                   {lot.type === 'Vente' || lot.prix_vente ? (
                                       <span className="text-purple-700">{lot.prix_vente?.toLocaleString()} FCFA (Vente)</span>
                                   ) : (
@@ -936,7 +936,7 @@ const Biens: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {(gallerySelectedBuilding?.photos && gallerySelectedBuilding.photos.length > 0) ? (
               gallerySelectedBuilding.photos.map((url, idx) => (
-                <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-base-200 shadow-sm hover:shadow-md transition-shadow">
                   <img src={url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
                 </div>
               ))

@@ -350,12 +350,12 @@ const GestionnaireDashboard: React.FC = () => {
             {managerCode && (
                 <div className="relative">
                     <div 
-                        className="bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 flex items-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors group"
+                        className="bg-base-100 px-4 py-2 rounded-full shadow-sm border border-base-300 flex items-center gap-2 cursor-pointer hover:bg-base-200 transition-colors group"
                         onClick={() => setShowCodeDropdown(!showCodeDropdown)}
                         title="Codes d'accès par propriétaire géré"
                     >
                         <Key size={14} className="text-primary" />
-                        <span className="text-xs text-gray-500 font-medium uppercase">Code{managedOwners.length > 1 ? 's' : ''} Agence</span>
+                        <span className="text-xs text-base-content/60 font-medium uppercase">Code{managedOwners.length > 1 ? 's' : ''} Agence</span>
                         {managedOwners.length <= 1 ? (
                             <span className="font-bold text-primary font-mono tracking-wider">{managerCode}</span>
                         ) : (
@@ -365,14 +365,14 @@ const GestionnaireDashboard: React.FC = () => {
                     </div>
 
                     {showCodeDropdown && (
-                        <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
-                            <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Codes d'accès locataires</p>
+                        <div className="absolute right-0 mt-2 w-72 bg-base-100 rounded-2xl shadow-xl border border-base-200 z-50 overflow-hidden">
+                            <div className="px-4 py-3 border-b border-base-200 bg-base-200">
+                                <p className="text-xs font-semibold text-base-content/60 uppercase tracking-wide">Codes d'accès locataires</p>
                             </div>
                             {managedOwners.map((o) => (
-                                <div key={o.owner_id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+                                <div key={o.owner_id} className="flex items-center justify-between px-4 py-3 hover:bg-base-200 transition-colors">
                                     <div>
-                                        <p className="text-sm font-semibold text-gray-800 truncate max-w-[140px]">{o.owner_name}</p>
+                                        <p className="text-sm font-semibold text-base-content/90 truncate max-w-[140px]">{o.owner_name}</p>
                                         <p className="font-mono text-primary font-bold text-sm tracking-wider">{o.manager_code}</p>
                                     </div>
                                     <button
@@ -405,8 +405,8 @@ const GestionnaireDashboard: React.FC = () => {
         <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
           {/* Decorative background pattern */}
           <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -translate-y-1/2 translate-x-1/3"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full translate-y-1/2 -translate-x-1/4"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-base-100 rounded-full -translate-y-1/2 translate-x-1/3"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-base-100 rounded-full translate-y-1/2 -translate-x-1/4"></div>
           </div>
           
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -416,15 +416,15 @@ const GestionnaireDashboard: React.FC = () => {
               <p className="text-white/60 text-xs mt-1">Revenu net estimé</p>
             </div>
             <div className="flex gap-4 flex-wrap">
-              <div className="text-center bg-white/10 rounded-xl px-4 py-2 backdrop-blur-sm">
+              <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
                 <p className="text-white/80 text-xs font-medium">Encaissements</p>
                 <p className="text-lg font-bold text-green-300">+{new Intl.NumberFormat('fr-FR').format(totalRevenus)}</p>
               </div>
-              <div className="text-center bg-white/10 rounded-xl px-4 py-2 backdrop-blur-sm">
+              <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
                 <p className="text-white/80 text-xs font-medium">Impayés</p>
                 <p className="text-lg font-bold text-orange-300">{new Intl.NumberFormat('fr-FR').format(totalImpayes)}</p>
               </div>
-              <div className="text-center bg-white/10 rounded-xl px-4 py-2 backdrop-blur-sm">
+              <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
                 <p className="text-white/80 text-xs font-medium">Taux occupation</p>
                 <p className="text-lg font-bold">{stats?.tauxOccupation || 0}%</p>
               </div>
@@ -437,8 +437,8 @@ const GestionnaireDashboard: React.FC = () => {
        <motion.div variants={itemVariants} className="relative">
           <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-gray-800 dark:text-base-content">Indicateurs Stratégiques</span>
-                <span className="px-2 py-0.5 rounded-full bg-gray-100 text-xs font-medium text-gray-500">
+                <span className="text-lg font-bold text-base-content/90 dark:text-base-content">Indicateurs Stratégiques</span>
+                <span className="px-2 py-0.5 rounded-full bg-base-300 text-xs font-medium text-base-content/60">
                     {showAllKpis ? `${allKpis.length} metrics` : `${Math.min(4, allKpis.length)} metrics`}
                 </span>
               </div>
@@ -462,7 +462,7 @@ const GestionnaireDashboard: React.FC = () => {
           {isLoadingKpis ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white rounded-2xl p-6 border border-gray-100 animate-pulse">
+                <div key={i} className="bg-base-100 rounded-2xl p-6 border border-base-200 animate-pulse">
                   <div className="flex items-center justify-between mb-4">
                     <div className="w-12 h-12 bg-gray-200 rounded-full" />
                     <div className="w-16 h-6 bg-gray-200 rounded" />
@@ -512,11 +512,11 @@ const GestionnaireDashboard: React.FC = () => {
               {isLoadingChart ? (
                 <ChartSkeleton height={350} />
               ) : (
-                <Card className="overflow-hidden border-none shadow-xl bg-white">
+                <Card className="overflow-hidden border-none shadow-xl bg-base-100">
                     <div className="flex justify-between items-center mb-6 px-2">
                         <div>
-                            <h3 className="text-xl font-bold text-gray-800">Analyse Financière</h3>
-                            <p className="text-sm text-gray-500">Revenus vs Dépenses ({
+                            <h3 className="text-xl font-bold text-base-content/90">Analyse Financière</h3>
+                            <p className="text-sm text-base-content/60">Revenus vs Dépenses ({
                               period === '7d' ? '7 derniers jours' :
                               period === '30d' ? '30 derniers jours' :
                               period === '90d' ? '90 derniers jours' :
@@ -561,7 +561,7 @@ const GestionnaireDashboard: React.FC = () => {
             {/* Properties Grid */}
             <motion.div variants={itemVariants}>
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-base-content/90 flex items-center gap-2">
                         <Building2 size={20} className="text-primary" />
                         Biens en vedette
                     </h3>
@@ -573,36 +573,36 @@ const GestionnaireDashboard: React.FC = () => {
                 {loadingWidgets ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {[1, 2].map(i => (
-                             <div key={i} className="bg-gray-100 rounded-2xl h-32 animate-pulse"></div>
+                             <div key={i} className="bg-base-300 rounded-2xl h-32 animate-pulse"></div>
                         ))}
                     </div>
                 ) : featuredProperties.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {featuredProperties.map(property => (
-                            <div key={property.id} className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex gap-4 hover:shadow-xl transition-all cursor-pointer group" onClick={() => navigate(`/dashboard/biens?id=${property.id}`)}>
+                            <div key={property.id} className="bg-base-100 rounded-2xl p-4 shadow-lg border border-base-200 flex gap-4 hover:shadow-xl transition-all cursor-pointer group" onClick={() => navigate(`/dashboard/biens?id=${property.id}`)}>
                                 <div className="w-24 h-24 rounded-xl bg-gray-200 overflow-hidden relative shrink-0">
                                     {property.image ? (
                                         <img src={property.image} alt={property.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                                        <div className="w-full h-full flex items-center justify-center bg-base-300 text-gray-400">
                                             <Building2 size={32} />
                                         </div>
                                     )}
                                      <div className={`absolute top-1 right-1 w-3 h-3 border-2 border-white rounded-full ${property.occupancy >= 80 ? 'bg-green-500' : property.occupancy >= 50 ? 'bg-orange-500' : 'bg-red-500'}`}></div>
                                 </div>
                                 <div className="flex-1 min-w-0 py-1">
-                                    <h4 className="font-bold text-gray-900 truncate">{property.name}</h4>
-                                    <p className="text-sm text-gray-500 mb-2 truncate">{property.location}</p>
+                                    <h4 className="font-bold text-base-content truncate">{property.name}</h4>
+                                    <p className="text-sm text-base-content/60 mb-2 truncate">{property.location}</p>
                                     <div className="flex items-center justify-between">
                                         <span className="text-xs font-medium bg-blue-50 text-blue-600 px-2 py-1 rounded-lg">{property.units} Lots</span>
-                                        <span className="text-sm font-bold text-gray-900">{property.occupancy}% Occ.</span>
+                                        <span className="text-sm font-bold text-base-content">{property.occupancy}% Occ.</span>
                                     </div>
                                 </div>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-xl">
+                    <div className="p-8 text-center text-base-content/60 bg-base-200 rounded-xl">
                         Aucun bien en vedette pour le moment
                     </div>
                 )}
@@ -614,16 +614,16 @@ const GestionnaireDashboard: React.FC = () => {
             
             {/* Quick Actions */}
             <motion.div variants={itemVariants}>
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-                    <h3 className="font-bold text-gray-800 mb-4">Actions Rapides</h3>
+                <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200">
+                    <h3 className="font-bold text-base-content/90 mb-4">Actions Rapides</h3>
                     <QuickActions userType="gestionnaire" />
                 </div>
             </motion.div>
 
             {/* Occupation Pie Chart (Compact) */}
             <motion.div variants={itemVariants}>
-                 <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 relative overflow-hidden">
-                    <h3 className="font-bold text-gray-800 mb-2">Occupation</h3>
+                 <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200 relative overflow-hidden">
+                    <h3 className="font-bold text-base-content/90 mb-2">Occupation</h3>
                     <div className="h-[200px] flex items-center justify-center relative z-10">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -643,7 +643,7 @@ const GestionnaireDashboard: React.FC = () => {
                         </ResponsiveContainer>
                         {/* Center Text */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <span className="text-3xl font-extrabold text-gray-800">{stats?.tauxOccupation || 0}%</span>
+                            <span className="text-3xl font-extrabold text-base-content/90">{stats?.tauxOccupation || 0}%</span>
                             <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Occupé</span>
                         </div>
                     </div>
@@ -652,21 +652,21 @@ const GestionnaireDashboard: React.FC = () => {
 
             {/* Recent Activity */}
             <motion.div variants={itemVariants}>
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="font-bold text-gray-800">Fil d'actualité</h3>
+                        <h3 className="font-bold text-base-content/90">Fil d'actualité</h3>
                         <Button variant="ghost" className="btn-xs text-gray-400">
                             <MoreVertical size={16} />
                         </Button>
                     </div>
                     {loadingWidgets ? (
                          <div className="space-y-4">
-                             {[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse"></div>)}
+                             {[1, 2, 3].map(i => <div key={i} className="h-16 bg-base-300 rounded-xl animate-pulse"></div>)}
                          </div>
                     ) : activities.length > 0 ? (
                         <ActivityFeed activities={activities} />
                     ) : (
-                        <p className="text-center text-gray-500 py-4">Aucune activité récente</p>
+                        <p className="text-center text-base-content/60 py-4">Aucune activité récente</p>
                     )}
                 </div>
             </motion.div>

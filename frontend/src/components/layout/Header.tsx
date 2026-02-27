@@ -2,9 +2,11 @@
 // frontend/src/components/layout/Header.tsx
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, Search, Home, ChevronRight, Settings, Crown } from 'lucide-react';
+import { Menu, Search, Home, ChevronRight, Settings, Crown, Sun, Moon } from 'lucide-react';
 import NotificationBell from '../NotificationBell';
 import SubscriptionBadge from '../SubscriptionBadge';
+import { updateProfile } from '../../api/accountApi';
+import toast from 'react-hot-toast';
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -15,6 +17,43 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ toggleSidebar, pageTitle, userProfile, onLogout }) => {
   const location = useLocation();
+  const [theme, setTheme] = React.useState<'hopegestion' | 'dark'>('hopegestion');
+
+  React.useEffect(() => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'hopegestion';
+    setTheme(currentTheme);
+  }, [userProfile]);
+
+  const handleToggleTheme = async () => {
+    const newTheme = theme === 'hopegestion' ? 'dark' : 'hopegestion';
+    setTheme(newTheme);
+    
+    // Application instantanée
+    if (newTheme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'hopegestion');
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', newTheme);
+
+    // Sauvegarde en arrière-plan
+    if (userProfile?.id) {
+      try {
+         const updatedProfile = {
+             ...userProfile,
+             preferences: {
+                 ...(userProfile.preferences || {}),
+                 theme: newTheme
+             }
+         };
+         await updateProfile(updatedProfile);
+      } catch (err) {
+         console.error('Erreur sauvegarde thème', err);
+      }
+    }
+  };
 
   // Helper pour générer le fil d'ariane simple (Home > Page Actuelle)
   const getBreadcrumbs = () => {
@@ -66,6 +105,15 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, pageTitle, userProfile, 
             </div>
 
             <div className="h-6 w-px bg-base-300 hidden sm:block"></div>
+
+            {/* Theme Toggle */}
+            <button 
+                onClick={handleToggleTheme}
+                className="btn btn-ghost btn-circle"
+                aria-label="Basculer le thème"
+            >
+                {theme === 'dark' ? <Sun size={20} className="text-warning" /> : <Moon size={20} className="text-base-content/60" />}
+            </button>
 
             {/* Notifications */}
             <NotificationBell />

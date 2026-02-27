@@ -34,7 +34,7 @@ const DashboardSkeleton: React.FC<DashboardSkeletonProps> = ({ type = 'gestionna
         {/* Left Column - Charts */}
         <div className="xl:col-span-2 space-y-8">
           {/* Chart Card Skeleton */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200">
             <div className="flex justify-between items-center mb-6">
               <div className="space-y-2">
                 <SkeletonLoader variant="text" width={200} height={24} />
@@ -53,7 +53,7 @@ const DashboardSkeleton: React.FC<DashboardSkeletonProps> = ({ type = 'gestionna
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[1, 2].map((i) => (
-                <div key={i} className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex gap-4">
+                <div key={i} className="bg-base-100 rounded-2xl p-4 shadow-lg border border-base-200 flex gap-4">
                   <SkeletonLoader variant="rectangular" width={96} height={96} className="rounded-xl" />
                   <div className="flex-1 space-y-2 py-1">
                     <SkeletonLoader variant="text" width="80%" height={20} />
@@ -72,7 +72,7 @@ const DashboardSkeleton: React.FC<DashboardSkeletonProps> = ({ type = 'gestionna
         {/* Right Column - Sidebar */}
         <div className="space-y-8">
           {/* Quick Actions Skeleton */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200">
             <SkeletonLoader variant="text" width={120} height={20} className="mb-4" />
             <div className="grid grid-cols-2 gap-3">
               {[1, 2, 3, 4].map((i) => (
@@ -82,7 +82,7 @@ const DashboardSkeleton: React.FC<DashboardSkeletonProps> = ({ type = 'gestionna
           </div>
 
           {/* Pie Chart Skeleton */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200">
             <SkeletonLoader variant="text" width={100} height={20} className="mb-4" />
             <div className="h-[200px] flex items-center justify-center">
               <SkeletonLoader variant="circular" width={160} height={160} />
@@ -90,7 +90,7 @@ const DashboardSkeleton: React.FC<DashboardSkeletonProps> = ({ type = 'gestionna
           </div>
 
           {/* Activity Feed Skeleton */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200">
             <SkeletonLoader variant="text" width={120} height={20} className="mb-4" />
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
@@ -112,7 +112,7 @@ const DashboardSkeleton: React.FC<DashboardSkeletonProps> = ({ type = 'gestionna
 
 // Export aussi le skeleton de chart seul pour lazy loading partiel
 export const ChartSkeleton: React.FC<{ height?: number }> = ({ height = 350 }) => (
-  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 animate-pulse">
+  <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200 animate-pulse">
     <div className="flex justify-between items-center mb-6">
       <div className="space-y-2">
         <SkeletonLoader variant="text" width={200} height={24} />

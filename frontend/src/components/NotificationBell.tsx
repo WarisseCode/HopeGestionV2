@@ -101,7 +101,7 @@ const NotificationBell: React.FC = () => {
       case 'late_payment': return 'text-red-500 bg-red-50';
       case 'new_complaint': return 'text-orange-500 bg-orange-50';
       case 'payment_received': return 'text-green-500 bg-green-50';
-      default: return 'text-gray-500 bg-gray-50';
+      default: return 'text-base-content/60 bg-base-200';
     }
   };
 
@@ -111,7 +111,7 @@ const NotificationBell: React.FC = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="btn btn-ghost btn-circle relative"
       >
-        <Bell size={20} className="text-gray-600" />
+        <Bell size={20} className="text-base-content/70" />
         {unreadCount > 0 && (
           <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white animate-pulse"></span>
         )}
@@ -124,10 +124,10 @@ const NotificationBell: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute right-0 mt-2 w-80 md:w-96 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 origin-top-right"
+            className="absolute right-0 mt-2 w-80 md:w-96 bg-base-100 rounded-xl shadow-2xl border border-base-200 overflow-hidden z-50 origin-top-right"
           >
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h3 className="font-bold text-gray-800">Notifications</h3>
+            <div className="p-4 border-b border-base-200 flex justify-between items-center bg-base-200/50">
+              <h3 className="font-bold text-base-content/90">Notifications</h3>
               {unreadCount > 0 && (
                 <button 
                   onClick={markAllRead} 
@@ -150,17 +150,17 @@ const NotificationBell: React.FC = () => {
                   {notifications.map((notification) => (
                     <div 
                       key={notification.id} 
-                      className={`p-4 hover:bg-gray-50 transition-colors ${!notification.is_read ? 'bg-blue-50/30' : ''}`}
+                      className={`p-4 hover:bg-base-200 transition-colors ${!notification.is_read ? 'bg-blue-50/30' : ''}`}
                     >
                       <div className="flex gap-3">
                         <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${getIconColor(notification.type)}`}>
                           <Bell size={14} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm ${!notification.is_read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+                          <p className={`text-sm ${!notification.is_read ? 'font-semibold text-base-content' : 'text-base-content/80'}`}>
                             {notification.title}
                           </p>
-                          <p className="text-xs text-gray-500 mt-0.5 break-words">
+                          <p className="text-xs text-base-content/60 mt-0.5 break-words">
                             {notification.message}
                           </p>
                           <p className="text-[10px] text-gray-400 mt-2">
@@ -183,9 +183,9 @@ const NotificationBell: React.FC = () => {
               )}
             </div>
 
-            <div className="p-2 border-t border-gray-100 bg-gray-50 text-center">
+            <div className="p-2 border-t border-base-200 bg-base-200 text-center">
               <button 
-                className="text-xs text-gray-500 hover:text-gray-700 font-medium w-full py-1"
+                className="text-xs text-base-content/60 hover:text-base-content/80 font-medium w-full py-1"
                 onClick={() => setIsOpen(false)}
               >
                 Fermer

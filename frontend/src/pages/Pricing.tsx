@@ -161,7 +161,7 @@ const Pricing: React.FC = () => {
 
     const getPlanIcon = (name: string) => {
         switch (name) {
-            case 'free': return <Zap className="text-gray-500" size={28} />;
+            case 'free': return <Zap className="text-base-content/60" size={28} />;
             case 'pro': return <Crown className="text-amber-500" size={28} />;
             case 'enterprise': return <Star className="text-purple-500" size={28} />;
             default: return <Zap size={28} />;
@@ -170,7 +170,7 @@ const Pricing: React.FC = () => {
 
     const getPlanGradient = (name: string) => {
         switch (name) {
-            case 'free': return 'from-gray-50 to-gray-100 border-gray-200';
+            case 'free': return 'from-gray-50 to-gray-100 border-base-300';
             case 'pro': return 'from-amber-50 to-orange-50 border-amber-200 ring-2 ring-amber-300';
             case 'enterprise': return 'from-purple-50 to-indigo-50 border-purple-200';
             default: return 'from-gray-50 to-gray-100';
@@ -192,11 +192,11 @@ const Pricing: React.FC = () => {
                 <motion.h1 
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-3xl md:text-4xl font-black text-gray-900 mb-4"
+                    className="text-3xl md:text-4xl font-black text-base-content mb-4"
                 >
                     Choisissez votre <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Abonnement</span>
                 </motion.h1>
-                <p className="text-gray-500 text-lg max-w-xl mx-auto">
+                <p className="text-base-content/60 text-lg max-w-xl mx-auto">
                     Gérez vos biens immobiliers plus efficacement avec nos offres adaptées à vos besoins.
                 </p>
             </div>
@@ -234,8 +234,8 @@ const Pricing: React.FC = () => {
                                 
                                 </div>
                                 <div>
-                                    <h4 className="font-bold text-gray-900">Paiement en attente de validation</h4>
-                                    <p className="text-sm text-gray-600 hidden md:block">
+                                    <h4 className="font-bold text-base-content">Paiement en attente de validation</h4>
+                                    <p className="text-sm text-base-content/70 hidden md:block">
                                         Si vous avez finalisé le paiement, cliquez sur le bouton pour activer votre abonnement.
                                     </p>
                                 </div>
@@ -274,38 +274,38 @@ const Pricing: React.FC = () => {
                             )}
 
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="p-3 bg-white rounded-xl shadow-sm">
+                                <div className="p-3 bg-base-100 rounded-xl shadow-sm">
                                     {getPlanIcon(plan.name)}
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-bold text-gray-900">{plan.display_name}</h3>
-                                    <p className="text-sm text-gray-500">
+                                    <h3 className="text-xl font-bold text-base-content">{plan.display_name}</h3>
+                                    <p className="text-sm text-base-content/60">
                                         {plan.max_properties === -1 ? 'Illimité' : `${plan.max_properties} biens max`}
                                     </p>
                                 </div>
                             </div>
 
                             <div className="mb-6">
-                                <span className="text-4xl font-black text-gray-900">
+                                <span className="text-4xl font-black text-base-content">
                                     {plan.price === 0 ? 'Gratuit' : `${plan.price.toLocaleString()}`}
                                 </span>
                                 {plan.price > 0 && (
-                                    <span className="text-gray-500 text-lg ml-1">FCFA/mois</span>
+                                    <span className="text-base-content/60 text-lg ml-1">FCFA/mois</span>
                                 )}
                             </div>
 
                             <ul className="space-y-3 mb-6">
                                 {(plan.features as string[])?.map((feature, i) => (
-                                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                    <li key={i} className="flex items-start gap-2 text-sm text-base-content/80">
                                         <Check className="text-green-500 flex-shrink-0 mt-0.5" size={16} />
                                         {feature}
                                     </li>
                                 ))}
-                                <li className="flex items-start gap-2 text-sm text-gray-700">
+                                <li className="flex items-start gap-2 text-sm text-base-content/80">
                                     <Building2 className="text-blue-500 flex-shrink-0 mt-0.5" size={16} />
                                     {plan.max_properties === -1 ? 'Biens illimités' : `${plan.max_properties} biens`}
                                 </li>
-                                <li className="flex items-start gap-2 text-sm text-gray-700">
+                                <li className="flex items-start gap-2 text-sm text-base-content/80">
                                     <Users className="text-purple-500 flex-shrink-0 mt-0.5" size={16} />
                                     {plan.max_tenants === -1 ? 'Locataires illimités' : `${plan.max_tenants} locataires`}
                                 </li>
@@ -316,7 +316,7 @@ const Pricing: React.FC = () => {
                                 disabled={isCurrent}
                                 className={`w-full py-3 rounded-xl font-bold transition-all ${
                                     isCurrent 
-                                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                        ? 'bg-gray-200 text-base-content/60 cursor-not-allowed'
                                         : plan.name === 'pro'
                                             ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg hover:shadow-amber-500/30'
                                             : 'bg-gray-900 text-white hover:bg-gray-800'
@@ -344,24 +344,24 @@ const Pricing: React.FC = () => {
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.9, y: 20 }}
                             onClick={e => e.stopPropagation()}
-                            className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl"
+                            className="bg-base-100 rounded-3xl p-6 w-full max-w-md shadow-2xl"
                         >
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-gray-900">Paiement Mobile Money</h2>
-                                <button onClick={() => setShowPaymentModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                                <h2 className="text-xl font-bold text-base-content">Paiement Mobile Money</h2>
+                                <button onClick={() => setShowPaymentModal(false)} className="p-2 hover:bg-base-300 rounded-full">
                                     <X size={20} />
                                 </button>
                             </div>
 
                             <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl mb-6">
-                                <p className="text-sm text-gray-500">Plan sélectionné</p>
-                                <p className="text-lg font-bold text-gray-900">{selectedPlan.display_name}</p>
+                                <p className="text-sm text-base-content/60">Plan sélectionné</p>
+                                <p className="text-lg font-bold text-base-content">{selectedPlan.display_name}</p>
                                 <p className="text-2xl font-black text-blue-600">{selectedPlan.price.toLocaleString()} FCFA</p>
                             </div>
 
                             <div className="space-y-4 mb-6">
                                 <div>
-                                    <label className="text-sm font-bold text-gray-700 block mb-2">Opérateur</label>
+                                    <label className="text-sm font-bold text-base-content/80 block mb-2">Opérateur</label>
                                     <div className="grid grid-cols-3 gap-2">
                                         {OPERATORS.map(op => (
                                             <button
@@ -371,7 +371,7 @@ const Pricing: React.FC = () => {
                                                 className={`p-3 rounded-xl border-2 text-center text-sm font-bold transition ${
                                                     paymentData.operator === op.id
                                                         ? `${op.color} text-white border-transparent`
-                                                        : 'border-gray-200 text-gray-700 hover:border-gray-400'
+                                                        : 'border-base-300 text-base-content/80 hover:border-gray-400'
                                                 }`}
                                             >
                                                 {op.id}
@@ -381,7 +381,7 @@ const Pricing: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <label className="text-sm font-bold text-gray-700 block mb-2">
+                                    <label className="text-sm font-bold text-base-content/80 block mb-2">
                                         <Smartphone className="inline mr-1" size={16} />
                                         Numéro de Téléphone
                                     </label>
@@ -390,7 +390,7 @@ const Pricing: React.FC = () => {
                                         placeholder="Ex: 97000000"
                                         value={paymentData.phone_number}
                                         onChange={e => setPaymentData({ ...paymentData, phone_number: e.target.value })}
-                                        className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition"
+                                        className="w-full p-4 border-2 border-base-300 rounded-xl focus:border-blue-500 outline-none transition"
                                     />
                                 </div>
                             </div>

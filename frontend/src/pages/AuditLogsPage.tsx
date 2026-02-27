@@ -93,7 +93,7 @@ const AuditLogsPage: React.FC = () => {
         if (action.includes('DELETE') || action.includes('ARCHIVE')) return 'text-error bg-error/10 border-error/20';
         if (action.includes('CREATE')) return 'text-info bg-info/10 border-info/20';
         if (action.includes('UPDATE')) return 'text-warning bg-warning/10 border-warning/20';
-        return 'text-gray-600 bg-gray-100 border-gray-200';
+        return 'text-base-content/70 bg-base-300 border-base-300';
     };
 
      const containerVariants = {
@@ -118,10 +118,10 @@ const AuditLogsPage: React.FC = () => {
             {/* Header */}
             <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                     <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                     <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
                         Journal d'Audit & Sécurité <span className="text-primary">.</span>
                      </h1>
-                     <p className="text-gray-500 font-medium mt-1">Surveillez l'activité critique et la sécurité de votre application.</p>
+                     <p className="text-base-content/60 font-medium mt-1">Surveillez l'activité critique et la sécurité de votre application.</p>
                 </div>
                 <div className="badge badge-primary badge-lg gap-2 shadow-lg shadow-primary/20">
                     <ShieldCheck size={14} /> Serveur Sécurisé
@@ -130,21 +130,21 @@ const AuditLogsPage: React.FC = () => {
 
             {/* Filters */}
             <motion.div variants={itemVariants}>
-                <Card className="bg-white border-none shadow-lg mb-6">
+                <Card className="bg-base-100 border-none shadow-lg mb-6">
                     <div className="flex flex-col md:flex-row gap-4 items-center">
                         <div className="relative flex-1 w-full">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <input 
                                 type="text" 
                                 placeholder="Rechercher un utilisateur, une IP..." 
-                                className="input input-bordered w-full pl-11 bg-gray-50 border-gray-100 focus:bg-white focus:border-primary transition-all rounded-xl"
+                                className="input input-bordered w-full pl-11 bg-base-200 border-base-200 focus:bg-base-100 focus:border-primary transition-all rounded-xl"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 disabled // Search Log implemented only by exact match in backend for now
                             />
                         </div>
                         <select 
-                            className="select select-bordered w-full md:w-64 bg-gray-50 border-gray-100 focus:bg-white focus:border-primary rounded-xl"
+                            className="select select-bordered w-full md:w-64 bg-base-200 border-base-200 focus:bg-base-100 focus:border-primary rounded-xl"
                             value={actionFilter}
                             onChange={(e) => { setActionFilter(e.target.value); setPage(0); }}
                         >
@@ -154,7 +154,7 @@ const AuditLogsPage: React.FC = () => {
                             <option value="UPDATE_TENANT">Modifications Locataire</option>
                             <option value="ARCHIVE_TENANT">Suppressions Locataire</option>
                         </select>
-                         <Button variant="ghost" className="btn-square bg-gray-50 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-xl">
+                         <Button variant="ghost" className="btn-square bg-base-200 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-xl">
                             <Filter size={20} />
                         </Button>
                     </div>
@@ -163,16 +163,16 @@ const AuditLogsPage: React.FC = () => {
 
             {/* Logs Table */}
             <motion.div variants={itemVariants}>
-                <Card className="border-none shadow-xl bg-white p-0 overflow-hidden">
+                <Card className="border-none shadow-xl bg-base-100 p-0 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="table w-full">
                             <thead>
-                                <tr className="bg-gray-50/50">
-                                    <th className="py-4 pl-6 text-gray-500 font-semibold">Horodatage</th>
-                                    <th className="text-gray-500 font-semibold">Action</th>
-                                    <th className="text-gray-500 font-semibold">Utilisateur</th>
-                                    <th className="text-gray-500 font-semibold">IP Source</th>
-                                    <th className="pr-6 text-right text-gray-500 font-semibold">Détails</th>
+                                <tr className="bg-base-200/50">
+                                    <th className="py-4 pl-6 text-base-content/60 font-semibold">Horodatage</th>
+                                    <th className="text-base-content/60 font-semibold">Action</th>
+                                    <th className="text-base-content/60 font-semibold">Utilisateur</th>
+                                    <th className="text-base-content/60 font-semibold">IP Source</th>
+                                    <th className="pr-6 text-right text-base-content/60 font-semibold">Détails</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -189,8 +189,8 @@ const AuditLogsPage: React.FC = () => {
                                     </tr>
                                 ) : (
                                     logs.map((log) => (
-                                        <tr key={log.id} className="hover:bg-gray-50/50 transition-colors group">
-                                            <td className="pl-6 font-mono text-xs text-gray-500">
+                                        <tr key={log.id} className="hover:bg-base-200/50 transition-colors group">
+                                            <td className="pl-6 font-mono text-xs text-base-content/60">
                                                 <div className="flex items-center gap-2">
                                                     <Clock size={12} className="text-gray-400" />
                                                     {formatDate(log.created_at)}
@@ -204,15 +204,15 @@ const AuditLogsPage: React.FC = () => {
                                             <td>
                                                 <div className="flex items-center gap-3">
                                                     <div className="avatar placeholder">
-                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold shadow-sm">
+                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 text-base-content/70 flex items-center justify-center text-xs font-bold shadow-sm">
                                                             <span>{log.user_name ? log.user_name.charAt(0) : '?'}</span>
                                                         </div>
                                                     </div>
-                                                    <span className="font-medium text-sm text-gray-700">{log.user_name || 'Système'}</span>
+                                                    <span className="font-medium text-sm text-base-content/80">{log.user_name || 'Système'}</span>
                                                 </div>
                                             </td>
                                             <td>
-                                                 <div className="badge badge-ghost badge-sm font-mono text-xs opacity-70 bg-gray-100 border-gray-200">
+                                                 <div className="badge badge-ghost badge-sm font-mono text-xs opacity-70 bg-base-300 border-base-300">
                                                     {log.ip_address}
                                                 </div>
                                             </td>
@@ -231,13 +231,13 @@ const AuditLogsPage: React.FC = () => {
                     </div>
 
                     {/* Pagination */}
-                    <div className="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50/30">
+                    <div className="p-4 border-t border-base-200 flex justify-between items-center bg-base-200/30">
                         <Button 
                             variant="ghost"
                             size="sm"
                             disabled={page === 0}
                             onClick={() => setPage(p => p - 1)}
-                            className="text-gray-500 hover:text-gray-900"
+                            className="text-base-content/60 hover:text-base-content"
                         >
                             <ChevronLeft size={16} className="mr-1" /> Précédent
                         </Button>
@@ -247,7 +247,7 @@ const AuditLogsPage: React.FC = () => {
                             size="sm"
                             disabled={logs.length < LIMIT}
                             onClick={() => setPage(p => p + 1)}
-                            className="text-gray-500 hover:text-gray-900"
+                            className="text-base-content/60 hover:text-base-content"
                         >
                             Suivant <ChevronRight size={16} className="ml-1" />
                         </Button>

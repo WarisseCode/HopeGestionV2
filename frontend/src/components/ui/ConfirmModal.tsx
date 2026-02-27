@@ -72,13 +72,13 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 10 }}
                         transition={{ type: "spring", duration: 0.4, bounce: 0.3 }}
-                        className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden z-10"
+                        className="relative bg-base-100 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden z-10"
                     >
                         {/* Close button */}
                         {!isLoading && (
                             <button 
                                 onClick={onClose}
-                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
+                                className="absolute top-4 right-4 text-gray-400 hover:text-base-content/70 transition"
                             >
                                 <X size={20} />
                             </button>
@@ -95,11 +95,11 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                                 <Icon size={32} className={currentConfig.color} />
                             </motion.div>
 
-                            <h3 className="text-lg font-bold text-gray-900 mb-2">
+                            <h3 className="text-lg font-bold text-base-content mb-2">
                                 {title}
                             </h3>
                             
-                            <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+                            <p className="text-base-content/60 text-sm mb-6 leading-relaxed">
                                 {message}
                             </p>
 
@@ -107,7 +107,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                                 <button
                                     onClick={onClose}
                                     disabled={isLoading}
-                                    className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition disabled:opacity-50"
+                                    className="px-4 py-2 text-sm font-medium text-base-content/70 bg-base-300 hover:bg-gray-200 rounded-lg transition disabled:opacity-50"
                                 >
                                     {cancelLabel}
                                 </button>

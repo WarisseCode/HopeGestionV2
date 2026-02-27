@@ -86,7 +86,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
           <select
             value={currentValue as string || ''}
             onChange={(e) => handleFilterChange(filter.id, e.target.value)}
-            className="select select-bordered select-sm w-full bg-white focus:border-primary focus:ring-1 focus:ring-primary/20"
+            className="select select-bordered select-sm w-full bg-base-100 focus:border-primary focus:ring-1 focus:ring-primary/20"
           >
             <option value="">{filter.placeholder || `Tous les ${filter.label.toLowerCase()}`}</option>
             {filter.options?.map((option) => (
@@ -117,7 +117,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                     px-3 py-1.5 text-xs font-medium rounded-full transition-all
                     ${isSelected
                       ? 'bg-primary text-white shadow-md shadow-primary/30'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      : 'bg-base-300 text-base-content/70 hover:bg-gray-200'
                     }
                   `}
                 >
@@ -142,7 +142,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
               onChange={(e) => handleFilterChange(filter.id, e.target.checked)}
               className="toggle toggle-primary toggle-sm"
             />
-            <span className="text-sm text-gray-600">{filter.placeholder || filter.label}</span>
+            <span className="text-sm text-base-content/70">{filter.placeholder || filter.label}</span>
           </label>
         );
 
@@ -201,7 +201,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     <div className={`${layout === 'horizontal' ? 'flex flex-wrap items-end gap-4' : 'space-y-4'}`}>
       {filters.map((filter) => (
         <div key={filter.id} className={layout === 'horizontal' ? 'min-w-[180px]' : ''}>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-semibold text-base-content/60 uppercase tracking-wide mb-1.5">
             {filter.label}
           </label>
           {renderFilter(filter)}
@@ -214,7 +214,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
           variant="ghost"
           size="sm"
           onClick={handleClearAll}
-          className="text-gray-500 hover:text-error"
+          className="text-base-content/60 hover:text-error"
         >
           <RotateCcw size={14} className="mr-1" />
           Réinitialiser
@@ -225,23 +225,23 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
 
   if (!collapsible) {
     return (
-      <div className={`bg-white rounded-xl p-4 border border-gray-100 ${className}`}>
+      <div className={`bg-base-100 rounded-xl p-4 border border-base-200 ${className}`}>
         {filterContent}
       </div>
     );
   }
 
   return (
-    <div className={`bg-white rounded-xl border border-gray-100 overflow-hidden ${className}`}>
+    <div className={`bg-base-100 rounded-xl border border-base-200 overflow-hidden ${className}`}>
       {/* Header */}
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between p-4 hover:bg-base-200 transition-colors"
       >
         <div className="flex items-center gap-2">
           <Filter size={18} className="text-primary" />
-          <span className="font-semibold text-gray-700">Filtres</span>
+          <span className="font-semibold text-base-content/80">Filtres</span>
           {showActiveCount && activeFiltersCount > 0 && (
             <span className="px-2 py-0.5 text-xs font-bold bg-primary text-white rounded-full">
               {activeFiltersCount}
@@ -311,7 +311,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="p-4 pt-0 border-t border-gray-100">
+            <div className="p-4 pt-0 border-t border-base-200">
               {filterContent}
             </div>
           </motion.div>

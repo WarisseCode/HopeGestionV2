@@ -211,33 +211,33 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
       </AnimatePresence>
 
       <aside 
-          className={`shadow-lg z-50 transition-all duration-300 ease-in-out flex flex-col items-stretch border-r border-slate-200
+          className={`shadow-lg z-50 transition-all duration-300 ease-in-out flex flex-col items-stretch border-r border-base-300
             ${isMobile 
-                ? `fixed inset-y-0 left-0 w-72 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} bg-white` 
-                : `${isOpen ? 'w-72' : 'w-20'} relative h-full bg-white`
+                ? `fixed inset-y-0 left-0 w-72 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} bg-base-100` 
+                : `${isOpen ? 'w-72' : 'w-20'} relative h-full bg-base-100`
             }
           `}
         >
           {/* Logo Area */}
-          <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100 bg-transparent shrink-0">
+          <div className="h-20 flex items-center justify-between px-6 border-b border-base-200 bg-transparent shrink-0">
             {(isOpen || isMobile) ? (
                  <div className="flex items-center gap-2">
                     <img src="/logo.png" alt="Hg" className="h-10 w-auto object-contain" />
-                    <span className="font-heading font-bold text-xl text-slate-800 tracking-tight">Hope<span className="text-primary-600">Gestion</span></span>
+                    <span className="font-heading font-bold text-xl text-base-content/90 tracking-tight">Hope<span className="text-primary-600">Gestion</span></span>
                  </div>
             ) : (
                <img src="/logo.png" alt="HG" className="h-8 w-8 mx-auto object-contain" />
             )}
             <button 
               onClick={toggleSidebar} 
-              className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors md:hidden"
+              className="p-2 rounded-xl hover:bg-base-300 text-slate-400 hover:text-base-content/70 transition-colors md:hidden"
             >
               <X size={20} />
             </button>
           </div>
 
           {/* User Profile (Compact) */}
-          <div className="py-6 px-4 border-b border-slate-100 flex items-center gap-3 bg-transparent shrink-0">
+          <div className="py-6 px-4 border-b border-base-200 flex items-center gap-3 bg-transparent shrink-0">
               <div className="avatar placeholder online">
                 <div className="bg-primary-50 text-primary-600 rounded-2xl w-12 h-12 flex items-center justify-center border border-primary-100 shadow-sm overflow-hidden">
                   {userProfile?.photo_url ? (
@@ -255,8 +255,8 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
               </div>
               {(isOpen || isMobile) && (
                   <div className="overflow-hidden flex-1 min-w-0">
-                      <p className="font-bold text-sm truncate text-slate-800 font-heading">{userProfile?.nom || 'Utilisateur'}</p>
-                      <p className="text-xs text-slate-500 truncate capitalize font-medium">{userProfile?.role || 'Membre'}</p>
+                      <p className="font-bold text-sm truncate text-base-content/90 font-heading">{userProfile?.nom || 'Utilisateur'}</p>
+                      <p className="text-xs text-base-content/60 truncate capitalize font-medium">{userProfile?.role || 'Membre'}</p>
                   </div>
               )}
           </div>
@@ -298,7 +298,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                                             flex items-center gap-3 px-3 py-2.5 mx-2 rounded-xl transition-all duration-200 group relative
                                             ${isActive(item.path) 
                                               ? 'bg-primary-50 text-primary-700 font-bold shadow-sm' 
-                                              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'
+                                              : 'text-base-content/60 hover:bg-base-200 hover:text-base-content font-medium'
                                             }
                                             ${(!isOpen && !isMobile) ? 'justify-center px-2 mx-1' : ''}
                                           `}

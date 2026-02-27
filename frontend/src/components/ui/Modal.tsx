@@ -107,22 +107,22 @@ const Modal: React.FC<ModalProps> = ({
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
                 className={`
-                  relative bg-white rounded-2xl shadow-2xl w-full ${sizeClasses[size]} 
+                  relative bg-base-100 rounded-2xl shadow-2xl w-full ${sizeClasses[size]} 
                   ${size === 'full' ? 'flex flex-col' : 'max-h-[90vh]'}
                   overflow-hidden
                 `}
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-                  <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+                <div className="flex items-center justify-between p-6 border-b border-base-200 bg-gradient-to-r from-gray-50 to-white">
+                  <h2 className="text-2xl font-bold text-base-content">{title}</h2>
                   {showCloseButton && (
                     <button
                       onClick={onClose}
-                      className="p-2 hover:bg-gray-100 rounded-full transition-all duration-200 hover:rotate-90"
+                      className="p-2 hover:bg-base-300 rounded-full transition-all duration-200 hover:rotate-90"
                       aria-label="Fermer"
                     >
-                      <X size={20} className="text-gray-500" />
+                      <X size={20} className="text-base-content/60" />
                     </button>
                   )}
                 </div>
@@ -134,7 +134,7 @@ const Modal: React.FC<ModalProps> = ({
 
                 {/* Footer */}
                 {footer && (
-                  <div className="flex justify-end gap-3 p-6 border-t border-gray-100 bg-gray-50/50">
+                  <div className="flex justify-end gap-3 p-6 border-t border-base-200 bg-base-200/50">
                     {footer}
                   </div>
                 )}

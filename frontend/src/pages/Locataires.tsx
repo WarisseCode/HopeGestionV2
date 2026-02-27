@@ -71,7 +71,7 @@ const PaymentStatusBadge: React.FC<{ status: PaymentStatus }> = ({ status }) => 
     paid: { icon: CheckCircle2, label: 'Payé', className: 'bg-green-100 text-green-700' },
     pending: { icon: Clock, label: 'En attente', className: 'bg-yellow-100 text-yellow-700' },
     late: { icon: AlertCircle, label: 'En retard', className: 'bg-red-100 text-red-700' },
-    unknown: { icon: null, label: '-', className: 'bg-gray-100 text-gray-500' }
+    unknown: { icon: null, label: '-', className: 'bg-base-300 text-base-content/60' }
   };
   
   const config = configs[status];
@@ -292,14 +292,14 @@ const Locataires: React.FC = () => {
   const GridSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-        <div key={i} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 animate-pulse">
+        <div key={i} className="bg-base-100 rounded-2xl shadow-lg border border-base-200 p-6 animate-pulse">
           <div className="flex justify-between items-start mb-4">
             <SkeletonLoader variant="circular" width={56} height={56} />
             <SkeletonLoader variant="text" width={60} height={24} />
           </div>
           <SkeletonLoader variant="text" width="80%" height={20} className="mb-2" />
           <SkeletonLoader variant="text" width="60%" height={16} className="mb-4" />
-          <div className="space-y-3 pt-4 border-t border-gray-100">
+          <div className="space-y-3 pt-4 border-t border-base-200">
             <SkeletonLoader variant="text" width="100%" height={20} />
             <SkeletonLoader variant="text" width="100%" height={20} />
           </div>
@@ -318,10 +318,10 @@ const Locataires: React.FC = () => {
       {/* Header Section */}
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+          <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
             Locataires & Clients <span className="text-secondary">.</span>
           </h1>
-          <p className="text-gray-500 font-medium mt-1">
+          <p className="text-base-content/60 font-medium mt-1">
             Gérez vos locataires, acheteurs et leurs affectations.
           </p>
         </div>
@@ -364,13 +364,13 @@ const Locataires: React.FC = () => {
       )}
 
       {/* Tabs & Filters Bar */}
-      <motion.div variants={itemVariants} className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
+      <motion.div variants={itemVariants} className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200">
         {/* Tabs */}
-        <div className="flex p-1 bg-gray-100/50 rounded-xl overflow-x-auto">
+        <div className="flex p-1 bg-base-300/50 rounded-xl overflow-x-auto">
           <button
             onClick={() => { setActiveTab('locataires'); setFilterValues({}); }}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'locataires' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+              activeTab === 'locataires' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content/80'
             }`}
           >
             <Users size={18} />
@@ -380,7 +380,7 @@ const Locataires: React.FC = () => {
           <button
             onClick={() => { setActiveTab('acheteurs'); setFilterValues({}); }}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'acheteurs' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+              activeTab === 'acheteurs' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content/80'
             }`}
           >
             <Wallet size={18} />
@@ -390,7 +390,7 @@ const Locataires: React.FC = () => {
           <button
             onClick={() => { setActiveTab('requests'); setFilterValues({}); }}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'requests' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+              activeTab === 'requests' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content/80'
             }`}
           >
             <UserPlus size={18} />
@@ -400,7 +400,7 @@ const Locataires: React.FC = () => {
           <button
             onClick={() => setActiveTab('affectation')}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'affectation' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+              activeTab === 'affectation' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content/80'
             }`}
           >
             <Home size={18} />
@@ -413,16 +413,16 @@ const Locataires: React.FC = () => {
           {/* View mode toggle */}
           {activeTab !== 'affectation' && (
             <>
-              <div className="flex bg-gray-100 rounded-lg p-1">
+              <div className="flex bg-base-300 rounded-lg p-1">
                 <button 
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-base-100 shadow-sm text-primary' : 'text-gray-400 hover:text-base-content/70'}`}
                 >
                   <LayoutGrid size={18} />
                 </button>
                 <button 
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-base-100 shadow-sm text-primary' : 'text-gray-400 hover:text-base-content/70'}`}
                 >
                   <List size={18} />
                 </button>
@@ -433,7 +433,7 @@ const Locataires: React.FC = () => {
                 variant={showFilters ? 'primary' : 'ghost'} 
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
-                className={showFilters ? '' : 'text-gray-500'}
+                className={showFilters ? '' : 'text-base-content/60'}
               >
                 {showFilters ? <X size={16} className="mr-1" /> : null}
                 Filtres
@@ -448,7 +448,7 @@ const Locataires: React.FC = () => {
 
           <div className="h-6 w-px bg-gray-200"></div>
           
-          <span className="text-sm font-semibold text-gray-500">
+          <span className="text-sm font-semibold text-base-content/60">
             {filteredList.length} résultats
           </span>
         </div>
@@ -482,11 +482,11 @@ const Locataires: React.FC = () => {
           </motion.div>
         ) : activeTab === 'affectation' ? (
           <motion.div key="affectation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <Card className="border-none shadow-xl bg-white text-center py-12">
+            <Card className="border-none shadow-xl bg-base-100 text-center py-12">
               <div className="flex flex-col items-center">
                 <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-4"><Home size={32}/></div>
-                <h3 className="text-xl font-bold text-gray-800">Gestion des Affectations</h3>
-                <p className="text-gray-500 max-w-md mt-2 mb-6">Gérez ici l'attribution des logements à vos locataires.</p>
+                <h3 className="text-xl font-bold text-base-content/90">Gestion des Affectations</h3>
+                <p className="text-base-content/60 max-w-md mt-2 mb-6">Gérez ici l'attribution des logements à vos locataires.</p>
                 <Button variant="primary" onClick={() => navigate('/dashboard/locations')}>
                   Voir les Baux
                 </Button>
@@ -510,7 +510,7 @@ const Locataires: React.FC = () => {
                       key={person.id}
                       initial={{ scale: 0.9, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all group relative overflow-hidden"
+                      className="bg-base-100 rounded-2xl shadow-lg border border-base-200 p-6 hover:shadow-xl transition-all group relative overflow-hidden"
                     >
                       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary"></div>
                       
@@ -529,8 +529,8 @@ const Locataires: React.FC = () => {
                       </div>
 
 
-                      <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1">{person.prenoms} {person.nom}</h3>
-                      <p className="text-sm text-gray-500 mb-1 flex items-center gap-1.5">
+                      <h3 className="text-lg font-bold text-base-content leading-tight mb-1">{person.prenoms} {person.nom}</h3>
+                      <p className="text-sm text-base-content/60 mb-1 flex items-center gap-1.5">
                         <Phone size={12} /> {person.telephone_principal}
                       </p>
                       {person.email && (
@@ -542,7 +542,7 @@ const Locataires: React.FC = () => {
                       <div className="space-y-2 pt-4 border-t border-gray-50">
                         <div className="flex justify-between items-center text-sm">
                           <span className="text-gray-400 flex items-center gap-1.5"><Home size={14}/> Logement</span>
-                          <span className="font-semibold text-gray-800">{person.lot_nom || person.lot || '-'}</span>
+                          <span className="font-semibold text-base-content/90">{person.lot_nom || person.lot || '-'}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
                           <span className="text-gray-400 flex items-center gap-1.5"><Wallet size={14}/> Loyer</span>
@@ -624,10 +624,10 @@ const Locataires: React.FC = () => {
               </div>
             ) : (
               // List view
-              <Card className="border-none shadow-xl bg-white overflow-hidden p-0">
+              <Card className="border-none shadow-xl bg-base-100 overflow-hidden p-0">
                 <div className="overflow-x-auto">
                   <table className="table w-full">
-                    <thead className="bg-gray-50/50">
+                    <thead className="bg-base-200/50">
                       <tr>
                         <th className="py-4 pl-6">Nom</th>
                         <th className="py-4">Téléphone</th>
@@ -643,7 +643,7 @@ const Locataires: React.FC = () => {
                       {paginatedList.map((person) => {
                         const paymentStatus = getPaymentStatus(person);
                         return (
-                          <tr key={person.id} className="hover:bg-gray-50/50 transition-colors group">
+                          <tr key={person.id} className="hover:bg-base-200/50 transition-colors group">
                             <td className="pl-6">
                               <div className="flex items-center gap-3">
                                 {person.photo_profil_url ? (
@@ -654,13 +654,13 @@ const Locataires: React.FC = () => {
                                   </div>
                                 )}
                                 <div>
-                                  <p className="font-bold text-gray-800">{person.prenoms} {person.nom}</p>
+                                  <p className="font-bold text-base-content/90">{person.prenoms} {person.nom}</p>
                                 </div>
                               </div>
                             </td>
                             <td className="font-mono text-sm">{person.telephone_principal}</td>
-                            <td className="text-gray-500 text-sm">{person.email || '-'}</td>
-                            <td className="text-gray-600">{person.lot_nom || person.lot || '-'}</td>
+                            <td className="text-base-content/60 text-sm">{person.email || '-'}</td>
+                            <td className="text-base-content/70">{person.lot_nom || person.lot || '-'}</td>
                             <td className="font-semibold">{(person.loyer_actuel || person.loyer) ? `${(person.loyer_actuel || person.loyer)?.toLocaleString()} F` : '-'}</td>
                             <td><PaymentStatusBadge status={paymentStatus} /></td>
                             <td>

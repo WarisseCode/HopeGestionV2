@@ -130,12 +130,12 @@ const QuickActions: React.FC<QuickActionsProps> = ({ userType }) => {
               hover:shadow-md hover:-translate-y-1
             `}
           >
-            <div className={`p-3 rounded-full bg-white shadow-sm mb-3 group-hover:scale-110 transition-transform`}>
+            <div className={`p-3 rounded-full bg-base-100 shadow-sm mb-3 group-hover:scale-110 transition-transform`}>
               <Icon className={action.iconColor} size={20} />
             </div>
             <div className="text-center">
               <span className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">{action.description}</span>
-              <span className="block font-bold text-gray-700">{action.label}</span>
+              <span className="block font-bold text-base-content/80">{action.label}</span>
             </div>
           </button>
         );

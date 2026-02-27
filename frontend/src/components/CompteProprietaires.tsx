@@ -142,7 +142,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
 
     const activeFiltersCount = (filterType !== 'all' ? 1 : 0) + (filterMode !== 'all' ? 1 : 0);
 
-    if (loading) return <div className="p-8 text-center text-gray-500">Chargement des propriétaires...</div>;
+    if (loading) return <div className="p-8 text-center text-base-content/60">Chargement des propriétaires...</div>;
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -191,8 +191,8 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
 
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div>
-                    <h2 className="text-lg font-bold text-gray-800">{title}</h2>
-                    <p className="text-gray-500 text-sm">{subtitle}</p>
+                    <h2 className="text-lg font-bold text-base-content/90">{title}</h2>
+                    <p className="text-base-content/60 text-sm">{subtitle}</p>
                 </div>
                 
                 {!showForm && (
@@ -209,14 +209,14 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                         </div>
 
                         <div className="dropdown dropdown-end">
-                            <div tabIndex={0} role="button" className={`btn btn-sm gap-2 h-10 border shadow-sm ${activeFiltersCount > 0 ? 'btn-primary border-primary' : 'bg-white border-gray-200 text-gray-700'}`}>
+                            <div tabIndex={0} role="button" className={`btn btn-sm gap-2 h-10 border shadow-sm ${activeFiltersCount > 0 ? 'btn-primary border-primary' : 'bg-base-100 border-base-300 text-base-content/80'}`}>
                                 <Filter size={18} />
                                 <span className="hidden sm:inline">Filtres</span>
                                 {activeFiltersCount > 0 && (
                                     <span className="badge badge-xs badge-white text-primary font-bold p-1 px-1.5">{activeFiltersCount}</span>
                                 )}
                             </div>
-                            <div tabIndex={0} className="dropdown-content z-[20] menu p-4 shadow-xl bg-base-100 rounded-xl w-72 border border-gray-200 mt-2">
+                            <div tabIndex={0} className="dropdown-content z-[20] menu p-4 shadow-xl bg-base-100 rounded-xl w-72 border border-base-300 mt-2">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="font-bold text-sm">Filtres avancés</h3>
                                     {activeFiltersCount > 0 && (
@@ -235,22 +235,22 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                 <div className="space-y-4">
                                     <div className="space-y-2">
                                         <label className="text-[10px] uppercase font-bold text-gray-400">Type de propriétaire</label>
-                                        <div className="flex bg-gray-100 p-1 rounded-lg">
+                                        <div className="flex bg-base-300 p-1 rounded-lg">
                                             <button 
                                                 onClick={() => setFilterType('all')}
-                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterType === 'all' ? 'bg-white shadow-sm font-bold text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterType === 'all' ? 'bg-base-100 shadow-sm font-bold text-primary' : 'text-base-content/60 hover:text-base-content/80'}`}
                                             >
                                                 Tous
                                             </button>
                                             <button 
                                                 onClick={() => setFilterType('individual')}
-                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterType === 'individual' ? 'bg-white shadow-sm font-bold text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterType === 'individual' ? 'bg-base-100 shadow-sm font-bold text-primary' : 'text-base-content/60 hover:text-base-content/80'}`}
                                             >
                                                 Particulier
                                             </button>
                                             <button 
                                                 onClick={() => setFilterType('company')}
-                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterType === 'company' ? 'bg-white shadow-sm font-bold text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterType === 'company' ? 'bg-base-100 shadow-sm font-bold text-primary' : 'text-base-content/60 hover:text-base-content/80'}`}
                                             >
                                                 Entreprise
                                             </button>
@@ -259,22 +259,22 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
 
                                     <div className="space-y-2">
                                         <label className="text-[10px] uppercase font-bold text-gray-400">Mode de gestion</label>
-                                        <div className="flex bg-gray-100 p-1 rounded-lg">
+                                        <div className="flex bg-base-300 p-1 rounded-lg">
                                             <button 
                                                 onClick={() => setFilterMode('all')}
-                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterMode === 'all' ? 'bg-white shadow-sm font-bold text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterMode === 'all' ? 'bg-base-100 shadow-sm font-bold text-primary' : 'text-base-content/60 hover:text-base-content/80'}`}
                                             >
                                                 Tous
                                             </button>
                                             <button 
                                                 onClick={() => setFilterMode('direct')}
-                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterMode === 'direct' ? 'bg-white shadow-sm font-bold text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterMode === 'direct' ? 'bg-base-100 shadow-sm font-bold text-primary' : 'text-base-content/60 hover:text-base-content/80'}`}
                                             >
                                                 Directe
                                             </button>
                                             <button 
                                                 onClick={() => setFilterMode('delegated')}
-                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterMode === 'delegated' ? 'bg-white shadow-sm font-bold text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                                className={`flex-1 py-1.5 text-xs rounded-md transition ${filterMode === 'delegated' ? 'bg-base-100 shadow-sm font-bold text-primary' : 'text-base-content/60 hover:text-base-content/80'}`}
                                             >
                                                 Déléguée
                                             </button>
@@ -285,13 +285,13 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                         </div>
 
                         <div className="dropdown dropdown-end">
-                            <div tabIndex={0} role="button" className="btn btn-ghost btn-sm bg-white border border-gray-200 gap-2 h-10 shadow-sm text-gray-700">
+                            <div tabIndex={0} role="button" className="btn btn-ghost btn-sm bg-base-100 border border-base-300 gap-2 h-10 shadow-sm text-base-content/80">
                                 <Columns size={18} />
                                 <span className="hidden sm:inline">Colonnes</span>
                             </div>
-                            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-52 border border-gray-200">
+                            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-300">
                                 <li className="menu-title">
-                                    <span className="text-xs font-bold uppercase text-gray-500">Afficher</span>
+                                    <span className="text-xs font-bold uppercase text-base-content/60">Afficher</span>
                                 </li>
                                 <li><label className="cursor-pointer"><input type="checkbox" className="checkbox checkbox-xs" checked={visibleColumns.type} onChange={(e) => setVisibleColumns({...visibleColumns, type: e.target.checked})}/> Type</label></li>
                                 <li><label className="cursor-pointer"><input type="checkbox" className="checkbox checkbox-xs" checked={visibleColumns.contact} onChange={(e) => setVisibleColumns({...visibleColumns, contact: e.target.checked})}/> Contact</label></li>
@@ -336,7 +336,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                   }}
                 />
             ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden">
                     {filteredOwners.length === 0 ? (
                         <div className="p-12 text-center text-gray-400">
                             <Users size={48} className="mx-auto mb-4 opacity-20" />
@@ -350,7 +350,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
-                                <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
+                                <thead className="bg-base-200 text-base-content/70 text-xs uppercase tracking-wider">
                                     <tr>
                                         <th className="p-4 font-semibold">Propriétaire</th>
                                         {visibleColumns.type && <th className="p-4 font-semibold hidden md:table-cell text-center">Type</th>}
@@ -362,7 +362,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {filteredOwners.map((owner) => (
-                                        <tr key={owner.id} className="hover:bg-gray-50/50 transition cursor-pointer" onClick={() => handleEdit(owner)}>
+                                        <tr key={owner.id} className="hover:bg-base-200/50 transition cursor-pointer" onClick={() => handleEdit(owner)}>
                                             <td className="p-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="avatar placeholder">
@@ -375,7 +375,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <div className="font-semibold text-gray-900 leading-none mb-1">
+                                                        <div className="font-semibold text-base-content leading-none mb-1">
                                                             {owner.type === 'company' 
                                                                 ? (owner.company_name || owner.name)
                                                                 : `${owner.name} ${owner.first_name || ''}`}
@@ -398,7 +398,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                             {visibleColumns.contact && (
                                                 <td className="p-4">
                                                     <div className="flex flex-col gap-1">
-                                                        <span className="flex items-center gap-1.5 text-xs text-gray-700 font-medium">
+                                                        <span className="flex items-center gap-1.5 text-xs text-base-content/80 font-medium">
                                                             <Phone size={12} className="text-gray-400"/> {owner.phone}
                                                         </span>
                                                         {owner.email && (
@@ -411,7 +411,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                             )}
                                             {visibleColumns.adresse && (
                                                 <td className="p-4 hidden lg:table-cell">
-                                                    <div className="flex items-start gap-1.5 text-xs text-gray-600 max-w-[200px]">
+                                                    <div className="flex items-start gap-1.5 text-xs text-base-content/70 max-w-[200px]">
                                                         <MapPin size={12} className="text-gray-400 mt-0.5 shrink-0"/>
                                                         <span className="line-clamp-2">{owner.address || owner.city || '-'}</span>
                                                     </div>
@@ -430,17 +430,17 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                             )}
                                             <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                                                 <div className="dropdown dropdown-end">
-                                                    <div tabIndex={0} role="button" className="btn btn-ghost btn-xs btn-circle bg-gray-50 hover:bg-gray-100">
-                                                        <MoreVertical size={14} className="text-gray-500" />
+                                                    <div tabIndex={0} role="button" className="btn btn-ghost btn-xs btn-circle bg-base-200 hover:bg-base-300">
+                                                        <MoreVertical size={14} className="text-base-content/60" />
                                                     </div>
-                                                    <ul tabIndex={0} className="dropdown-content z-[2] menu p-2 shadow-xl bg-white rounded-xl w-52 border border-base-200">
+                                                    <ul tabIndex={0} className="dropdown-content z-[2] menu p-2 shadow-xl bg-base-100 rounded-xl w-52 border border-base-200">
                                                         <li>
-                                                            <a onClick={() => handleEdit(owner)} className="text-gray-700 hover:text-primary py-2.5">
+                                                            <a onClick={() => handleEdit(owner)} className="text-base-content/80 hover:text-primary py-2.5">
                                                                 <Edit3 size={16} /> <span className="font-medium">Modifier</span>
                                                             </a>
                                                         </li>
                                                         <li>
-                                                            <a onClick={() => handleDelete(owner.id)} className="text-gray-700 hover:text-warning py-2.5">
+                                                            <a onClick={() => handleDelete(owner.id)} className="text-base-content/80 hover:text-warning py-2.5">
                                                                 <Ban size={16} /> <span className="font-medium">Désactiver</span>
                                                             </a>
                                                         </li>

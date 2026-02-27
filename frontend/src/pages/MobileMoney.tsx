@@ -234,7 +234,7 @@ const MobileMoney: React.FC = () => {
                       <p className="text-blue-100 font-medium mb-1">Solde Total (Théorique)</p>
                       <h3 className="text-3xl font-bold">{stats.total.toLocaleString()} F</h3>
                   </div>
-                  <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <div className="p-3 bg-base-100/20 rounded-xl backdrop-blur-sm">
                       <Wallet size={24} className="text-white"/>
                   </div>
               </div>

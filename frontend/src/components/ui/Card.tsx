@@ -27,9 +27,9 @@ const Card: React.FC<CardProps> = ({
   headerActions,
 }) => {
   const variantClasses = {
-    elevated: 'bg-white shadow-soft border border-slate-100',
-    outlined: 'bg-white border border-slate-200 shadow-none',
-    flat: 'bg-slate-50 border-none shadow-none',
+    elevated: 'bg-base-100 shadow-soft border border-base-200',
+    outlined: 'bg-base-100 border border-base-300 shadow-none',
+    flat: 'bg-base-200 border-none shadow-none',
   };
 
   const hoverClasses = hoverable 
@@ -66,10 +66,10 @@ const Card: React.FC<CardProps> = ({
         <div className={`${contentPaddingClasses[padding]} pt-6 pb-4 flex items-start justify-between`}>
           <div>
             {title && (
-              <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+              <h3 className="text-lg font-bold text-base-content">{title}</h3>
             )}
             {subtitle && (
-              <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+              <p className="text-sm text-base-content/60 mt-1">{subtitle}</p>
             )}
           </div>
           {headerActions && (
@@ -83,7 +83,7 @@ const Card: React.FC<CardProps> = ({
         {children}
       </div>
       {actions && (
-        <div className={`${contentPaddingClasses[padding]} pb-6 pt-2 flex justify-end gap-3 border-t border-gray-100`}>
+        <div className={`${contentPaddingClasses[padding]} pb-6 pt-2 flex justify-end gap-3 border-t border-base-200`}>
           {actions}
         </div>
       )}

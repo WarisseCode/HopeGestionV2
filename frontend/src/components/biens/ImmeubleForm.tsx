@@ -164,9 +164,9 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-gray-50/50">
+    <div className="flex flex-col flex-1 min-h-0 bg-base-200/50">
       {/* Wizard Header */}
-      <div className="flex items-center justify-between px-12 py-6 bg-white border-b border-gray-200">
+      <div className="flex items-center justify-between px-12 py-6 bg-base-100 border-b border-base-300">
         {STEPS.map((step, idx) => {
             const isActive = idx === currentStep;
             const isCompleted = idx < currentStep;
@@ -187,7 +187,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                         {isCompleted ? <Check size={20} /> : step.icon}
                     </motion.div>
                     <span className={`mt-3 text-sm font-bold ${
-                        isActive ? 'text-blue-600' : isCompleted ? 'text-gray-800' : 'text-gray-400'
+                        isActive ? 'text-blue-600' : isCompleted ? 'text-base-content/90' : 'text-gray-400'
                     }`}>
                         {step.title}
                     </span>
@@ -220,8 +220,8 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                     {/* STEP 1: IDENTITE */}
                     {currentStep === 0 && (
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
-                                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                             <div className="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200 space-y-6">
+                                <h3 className="text-lg font-bold text-base-content/90 flex items-center gap-2">
                                     <Building2 className="text-blue-500" /> Informations générales
                                 </h3>
                                 
@@ -231,7 +231,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                                     onChange={(e) => handleChange('nom', e.target.value)}
                                     placeholder="Ex: Résidence Les Palmiers"
                                     required
-                                    className={`bg-gray-50 border-gray-200 focus:bg-white ${!formData.nom ? 'border-red-200 focus:border-red-500' : ''}`}
+                                    className={`bg-base-200 border-base-300 focus:bg-base-100 ${!formData.nom ? 'border-red-200 focus:border-red-500' : ''}`}
                                 />
 
                                 <div className="grid grid-cols-2 gap-6">
@@ -240,7 +240,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                                         value={formData.type || 'Immeuble'}
                                         onChange={(e) => handleChange('type', e.target.value)}
                                         options={TYPES_IMMEUBLE}
-                                        className="bg-gray-50 border-gray-200 focus:bg-white"
+                                        className="bg-base-200 border-base-300 focus:bg-base-100"
                                     />
                                     <Input
                                         label="Nbre d'étages"
@@ -248,7 +248,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                                         min={0}
                                         value={formData.nombre_etages ?? ''}
                                         onChange={(e) => handleChange('nombre_etages', e.target.value === '' ? '' : parseInt(e.target.value))}
-                                        className="bg-gray-50 border-gray-200 focus:bg-white"
+                                        className="bg-base-200 border-base-300 focus:bg-base-100"
                                     />
                                     <Input
                                         label="Nbre total de lots *"
@@ -258,13 +258,13 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                                         onChange={(e) => handleChange('total_lots', e.target.value === '' ? '' : parseInt(e.target.value))}
                                         placeholder="Ex: 12"
                                         required
-                                        className={`bg-gray-50 border-gray-200 focus:bg-white ${!formData.total_lots ? 'border-red-200' : ''}`}
+                                        className={`bg-base-200 border-base-300 focus:bg-base-100 ${!formData.total_lots ? 'border-red-200' : ''}`}
                                     />
                                 </div>
                                 <div className="form-control">
-                                    <label className="label font-bold text-sm text-gray-700">Description</label>
+                                    <label className="label font-bold text-sm text-base-content/80">Description</label>
                                     <textarea
-                                        className="textarea textarea-bordered h-32 bg-gray-50 border-gray-200 focus:bg-white w-full rounded-xl p-4 text-sm"
+                                        className="textarea textarea-bordered h-32 bg-base-200 border-base-300 focus:bg-base-100 w-full rounded-xl p-4 text-sm"
                                         value={formData.description || ''}
                                         onChange={(e) => handleChange('description', e.target.value)}
                                         placeholder="Description du bien, équipements, atouts..."
@@ -277,8 +277,8 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                     {/* STEP 2: LOCALISATION */}
                     {currentStep === 1 && (
                         <div className="space-y-6">
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
-                                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <div className="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200 space-y-6">
+                                <h3 className="text-lg font-bold text-base-content/90 flex items-center gap-2">
                                     <MapPin className="text-blue-500" /> Adresse & Coordonnées
                                 </h3>
                                 
@@ -287,7 +287,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                                     value={formData.adresse || ''}
                                     onChange={(e) => handleChange('adresse', e.target.value)}
                                     placeholder="Ex: 123 Rue de la Paix"
-                                    className="bg-gray-50 border-gray-200 focus:bg-white"
+                                    className="bg-base-200 border-base-300 focus:bg-base-100"
                                 />
 
                                 <div className="grid grid-cols-2 gap-6">
@@ -296,7 +296,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                                         value={formData.quartier || ''}
                                         onChange={(e) => handleChange('quartier', e.target.value)}
                                         placeholder="Ex: Akpakpa"
-                                        className="bg-gray-50 border-gray-200 focus:bg-white"
+                                        className="bg-base-200 border-base-300 focus:bg-base-100"
                                     />
                                     <Input
                                         label="Ville *"
@@ -304,14 +304,14 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                                         onChange={(e) => handleChange('ville', e.target.value)}
                                         placeholder="Ex: Cotonou"
                                         required
-                                        className={`bg-gray-50 border-gray-200 focus:bg-white ${!formData.ville ? 'border-red-200' : ''}`}
+                                        className={`bg-base-200 border-base-300 focus:bg-base-100 ${!formData.ville ? 'border-red-200' : ''}`}
                                     />
                                 </div>
                                 <Input
                                     label="Pays"
                                     value={formData.pays || 'Bénin'}
                                     onChange={(e) => handleChange('pays', e.target.value)}
-                                    className="bg-gray-50 border-gray-200 focus:bg-white"
+                                    className="bg-base-200 border-base-300 focus:bg-base-100"
                                 />
                                 
                                 {/* GPS Section */}
@@ -325,7 +325,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                                             value={formData.latitude || ''}
                                             onChange={(e) => handleChange('latitude', parseFloat(e.target.value) || null)}
                                             placeholder="6.3702"
-                                            className="bg-white border-blue-200"
+                                            className="bg-base-100 border-blue-200"
                                         />
                                         <Input
                                             label="Longitude"
@@ -334,7 +334,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                                             value={formData.longitude || ''}
                                             onChange={(e) => handleChange('longitude', parseFloat(e.target.value) || null)}
                                             placeholder="2.3912"
-                                            className="bg-white border-blue-200"
+                                            className="bg-base-100 border-blue-200"
                                         />
                                     </div>
                                 </div>
@@ -345,17 +345,17 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                     {/* STEP 3: GESTION */}
                     {currentStep === 2 && (
                          <div className="space-y-6">
-                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
-                                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                             <div className="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200 space-y-6">
+                                <h3 className="text-lg font-bold text-base-content/90 flex items-center gap-2">
                                     <Users className="text-blue-500" /> Propriétaire & Gestion
                                 </h3>
 
                                 <div className="space-y-4">
                                      {proprietaires.length > 1 ? (
                                         <div className="form-control w-full">
-                                            <label className="label font-bold text-sm text-gray-700">Propriétaire *</label>
+                                            <label className="label font-bold text-sm text-base-content/80">Propriétaire *</label>
                                             <select
-                                                className={`select select-bordered w-full bg-gray-50 border-gray-200 focus:bg-white h-12 ${!formData.owner_id ? 'select-error' : ''}`}
+                                                className={`select select-bordered w-full bg-base-200 border-base-300 focus:bg-base-100 h-12 ${!formData.owner_id ? 'select-error' : ''}`}
                                                 value={formData.owner_id || ''}
                                                 onChange={(e) => handleChange('owner_id', e.target.value ? parseInt(e.target.value) : 0)}
                                             >
@@ -390,9 +390,9 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
 
                                      {gestionnaires.length > 0 && (
                                          <div className="form-control w-full mt-4">
-                                            <label className="label font-bold text-sm text-gray-700">Gestionnaire (Optionnel)</label>
+                                            <label className="label font-bold text-sm text-base-content/80">Gestionnaire (Optionnel)</label>
                                             <select
-                                                className="select select-bordered w-full bg-gray-50 border-gray-200 focus:bg-white h-12"
+                                                className="select select-bordered w-full bg-base-200 border-base-300 focus:bg-base-100 h-12"
                                                 value={formData.gestionnaire_id || ''}
                                                 onChange={(e) => handleChange('gestionnaire_id', e.target.value ? parseInt(e.target.value) : null)}
                                             >
@@ -411,8 +411,8 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                     {/* STEP 4: MEDIAS & PARAMETRES */}
                     {currentStep === 3 && (
                         <div className="space-y-6">
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
-                                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <div className="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200 space-y-6">
+                                <h3 className="text-lg font-bold text-base-content/90 flex items-center gap-2">
                                     <Image className="text-blue-500" /> Photos & Vidéos
                                 </h3>
 
@@ -453,7 +453,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                                             folder="property" 
                                             label=""
                                             clearOnSuccess={true}
-                                            className="aspect-square bg-gray-50 border-dashed border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors rounded-xl"
+                                            className="aspect-square bg-base-200 border-dashed border-2 border-base-300 hover:border-blue-300 hover:bg-blue-50 transition-colors rounded-xl"
                                         />
                                     )}
                                 </div>
@@ -466,20 +466,20 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                                         value={formData.video_url || ''}
                                         onChange={(e) => handleChange('video_url', e.target.value)}
                                         placeholder="https://..."
-                                        className="bg-gray-50 border-gray-200 focus:bg-white"
+                                        className="bg-base-200 border-base-300 focus:bg-base-100"
                                     />
                                     <Input
                                         label="URL Plan de masse"
                                         value={formData.plan_masse_url || ''}
                                         onChange={(e) => handleChange('plan_masse_url', e.target.value)}
                                         placeholder="https://..."
-                                        className="bg-gray-50 border-gray-200 focus:bg-white"
+                                        className="bg-base-200 border-base-300 focus:bg-base-100"
                                     />
                                 </div>
                             </div>
 
-                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                             <div className="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200 space-y-4">
+                                <h3 className="text-lg font-bold text-base-content/90 flex items-center gap-2">
                                     <Settings className="text-blue-500" /> Statut
                                 </h3>
                                 <Select
@@ -487,7 +487,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                                     value={formData.statut || 'actif'}
                                     onChange={(e) => handleChange('statut', e.target.value)}
                                     options={STATUTS}
-                                    className="bg-gray-50 border-gray-200 focus:bg-white"
+                                    className="bg-base-200 border-base-300 focus:bg-base-100"
                                 />
                              </div>
                         </div>
@@ -498,10 +498,10 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
       </div>
 
        {/* Footer Buttons */}
-       <div className="p-6 bg-white border-t border-gray-200 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative z-20">
+       <div className="p-6 bg-base-100 border-t border-base-300 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative z-20">
             <button
                 onClick={currentStep === 0 ? onCancel : handleBack}
-                className="px-6 py-3 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition"
+                className="px-6 py-3 rounded-xl text-sm font-bold text-base-content/70 hover:bg-base-300 hover:text-base-content/90 transition"
             >
                 {currentStep === 0 ? 'Annuler' : 'Retour'}
             </button>

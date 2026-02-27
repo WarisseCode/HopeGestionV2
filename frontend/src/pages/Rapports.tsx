@@ -307,7 +307,7 @@ const Rapports: React.FC = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <Card className="border-none shadow-xl bg-base-100 p-8 text-center text-gray-500">
+            <Card className="border-none shadow-xl bg-base-100 p-8 text-center text-base-content/60">
                 <FileText className="mx-auto mb-4 opacity-20" size={60} />
                 <p className="text-lg font-medium">Bibliothèque de rapports archivés</p>
                 <p className="text-sm opacity-60">Les rapports générés seront listés ici.</p>

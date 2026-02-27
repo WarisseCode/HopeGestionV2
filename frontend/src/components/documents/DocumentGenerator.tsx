@@ -77,7 +77,7 @@ const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ onClose, onSucces
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="max-w-2xl w-full bg-white h-[600px] flex flex-col relative overflow-hidden">
+            <Card className="max-w-2xl w-full bg-base-100 h-[600px] flex flex-col relative overflow-hidden">
                 <div className="flex justify-between items-center mb-6 pb-4 border-b">
                     <h2 className="text-xl font-bold flex items-center gap-2">
                         <FileText className="text-blue-600" /> Générateur de Document
@@ -88,7 +88,7 @@ const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ onClose, onSucces
                 <div className="flex-1 overflow-y-auto p-2">
                     {step === 1 && (
                         <div className="space-y-4">
-                            <h3 className="font-bold text-gray-700">1. Choisissez un modèle</h3>
+                            <h3 className="font-bold text-base-content/80">1. Choisissez un modèle</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {templates.map(t => (
                                     <div 
@@ -97,8 +97,8 @@ const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ onClose, onSucces
                                         className="p-4 border rounded-xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-all flex items-center justify-between group"
                                     >
                                         <div>
-                                            <div className="font-bold text-gray-800">{t.name}</div>
-                                            <div className="text-xs text-gray-500 capitalize">{t.type}</div>
+                                            <div className="font-bold text-base-content/90">{t.name}</div>
+                                            <div className="text-xs text-base-content/60 capitalize">{t.type}</div>
                                         </div>
                                         <ArrowRight size={16} className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                                     </div>
@@ -114,7 +114,7 @@ const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ onClose, onSucces
 
                     {step === 2 && (
                         <div className="space-y-6">
-                            <div className="flex items-center gap-2 text-sm text-gray-500 mb-4 cursor-pointer hover:text-blue-600" onClick={() => setStep(1)}>
+                            <div className="flex items-center gap-2 text-sm text-base-content/60 mb-4 cursor-pointer hover:text-blue-600" onClick={() => setStep(1)}>
                                 ← Retour aux modèles
                             </div>
                             
@@ -123,17 +123,17 @@ const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ onClose, onSucces
                                 <div className="font-bold text-blue-900 text-lg">{selectedTemplate?.name}</div>
                             </div>
 
-                            <h3 className="font-bold text-gray-700">2. Sélectionnez les données</h3>
+                            <h3 className="font-bold text-base-content/80">2. Sélectionnez les données</h3>
                             
                             {loading ? (
                                 <div className="flex justify-center py-8"><Loader className="animate-spin text-blue-500" /></div>
                             ) : (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-base-content/80 mb-2">
                                         {selectedTemplate?.type === 'lease' ? 'Contrat de Bail concerné' : 'Entité concernée'}
                                     </label>
                                     <select 
-                                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-base-100"
                                         value={selectedEntityId}
                                         onChange={(e) => setSelectedEntityId(e.target.value)}
                                     >

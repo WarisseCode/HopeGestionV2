@@ -91,11 +91,11 @@ const AdminFinances: React.FC = () => {
                 <p className="opacity-80 font-medium">Revenu Total (2026)</p>
                 <h3 className="text-3xl font-bold mt-2">12.5M FCFA</h3>
               </div>
-              <div className="p-3 bg-white/20 rounded-xl">
+              <div className="p-3 bg-base-100/20 rounded-xl">
                 <DollarSign size={24} />
               </div>
             </div>
-            <div className="mt-4 flex items-center text-sm font-medium bg-white/10 w-fit px-2 py-1 rounded">
+            <div className="mt-4 flex items-center text-sm font-medium bg-base-100/10 w-fit px-2 py-1 rounded">
               <ArrowUpRight size={14} className="mr-1" /> +15.2% vs 2025
             </div>
           </Card>
