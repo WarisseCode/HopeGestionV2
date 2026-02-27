@@ -40,18 +40,32 @@ const ChatBot: React.FC = () => {
 
 
 
-  // 10. Message Proactif
+  // 10. Message Proactif (Une seule fois par session lors de la connexion)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      // Si le chat n'est pas ouvert, qu'il n'y a pas eu d'interaction et que l'historique est vide (ou juste message d'accueil)
-      if (!isOpen && !hasInteracted && messages.length <= 1) {
-        setIsOpen(true);
-        playSound();
-      }
-    }, 30000); // 30 secondes
+    const hasSessionOpened = sessionStorage.getItem('chatbot_session_opened');
+    
+    if (!hasSessionOpened) {
+      const timer = setTimeout(() => {
+        setIsOpen(prevIsOpen => {
+          if (!prevIsOpen) {
+            playSound();
+            sessionStorage.setItem('chatbot_session_opened', 'true');
+            return true;
+          }
+          return prevIsOpen;
+        });
+      }, 5000); // 5 secondes après la nouvelle connexion
 
-    return () => clearTimeout(timer);
-  }, [hasInteracted, isOpen, messages.length]);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  // Marquer comme ouvert dans la session si l'utilisateur l'ouvre manuellement
+  useEffect(() => {
+    if (isOpen) {
+      sessionStorage.setItem('chatbot_session_opened', 'true');
+    }
+  }, [isOpen]);
 
   // 5. Historique Persistant
   useEffect(() => {
