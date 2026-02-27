@@ -397,7 +397,7 @@ const Finances: React.FC = () => {
                                     <th className="py-4 font-semibold">Statut</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-base-200">
                                 {paiements.map((item) => (
                                     <tr key={item.id} className="hover:bg-base-200/50">
                                         <td className="pl-6 py-3 font-medium text-base-content/90">P-00{item.id}</td>
@@ -445,7 +445,7 @@ const Finances: React.FC = () => {
               <p className="text-base-content/70">
                   Cette action va générer automatiquement les quittances de loyer pour tous les baux actifs du mois courant.
               </p>
-              <div className="bg-blue-50 text-blue-800 p-4 rounded-lg text-sm">
+              <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 p-4 rounded-lg text-sm border border-blue-200 dark:border-blue-700">
                   ℹ️ Les quittances déjà existantes pour ce mois ne seront pas dupliquées.
               </div>
           </div>

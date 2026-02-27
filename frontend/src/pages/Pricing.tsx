@@ -170,10 +170,10 @@ const Pricing: React.FC = () => {
 
     const getPlanGradient = (name: string) => {
         switch (name) {
-            case 'free': return 'from-gray-50 to-gray-100 border-base-300';
-            case 'pro': return 'from-amber-50 to-orange-50 border-amber-200 ring-2 ring-amber-300';
-            case 'enterprise': return 'from-purple-50 to-indigo-50 border-purple-200';
-            default: return 'from-gray-50 to-gray-100';
+            case 'free': return 'from-slate-100/80 to-slate-50 dark:from-slate-800 dark:to-slate-900 border-slate-200 dark:border-slate-700';
+            case 'pro': return 'from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 ring-2 ring-amber-300 dark:ring-amber-600';
+            case 'enterprise': return 'from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-700';
+            default: return 'from-slate-100/80 to-slate-50 dark:from-slate-800 dark:to-slate-900';
         }
     };
 
@@ -316,10 +316,10 @@ const Pricing: React.FC = () => {
                                 disabled={isCurrent}
                                 className={`w-full py-3 rounded-xl font-bold transition-all ${
                                     isCurrent 
-                                        ? 'bg-gray-200 text-base-content/60 cursor-not-allowed'
+                                        ? 'bg-base-300 text-base-content/60 cursor-not-allowed'
                                         : plan.name === 'pro'
                                             ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg hover:shadow-amber-500/30'
-                                            : 'bg-gray-900 text-white hover:bg-gray-800'
+                                            : 'bg-neutral text-neutral-content hover:opacity-90'
                                 }`}
                             >
                                 {isCurrent ? 'Plan Actuel' : plan.price === 0 ? 'Activer' : 'Souscrire'}

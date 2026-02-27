@@ -375,7 +375,7 @@ const Locataires: React.FC = () => {
           >
             <Users size={18} />
             Locataires
-            <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-200 text-xs">{locataires.length}</span>
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-base-300 text-base-content/60 text-xs">{locataires.length}</span>
           </button>
           <button
             onClick={() => { setActiveTab('acheteurs'); setFilterValues({}); }}
@@ -385,7 +385,7 @@ const Locataires: React.FC = () => {
           >
             <Wallet size={18} />
             Acheteurs
-            <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-200 text-xs">{acheteurs.length}</span>
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-base-300 text-base-content/60 text-xs">{acheteurs.length}</span>
           </button>
           <button
             onClick={() => { setActiveTab('requests'); setFilterValues({}); }}
@@ -446,7 +446,7 @@ const Locataires: React.FC = () => {
             </>
           )}
 
-          <div className="h-6 w-px bg-gray-200"></div>
+          <div className="h-6 w-px bg-base-300"></div>
           
           <span className="text-sm font-semibold text-base-content/60">
             {filteredList.length} résultats
@@ -496,7 +496,7 @@ const Locataires: React.FC = () => {
         ) : (
           <motion.div key="list" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
             {paginatedList.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
+              <div className="text-center py-12 text-base-content/40">
                 <Users size={48} className="mx-auto mb-4 opacity-50" />
                 <p className="font-medium">Aucun {activeTab === 'acheteurs' ? 'acheteur' : 'locataire'} trouvé</p>
                 <p className="text-sm mt-1">Modifiez vos critères de recherche</p>
@@ -516,9 +516,9 @@ const Locataires: React.FC = () => {
                       
                       <div className="flex justify-between items-start mb-4">
                         {person.photo_profil_url ? (
-                          <img src={person.photo_profil_url} alt={person.nom} className="w-14 h-14 rounded-full object-cover ring-4 ring-white shadow-sm" />
+                          <img src={person.photo_profil_url} alt={person.nom} className="w-14 h-14 rounded-full object-cover ring-4 ring-base-100 shadow-sm" />
                         ) : (
-                          <div className={`w-14 h-14 ${getAvatarColor(person.nom)} rounded-full flex items-center justify-center text-white text-xl font-bold ring-4 ring-white shadow-sm`}>
+                          <div className={`w-14 h-14 ${getAvatarColor(person.nom)} rounded-full flex items-center justify-center text-white text-xl font-bold ring-4 ring-base-100 shadow-sm`}>
                             {person.nom?.charAt(0)}{person.prenoms?.charAt(0)}
                           </div>
                         )}
@@ -534,18 +534,18 @@ const Locataires: React.FC = () => {
                         <Phone size={12} /> {person.telephone_principal}
                       </p>
                       {person.email && (
-                        <p className="text-xs text-gray-400 mb-3 flex items-center gap-1.5 truncate">
+                        <p className="text-xs text-base-content/40 mb-3 flex items-center gap-1.5 truncate">
                           <Mail size={12} /> {person.email}
                         </p>
                       )}
 
-                      <div className="space-y-2 pt-4 border-t border-gray-50">
+                      <div className="space-y-2 pt-4 border-t border-base-200">
                         <div className="flex justify-between items-center text-sm">
-                          <span className="text-gray-400 flex items-center gap-1.5"><Home size={14}/> Logement</span>
+                          <span className="text-base-content/50 flex items-center gap-1.5"><Home size={14}/> Logement</span>
                           <span className="font-semibold text-base-content/90">{person.lot_nom || person.lot || '-'}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
-                          <span className="text-gray-400 flex items-center gap-1.5"><Wallet size={14}/> Loyer</span>
+                          <span className="text-base-content/50 flex items-center gap-1.5"><Wallet size={14}/> Loyer</span>
                           <span className="font-semibold text-primary">{(person.loyer_actuel || person.loyer) ? `${(person.loyer_actuel || person.loyer)?.toLocaleString()} F` : '-'}</span>
                         </div>
                         {(person.loyer_actuel || person.loyer) && (
@@ -557,24 +557,24 @@ const Locataires: React.FC = () => {
                       </div>
 
                       {/* Quick Actions - Always visible on mobile, hover on desktop */}
-                      <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-gray-50">
+                      <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-base-200">
                         <button 
                           onClick={() => handleWhatsApp(person.telephone_principal, person.prenoms)}
-                          className="btn btn-sm btn-ghost bg-green-50 hover:bg-green-100 text-green-600"
+                          className="btn btn-sm btn-ghost bg-green-100/50 dark:bg-green-900/20 hover:bg-green-100 text-green-600"
                           title="WhatsApp"
                         >
                           <MessageCircle size={16} />
                         </button>
                         <button 
                           onClick={() => handleCall(person.telephone_principal)}
-                          className="btn btn-sm btn-ghost bg-blue-50 hover:bg-blue-100 text-blue-600"
+                          className="btn btn-sm btn-ghost bg-blue-100/50 dark:bg-blue-900/20 hover:bg-blue-100 text-blue-600"
                           title="Appeler"
                         >
                           <Phone size={16} />
                         </button>
                         <button 
                           onClick={() => navigate(`/dashboard/locataires/${person.id}`)}
-                          className="btn btn-sm btn-ghost bg-purple-50 hover:bg-purple-100 text-purple-600"
+                          className="btn btn-sm btn-ghost bg-purple-100/50 dark:bg-purple-900/20 hover:bg-purple-100 text-purple-600"
                           title="Détails"
                         >
                           <Eye size={16} />
@@ -583,7 +583,7 @@ const Locataires: React.FC = () => {
 
                       {/* Approval Actions for Pending Requests */}
                       {activeTab === 'requests' && (
-                        <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-gray-50">
+                        <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-base-200">
                            <button 
                              onClick={async (e) => {
                                e.stopPropagation();
@@ -639,7 +639,7 @@ const Locataires: React.FC = () => {
                         <th className="py-4 pr-6 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-base-200">
                       {paginatedList.map((person) => {
                         const paymentStatus = getPaymentStatus(person);
                         return (

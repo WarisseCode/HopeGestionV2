@@ -185,17 +185,17 @@ const ReservationsList: React.FC = () => {
             {/* Reservations List */}
             <div className="bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden">
                 {loading ? (
-                    <div className="p-12 text-center text-gray-400">
+                    <div className="p-12 text-center text-base-content/40">
                         <RefreshCw className="animate-spin mx-auto mb-2" size={24} />
                         Chargement...
                     </div>
                 ) : filteredReservations.length === 0 ? (
-                    <div className="p-12 text-center text-gray-400">
+                    <div className="p-12 text-center text-base-content/40">
                         <Calendar className="mx-auto mb-2 opacity-50" size={32} />
                         Aucune réservation {filter !== 'all' ? `(${filter})` : ''}
                     </div>
                 ) : (
-                    <div className="divide-y divide-gray-100">
+                    <div className="divide-y divide-base-200">
                         <AnimatePresence>
                             {filteredReservations.map((reservation, idx) => (
                                 <motion.div
@@ -210,7 +210,7 @@ const ReservationsList: React.FC = () => {
                                         {/* Info */}
                                         <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div>
-                                                <p className="text-xs text-gray-400 uppercase font-bold mb-1">Client</p>
+                                                <p className="text-xs text-base-content/40 uppercase font-bold mb-1">Client</p>
                                                 <p className="font-semibold text-base-content flex items-center gap-2">
                                                     <User size={14} className="text-gray-400" />
                                                     {reservation.locataire_nom} {reservation.locataire_prenoms}
@@ -220,7 +220,7 @@ const ReservationsList: React.FC = () => {
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-xs text-gray-400 uppercase font-bold mb-1">Bien</p>
+                                                <p className="text-xs text-base-content/40 uppercase font-bold mb-1">Bien</p>
                                                 <p className="font-semibold text-base-content flex items-center gap-2">
                                                     <Building size={14} className="text-gray-400" />
                                                     {reservation.ref_lot}
@@ -228,7 +228,7 @@ const ReservationsList: React.FC = () => {
                                                 <p className="text-sm text-base-content/60">{reservation.immeuble_nom}</p>
                                             </div>
                                             <div>
-                                                <p className="text-xs text-gray-400 uppercase font-bold mb-1">Date souhaitée</p>
+                                                <p className="text-xs text-base-content/40 uppercase font-bold mb-1">Date souhaitée</p>
                                                 <p className="font-semibold text-base-content flex items-center gap-2">
                                                     <Calendar size={14} className="text-gray-400" />
                                                     {new Date(reservation.date_debut).toLocaleDateString('fr-FR')}
