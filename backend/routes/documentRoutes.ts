@@ -399,7 +399,8 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
         // Header Section (Dark Blue banner)
         doc.rect(0, 0, pageWidth, 90).fill('#1E3A8A'); 
         // Insert logo image instead of text
-        const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
+        // process.cwd() resolves to the backend root in both dev and production (dist/)
+        const logoPath = path.join(process.cwd(), 'assets', 'logo.png');
         if (fs.existsSync(logoPath)) {
             doc.image(logoPath, 30, 10, { height: 70 });
         } else {
