@@ -3,17 +3,12 @@ import React, { useState } from 'react';
 import { 
   FileText, 
   Plus, 
-  Edit3, 
   Eye, 
-  Trash2, 
-  Calendar, 
   Home,
-  Users,
   Wallet,
   Download,
   Upload,
   Clock,
-  CheckCircle,
   XCircle,
   Search,
   FileCheck
@@ -23,6 +18,7 @@ import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { KPICard } from '../components/dashboard';
+import toast from 'react-hot-toast';
 
 const Contrats: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'locations' | 'ventes' | 'interventions'>('locations');
@@ -244,9 +240,9 @@ const Contrats: React.FC = () => {
                                         <td className="font-bold text-primary">{item.loyer.toLocaleString()} F/mois</td>
                                         <td><span className="badge badge-success badge-sm gap-1">ACTIF</span></td>
                                         <td className="pr-6 text-right">
-                                            <div className="flex justify-end gap-1">
-                                                <Button variant="ghost" size="sm" className="w-8 h-8 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"><Eye size={16}/></Button>
-                                                <Button variant="ghost" size="sm" className="w-8 h-8 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"><Download size={16}/></Button>
+                                            <div className="flex justify-end gap-2">
+                                                <Button variant="ghost" size="sm" className="w-10 h-10 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => window.open(item.fichier, '_blank')} title="Voir le contrat"><Eye size={20}/></Button>
+                                                <Button variant="ghost" size="sm" className="w-10 h-10 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => toast.success(`Téléchargement de ${item.fichier}`)} title="Télécharger"><Download size={20}/></Button>
                                             </div>
                                         </td>
                                     </tr>
@@ -264,9 +260,9 @@ const Contrats: React.FC = () => {
                                         <td className="font-bold text-green-600">{item.prixVente.toLocaleString()} F</td>
                                         <td><span className="badge badge-warning badge-sm gap-1">EN COURS</span></td>
                                         <td className="pr-6 text-right">
-                                            <div className="flex justify-end gap-1">
-                                                <Button variant="ghost" size="sm" className="w-8 h-8 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"><Eye size={16}/></Button>
-                                                <Button variant="ghost" size="sm" className="w-8 h-8 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"><Download size={16}/></Button>
+                                            <div className="flex justify-end gap-2">
+                                                <Button variant="ghost" size="sm" className="w-10 h-10 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => window.open(item.fichier, '_blank')} title="Voir le contrat"><Eye size={20}/></Button>
+                                                <Button variant="ghost" size="sm" className="w-10 h-10 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => toast.success(`Téléchargement de ${item.fichier}`)} title="Télécharger"><Download size={20}/></Button>
                                             </div>
                                         </td>
                                     </tr>
@@ -284,9 +280,9 @@ const Contrats: React.FC = () => {
                                         <td className="font-bold text-base-content/80">{item.cout.toLocaleString()} F</td>
                                         <td><span className="badge badge-info badge-sm gap-1">EN COURS</span></td>
                                         <td className="pr-6 text-right">
-                                            <div className="flex justify-end gap-1">
-                                                <Button variant="ghost" size="sm" className="w-8 h-8 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"><Eye size={16}/></Button>
-                                                <Button variant="ghost" size="sm" className="w-8 h-8 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"><Download size={16}/></Button>
+                                            <div className="flex justify-end gap-2">
+                                                <Button variant="ghost" size="sm" className="w-10 h-10 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => window.open(item.fichier, '_blank')} title="Voir le document d'intervention"><Eye size={20}/></Button>
+                                                <Button variant="ghost" size="sm" className="w-10 h-10 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => toast.success(`Téléchargement de ${item.fichier}`)} title="Télécharger"><Download size={20}/></Button>
                                             </div>
                                         </td>
                                     </tr>
