@@ -398,8 +398,15 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
 
         // Header Section (Dark Blue banner)
         doc.rect(0, 0, pageWidth, 90).fill('#1E3A8A'); 
-        doc.fillColor('#FFFFFF').fontSize(24).font('Helvetica-Bold').text('HOPE GIMMO', 50, 25);
-        doc.fontSize(10).font('Helvetica-Oblique').text('Votre partenaire immobilier local de confiance', 50, 55);
+        // Insert logo image instead of text
+        const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
+        if (fs.existsSync(logoPath)) {
+            doc.image(logoPath, 30, 10, { height: 70 });
+        } else {
+            // Fallback to text if logo file not found
+            doc.fillColor('#FFFFFF').fontSize(24).font('Helvetica-Bold').text('HOPE GIMMO', 50, 25);
+        }
+        doc.fillColor('#FFFFFF').fontSize(10).font('Helvetica-Oblique').text('Votre partenaire immobilier de confiance', 50, 55);
         
         doc.fontSize(12).font('Helvetica-Bold').text('CONTRAT DE BAIL', pageWidth - 250, 25, { align: 'right', width: 200 });
         doc.fontSize(10).font('Helvetica').text(`Réf: ${data.reference_bail || 'Auto-généré'}`, pageWidth - 250, 45, { align: 'right', width: 200 });
