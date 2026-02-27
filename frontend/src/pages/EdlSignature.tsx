@@ -68,13 +68,13 @@ const EdlSignature: React.FC = () => {
         <div className="p-6 max-w-4xl mx-auto">
             <button 
                 onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white mb-6"
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-6"
             >
                 <ArrowLeft size={20} /> Retour
             </button>
 
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
                     <PenTool className="text-blue-600" />
                     Signature de l'État des Lieux
                 </h1>
@@ -92,10 +92,10 @@ const EdlSignature: React.FC = () => {
                 <div className="grid md:grid-cols-2 gap-12">
                     {/* Agent Signature */}
                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 font-bold text-gray-700 dark:text-gray-200">
+                        <div className="flex items-center gap-2 font-bold text-gray-700">
                             <Building size={18} /> Signature Agent / Gestionnaire
                         </div>
-                        <div className="border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 dark:bg-slate-900/50 relative h-64">
+                        <div className="border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 relative h-64">
                             <SignatureCanvas 
                                 ref={agentSigRef}
                                 canvasProps={{className: 'w-full h-full rounded-xl'}}
@@ -120,10 +120,10 @@ const EdlSignature: React.FC = () => {
 
                     {/* Locataire Signature */}
                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 font-bold text-gray-700 dark:text-gray-200">
+                        <div className="flex items-center gap-2 font-bold text-gray-700">
                             <User size={18} /> Signature Locataire
                         </div>
-                        <div className="border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 dark:bg-slate-900/50 relative h-64">
+                        <div className="border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 relative h-64">
                             <SignatureCanvas 
                                 ref={locataireSigRef}
                                 canvasProps={{className: 'w-full h-full rounded-xl'}}
@@ -147,7 +147,7 @@ const EdlSignature: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="mt-12 pt-8 border-t border-gray-100 dark:border-slate-700/50 flex justify-end gap-4">
+                <div className="mt-12 pt-8 border-t border-gray-100 flex justify-end gap-4">
                     <button 
                         onClick={() => navigate(-1)}
                         className="btn-ghost"

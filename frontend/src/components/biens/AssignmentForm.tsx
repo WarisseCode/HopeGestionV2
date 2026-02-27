@@ -140,8 +140,8 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
   return (
     <div className="flex flex-col h-full bg-base-100 p-6 max-w-4xl mx-auto rounded-xl">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Affectation du Lot {lot.reference}</h2>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{lot.type} - {lot.superficie} m²</p>
+        <h2 className="text-2xl font-bold text-gray-900">Affectation du Lot {lot.reference}</h2>
+        <p className="text-gray-500 text-sm mt-1">{lot.type} - {lot.superficie} m²</p>
       </div>
 
       {error && (
@@ -157,8 +157,8 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
         <div className="space-y-6">
           
           {/* 1. Choix du client */}
-          <div className="card bg-white dark:bg-slate-800 border border-base-200 p-4 shadow-sm z-50"> 
-            <label className="label text-sm font-semibold text-gray-700 dark:text-gray-200">Client (Locataire/Acheteur)</label>
+          <div className="card bg-white border border-base-200 p-4 shadow-sm z-50"> 
+            <label className="label text-sm font-semibold text-gray-700">Client (Locataire/Acheteur)</label>
             
             {!selectedClient ? (
               <div className="relative">
@@ -177,7 +177,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
 
                 {/* Dropdown Results */}
                 {clientSearch.length > 1 && (
-                  <div className="absolute top-full left-0 right-0 bg-white dark:bg-slate-800 shadow-xl border border-base-200 rounded-lg mt-1 max-h-60 overflow-y-auto z-50">
+                  <div className="absolute top-full left-0 right-0 bg-white shadow-xl border border-base-200 rounded-lg mt-1 max-h-60 overflow-y-auto z-50">
                     {clients.length > 0 ? (
                       clients.map(client => (
                         <div 
@@ -196,13 +196,13 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                           </div>
                           <div>
                             <div className="font-medium text-sm">{client.nom} {client.prenoms}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">{client.telephone_principal}</div>
+                            <div className="text-xs text-gray-500">{client.telephone_principal}</div>
                           </div>
                           <span className={`badge badge-sm ml-auto ${client.type === 'Acheteur' ? 'badge-primary' : 'badge-ghost'}`}>{client.type}</span>
                         </div>
                       ))
                     ) : (
-                      <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                      <div className="p-4 text-center text-sm text-gray-500">
                         Aucun résultat. 
                         <a href="/contacts/nouveau" target="_blank" className="text-primary hover:underline ml-1">Créer ?</a>
                       </div>
@@ -219,7 +219,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                     </div>
                   </div>
                   <div>
-                    <div className="font-bold text-gray-900 dark:text-white">{selectedClient.nom} {selectedClient.prenoms}</div>
+                    <div className="font-bold text-gray-900">{selectedClient.nom} {selectedClient.prenoms}</div>
                     <div className="text-xs text-primary">{selectedClient.type}</div>
                   </div>
                 </div>
@@ -234,8 +234,8 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
           </div>
 
           {/* 2. Type d'affectation */}
-          <div className="card bg-white dark:bg-slate-800 border border-base-200 p-4 shadow-sm">
-            <label className="label text-sm font-semibold text-gray-700 dark:text-gray-200">Type d'affectation</label>
+          <div className="card bg-white border border-base-200 p-4 shadow-sm">
+            <label className="label text-sm font-semibold text-gray-700">Type d'affectation</label>
             <div className="grid grid-cols-1 gap-2">
               <button 
                 className={`btn justify-start gap-3 ${type === 'location' ? 'btn-primary' : 'btn-ghost bg-base-100'}`}
@@ -250,7 +250,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                 className={`btn justify-start gap-3 ${type === 'vente' ? 'btn-success text-white' : 'btn-ghost bg-base-100'}`}
                 onClick={() => setType('vente')}
               >
-                <div className={`p-1 rounded ${type === 'vente' ? 'bg-white dark:bg-slate-800/20' : 'bg-gray-200'}`}>
+                <div className={`p-1 rounded ${type === 'vente' ? 'bg-white/20' : 'bg-gray-200'}`}>
                    <DollarSign size={16} /> 
                 </div>
                 Vente Directe
@@ -259,7 +259,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                 className={`btn justify-start gap-3 ${type === 'reservation' ? 'btn-warning text-white' : 'btn-ghost bg-base-100'}`}
                 onClick={() => setType('reservation')}
               >
-                <div className={`p-1 rounded ${type === 'reservation' ? 'bg-white dark:bg-slate-800/20' : 'bg-gray-200'}`}>
+                <div className={`p-1 rounded ${type === 'reservation' ? 'bg-white/20' : 'bg-gray-200'}`}>
                    <Calendar size={16} /> 
                 </div>
                 Réservation
@@ -271,7 +271,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
         {/* Middle & Right: Dynamic Form Fields */}
         <div className="lg:col-span-2 space-y-6">
           
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-base-200 shadow-sm relative overflow-hidden">
+          <div className="bg-white p-6 rounded-xl border border-base-200 shadow-sm relative overflow-hidden">
              {/* Header Stripe based on Type */}
              <div className={`absolute top-0 left-0 right-0 h-1 
                ${type === 'location' ? 'bg-primary' : ''}

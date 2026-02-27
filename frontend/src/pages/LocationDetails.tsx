@@ -94,7 +94,7 @@ const LocationDetails: React.FC = () => {
             case 'partiel': return { color: 'bg-yellow-100 text-yellow-700', icon: <Clock size={14} /> };
             case 'retard': return { color: 'bg-red-100 text-red-700', icon: <AlertTriangle size={14} /> };
             case 'impaye': return { color: 'bg-red-200 text-red-800', icon: <XCircle size={14} /> };
-            default: return { color: 'bg-gray-100 dark:bg-slate-800/50 text-gray-600 dark:text-gray-300', icon: <Clock size={14} /> };
+            default: return { color: 'bg-gray-100 text-gray-600', icon: <Clock size={14} /> };
         }
     };
 
@@ -128,20 +128,20 @@ const LocationDetails: React.FC = () => {
             <div className="flex items-center gap-4">
                 <button 
                     onClick={() => navigate('/dashboard/locations')}
-                    className="p-2 hover:bg-gray-100 dark:bg-slate-800/50 rounded-lg transition"
+                    className="p-2 hover:bg-gray-100 rounded-lg transition"
                 >
                     <ArrowLeft size={20} />
                 </button>
                 <div className="flex-1">
-                    <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{location.reference_bail}</h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <h1 className="text-2xl font-bold text-gray-800">{location.reference_bail}</h1>
+                    <p className="text-sm text-gray-500">
                         {location.locataire_prenoms} {location.locataire_nom} • {location.ref_lot}
                     </p>
                 </div>
                 <span className={`px-4 py-2 rounded-full text-sm font-medium capitalize ${
                     location.statut === 'actif' ? 'bg-green-100 text-green-700' :
                     location.statut === 'signe' ? 'bg-blue-100 text-blue-700' :
-                    'bg-gray-100 dark:bg-slate-800/50 text-gray-600 dark:text-gray-300'
+                    'bg-gray-100 text-gray-600'
                 }`}>
                     {location.statut}
                 </span>
@@ -159,8 +159,8 @@ const LocationDetails: React.FC = () => {
                             <DollarSign className="text-blue-600" size={20} />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{formatCurrency(location.loyer_mensuel)}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Loyer mensuel</p>
+                            <p className="text-2xl font-bold text-gray-800">{formatCurrency(location.loyer_mensuel)}</p>
+                            <p className="text-xs text-gray-500">Loyer mensuel</p>
                         </div>
                     </div>
                 </Card>
@@ -171,7 +171,7 @@ const LocationDetails: React.FC = () => {
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid)}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Total payé</p>
+                            <p className="text-xs text-gray-500">Total payé</p>
                         </div>
                     </div>
                 </Card>
@@ -182,7 +182,7 @@ const LocationDetails: React.FC = () => {
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-orange-600">{formatCurrency(balance)}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Solde restant</p>
+                            <p className="text-xs text-gray-500">Solde restant</p>
                         </div>
                     </div>
                 </Card>
@@ -192,21 +192,21 @@ const LocationDetails: React.FC = () => {
                             <Calendar className="text-purple-600" size={20} />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{echeancier.length}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Échéances</p>
+                            <p className="text-2xl font-bold text-gray-800">{echeancier.length}</p>
+                            <p className="text-xs text-gray-500">Échéances</p>
                         </div>
                     </div>
                 </Card>
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-gray-200 dark:border-slate-700">
+            <div className="flex border-b border-gray-200">
                 <button 
                     onClick={() => setActiveTab('echeancier')}
                     className={`px-4 py-3 text-sm font-medium border-b-2 transition ${
                         activeTab === 'echeancier' 
                             ? 'border-primary text-primary' 
-                            : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                 >
                     <Calendar size={16} className="inline mr-2" />
@@ -217,7 +217,7 @@ const LocationDetails: React.FC = () => {
                     className={`px-4 py-3 text-sm font-medium border-b-2 transition ${
                         activeTab === 'infos' 
                             ? 'border-primary text-primary' 
-                            : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                 >
                     <FileText size={16} className="inline mr-2" />
@@ -229,7 +229,7 @@ const LocationDetails: React.FC = () => {
             {activeTab === 'echeancier' && (
                 <Card className="overflow-hidden">
                     {echeancier.length === 0 ? (
-                        <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                        <div className="p-8 text-center text-gray-500">
                             <Calendar size={48} className="mx-auto mb-4 text-gray-300" />
                             <p>Aucun échéancier généré pour ce contrat.</p>
                             <p className="text-sm">L'échéancier est créé automatiquement pour les paiements échelonnés.</p>
@@ -237,7 +237,7 @@ const LocationDetails: React.FC = () => {
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-gray-50 dark:bg-slate-900/50 text-gray-600 dark:text-gray-300 text-sm">
+                                <thead className="bg-gray-50 text-gray-600 text-sm">
                                     <tr>
                                         <th className="p-4 text-left">#</th>
                                         <th className="p-4 text-left">Date échéance</th>
@@ -257,7 +257,7 @@ const LocationDetails: React.FC = () => {
                                                 key={item.id}
                                                 initial={{ opacity: 0 }}
                                                 animate={{ opacity: 1 }}
-                                                className="hover:bg-gray-50 dark:bg-slate-900/50 transition"
+                                                className="hover:bg-gray-50 transition"
                                             >
                                                 <td className="p-4 font-mono text-sm">{item.numero_echeance}</td>
                                                 <td className="p-4">
@@ -300,43 +300,43 @@ const LocationDetails: React.FC = () => {
             {activeTab === 'infos' && (
                 <Card className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                        <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                             <User size={18} /> Locataire
                         </h3>
                         <div className="space-y-2 text-sm">
-                            <p><span className="text-gray-500 dark:text-gray-400">Nom:</span> {location.locataire_prenoms} {location.locataire_nom}</p>
-                            <p><span className="text-gray-500 dark:text-gray-400">Téléphone:</span> {location.locataire_telephone || '-'}</p>
+                            <p><span className="text-gray-500">Nom:</span> {location.locataire_prenoms} {location.locataire_nom}</p>
+                            <p><span className="text-gray-500">Téléphone:</span> {location.locataire_telephone || '-'}</p>
                         </div>
                     </div>
                     <div className="space-y-4">
-                        <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                             <Home size={18} /> Bien
                         </h3>
                         <div className="space-y-2 text-sm">
-                            <p><span className="text-gray-500 dark:text-gray-400">Lot:</span> {location.ref_lot}</p>
-                            <p><span className="text-gray-500 dark:text-gray-400">Immeuble:</span> {location.immeuble_nom || '-'}</p>
-                            <p><span className="text-gray-500 dark:text-gray-400">Propriétaire:</span> {location.proprietaire_nom || '-'}</p>
+                            <p><span className="text-gray-500">Lot:</span> {location.ref_lot}</p>
+                            <p><span className="text-gray-500">Immeuble:</span> {location.immeuble_nom || '-'}</p>
+                            <p><span className="text-gray-500">Propriétaire:</span> {location.proprietaire_nom || '-'}</p>
                         </div>
                     </div>
                     <div className="space-y-4">
-                        <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                             <Calendar size={18} /> Période
                         </h3>
                         <div className="space-y-2 text-sm">
-                            <p><span className="text-gray-500 dark:text-gray-400">Début:</span> {new Date(location.date_debut).toLocaleDateString('fr-FR')}</p>
-                            <p><span className="text-gray-500 dark:text-gray-400">Fin:</span> {location.date_fin ? new Date(location.date_fin).toLocaleDateString('fr-FR') : 'Indéterminée'}</p>
-                            <p><span className="text-gray-500 dark:text-gray-400">Durée:</span> {location.duree_contrat || '-'} mois</p>
+                            <p><span className="text-gray-500">Début:</span> {new Date(location.date_debut).toLocaleDateString('fr-FR')}</p>
+                            <p><span className="text-gray-500">Fin:</span> {location.date_fin ? new Date(location.date_fin).toLocaleDateString('fr-FR') : 'Indéterminée'}</p>
+                            <p><span className="text-gray-500">Durée:</span> {location.duree_contrat || '-'} mois</p>
                         </div>
                     </div>
                     <div className="space-y-4">
-                        <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                             <DollarSign size={18} /> Finances
                         </h3>
                         <div className="space-y-2 text-sm">
-                            <p><span className="text-gray-500 dark:text-gray-400">Loyer:</span> {formatCurrency(location.loyer_mensuel)}</p>
-                            <p><span className="text-gray-500 dark:text-gray-400">Caution:</span> {formatCurrency(location.caution)}</p>
-                            <p><span className="text-gray-500 dark:text-gray-400">Avance:</span> {formatCurrency(location.avance)}</p>
-                            <p><span className="text-gray-500 dark:text-gray-400">Type paiement:</span> {location.type_paiement}</p>
+                            <p><span className="text-gray-500">Loyer:</span> {formatCurrency(location.loyer_mensuel)}</p>
+                            <p><span className="text-gray-500">Caution:</span> {formatCurrency(location.caution)}</p>
+                            <p><span className="text-gray-500">Avance:</span> {formatCurrency(location.avance)}</p>
+                            <p><span className="text-gray-500">Type paiement:</span> {location.type_paiement}</p>
                         </div>
                     </div>
                 </Card>
@@ -355,34 +355,34 @@ const LocationDetails: React.FC = () => {
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md"
+                            className="bg-white rounded-xl shadow-xl w-full max-w-md"
                         >
                             <div className="p-6 border-b">
                                 <div className="flex justify-between items-center">
                                     <h3 className="text-xl font-bold">Enregistrer un paiement</h3>
-                                    <button onClick={() => setShowPaymentModal(false)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300">
+                                    <button onClick={() => setShowPaymentModal(false)} className="text-gray-400 hover:text-gray-600">
                                         <X size={24} />
                                     </button>
                                 </div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                <p className="text-sm text-gray-500 mt-1">
                                     Échéance #{selectedSchedule.numero_echeance} - {new Date(selectedSchedule.date_echeance).toLocaleDateString('fr-FR')}
                                 </p>
                             </div>
 
                             <div className="p-6 space-y-4">
-                                <div className="bg-gray-50 dark:bg-slate-900/50 p-4 rounded-lg grid grid-cols-2 gap-4 text-sm">
+                                <div className="bg-gray-50 p-4 rounded-lg grid grid-cols-2 gap-4 text-sm">
                                     <div>
-                                        <p className="text-gray-500 dark:text-gray-400">Montant dû</p>
+                                        <p className="text-gray-500">Montant dû</p>
                                         <p className="font-bold">{formatCurrency(selectedSchedule.montant)}</p>
                                     </div>
                                     <div>
-                                        <p className="text-gray-500 dark:text-gray-400">Déjà payé</p>
+                                        <p className="text-gray-500">Déjà payé</p>
                                         <p className="font-bold text-green-600">{formatCurrency(selectedSchedule.montant_paye || 0)}</p>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Montant à payer</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Montant à payer</label>
                                     <input
                                         type="number"
                                         className="w-full p-3 border rounded-lg text-lg font-bold"
@@ -393,9 +393,9 @@ const LocationDetails: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Mode de paiement</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Mode de paiement</label>
                                     <select
-                                        className="w-full p-3 border rounded-lg bg-white dark:bg-slate-800"
+                                        className="w-full p-3 border rounded-lg bg-white"
                                         value={paymentMode}
                                         onChange={e => setPaymentMode(e.target.value)}
                                     >
@@ -410,7 +410,7 @@ const LocationDetails: React.FC = () => {
                             <div className="p-6 border-t flex justify-end gap-3">
                                 <button
                                     onClick={() => setShowPaymentModal(false)}
-                                    className="px-5 py-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-slate-800/50 rounded-lg transition"
+                                    className="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition"
                                 >
                                     Annuler
                                 </button>

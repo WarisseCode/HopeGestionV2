@@ -102,14 +102,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onGoBackToHome, o
                     <button
                         type="button"
                         onClick={() => setLoginMode('email')}
-                        className={`flex-1 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-all ${loginMode === 'email' ? 'bg-white dark:bg-slate-800 shadow text-primary' : 'text-base-content/60 hover:text-base-content'}`}
+                        className={`flex-1 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-all ${loginMode === 'email' ? 'bg-white shadow text-primary' : 'text-base-content/60 hover:text-base-content'}`}
                     >
                         <Mail size={16} /> Email
                     </button>
                     <button
                         type="button"
                         onClick={() => setLoginMode('key')}
-                        className={`flex-1 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-all ${loginMode === 'key' ? 'bg-white dark:bg-slate-800 shadow text-primary' : 'text-base-content/60 hover:text-base-content'}`}
+                        className={`flex-1 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-all ${loginMode === 'key' ? 'bg-white shadow text-primary' : 'text-base-content/60 hover:text-base-content'}`}
                     >
                         <Key size={16} /> Clé d'accès
                     </button>

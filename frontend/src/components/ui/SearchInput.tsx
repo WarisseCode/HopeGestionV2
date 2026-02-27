@@ -104,8 +104,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
         autoFocus={autoFocus}
         className={`
           w-full ${sizeClasses[size]} 
-          bg-white dark:bg-slate-800/80 backdrop-blur-sm
-          border border-gray-200 dark:border-slate-700 
+          bg-white/80 backdrop-blur-sm
+          border border-gray-200 
           rounded-full 
           focus:border-primary focus:ring-2 focus:ring-primary/20
           shadow-sm hover:shadow-md
@@ -124,9 +124,9 @@ const SearchInput: React.FC<SearchInputProps> = ({
             <button
               type="button"
               onClick={handleClear}
-              className="p-1 hover:bg-gray-100 dark:bg-slate-800/50 rounded-full transition-colors"
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
             >
-              <X size={iconSizes[size] - 2} className="text-gray-400 hover:text-gray-600 dark:text-gray-300" />
+              <X size={iconSizes[size] - 2} className="text-gray-400 hover:text-gray-600" />
             </button>
           )
         )}

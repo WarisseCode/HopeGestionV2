@@ -116,7 +116,7 @@ const DocumentTemplates: React.FC = () => {
                                     onChange={e => setEditingTemplate({...editingTemplate, name: e.target.value})}
                                 />
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Type de document</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Type de document</label>
                                     <select 
                                         className="w-full border border-gray-300 rounded-lg p-2"
                                         value={editingTemplate.type || 'other'}
@@ -127,11 +127,11 @@ const DocumentTemplates: React.FC = () => {
                                 </div>
                             </div>
                         </Card>
-                        <Card className="flex-1 flex flex-col p-4 bg-gray-50 dark:bg-slate-900/50 border border-gray-200 dark:border-slate-700">
-                             <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Contenu du document</label>
+                        <Card className="flex-1 flex flex-col p-4 bg-gray-50 border border-gray-200">
+                             <label className="block text-sm font-bold text-gray-700 mb-2">Contenu du document</label>
                              <textarea 
                                 id="template-editor"
-                                className="flex-1 w-full bg-white dark:bg-slate-800 border border-gray-300 rounded p-4 font-mono text-sm leading-relaxed focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                className="flex-1 w-full bg-white border border-gray-300 rounded p-4 font-mono text-sm leading-relaxed focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                                 value={editingTemplate.content || ''}
                                 onChange={e => setEditingTemplate({...editingTemplate, content: e.target.value})}
                                 placeholder="Saisissez votre texte ici..."
@@ -152,7 +152,7 @@ const DocumentTemplates: React.FC = () => {
                                     <button 
                                         key={v}
                                         onClick={() => insertVariable(v)}
-                                        className="text-left px-3 py-2 bg-white dark:bg-slate-800 rounded border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors text-sm font-mono text-blue-800 flex justify-between items-center group"
+                                        className="text-left px-3 py-2 bg-white rounded border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors text-sm font-mono text-blue-800 flex justify-between items-center group"
                                     >
                                         {v}
                                         <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -172,8 +172,8 @@ const DocumentTemplates: React.FC = () => {
         <div className="space-y-6">
              <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Mes Modèles</h2>
-                    <p className="text-gray-500 dark:text-gray-400">Créez et personnalisez vos documents types</p>
+                    <h2 className="text-xl font-bold text-gray-800">Mes Modèles</h2>
+                    <p className="text-gray-500">Créez et personnalisez vos documents types</p>
                 </div>
                 <Button onClick={() => setEditingTemplate({ type: 'other', content: '' })}>
                     <Plus size={18} className="mr-2" /> Nouveau Modèle
@@ -184,8 +184,8 @@ const DocumentTemplates: React.FC = () => {
                 {templates.map(t => (
                     <Card key={t.id} className="group hover:shadow-md transition-shadow relative">
                         <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => setEditingTemplate(t)} className="p-1 text-gray-400 hover:text-blue-500 bg-white dark:bg-slate-800 rounded-full shadow-sm"><Edit2 size={16}/></button>
-                            <button onClick={() => handleDelete(t.id)} className="p-1 text-gray-400 hover:text-red-500 bg-white dark:bg-slate-800 rounded-full shadow-sm"><Trash2 size={16}/></button>
+                            <button onClick={() => setEditingTemplate(t)} className="p-1 text-gray-400 hover:text-blue-500 bg-white rounded-full shadow-sm"><Edit2 size={16}/></button>
+                            <button onClick={() => handleDelete(t.id)} className="p-1 text-gray-400 hover:text-red-500 bg-white rounded-full shadow-sm"><Trash2 size={16}/></button>
                         </div>
                         
                         <div className="flex items-start gap-4 mb-4">
@@ -193,8 +193,8 @@ const DocumentTemplates: React.FC = () => {
                                 <LayoutTemplate size={24} />
                             </div>
                             <div>
-                                <h3 className="font-bold text-gray-800 dark:text-gray-100">{t.name}</h3>
-                                <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-slate-800/50 rounded-full text-gray-600 dark:text-gray-300 capitalize">{types.find(type => type.id === t.type)?.label || t.type}</span>
+                                <h3 className="font-bold text-gray-800">{t.name}</h3>
+                                <span className="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600 capitalize">{types.find(type => type.id === t.type)?.label || t.type}</span>
                             </div>
                         </div>
                         

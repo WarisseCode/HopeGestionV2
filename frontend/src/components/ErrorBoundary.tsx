@@ -69,24 +69,24 @@ class ErrorBoundary extends Component<Props, State> {
             </div>
             
             {/* Titre */}
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">
               Oops ! Une erreur est survenue
             </h2>
             
             {/* Message */}
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
+            <p className="text-gray-600 mb-6">
               Nous sommes désolés, quelque chose s'est mal passé. 
               Veuillez réessayer ou retourner à la page d'accueil.
             </p>
             
             {/* Détails de l'erreur (mode dev) */}
             {this.props.showDetails && this.state.error && (
-              <div className="mb-6 p-4 bg-gray-100 dark:bg-slate-800/50 rounded-xl text-left overflow-auto max-h-40">
+              <div className="mb-6 p-4 bg-gray-100 rounded-xl text-left overflow-auto max-h-40">
                 <p className="text-sm font-mono text-error">
                   {this.state.error.message}
                 </p>
                 {this.state.errorInfo && (
-                  <pre className="text-xs text-gray-500 dark:text-gray-400 mt-2 whitespace-pre-wrap">
+                  <pre className="text-xs text-gray-500 mt-2 whitespace-pre-wrap">
                     {this.state.errorInfo.componentStack}
                   </pre>
                 )}

@@ -127,16 +127,16 @@ const PublicFooter: React.FC = () => {
                         <div className="mt-8">
                             <h6 className="text-xs font-bold uppercase opacity-50 mb-3">Suivez-nous</h6>
                             <div className="flex gap-2">
-                                <a href="#" className="btn btn-ghost btn-sm btn-square hover:bg-white dark:bg-slate-800/10 hover:text-blue-500 transition-colors">
+                                <a href="#" className="btn btn-ghost btn-sm btn-square hover:bg-white/10 hover:text-blue-500 transition-colors">
                                     <Facebook size={18} />
                                 </a>
-                                <a href="#" className="btn btn-ghost btn-sm btn-square hover:bg-white dark:bg-slate-800/10 hover:text-sky-400 transition-colors">
+                                <a href="#" className="btn btn-ghost btn-sm btn-square hover:bg-white/10 hover:text-sky-400 transition-colors">
                                     <Twitter size={18} />
                                 </a>
-                                <a href="#" className="btn btn-ghost btn-sm btn-square hover:bg-white dark:bg-slate-800/10 hover:text-blue-600 transition-colors">
+                                <a href="#" className="btn btn-ghost btn-sm btn-square hover:bg-white/10 hover:text-blue-600 transition-colors">
                                     <Linkedin size={18} />
                                 </a>
-                                <a href="#" className="btn btn-ghost btn-sm btn-square hover:bg-white dark:bg-slate-800/10 hover:text-pink-500 transition-colors">
+                                <a href="#" className="btn btn-ghost btn-sm btn-square hover:bg-white/10 hover:text-pink-500 transition-colors">
                                     <Instagram size={18} />
                                 </a>
                             </div>

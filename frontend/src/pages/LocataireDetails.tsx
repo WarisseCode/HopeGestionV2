@@ -133,7 +133,7 @@ const LocataireDetails: React.FC = () => {
           {/* Info */}
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">
+              <h1 className="text-2xl font-extrabold text-gray-900">
                 {locataire.prenoms} {locataire.nom}
               </h1>
               <div className={`flex items-center gap-1.5 font-bold ${locataire.statut === 'Actif' ? 'text-green-600' : 'text-orange-600'}`}>
@@ -142,7 +142,7 @@ const LocataireDetails: React.FC = () => {
               </div>
               <span className="badge badge-outline">{locataire.type}</span>
             </div>
-            <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-600 dark:text-gray-300">
+            <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-600">
               <span className="flex items-center gap-1"><Phone size={14} /> {locataire.telephone_principal}</span>
               {locataire.email && <span className="flex items-center gap-1"><Mail size={14} /> {locataire.email}</span>}
               {activeBail && <span className="flex items-center gap-1"><Home size={14} /> {activeBail.ref_lot}</span>}
@@ -165,7 +165,7 @@ const LocataireDetails: React.FC = () => {
       </Card>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-slate-700 overflow-x-auto">
+      <div className="flex border-b border-gray-200 overflow-x-auto">
         {tabs.map(tab => {
           const Icon = tab.icon;
           return (
@@ -175,7 +175,7 @@ const LocataireDetails: React.FC = () => {
               className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-primary text-primary bg-primary/5'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
               <Icon size={16} />
@@ -191,42 +191,42 @@ const LocataireDetails: React.FC = () => {
         {activeTab === 'profil' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card className="p-6">
-              <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2"><User size={18} /> Identité</h3>
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><User size={18} /> Identité</h3>
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Nom complet</span><span className="font-medium">{locataire.prenoms} {locataire.nom}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Type</span><span className="font-medium">{locataire.type}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Nationalité</span><span className="font-medium">{locataire.nationalite || '-'}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Adresse</span><span className="font-medium">{locataire.adresse_actuelle || '-'}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Nom complet</span><span className="font-medium">{locataire.prenoms} {locataire.nom}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Type</span><span className="font-medium">{locataire.type}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Nationalité</span><span className="font-medium">{locataire.nationalite || '-'}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Adresse</span><span className="font-medium">{locataire.adresse_actuelle || '-'}</span></div>
               </div>
             </Card>
 
             <Card className="p-6">
-              <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2"><CreditCard size={18} /> Pièce d'identité</h3>
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><CreditCard size={18} /> Pièce d'identité</h3>
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Type</span><span className="font-medium">{locataire.type_piece || '-'}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Numéro</span><span className="font-medium">{locataire.numero_piece || '-'}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Expiration</span><span className="font-medium">{locataire.date_expiration_piece ? new Date(locataire.date_expiration_piece).toLocaleDateString('fr-FR') : '-'}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Type</span><span className="font-medium">{locataire.type_piece || '-'}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Numéro</span><span className="font-medium">{locataire.numero_piece || '-'}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Expiration</span><span className="font-medium">{locataire.date_expiration_piece ? new Date(locataire.date_expiration_piece).toLocaleDateString('fr-FR') : '-'}</span></div>
               </div>
             </Card>
 
             <Card className="p-6">
-              <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2"><Wallet size={18} /> Finances</h3>
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Wallet size={18} /> Finances</h3>
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Mode paiement</span><span className="font-medium">{locataire.mode_paiement_preferentiel || '-'}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Caution</span><span className="font-medium">{locataire.caution ? `${locataire.caution.toLocaleString()} F` : '-'}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Avance</span><span className="font-medium">{locataire.avance ? `${locataire.avance.toLocaleString()} F` : '-'}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Échelonné</span><span className="font-medium">{locataire.paiement_echelonne ? 'Oui' : 'Non'}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Mode paiement</span><span className="font-medium">{locataire.mode_paiement_preferentiel || '-'}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Caution</span><span className="font-medium">{locataire.caution ? `${locataire.caution.toLocaleString()} F` : '-'}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Avance</span><span className="font-medium">{locataire.avance ? `${locataire.avance.toLocaleString()} F` : '-'}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Échelonné</span><span className="font-medium">{locataire.paiement_echelonne ? 'Oui' : 'Non'}</span></div>
               </div>
             </Card>
 
             <Card className="p-6">
-              <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2"><Home size={18} /> Logement Actuel</h3>
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Home size={18} /> Logement Actuel</h3>
               {activeBail ? (
                 <div className="space-y-3 text-sm">
-                  <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Lot</span><span className="font-medium">{activeBail.ref_lot}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Immeuble</span><span className="font-medium">{activeBail.building_name}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Loyer</span><span className="font-semibold text-primary">{activeBail.loyer_actuel?.toLocaleString()} F/mois</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Depuis</span><span className="font-medium">{new Date(activeBail.date_debut).toLocaleDateString('fr-FR')}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Lot</span><span className="font-medium">{activeBail.ref_lot}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Immeuble</span><span className="font-medium">{activeBail.building_name}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Loyer</span><span className="font-semibold text-primary">{activeBail.loyer_actuel?.toLocaleString()} F/mois</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Depuis</span><span className="font-medium">{new Date(activeBail.date_debut).toLocaleDateString('fr-FR')}</span></div>
                 </div>
               ) : (
                 <p className="text-gray-400 text-sm">Aucun logement actif</p>
@@ -238,7 +238,7 @@ const LocataireDetails: React.FC = () => {
         {/* Contrat Tab */}
         {activeTab === 'contrat' && (
           <div className="space-y-4">
-            <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg">Historique des Contrats</h3>
+            <h3 className="font-bold text-gray-800 text-lg">Historique des Contrats</h3>
             {baux.length === 0 ? (
               <Card className="p-8 text-center text-gray-400">
                 <FileText size={48} className="mx-auto mb-4 opacity-50" />
@@ -250,8 +250,8 @@ const LocataireDetails: React.FC = () => {
                   <Card key={bail.id} className={`p-4 ${bail.statut === 'actif' ? 'border-l-4 border-l-green-500' : ''}`}>
                     <div className="flex flex-wrap justify-between items-center gap-4">
                       <div>
-                        <p className="font-bold text-gray-800 dark:text-gray-100">{bail.ref_lot} - {bail.building_name}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{bail.lot_type}</p>
+                        <p className="font-bold text-gray-800">{bail.ref_lot} - {bail.building_name}</p>
+                        <p className="text-sm text-gray-500">{bail.lot_type}</p>
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-primary">{bail.loyer_actuel?.toLocaleString()} F/mois</p>
@@ -279,7 +279,7 @@ const LocataireDetails: React.FC = () => {
         {/* Paiements Tab */}
         {activeTab === 'paiements' && (
           <div className="space-y-4">
-            <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg">Derniers Paiements</h3>
+            <h3 className="font-bold text-gray-800 text-lg">Derniers Paiements</h3>
             {paiements.length === 0 ? (
               <Card className="p-8 text-center text-gray-400">
                 <Wallet size={48} className="mx-auto mb-4 opacity-50" />
@@ -321,7 +321,7 @@ const LocataireDetails: React.FC = () => {
         {/* Documents Tab */}
         {activeTab === 'documents' && (
           <div className="space-y-4">
-            <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg">Documents</h3>
+            <h3 className="font-bold text-gray-800 text-lg">Documents</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {locataire.photo_piece_url && (
                 <Card className="p-4 flex items-center gap-4">
@@ -364,7 +364,7 @@ const LocataireDetails: React.FC = () => {
         {/* Accès Tab */}
         {activeTab === 'acces' && (
           <div className="space-y-4">
-            <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg">Accès Portail Locataire</h3>
+            <h3 className="font-bold text-gray-800 text-lg">Accès Portail Locataire</h3>
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -372,13 +372,13 @@ const LocataireDetails: React.FC = () => {
                     <Key size={20} />
                   </div>
                   <div>
-                    <p className="font-bold text-gray-800 dark:text-gray-100">Portail Locataire</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Configuration d'accès au portail numérique</p>
+                    <p className="font-bold text-gray-800">Portail Locataire</p>
+                    <p className="text-sm text-gray-500">Configuration d'accès au portail numérique</p>
                   </div>
                 </div>
                 <span className="badge badge-ghost">Non configuré</span>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              <p className="text-sm text-gray-500 mb-4">
                 L'activation du portail permettra au locataire de consulter son contrat, ses paiements et de déposer des plaintes.
               </p>
               <div className="flex gap-2">

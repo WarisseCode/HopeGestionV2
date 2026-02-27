@@ -272,7 +272,7 @@ const CompteProfil: React.FC = () => {
                                     type="text"
                                     value={formData.prenom}
                                     onChange={(e) => setFormData({...formData, prenom: e.target.value})}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 dark:bg-slate-900/50/50 dark:bg-slate-900/50"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50/50 dark:bg-slate-900/50"
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -281,7 +281,7 @@ const CompteProfil: React.FC = () => {
                                     type="text"
                                     value={formData.nom}
                                     onChange={(e) => setFormData({...formData, nom: e.target.value})}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 dark:bg-slate-900/50/50 dark:bg-slate-900/50"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50/50 dark:bg-slate-900/50"
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -294,7 +294,7 @@ const CompteProfil: React.FC = () => {
                                         type="email"
                                         value={formData.email}
                                         onChange={(e) => setFormData({...formData, email: e.target.value})}
-                                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 dark:bg-slate-900/50/50 dark:bg-slate-900/50"
+                                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50/50 dark:bg-slate-900/50"
                                     />
                                 </div>
                             </div>
@@ -308,7 +308,7 @@ const CompteProfil: React.FC = () => {
                                         type="tel"
                                         value={formData.telephone}
                                         onChange={(e) => setFormData({...formData, telephone: e.target.value})}
-                                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 dark:bg-slate-900/50/50 dark:bg-slate-900/50"
+                                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50/50 dark:bg-slate-900/50"
                                         placeholder="+229 XX XX XX XX"
                                     />
                                 </div>
@@ -327,7 +327,7 @@ const CompteProfil: React.FC = () => {
 
                         <div className="space-y-4">
                             {/* Password Section */}
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 rounded-2xl border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50/50 dark:bg-slate-900/50 hover:bg-gray-50 dark:bg-slate-900/50 transition-colors">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 rounded-2xl border border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/50 hover:bg-gray-50 dark:bg-slate-900/50 transition-colors">
                                 <div className="flex items-center gap-4 mb-4 sm:mb-0">
                                     <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
                                         <Lock className="text-gray-500 dark:text-gray-400" size={20} />
@@ -347,7 +347,7 @@ const CompteProfil: React.FC = () => {
                             </div>
 
                             {/* 2FA Mock */}
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 rounded-2xl border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50/50 dark:bg-slate-900/50 opacity-75">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 rounded-2xl border border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/50 opacity-75">
                                 <div className="flex items-center gap-4 mb-4 sm:mb-0">
                                     <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
                                         <ShieldCheck className="text-emerald-500" size={20} />
@@ -452,7 +452,7 @@ const CompteProfil: React.FC = () => {
                                 <select 
                                     value={formData.language} 
                                     onChange={(e) => setFormData({...formData, language: e.target.value})}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all bg-gray-50 dark:bg-slate-900/50/50 dark:bg-slate-900/50"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all bg-gray-50/50 dark:bg-slate-900/50"
                                 >
                                     <option value="fr">Français (France)</option>
                                     <option value="en">English (US)</option>
@@ -466,7 +466,7 @@ const CompteProfil: React.FC = () => {
                                 <select 
                                     value={formData.currency}
                                     onChange={(e) => setFormData({...formData, currency: e.target.value})}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all bg-gray-50 dark:bg-slate-900/50/50 dark:bg-slate-900/50"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all bg-gray-50/50 dark:bg-slate-900/50"
                                 >
                                     <option value="XOF">FCFA (XOF)</option>
                                     <option value="EUR">Euro (€)</option>
@@ -481,7 +481,7 @@ const CompteProfil: React.FC = () => {
                                 <select 
                                     value={formData.timezone}
                                     onChange={(e) => setFormData({...formData, timezone: e.target.value})}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all bg-gray-50 dark:bg-slate-900/50/50 dark:bg-slate-900/50"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all bg-gray-50/50 dark:bg-slate-900/50"
                                 >
                                     <option value="GMT">GMT (Abidjan, Dakar)</option>
                                     <option value="GMT+1">GMT+1 (Cotonou, Lagos, Paris)</option>
@@ -492,7 +492,7 @@ const CompteProfil: React.FC = () => {
                             <div className="pt-6 mt-6 border-t border-gray-100 dark:border-slate-700 space-y-4">
                                 <h4 className="font-semibold text-gray-800 dark:text-gray-100 text-sm">Canaux de notification</h4>
                                 
-                                <label className="flex items-center justify-between cursor-pointer p-4 rounded-xl border border-gray-100 dark:border-slate-700 hover:border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:bg-slate-900/50/50 dark:bg-slate-900/50 transition-all group">
+                                <label className="flex items-center justify-between cursor-pointer p-4 rounded-xl border border-gray-100 dark:border-slate-700 hover:border-gray-200 dark:border-slate-600 hover:bg-gray-50/50 dark:bg-slate-900/50 transition-all group">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded-lg group-hover:bg-white dark:bg-slate-800 group-hover:shadow-sm transition-all">
                                             <Mail size={16} />
@@ -510,7 +510,7 @@ const CompteProfil: React.FC = () => {
                                     </div>
                                 </label>
 
-                                <label className="flex items-center justify-between cursor-pointer p-4 rounded-xl border border-gray-100 dark:border-slate-700 hover:border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:bg-slate-900/50/50 dark:bg-slate-900/50 transition-all group">
+                                <label className="flex items-center justify-between cursor-pointer p-4 rounded-xl border border-gray-100 dark:border-slate-700 hover:border-gray-200 dark:border-slate-600 hover:bg-gray-50/50 dark:bg-slate-900/50 transition-all group">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-green-50 text-green-600 rounded-lg group-hover:bg-white dark:bg-slate-800 group-hover:shadow-sm transition-all">
                                             <MessageCircle size={16} />
@@ -568,7 +568,7 @@ const CompteProfil: React.FC = () => {
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative"
                     >
-                        <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-900/50/50 dark:bg-slate-900/50">
+                        <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50/50 dark:bg-slate-900/50">
                             <h3 className="text-xl font-bold flex items-center gap-2 text-gray-800 dark:text-gray-100">
                                 <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
                                     <Lock size={20} />
@@ -594,7 +594,7 @@ const CompteProfil: React.FC = () => {
                                     <div className="relative">
                                         <input 
                                             type={showPassword ? "text" : "password"}
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 pr-12 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-gray-50 dark:bg-slate-900/50/50 dark:bg-slate-900/50"
+                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 pr-12 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-gray-50/50 dark:bg-slate-900/50"
                                             value={field.value}
                                             onChange={e => setPasswordData({...passwordData, [field.key]: e.target.value})}
                                             required

@@ -169,18 +169,18 @@ const CalendrierPage: React.FC = () => {
       const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
 
       return (
-        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700/50 shadow-xl overflow-hidden">
-            <div className="grid grid-cols-7 border-b border-gray-100 dark:border-slate-700/50 bg-gray-50 dark:bg-slate-900/50">
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
+            <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50">
                 {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (
-                    <div key={day} className="py-3 text-center text-xs font-bold uppercase text-gray-500 dark:text-gray-400">{day}</div>
+                    <div key={day} className="py-3 text-center text-xs font-bold uppercase text-gray-500">{day}</div>
                 ))}
             </div>
-            <div className="grid grid-cols-7 auto-rows-fr bg-gray-50 dark:bg-slate-900/50/30">
+            <div className="grid grid-cols-7 auto-rows-fr bg-gray-50/30">
                 {calendarDays.map((day) => {
                     const isCurrentMonth = isSameMonth(day, monthStart);
                     const dayEvents = events.filter(e => isSameDay(parseISO(e.date), day));
                     return (
-                        <div key={day.toString()} className={`min-h-[120px] p-2 border-r border-b border-gray-100 dark:border-slate-700/50 ${!isCurrentMonth ? 'bg-gray-50 dark:bg-slate-900/50/50' : 'bg-white dark:bg-slate-800'}`}>
+                        <div key={day.toString()} className={`min-h-[120px] p-2 border-r border-b border-gray-100 ${!isCurrentMonth ? 'bg-gray-50/50' : 'bg-white'}`}>
                             <div className="text-right text-sm font-medium mb-1 text-gray-400">{format(day, 'd')}</div>
                             <div className="space-y-1">
                                 {dayEvents.slice(0, 3).map(e => (
@@ -205,13 +205,13 @@ const CalendrierPage: React.FC = () => {
       const hours = Array.from({ length: 13 }, (_, i) => i + 8); // 8h to 20h
 
       return (
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow border overflow-auto">
+          <div className="bg-white rounded-xl shadow border overflow-auto">
               <div className="grid grid-cols-8 border-b">
                   <div className="p-4 border-r text-xs text-gray-400">Heure</div>
                   {weekDays.map(day => (
                       <div key={day.toString()} className={`p-4 border-r text-center ${isSameDay(day, new Date()) ? 'bg-blue-50' : ''}`}>
-                          <div className="font-bold text-gray-800 dark:text-gray-100">{format(day, 'EEEE', { locale: fr })}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">{format(day, 'd MMM')}</div>
+                          <div className="font-bold text-gray-800">{format(day, 'EEEE', { locale: fr })}</div>
+                          <div className="text-sm text-gray-500">{format(day, 'd MMM')}</div>
                       </div>
                   ))}
               </div>
@@ -247,7 +247,7 @@ const CalendrierPage: React.FC = () => {
           case 'intervention': return 'bg-orange-50 text-orange-700 border-orange-200';
           case 'contract': return 'bg-red-50 text-red-700 border-red-200';
           case 'rdv': return 'bg-blue-50 text-blue-700 border-blue-200';
-          default: return 'bg-gray-50 dark:bg-slate-900/50 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-slate-700';
+          default: return 'bg-gray-50 text-gray-700 border-gray-200';
       }
   };
   const getEventDot = (type: string) => {
@@ -279,10 +279,10 @@ const CalendrierPage: React.FC = () => {
         </div>
 
         <div className="flex gap-2">
-            <div className="flex bg-gray-100 dark:bg-slate-800/50 rounded-lg p-1">
-                <button onClick={() => setViewMode('month')} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'month' ? 'bg-white dark:bg-slate-800 shadow' : ''}`}>Mois</button>
-                <button onClick={() => setViewMode('week')} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'week' ? 'bg-white dark:bg-slate-800 shadow' : ''}`}>Semaine</button>
-                <button onClick={() => setViewMode('day')} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'day' ? 'bg-white dark:bg-slate-800 shadow' : ''}`}>Jour</button>
+            <div className="flex bg-gray-100 rounded-lg p-1">
+                <button onClick={() => setViewMode('month')} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'month' ? 'bg-white shadow' : ''}`}>Mois</button>
+                <button onClick={() => setViewMode('week')} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'week' ? 'bg-white shadow' : ''}`}>Semaine</button>
+                <button onClick={() => setViewMode('day')} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'day' ? 'bg-white shadow' : ''}`}>Jour</button>
             </div>
             <Button variant="secondary" onClick={() => { setShowSettingsModal(true); fetchSettings(); }}>
                 <Settings size={18} />
@@ -296,7 +296,7 @@ const CalendrierPage: React.FC = () => {
       {viewMode === 'month' && renderMonthView()}
       {viewMode === 'week' && renderWeekView()}
       {viewMode === 'day' && (
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
+          <div className="bg-white rounded-xl shadow p-6">
               <h3 className="font-bold mb-4 border-b pb-2">Événements du jour</h3>
               <div className="space-y-2">
                   {events.length === 0 ? <p className="text-gray-400">Aucun événement</p> : events.map(e => (
@@ -355,13 +355,13 @@ const CalendrierPage: React.FC = () => {
                 </h3>
                 
                 <div className="space-y-4 mb-6">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Définissez quand et comment vous souhaitez être notifié.</p>
+                    <p className="text-sm text-gray-500">Définissez quand et comment vous souhaitez être notifié.</p>
                     
                     {/* Simplified Settings Form for Demo */}
-                    <div className="p-3 bg-gray-50 dark:bg-slate-900/50 rounded-lg border flex items-center justify-between">
+                    <div className="p-3 bg-gray-50 rounded-lg border flex items-center justify-between">
                         <div>
-                            <div className="font-bold text-gray-700 dark:text-gray-200">Loyers à échoir</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">Rappel aux locataires pour le paiement</div>
+                            <div className="font-bold text-gray-700">Loyers à échoir</div>
+                            <div className="text-xs text-gray-500">Rappel aux locataires pour le paiement</div>
                         </div>
                         <div className="flex gap-2 items-center">
                             <select className="text-sm border rounded p-1" onChange={(e) => handleSaveSetting({event_type: 'payment', delay_days: -parseInt(e.target.value), channel: 'email', active: true})}>
@@ -373,10 +373,10 @@ const CalendrierPage: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="p-3 bg-gray-50 dark:bg-slate-900/50 rounded-lg border flex items-center justify-between">
+                    <div className="p-3 bg-gray-50 rounded-lg border flex items-center justify-between">
                         <div>
-                            <div className="font-bold text-gray-700 dark:text-gray-200">Fins de Contrat</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">Anticipation des renouvellements</div>
+                            <div className="font-bold text-gray-700">Fins de Contrat</div>
+                            <div className="text-xs text-gray-500">Anticipation des renouvellements</div>
                         </div>
                          <div className="flex gap-2 items-center">
                             <select className="text-sm border rounded p-1" onChange={(e) => handleSaveSetting({event_type: 'contract_end', delay_days: -parseInt(e.target.value), channel: 'email', active: true})}>

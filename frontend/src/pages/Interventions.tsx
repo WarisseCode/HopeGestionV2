@@ -76,7 +76,7 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: any }> = 
   'En cours': { color: 'text-orange-700', bg: 'bg-orange-100', icon: Clock },
   'En attente': { color: 'text-yellow-700', bg: 'bg-yellow-100', icon: PauseCircle },
   'Résolu': { color: 'text-green-700', bg: 'bg-green-100', icon: CheckCheck },
-  'Clos': { color: 'text-gray-600 dark:text-gray-300', bg: 'bg-gray-200', icon: Archive },
+  'Clos': { color: 'text-gray-600', bg: 'bg-gray-200', icon: Archive },
 };
 
 const PRIORITY_CONFIG: Record<string, string> = {
@@ -369,8 +369,8 @@ const Interventions: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Interventions <span className="text-primary">.</span></h1>
-          <p className="text-gray-500 dark:text-gray-400">Gestion des maintenances et services</p>
+          <h1 className="text-3xl font-extrabold text-gray-900">Interventions <span className="text-primary">.</span></h1>
+          <p className="text-gray-500">Gestion des maintenances et services</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="secondary" onClick={handleExport} className="gap-2">
@@ -396,7 +396,7 @@ const Interventions: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 bg-white dark:bg-slate-800 p-2 rounded-xl border">
+      <div className="flex flex-wrap gap-2 bg-white p-2 rounded-xl border">
         {[
           { key: 'demandes', label: 'Demandes', icon: AlertCircle, count: demandes.length },
           { key: 'interventions', label: 'Interventions', icon: Wrench, count: interventions.length },
@@ -407,12 +407,12 @@ const Interventions: React.FC = () => {
             key={tab.key}
             onClick={() => setActiveTab(tab.key as any)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-              activeTab === tab.key ? 'bg-primary text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-slate-800/50'
+              activeTab === tab.key ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
             <tab.icon size={18} />
             {tab.label}
-            <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === tab.key ? 'bg-white dark:bg-slate-800/20' : 'bg-gray-200'}`}>
+            <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === tab.key ? 'bg-white/20' : 'bg-gray-200'}`}>
               {tab.count}
             </span>
           </button>
@@ -455,7 +455,7 @@ const Interventions: React.FC = () => {
       <Card className="overflow-hidden p-0">
         <div className="overflow-x-auto">
           <table className="table w-full">
-            <thead className="bg-gray-50 dark:bg-slate-900/50">
+            <thead className="bg-gray-50">
               <tr>
                 {activeTab === 'partenaires' ? (
                   <>
@@ -489,11 +489,11 @@ const Interventions: React.FC = () => {
             </thead>
             <tbody className="divide-y">
               {activeTab === 'demandes' && demandes.map(t => (
-                <tr key={t.id} className="hover:bg-gray-50 dark:bg-slate-900/50">
+                <tr key={t.id} className="hover:bg-gray-50">
                   <td className="p-4 font-mono text-sm">#{t.id}</td>
                   <td className="p-4">
                     <div className="font-medium">{t.building_name}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{t.ref_lot}</div>
+                    <div className="text-xs text-gray-500">{t.ref_lot}</div>
                   </td>
                   <td className="p-4"><span className="badge badge-ghost">{t.category}</span></td>
                   <td className="p-4"><span className={`badge ${PRIORITY_CONFIG[t.priorite] || ''}`}>{t.priorite}</span></td>
@@ -506,11 +506,11 @@ const Interventions: React.FC = () => {
                 </tr>
               ))}
               {activeTab === 'interventions' && interventions.map(t => (
-                <tr key={t.id} className="hover:bg-gray-50 dark:bg-slate-900/50">
+                <tr key={t.id} className="hover:bg-gray-50">
                   <td className="p-4 font-mono text-sm">#{t.id}</td>
                   <td className="p-4">
                     <div className="font-medium">{t.building_name}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{t.ref_lot}</div>
+                    <div className="text-xs text-gray-500">{t.ref_lot}</div>
                   </td>
                   <td className="p-4"><span className="badge badge-ghost">{t.category}</span></td>
                   <td className="p-4"><span className={`badge ${PRIORITY_CONFIG[t.priorite] || ''}`}>{t.priorite}</span></td>
@@ -530,12 +530,12 @@ const Interventions: React.FC = () => {
                 </tr>
               ))}
               {activeTab === 'partenaires' && providers.map(p => (
-                <tr key={p.id} className="hover:bg-gray-50 dark:bg-slate-900/50">
+                <tr key={p.id} className="hover:bg-gray-50">
                   <td className="p-4 font-bold">{p.name}</td>
                   <td className="p-4"><span className="badge badge-outline">{p.specialty}</span></td>
                   <td className="p-4">
                     <div>{p.contact_name}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{p.phone}</div>
+                    <div className="text-xs text-gray-500">{p.phone}</div>
                   </td>
                   <td className="p-4"><span className="badge badge-success badge-sm">Actif</span></td>
                   <td className="p-4 text-right">
@@ -544,7 +544,7 @@ const Interventions: React.FC = () => {
                 </tr>
               ))}
               {activeTab === 'contrats' && contracts.map(c => (
-                <tr key={c.id} className="hover:bg-gray-50 dark:bg-slate-900/50">
+                <tr key={c.id} className="hover:bg-gray-50">
                   <td className="p-4 font-bold">{c.title}</td>
                   <td className="p-4">{c.provider_name}</td>
                   <td className="p-4 font-mono">{c.cost_monthly?.toLocaleString()} FCFA</td>
@@ -627,7 +627,7 @@ const Interventions: React.FC = () => {
                   <label className="block text-sm font-bold mb-1">Urgence</label>
                   <div className="flex gap-2">
                     {['Basse', 'Moyenne', 'Haute', 'Urgente'].map(u => (
-                      <label key={u} className={`flex-1 text-center py-2 px-3 rounded-lg border cursor-pointer transition-all ${ticketForm.urgency === u ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-gray-50 dark:bg-slate-900/50'}`}>
+                      <label key={u} className={`flex-1 text-center py-2 px-3 rounded-lg border cursor-pointer transition-all ${ticketForm.urgency === u ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-gray-50'}`}>
                         <input type="radio" name="urgency" value={u} checked={ticketForm.urgency === u} onChange={e => setTicketForm({...ticketForm, urgency: e.target.value, priorite: e.target.value})} className="sr-only" />
                         {u}
                       </label>

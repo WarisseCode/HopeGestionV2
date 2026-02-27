@@ -202,10 +202,10 @@ const Finances: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
             Finance & Trésorerie <span className="text-primary">.</span>
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 font-medium mt-1">
+          <p className="text-gray-500 font-medium mt-1">
             Pilotage financier complet (Revenus, Dépenses, Fiscalité)
           </p>
         </div>
@@ -231,14 +231,14 @@ const Finances: React.FC = () => {
       </div>
 
       {/* Period Selector */}
-      <div className="flex items-center justify-center gap-3 bg-white dark:bg-slate-800 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-slate-700/50 w-fit mx-auto">
+      <div className="flex items-center justify-center gap-3 bg-white rounded-xl p-3 shadow-sm border border-gray-100 w-fit mx-auto">
         <button 
           onClick={handlePrevMonth}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:bg-slate-800/50 transition-colors text-gray-500 dark:text-gray-400"
+          className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
         >
           <ChevronLeft size={20} />
         </button>
-        <span className="text-base font-bold text-gray-800 dark:text-gray-100 min-w-[180px] text-center">
+        <span className="text-base font-bold text-gray-800 min-w-[180px] text-center">
           {monthNames[selectedMonth - 1]} {selectedYear}
         </span>
         <button 
@@ -246,7 +246,7 @@ const Finances: React.FC = () => {
           className={`p-2 rounded-lg transition-colors ${
             selectedMonth === new Date().getMonth() + 1 && selectedYear === new Date().getFullYear()
               ? 'text-gray-300 cursor-not-allowed'
-              : 'hover:bg-gray-100 dark:bg-slate-800/50 text-gray-500 dark:text-gray-400'
+              : 'hover:bg-gray-100 text-gray-500'
           }`}
           disabled={selectedMonth === new Date().getMonth() + 1 && selectedYear === new Date().getFullYear()}
         >
@@ -286,12 +286,12 @@ const Finances: React.FC = () => {
       <FinanceChart />
 
       {/* Navigation Tabs */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-gray-100 dark:border-slate-700/50 overflow-x-auto">
+      <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 overflow-x-auto">
         <div className="flex p-1 gap-2 min-w-max">
              <button
                 onClick={() => setActiveTab('echeances')}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'echeances' ? 'bg-amber-50 text-amber-700 shadow-sm border border-amber-100' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-slate-900/50'
+                activeTab === 'echeances' ? 'bg-amber-50 text-amber-700 shadow-sm border border-amber-100' : 'text-gray-500 hover:bg-gray-50'
                 }`}
             >
                 📅 Échéances
@@ -299,7 +299,7 @@ const Finances: React.FC = () => {
              <button
                 onClick={() => setActiveTab('paiements')}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'paiements' ? 'bg-green-50 text-green-700 shadow-sm border border-green-100' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-slate-900/50'
+                activeTab === 'paiements' ? 'bg-green-50 text-green-700 shadow-sm border border-green-100' : 'text-gray-500 hover:bg-gray-50'
                 }`}
             >
                 <ArrowDownRight size={18}/> Revenus & Loyers
@@ -307,7 +307,7 @@ const Finances: React.FC = () => {
             <button
                 onClick={() => setActiveTab('en_ligne')}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'en_ligne' ? 'bg-cyan-50 text-cyan-700 shadow-sm border border-cyan-100' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-slate-900/50'
+                activeTab === 'en_ligne' ? 'bg-cyan-50 text-cyan-700 shadow-sm border border-cyan-100' : 'text-gray-500 hover:bg-gray-50'
                 }`}
             >
                 📱 Paiements en ligne
@@ -315,7 +315,7 @@ const Finances: React.FC = () => {
             <button
                 onClick={() => setActiveTab('depenses')}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'depenses' ? 'bg-red-50 text-red-700 shadow-sm border border-red-100' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-slate-900/50'
+                activeTab === 'depenses' ? 'bg-red-50 text-red-700 shadow-sm border border-red-100' : 'text-gray-500 hover:bg-gray-50'
                 }`}
             >
                 <ArrowUpRight size={18}/> Dépenses & Factures
@@ -323,7 +323,7 @@ const Finances: React.FC = () => {
              <button
                 onClick={() => setActiveTab('prets')}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'prets' ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-slate-900/50'
+                activeTab === 'prets' ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-50'
                 }`}
             >
                 <Building2 size={18}/> Prêts & Financements
@@ -331,7 +331,7 @@ const Finances: React.FC = () => {
              <button
                 onClick={() => setActiveTab('fiscalite')}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'fiscalite' ? 'bg-purple-50 text-purple-700 shadow-sm border border-purple-100' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-slate-900/50'
+                activeTab === 'fiscalite' ? 'bg-purple-50 text-purple-700 shadow-sm border border-purple-100' : 'text-gray-500 hover:bg-gray-50'
                 }`}
             >
                 <Calculator size={18}/> Fiscalité
@@ -351,15 +351,15 @@ const Finances: React.FC = () => {
             {activeTab === 'paiements' && (
                 <>
                 {showForm ? (
-                     <Card className="border-none shadow-xl bg-white dark:bg-slate-800 max-w-2xl mx-auto mb-8 relative z-10">
+                     <Card className="border-none shadow-xl bg-white max-w-2xl mx-auto mb-8 relative z-10">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-bold">Encaisser un paiement</h2>
                             <Button variant="ghost" onClick={() => setShowForm(false)}>✕</Button>
                         </div>
                         <div className="space-y-4">
                              <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Locataire</label>
-                                <select className="select select-bordered w-full bg-gray-50 dark:bg-slate-900/50 p-2 border rounded-lg" value={paiementForm.locataireId} onChange={(e) => setPaiementForm({...paiementForm, locataireId: e.target.value})}>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Locataire</label>
+                                <select className="select select-bordered w-full bg-gray-50 p-2 border rounded-lg" value={paiementForm.locataireId} onChange={(e) => setPaiementForm({...paiementForm, locataireId: e.target.value})}>
                                     <option value="">Choisir...</option>
                                     {locataires.map(l => <option key={l.id} value={l.id}>{l.prenoms} {l.nom}</option>)}
                                 </select>
@@ -385,10 +385,10 @@ const Finances: React.FC = () => {
                     </Card>
                 ) : null}
 
-                <Card className="border-none shadow-xl bg-white dark:bg-slate-800 overflow-hidden p-0">
+                <Card className="border-none shadow-xl bg-white overflow-hidden p-0">
                     <div className="overflow-x-auto">
                         <table className="table w-full text-left">
-                            <thead className="bg-gray-50 dark:bg-slate-900/50/50">
+                            <thead className="bg-gray-50/50">
                                 <tr>
                                     <th className="py-4 pl-6 font-semibold">Référence</th>
                                     <th className="py-4 font-semibold">Locataire</th>
@@ -399,10 +399,10 @@ const Finances: React.FC = () => {
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {paiements.map((item) => (
-                                    <tr key={item.id} className="hover:bg-gray-50 dark:bg-slate-900/50/50">
-                                        <td className="pl-6 py-3 font-medium text-gray-800 dark:text-gray-100">P-00{item.id}</td>
-                                        <td className="py-3 font-bold text-gray-700 dark:text-gray-200">{item.locataire_prenoms} {item.locataire_nom}</td>
-                                        <td className="py-3 text-gray-500 dark:text-gray-400">{new Date(item.payment_date).toLocaleDateString()}</td>
+                                    <tr key={item.id} className="hover:bg-gray-50/50">
+                                        <td className="pl-6 py-3 font-medium text-gray-800">P-00{item.id}</td>
+                                        <td className="py-3 font-bold text-gray-700">{item.locataire_prenoms} {item.locataire_nom}</td>
+                                        <td className="py-3 text-gray-500">{new Date(item.payment_date).toLocaleDateString()}</td>
                                         <td className="py-3 font-mono font-bold text-green-600">{formatCurrency(Number(item.amount))}</td>
                                         <td className="py-3"><span className="badge bg-green-100 text-green-600 px-2 py-1 rounded text-xs">{item.statut}</span></td>
                                     </tr>
@@ -442,7 +442,7 @@ const Finances: React.FC = () => {
         }
       >
           <div className="space-y-4">
-              <p className="text-gray-600 dark:text-gray-300">
+              <p className="text-gray-600">
                   Cette action va générer automatiquement les quittances de loyer pour tous les baux actifs du mois courant.
               </p>
               <div className="bg-blue-50 text-blue-800 p-4 rounded-lg text-sm">

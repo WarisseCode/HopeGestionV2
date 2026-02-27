@@ -36,7 +36,7 @@ const getEventIcon = (type: UpcomingEvent['type']) => {
     case 'alert':
       return { icon: AlertTriangle, bgClass: 'bg-red-100', textClass: 'text-red-600' };
     default:
-      return { icon: Calendar, bgClass: 'bg-gray-100 dark:bg-slate-800/50', textClass: 'text-gray-600 dark:text-gray-300' };
+      return { icon: Calendar, bgClass: 'bg-gray-100', textClass: 'text-gray-600' };
   }
 };
 

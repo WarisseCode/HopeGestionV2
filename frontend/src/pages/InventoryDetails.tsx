@@ -53,7 +53,7 @@ const InventoryDetails: React.FC = () => {
         <div className="p-6 lg:p-12 max-w-4xl mx-auto print:p-0">
             {/* Nav & Actions */}
             <div className="flex items-center justify-between mb-8 print:hidden">
-                <Link to="/dashboard/inventories" className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white">
+                <Link to="/dashboard/inventories" className="flex items-center gap-2 text-gray-500 hover:text-gray-900">
                     <ArrowLeft size={20} /> Retour
                 </Link>
                 <div className="flex gap-3">
@@ -73,35 +73,35 @@ const InventoryDetails: React.FC = () => {
             </div>
 
             {/* Document Layout */}
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 print:shadow-none print:border-none">
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 print:shadow-none print:border-none">
                 {/* Header */}
-                <div className="border-b border-gray-100 dark:border-slate-700/50 pb-6 mb-8 flex justify-between items-start">
+                <div className="border-b border-gray-100 pb-6 mb-8 flex justify-between items-start">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">État des Lieux</h1>
-                        <p className="text-gray-500 dark:text-gray-400 uppercase tracking-widest font-medium text-sm">
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">État des Lieux</h1>
+                        <p className="text-gray-500 uppercase tracking-widest font-medium text-sm">
                             {inventory.type_inventaire}
                         </p>
                     </div>
                     <div className="text-right">
-                        <div className="inline-block px-3 py-1 bg-gray-100 dark:bg-slate-800/50 rounded text-sm font-mono mb-2">
+                        <div className="inline-block px-3 py-1 bg-gray-100 rounded text-sm font-mono mb-2">
                              Réf: INV-{inventory.id.toString().padStart(4, '0')}
                         </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{new Date(inventory.date_realisation).toLocaleDateString()}</p>
+                        <p className="text-sm text-gray-500">{new Date(inventory.date_realisation).toLocaleDateString()}</p>
                     </div>
                 </div>
 
                 {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-8 mb-8 bg-gray-50 dark:bg-slate-900/50 p-6 rounded-xl print:bg-white dark:bg-slate-800 print:border print:border-gray-200 dark:border-slate-700">
+                <div className="grid grid-cols-2 gap-8 mb-8 bg-gray-50 p-6 rounded-xl print:bg-white print:border print:border-gray-200">
                     <div>
                         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Contexte</h3>
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
                                 <Building size={16} className="text-blue-500" />
-                                <span className="font-medium text-gray-900 dark:text-white capitalize">{inventory.entity_type}</span>
+                                <span className="font-medium text-gray-900 capitalize">{inventory.entity_type}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Warehouse size={16} className="text-blue-500" />
-                                <span className="text-gray-700 dark:text-gray-200">ID: {inventory.entity_id}</span>
+                                <span className="text-gray-700">ID: {inventory.entity_id}</span>
                             </div>
                         </div>
                     </div>
@@ -110,11 +110,11 @@ const InventoryDetails: React.FC = () => {
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
                                 <User size={16} className="text-blue-500" />
-                                <span className="font-medium text-gray-900 dark:text-white">{inventory.agent_name}</span>
+                                <span className="font-medium text-gray-900">{inventory.agent_name}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Calendar size={16} className="text-blue-500" />
-                                <span className="text-gray-700 dark:text-gray-200">Le {new Date(inventory.date_realisation).toLocaleDateString()}</span>
+                                <span className="text-gray-700">Le {new Date(inventory.date_realisation).toLocaleDateString()}</span>
                             </div>
                         </div>
                     </div>
@@ -124,7 +124,7 @@ const InventoryDetails: React.FC = () => {
                 <div className="space-y-8">
                     {Object.entries(groupedItems).map(([category, items]) => (
                         <div key={category}>
-                            <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-slate-700 pb-2 mb-4">
+                            <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900 border-b border-gray-200 pb-2 mb-4">
                                 <ClipboardList className="text-blue-500" size={20} /> 
                                 {category}
                             </h3>
@@ -136,9 +136,9 @@ const InventoryDetails: React.FC = () => {
                                     <div className="col-span-5">Observations</div>
                                 </div>
                                 {items.map((item: any) => (
-                                    <div key={item.id} className="grid grid-cols-12 items-start py-3 px-4 bg-gray-50 dark:bg-slate-900/50/50 rounded-lg hover:bg-gray-50 dark:bg-slate-900/50 transition print:bg-white dark:bg-slate-800 print:border-b">
-                                        <div className="col-span-1 font-mono text-gray-500 dark:text-gray-400">{item.quantite}x</div>
-                                        <div className="col-span-4 font-medium text-gray-900 dark:text-white">
+                                    <div key={item.id} className="grid grid-cols-12 items-start py-3 px-4 bg-gray-50/50 rounded-lg hover:bg-gray-50 transition print:bg-white print:border-b">
+                                        <div className="col-span-1 font-mono text-gray-500">{item.quantite}x</div>
+                                        <div className="col-span-4 font-medium text-gray-900">
                                             {item.nom}
                                             {item.description && <div className="text-xs text-gray-400 font-normal">{item.description}</div>}
                                             
@@ -146,7 +146,7 @@ const InventoryDetails: React.FC = () => {
                                             {item.photos && JSON.parse(JSON.stringify(item.photos)).length > 0 && (
                                                 <div className="flex gap-1 mt-2">
                                                     {JSON.parse(JSON.stringify(item.photos)).slice(0, 3).map((src: string, idx: number) => (
-                                                        <img key={idx} src={src} className="w-8 h-8 rounded border border-gray-200 dark:border-slate-700 object-cover" />
+                                                        <img key={idx} src={src} className="w-8 h-8 rounded border border-gray-200 object-cover" />
                                                     ))}
                                                 </div>
                                             )}
@@ -162,7 +162,7 @@ const InventoryDetails: React.FC = () => {
                                                 {item.etat}
                                             </span>
                                         </div>
-                                        <div className="col-span-5 text-sm text-gray-600 dark:text-gray-300">
+                                        <div className="col-span-5 text-sm text-gray-600">
                                             {item.observation || '-'}
                                         </div>
                                     </div>
@@ -173,7 +173,7 @@ const InventoryDetails: React.FC = () => {
                 </div>
 
                 {/* Footer / Signatures */}
-                <div className="mt-12 pt-8 border-t border-gray-200 dark:border-slate-700 grid grid-cols-2 gap-12 page-break-inside-avoid">
+                <div className="mt-12 pt-8 border-t border-gray-200 grid grid-cols-2 gap-12 page-break-inside-avoid">
                     <div className="border rounded-xl h-32 p-4 relative">
                         <span className="text-xs text-gray-400 uppercase font-bold absolute top-3 left-3">Signature Gestionnaire</span>
                         {/* Placeholder for Signature */}

@@ -45,20 +45,20 @@ const Input: React.FC<InputProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">
+        <label htmlFor={inputId} className="block text-sm font-semibold text-gray-700 mb-1.5">
           {label} {required && <span className="text-error">*</span>}
         </label>
       )}
       <div 
         className={`
           relative rounded-xl 
-          ${hasError ? 'border-error' : 'border-gray-200 dark:border-slate-700'} 
+          ${hasError ? 'border-error' : 'border-gray-200'} 
           border-2
           ${hasError ? 'focus-within:border-error' : 'focus-within:border-primary'} 
           focus-within:ring-2 
           ${hasError ? 'focus-within:ring-error/20' : 'focus-within:ring-primary/20'} 
           transition-all duration-200
-          bg-white dark:bg-slate-800
+          bg-white
           ${shake ? 'animate-shake' : ''}
         `}
       >
@@ -78,7 +78,7 @@ const Input: React.FC<InputProps> = ({
             ${endIcon || (hasError && showErrorIcon) ? 'pr-11' : ''} 
             bg-transparent border-0 
             focus:ring-0 focus:outline-none 
-            text-gray-900 dark:text-white 
+            text-gray-900 
             placeholder:text-gray-400
             text-sm
             ${className}
@@ -95,7 +95,7 @@ const Input: React.FC<InputProps> = ({
         ) : null}
       </div>
       {helperText && !hasError && (
-        <p id={helperId} className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">{helperText}</p>
+        <p id={helperId} className="mt-1.5 text-sm text-gray-500">{helperText}</p>
       )}
       {hasError && (
         <p id={errorId} className="mt-1.5 text-sm text-error flex items-center gap-1.5 font-medium">

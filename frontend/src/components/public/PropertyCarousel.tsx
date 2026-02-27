@@ -45,17 +45,17 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onViewDetails }) 
         
         <div className="absolute top-3 right-3">
           <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white shadow-lg flex items-center gap-1">
-            <span className="w-2 h-2 bg-white dark:bg-slate-800 rounded-full animate-pulse" />
+            <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
             Disponible
           </span>
         </div>
         
         <div className="absolute bottom-3 left-3">
-          <div className="bg-white dark:bg-slate-800/95 backdrop-blur-sm px-4 py-2 rounded-xl shadow-lg">
+          <div className="bg-white/95 backdrop-blur-sm px-4 py-2 rounded-xl shadow-lg">
             <span className="text-lg font-extrabold text-primary">
               {formatPrice(property.loyer)}
             </span>
-            <span className="text-xs text-gray-600 dark:text-gray-300 ml-1">FCFA/mois</span>
+            <span className="text-xs text-gray-600 ml-1">FCFA/mois</span>
           </div>
         </div>
       </div>

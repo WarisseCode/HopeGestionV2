@@ -40,7 +40,7 @@ const PeriodFilter: React.FC<PeriodFilterProps> = ({
       {showIcon && (
         <Calendar size={16} className="text-gray-400 mr-1 hidden sm:block" />
       )}
-      <div className="flex bg-gray-100 dark:bg-slate-800/50 rounded-full p-1 gap-0.5">
+      <div className="flex bg-gray-100 rounded-full p-1 gap-0.5">
         {periods.map((period) => {
           const isActive = value === period.value;
           return (
@@ -52,7 +52,7 @@ const PeriodFilter: React.FC<PeriodFilterProps> = ({
                 transition-all duration-200 whitespace-nowrap
                 ${isActive 
                   ? 'text-white' 
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 hover:bg-gray-200'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
                 }
               `}
             >
