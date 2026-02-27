@@ -416,6 +416,47 @@ const MIGRATIONS: Migration[] = [
             -- We ensure 'viewer' is the standard for read-only guests
             UPDATE users SET role = 'viewer' WHERE role = 'guest' AND is_guest = true;
         `
+    },
+    {
+        name: '028_rent_payment_transactions',
+        sql: `
+            CREATE TABLE IF NOT EXISTS rent_payment_transactions (
+                id SERIAL PRIMARY KEY,
+                schedule_id INTEGER REFERENCES payment_schedules(id) ON DELETE CASCADE,
+                lease_id INTEGER REFERENCES leases(id) ON DELETE CASCADE,
+                tenant_id INTEGER REFERENCES tenants(id) ON DELETE CASCADE,
+                amount DECIMAL(12, 2) NOT NULL,
+                
+                fedapay_transaction_id VARCHAR(255) UNIQUE,
+                fedapay_reference VARCHAR(255),
+                payment_url TEXT,
+                
+                status VARCHAR(50) DEFAULT 'pending',
+                payment_method VARCHAR(50),
+                
+                custom_metadata JSONB,
+                error_message TEXT,
+                
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                paid_at TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_rent_payment_transactions_schedule ON rent_payment_transactions(schedule_id);
+            CREATE INDEX IF NOT EXISTS idx_rent_payment_transactions_lease ON rent_payment_transactions(lease_id);
+            CREATE INDEX IF NOT EXISTS idx_rent_payment_transactions_tenant ON rent_payment_transactions(tenant_id);
+            CREATE INDEX IF NOT EXISTS idx_rent_payment_transactions_status ON rent_payment_transactions(status);
+            CREATE INDEX IF NOT EXISTS idx_rent_payment_transactions_fedapay_id ON rent_payment_transactions(fedapay_transaction_id);
+
+            DO $$ BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'payments' AND column_name = 'quittance_url'
+                ) THEN
+                    ALTER TABLE payments ADD COLUMN quittance_url TEXT;
+                END IF;
+            END $$;
+        `
     }
 ];
 
