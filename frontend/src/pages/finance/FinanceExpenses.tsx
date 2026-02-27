@@ -93,7 +93,7 @@ const FinanceExpenses: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-gray-800">Gestion des Dépenses</h2>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Gestion des Dépenses</h2>
                 <Button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2">
                     <Plus size={18} /> Ajouter Dépense
                 </Button>
@@ -102,7 +102,7 @@ const FinanceExpenses: React.FC = () => {
             {/* Form Modal */}
             {showForm && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <Card className="max-w-md w-full bg-white relative">
+                    <Card className="max-w-md w-full bg-white dark:bg-slate-800 relative">
                         <h3 className="text-lg font-bold mb-4">Nouvelle Dépense</h3>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -125,9 +125,9 @@ const FinanceExpenses: React.FC = () => {
 
                                     {/* Building Selection */}
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1">Immeuble Concerné (Optionnel)</label>
+                                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">Immeuble Concerné (Optionnel)</label>
                                         <select 
-                                            className="select select-bordered w-full bg-gray-50 border p-2 rounded"
+                                            className="select select-bordered w-full bg-gray-50 dark:bg-slate-900/50 border p-2 rounded"
                                             value={formData.building_id || ''}
                                             onChange={(e) => {
                                                 const bId = e.target.value ? parseInt(e.target.value) : undefined;
@@ -149,9 +149,9 @@ const FinanceExpenses: React.FC = () => {
 
                                     {/* Owner Selection */}
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1">Propriétaire Concerné</label>
+                                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">Propriétaire Concerné</label>
                                         <select 
-                                            className="select select-bordered w-full bg-gray-50 border p-2 rounded"
+                                            className="select select-bordered w-full bg-gray-50 dark:bg-slate-900/50 border p-2 rounded"
                                             value={formData.owner_id || ''}
                                             onChange={(e) => setFormData({...formData, owner_id: e.target.value ? parseInt(e.target.value) : undefined})}
                                             required={!formData.building_id} // Required if no building selected
@@ -173,9 +173,9 @@ const FinanceExpenses: React.FC = () => {
                                 {/* Right Column: Details & Proof */}
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1">Catégorie</label>
+                                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">Catégorie</label>
                                         <select 
-                                            className="select select-bordered w-full bg-gray-50 border p-2 rounded"
+                                            className="select select-bordered w-full bg-gray-50 dark:bg-slate-900/50 border p-2 rounded"
                                             value={formData.category}
                                             onChange={(e) => setFormData({...formData, category: e.target.value})}
                                             required
@@ -194,7 +194,7 @@ const FinanceExpenses: React.FC = () => {
                                     />
 
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1">Justificatif (Optionnel)</label>
+                                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">Justificatif (Optionnel)</label>
                                         <label className={`flex flex-col items-center justify-center gap-2 p-6 rounded border-2 border-dashed cursor-pointer transition-colors text-sm h-32 ${
                                             proofFile 
                                                 ? 'bg-green-50 border-green-300 text-green-700' 
@@ -224,9 +224,9 @@ const FinanceExpenses: React.FC = () => {
 
                             {/* Full Width Description */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
+                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">Description</label>
                                 <textarea 
-                                    className="textarea textarea-bordered w-full bg-gray-50 border p-2 rounded"
+                                    className="textarea textarea-bordered w-full bg-gray-50 dark:bg-slate-900/50 border p-2 rounded"
                                     value={formData.description}
                                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                                     rows={3}
@@ -246,7 +246,7 @@ const FinanceExpenses: React.FC = () => {
             {/* List */}
             <Card className="overflow-hidden p-0 border-none shadow-sm">
                 <table className="table w-full text-left">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 dark:bg-slate-900/50">
                         <tr>
                             <th className="p-4">Date</th>
                             <th className="p-4">Catégorie</th>
@@ -261,16 +261,16 @@ const FinanceExpenses: React.FC = () => {
                             <tr><td colSpan={6} className="p-8 text-center text-gray-400">Aucune dépense enregistrée</td></tr>
                         ) : (
                             expenses.map(item => (
-                                <tr key={item.id} className="hover:bg-gray-50">
+                                <tr key={item.id} className="hover:bg-gray-50 dark:bg-slate-900/50">
                                     <td className="p-4 whitespace-nowrap">{format(new Date(item.date_expense), 'dd/MM/yyyy')}</td>
                                     <td className="p-4">
-                                        <span className="bg-gray-100 px-2 py-1 rounded text-xs font-bold text-gray-600">
+                                        <span className="bg-gray-100 dark:bg-slate-800/50 px-2 py-1 rounded text-xs font-bold text-gray-600 dark:text-gray-300">
                                             {item.category}
                                         </span>
                                     </td>
                                     <td className="p-4">
-                                        <div className="font-medium text-gray-800">{item.supplier_name}</div>
-                                        <div className="text-xs text-gray-500">{item.description}</div>
+                                        <div className="font-medium text-gray-800 dark:text-gray-100">{item.supplier_name}</div>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400">{item.description}</div>
                                     </td>
                                     <td className="p-4 font-mono font-bold text-red-600">
                                         -{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(Number(item.amount))}

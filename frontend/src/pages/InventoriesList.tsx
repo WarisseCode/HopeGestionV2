@@ -53,7 +53,7 @@ const InventoriesList: React.FC = () => {
             case 'brouillon':
                 return <span className="px-2 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 flex items-center gap-1"><Clock size={10} /> Brouillon</span>;
             case 'archive':
-                return <span className="px-2 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 flex items-center gap-1"><Clock size={10} /> Archivé</span>;
+                return <span className="px-2 py-1 rounded-full text-xs font-bold bg-gray-100 dark:bg-slate-800/50 text-gray-700 dark:text-gray-200 flex items-center gap-1"><Clock size={10} /> Archivé</span>;
             default:
                 return null;
         }
@@ -82,10 +82,10 @@ const InventoriesList: React.FC = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <ClipboardList className="text-blue-600" /> Gestion des Inventaires
                     </h1>
-                    <p className="text-gray-500">États des lieux et suivi des équipements</p>
+                    <p className="text-gray-500 dark:text-gray-400">États des lieux et suivi des équipements</p>
                 </div>
                 <Link 
                     to="/dashboard/inventories/new" 
@@ -96,13 +96,13 @@ const InventoriesList: React.FC = () => {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex flex-col md:flex-row gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50">
                 <div className="flex-1 relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                     <input 
                         type="text" 
                         placeholder="Rechercher..." 
-                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-slate-900/50 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -115,7 +115,7 @@ const InventoriesList: React.FC = () => {
                             className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
                                 filterStatut === status 
                                     ? 'bg-blue-100 text-blue-700' 
-                                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                                    : 'bg-gray-50 dark:bg-slate-900/50 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-slate-800/50'
                             }`}
                         >
                             {status === 'all' ? 'Tous' : status.charAt(0).toUpperCase() + status.slice(1)}
@@ -125,7 +125,7 @@ const InventoriesList: React.FC = () => {
             </div>
 
             {/* List */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 overflow-hidden">
                 {loading ? (
                     <div className="p-12 text-center text-gray-400">Chargement...</div>
                 ) : filteredInventories.length === 0 ? (
@@ -136,29 +136,29 @@ const InventoriesList: React.FC = () => {
                 ) : (
                     <div className="divide-y divide-gray-100">
                         {filteredInventories.map((inv) => (
-                            <div key={inv.id} className="p-4 hover:bg-gray-50 transition-colors flex flex-col md:flex-row md:items-center gap-4">
+                            <div key={inv.id} className="p-4 hover:bg-gray-50 dark:bg-slate-900/50 transition-colors flex flex-col md:flex-row md:items-center gap-4">
                                 <div className="p-3 bg-blue-50 rounded-xl text-blue-600">
                                     <ClipboardList size={24} />
                                 </div>
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <h3 className="font-semibold text-gray-900">{getTypeLabel(inv.type_inventaire)}</h3>
+                                        <h3 className="font-semibold text-gray-900 dark:text-white">{getTypeLabel(inv.type_inventaire)}</h3>
                                         {getStatusBadge(inv.statut)}
                                     </div>
-                                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                                    <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                                         <span className="flex items-center gap-1">
                                             <Calendar size={14} /> {new Date(inv.date_realisation).toLocaleDateString()}
                                         </span>
                                         <span className="flex items-center gap-1">
                                             <User size={14} /> {inv.agent_name || 'N/A'}
                                         </span>
-                                        <span className="bg-gray-100 px-2 py-0.5 rounded text-xs">
+                                        <span className="bg-gray-100 dark:bg-slate-800/50 px-2 py-0.5 rounded text-xs">
                                             {inv.item_count} éléments
                                         </span>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Link to={`/dashboard/inventories/${inv.id}`} className="p-2 hover:bg-gray-200 rounded-lg text-gray-400 hover:text-gray-600 transition">
+                                    <Link to={`/dashboard/inventories/${inv.id}`} className="p-2 hover:bg-gray-200 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-300 transition">
                                         <ChevronRight size={20} />
                                     </Link>
                                 </div>

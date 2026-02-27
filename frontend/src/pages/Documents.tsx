@@ -112,7 +112,7 @@ const Documents: React.FC = () => {
   const getIcon = (type: string) => {
     if (type.includes('image')) return <ImageIcon size={20} className="text-purple-500" />;
     if (type.includes('pdf')) return <FileText size={20} className="text-red-500" />;
-    return <File size={20} className="text-gray-500" />;
+    return <File size={20} className="text-gray-500 dark:text-gray-400" />;
   };
 
   // Filter logic
@@ -137,8 +137,8 @@ const Documents: React.FC = () => {
       {/* Header with Switcher */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Gestion Documentaire</h1>
-          <p className="text-gray-500">Centralisez, générez et gérez vos documents</p>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Gestion Documentaire</h1>
+          <p className="text-gray-500 dark:text-gray-400">Centralisez, générez et gérez vos documents</p>
         </div>
         
         <div className="flex gap-2">
@@ -156,16 +156,16 @@ const Documents: React.FC = () => {
       </div>
 
       {/* Mode Tabs */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-gray-200 dark:border-slate-700">
           <button 
             onClick={() => setViewMode('files')}
-            className={`px-6 py-3 font-medium text-sm flex items-center gap-2 border-b-2 transition-colors ${viewMode === 'files' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`px-6 py-3 font-medium text-sm flex items-center gap-2 border-b-2 transition-colors ${viewMode === 'files' ? 'border-primary text-primary' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'}`}
           >
               <FileText size={18}/> Mes Documents
           </button>
           <button 
             onClick={() => setViewMode('templates')}
-            className={`px-6 py-3 font-medium text-sm flex items-center gap-2 border-b-2 transition-colors ${viewMode === 'templates' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`px-6 py-3 font-medium text-sm flex items-center gap-2 border-b-2 transition-colors ${viewMode === 'templates' ? 'border-primary text-primary' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'}`}
           >
               <LayoutTemplate size={18}/> Mes Modèles
           </button>
@@ -183,15 +183,15 @@ const Documents: React.FC = () => {
                 <Card>
                     {/* Tabs & Search */}
                     <div className="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
-                    <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg overflow-x-auto w-full md:w-auto">
+                    <div className="flex space-x-1 bg-gray-100 dark:bg-slate-800/50 p-1 rounded-lg overflow-x-auto w-full md:w-auto">
                         {tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                             activeTab === tab.id 
-                                ? 'bg-white text-brand-600 shadow-sm' 
-                                : 'text-gray-600 hover:text-gray-900'
+                                ? 'bg-white dark:bg-slate-800 text-brand-600 shadow-sm' 
+                                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:text-white'
                             }`}
                         >
                             {tab.label}
@@ -214,26 +214,26 @@ const Documents: React.FC = () => {
                     {/* List */}
                     <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-gray-50 text-left">
+                        <thead className="bg-gray-50 dark:bg-slate-900/50 text-left">
                         <tr>
-                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Catégorie</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Taille</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nom</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Catégorie</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Taille</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Actions</th>
                         </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                         {filteredDocuments.map((doc) => (
-                            <tr key={doc.id} className="hover:bg-gray-50 transition-colors">
+                            <tr key={doc.id} className="hover:bg-gray-50 dark:bg-slate-900/50 transition-colors">
                                 <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
-                                    <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-gray-100 rounded-lg">
+                                    <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-gray-100 dark:bg-slate-800/50 rounded-lg">
                                     {getIcon(doc.type)}
                                     </div>
                                     <div className="ml-4">
-                                    <div className="text-sm font-medium text-gray-900">{doc.nom}</div>
-                                    <div className="text-xs text-gray-500">{doc.description}</div>
+                                    <div className="text-sm font-medium text-gray-900 dark:text-white">{doc.nom}</div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">{doc.description}</div>
                                     </div>
                                 </div>
                                 </td>
@@ -242,10 +242,10 @@ const Documents: React.FC = () => {
                                     {doc.categorie}
                                 </span>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {formatSize(doc.taille)}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {new Date(doc.created_at).toLocaleDateString()}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -279,7 +279,7 @@ const Documents: React.FC = () => {
                             </tr>
                         ))}
                         {filteredDocuments.length === 0 && !loading && (
-                            <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-500">Aucun document trouvé.</td></tr>
+                            <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-500 dark:text-gray-400">Aucun document trouvé.</td></tr>
                         )}
                         </tbody>
                     </table>
@@ -305,20 +305,20 @@ const Documents: React.FC = () => {
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full p-6"
           >
             <h2 className="text-xl font-bold mb-4">Nouveau Document</h2>
             <form onSubmit={handleUpload} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Fichier</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Fichier</label>
                 <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-slate-900/50 hover:bg-gray-100 dark:bg-slate-800/50">
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                             <Upload className="w-8 h-8 mb-3 text-gray-400" />
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
                                 {uploadFile ? uploadFile.name : "Cliquez pour upload"}
                             </p>
-                            <p className="text-xs text-gray-500">PDF, PNG, JPG (Max 10MB)</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">PDF, PNG, JPG (Max 10MB)</p>
                         </div>
                         <input 
                             type="file" 
@@ -331,7 +331,7 @@ const Documents: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Catégorie</label>
                 <select 
                   value={uploadCategory}
                   onChange={(e) => setUploadCategory(e.target.value)}

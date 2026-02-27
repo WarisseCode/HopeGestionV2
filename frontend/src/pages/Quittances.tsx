@@ -70,8 +70,8 @@ const Quittances: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Quittances de Loyer</h1>
-          <p className="text-gray-500">Gestion et génération des reçus de paiement</p>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Quittances de Loyer</h1>
+          <p className="text-gray-500 dark:text-gray-400">Gestion et génération des reçus de paiement</p>
         </div>
         <div className="flex gap-3">
           <Button variant="ghost" className="flex items-center gap-2" onClick={fetchQuittances}>
@@ -91,12 +91,12 @@ const Quittances: React.FC = () => {
       </div>
 
       {/* Navigation par onglets */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-gray-200 dark:border-slate-700">
         <button
           className={`px-4 py-2 font-medium text-sm ${
             activeTab === 'liste'
               ? 'text-primary border-b-2 border-primary'
-              : 'text-gray-500 hover:text-gray-700'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
           }`}
           onClick={() => setActiveTab('liste')}
         >
@@ -109,7 +109,7 @@ const Quittances: React.FC = () => {
           className={`px-4 py-2 font-medium text-sm ${
             activeTab === 'generer'
               ? 'text-primary border-b-2 border-primary'
-              : 'text-gray-500 hover:text-gray-700'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
           }`}
           onClick={() => setActiveTab('generer')}
         >
@@ -212,8 +212,8 @@ const Quittances: React.FC = () => {
                     <FileText size={24} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Total quittances</p>
-                  <p className="text-2xl font-bold text-gray-800">{quittances.length}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total quittances</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{quittances.length}</p>
                 </div>
               </div>
             </Card>
@@ -224,8 +224,8 @@ const Quittances: React.FC = () => {
                     <CheckCircle size={24} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Payées</p>
-                  <p className="text-2xl font-bold text-gray-800">{quittances.length}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Payées</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{quittances.length}</p>
                 </div>
               </div>
             </Card>
@@ -236,8 +236,8 @@ const Quittances: React.FC = () => {
                     <Clock size={24} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Ce mois</p>
-                  <p className="text-2xl font-bold text-gray-800">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Ce mois</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                       {quittances.filter(q => new Date(q.datePaiement).getMonth() === new Date().getMonth()).length}
                   </p>
                 </div>
@@ -250,14 +250,14 @@ const Quittances: React.FC = () => {
             {quittances.length === 0 ? (
               <div className="text-center py-12">
                 <FileText size={48} className="mx-auto text-gray-300 mb-4" />
-                <p className="text-gray-500 mb-4">Aucun paiement enregistré pour générer des quittances.</p>
+                <p className="text-gray-500 dark:text-gray-400 mb-4">Aucun paiement enregistré pour générer des quittances.</p>
                 <div className="text-sm text-gray-400">Allez dans Finances pour enregistrer un paiement.</div>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="table w-full">
                   <thead>
-                    <tr className="text-left text-gray-500 uppercase text-xs tracking-wider">
+                    <tr className="text-left text-gray-500 dark:text-gray-400 uppercase text-xs tracking-wider">
                       <th className="p-4">Numéro</th>
                       <th className="p-4">Locataire</th>
                       <th className="p-4">Bail</th>
@@ -269,13 +269,13 @@ const Quittances: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {quittances.map((quittance) => (
-                      <tr key={quittance.id} className="hover:bg-gray-50">
+                      <tr key={quittance.id} className="hover:bg-gray-50 dark:bg-slate-900/50">
                         <td className="p-4 font-mono text-sm">{quittance.numero}</td>
                         <td className="p-4 font-medium">{quittance.locataire}</td>
-                        <td className="p-4 text-sm text-gray-500">{quittance.bien}</td>
+                        <td className="p-4 text-sm text-gray-500 dark:text-gray-400">{quittance.bien}</td>
                         <td className="p-4 text-sm">{quittance.periode}</td>
                         <td className="p-4 font-bold text-green-600">{quittance.montant.toLocaleString()} F</td>
-                        <td className="p-4 text-sm text-gray-500">{new Date(quittance.dateEmission).toLocaleDateString()}</td>
+                        <td className="p-4 text-sm text-gray-500 dark:text-gray-400">{new Date(quittance.dateEmission).toLocaleDateString()}</td>
                         <td className="p-4 text-right">
                           <div className="flex items-center justify-end gap-1">
                            <Button 

@@ -90,7 +90,7 @@ const FinanceLoans: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-gray-800">Prêts Bancaires & Financements</h2>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Prêts Bancaires & Financements</h2>
                 <Button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2">
                     <Plus size={18} /> Nouveau Prêt
                 </Button>
@@ -102,35 +102,35 @@ const FinanceLoans: React.FC = () => {
                     <Card key={loan.id} className="hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group">
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <h3 className="font-bold text-lg text-gray-800">{loan.name}</h3>
-                                <p className="text-sm text-gray-500">Début: {new Date(loan.start_date).toLocaleDateString()}</p>
+                                <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">{loan.name}</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Début: {new Date(loan.start_date).toLocaleDateString()}</p>
                             </div>
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${loan.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${loan.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 dark:bg-slate-800/50 text-gray-600 dark:text-gray-300'}`}>
                                 {loan.status === 'active' ? 'EN COURS' : loan.status}
                             </span>
                         </div>
                         
                         <div className="space-y-2 mb-6">
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Montant Emprunté</span>
+                                <span className="text-gray-500 dark:text-gray-400">Montant Emprunté</span>
                                 <span className="font-bold">{formatMoney(loan.amount)}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Mensualité</span>
+                                <span className="text-gray-500 dark:text-gray-400">Mensualité</span>
                                 <span className="font-bold text-orange-600">-{formatMoney(loan.monthly_payment)}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Durée</span>
+                                <span className="text-gray-500 dark:text-gray-400">Durée</span>
                                 <span>{loan.duration_months} mois</span>
                             </div>
                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Taux</span>
+                                <span className="text-gray-500 dark:text-gray-400">Taux</span>
                                 <span>{loan.interest_rate}%</span>
                             </div>
                         </div>
 
                         {/* Progress Bar (dynamic from paid installments) */}
-                        <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
+                        <div className="w-full bg-gray-100 dark:bg-slate-800/50 rounded-full h-2 mb-4">
                             <div 
                                 className="bg-blue-600 h-2 rounded-full transition-all" 
                                 style={{ width: `${loan.duration_months > 0 ? ((Number(loan.paid_installments) || 0) / loan.duration_months) * 100 : 0}%` }}
@@ -165,7 +165,7 @@ const FinanceLoans: React.FC = () => {
             {/* Create Modal */}
             {showForm && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <Card className="max-w-lg w-full bg-white">
+                    <Card className="max-w-lg w-full bg-white dark:bg-slate-800">
                         <h3 className="text-xl font-bold mb-6">Nouveau Prêt</h3>
                         <form onSubmit={handleCreate} className="space-y-4">
                             <Input label="Nom du prêt (Banque)" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required placeholder="ex: Banque Atlantique - Achat Immeuble Yopougon" />
@@ -180,7 +180,7 @@ const FinanceLoans: React.FC = () => {
                                 <Input label="Date Début" type="date" value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} required />
                             </div>
 
-                            <p className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-900/50 p-3 rounded">
                                 ℹ️ Un tableau d'amortissement sera généré automatiquement et les échéances seront intégrées au prévisionnel de trésorerie.
                             </p>
 
@@ -196,18 +196,18 @@ const FinanceLoans: React.FC = () => {
             {/* Details Modal (Amortissement) */}
             {selectedLoan && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <Card className="max-w-4xl w-full bg-white h-[90vh] flex flex-col">
+                    <Card className="max-w-4xl w-full bg-white dark:bg-slate-800 h-[90vh] flex flex-col">
                         <div className="flex justify-between items-center mb-6 pb-4 border-b">
                             <div>
                                 <h3 className="text-xl font-bold">{selectedLoan.name}</h3>
-                                <p className="text-sm text-gray-500">Tableau d'amortissement</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Tableau d'amortissement</p>
                             </div>
                             <Button variant="ghost" onClick={() => setSelectedLoan(null)} className="btn-circle">✕</Button>
                         </div>
 
                         <div className="flex-1 overflow-auto">
                             <table className="table w-full text-left">
-                                <thead className="bg-gray-50 sticky top-0 z-10">
+                                <thead className="bg-gray-50 dark:bg-slate-900/50 sticky top-0 z-10">
                                     <tr>
                                         <th className="p-3">Echéance</th>
                                         <th className="p-3">Date</th>
@@ -219,8 +219,8 @@ const FinanceLoans: React.FC = () => {
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {selectedLoan.schedule?.map((row, idx) => (
-                                        <tr key={row.id} className="hover:bg-gray-50">
-                                            <td className="p-3 font-mono text-gray-500">#{idx + 1}</td>
+                                        <tr key={row.id} className="hover:bg-gray-50 dark:bg-slate-900/50">
+                                            <td className="p-3 font-mono text-gray-500 dark:text-gray-400">#{idx + 1}</td>
                                             <td className="p-3">{new Date(row.due_date).toLocaleDateString()}</td>
                                             <td className="p-3 text-right font-bold">{formatMoney(row.amount_total)}</td>
                                             <td className="p-3 text-right text-red-500">{formatMoney(row.amount_interest)}</td>

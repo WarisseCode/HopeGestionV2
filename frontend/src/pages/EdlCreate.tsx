@@ -174,11 +174,11 @@ const EdlCreate: React.FC = () => {
             <div className="flex items-center justify-between">
                 <button 
                     onClick={() => navigate('/dashboard/etats-des-lieux')}
-                    className="flex items-center gap-2 text-gray-500 hover:text-gray-900"
+                    className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white"
                 >
                     <ChevronLeft size={20} /> Retour
                 </button>
-                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <ClipboardCheck className="text-blue-600" />
                     Nouvel État des Lieux
                 </h1>
@@ -187,7 +187,7 @@ const EdlCreate: React.FC = () => {
 
             {renderStepIndicator()}
 
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-h-[500px]">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 min-h-[500px]">
                 <AnimatePresence mode="wait">
                     {step === 1 && (
                         <motion.div
@@ -197,15 +197,15 @@ const EdlCreate: React.FC = () => {
                             exit={{ opacity: 0, x: -20 }}
                             className="space-y-6"
                         >
-                            <h2 className="text-xl font-bold text-gray-900 mb-4">Informations Générales</h2>
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Informations Générales</h2>
                             
                             <div className="grid md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                                         <Building size={16} className="inline mr-1" /> Lot/Bien
                                     </label>
                                     <select 
-                                        className="w-full p-2 border border-gray-200 rounded-xl bg-gray-50"
+                                        className="w-full p-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900/50"
                                         value={context.lot_id}
                                         onChange={(e) => setContext({...context, lot_id: Number(e.target.value)})}
                                     >
@@ -219,11 +219,11 @@ const EdlCreate: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                                         <FileText size={16} className="inline mr-1" /> Type d'État des Lieux
                                     </label>
                                     <select 
-                                        className="w-full p-2 border border-gray-200 rounded-xl bg-gray-50"
+                                        className="w-full p-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900/50"
                                         value={context.type_edl}
                                         onChange={(e) => setContext({...context, type_edl: e.target.value as any})}
                                     >
@@ -234,24 +234,24 @@ const EdlCreate: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                                         <Calendar size={16} className="inline mr-1" /> Date de Réalisation
                                     </label>
                                     <input 
                                         type="date" 
-                                        className="w-full p-2 border border-gray-200 rounded-xl bg-gray-50"
+                                        className="w-full p-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900/50"
                                         value={context.date_realisation}
                                         onChange={(e) => setContext({...context, date_realisation: e.target.value})}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                                         <User size={16} className="inline mr-1" /> Nom du Locataire
                                     </label>
                                     <input 
                                         type="text" 
-                                        className="w-full p-2 border border-gray-200 rounded-xl bg-gray-50"
+                                        className="w-full p-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900/50"
                                         placeholder="Jean Dupont"
                                         value={context.locataire_name}
                                         onChange={(e) => setContext({...context, locataire_name: e.target.value})}
@@ -260,10 +260,10 @@ const EdlCreate: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Commentaires (Optionnel)</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Commentaires (Optionnel)</label>
                                 <textarea 
                                     rows={3}
-                                    className="w-full p-2 border border-gray-200 rounded-xl bg-gray-50 resize-none"
+                                    className="w-full p-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900/50 resize-none"
                                     value={context.commentaires}
                                     onChange={(e) => setContext({...context, commentaires: e.target.value})}
                                 />
@@ -277,7 +277,7 @@ const EdlCreate: React.FC = () => {
                                     onChange={(e) => setContext({...context, locataire_present: e.target.checked})}
                                     className="w-4 h-4 text-blue-600"
                                 />
-                                <label htmlFor="present" className="text-sm text-gray-700">
+                                <label htmlFor="present" className="text-sm text-gray-700 dark:text-gray-200">
                                     Locataire présent lors de l'inspection
                                 </label>
                             </div>
@@ -293,7 +293,7 @@ const EdlCreate: React.FC = () => {
                             className="space-y-6"
                         >
                             <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-bold text-gray-900">Inspection des Éléments ({items.length})</h2>
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inspection des Éléments ({items.length})</h2>
                                 <button 
                                     onClick={() => setShowItemModal(true)}
                                     className="btn-secondary text-sm py-2 px-3 flex items-center gap-2"
@@ -303,7 +303,7 @@ const EdlCreate: React.FC = () => {
                             </div>
 
                             {items.length === 0 ? (
-                                <div className="border-2 border-dashed border-gray-200 rounded-xl p-12 text-center text-gray-400">
+                                <div className="border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl p-12 text-center text-gray-400">
                                     <ClipboardCheck size={48} className="mx-auto mb-3 opacity-20" />
                                     <p>Aucun élément inspecté</p>
                                     <p className="text-sm">Commencez par ajouter les éléments constatés</p>
@@ -317,10 +317,10 @@ const EdlCreate: React.FC = () => {
                                             <div key={piece} className="space-y-2">
                                                 <h4 className="text-xs font-bold text-gray-400 uppercase">{piece}</h4>
                                                 {pieceItems.map((item, idx) => (
-                                                    <div key={idx} className="bg-gray-50 p-3 rounded-xl flex items-start gap-3">
+                                                    <div key={idx} className="bg-gray-50 dark:bg-slate-900/50 p-3 rounded-xl flex items-start gap-3">
                                                         <div className="flex-1">
-                                                            <h5 className="font-semibold text-gray-900">{item.nom}</h5>
-                                                            <p className="text-sm text-gray-500">{item.observation || 'Aucune observation'}</p>
+                                                            <h5 className="font-semibold text-gray-900 dark:text-white">{item.nom}</h5>
+                                                            <p className="text-sm text-gray-500 dark:text-gray-400">{item.observation || 'Aucune observation'}</p>
                                                             <span className={`inline-block mt-1 px-2 py-1 rounded text-xs font-bold ${ETATS.find(e => e.value === item.etat)?.color}`}>
                                                                 {ETATS.find(e => e.value === item.etat)?.label}
                                                             </span>
@@ -349,7 +349,7 @@ const EdlCreate: React.FC = () => {
                             exit={{ opacity: 0, x: -20 }}
                             className="space-y-6"
                         >
-                            <h2 className="text-xl font-bold text-gray-900">Validation et Enregistrement</h2>
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Validation et Enregistrement</h2>
                             
                             <div className="bg-blue-50 p-4 rounded-xl">
                                 <h3 className="font-bold text-blue-900 mb-2">Récapitulatif</h3>
@@ -410,11 +410,11 @@ const EdlCreate: React.FC = () => {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+                            className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
                         >
-                            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                                <h3 className="font-bold text-gray-900">Ajouter un Élément</h3>
-                                <button onClick={() => setShowItemModal(false)} className="text-gray-400 hover:text-gray-600">Fermer</button>
+                            <div className="p-6 border-b border-gray-100 dark:border-slate-700/50 flex justify-between items-center">
+                                <h3 className="font-bold text-gray-900 dark:text-white">Ajouter un Élément</h3>
+                                <button onClick={() => setShowItemModal(false)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300">Fermer</button>
                             </div>
                             
                             <div className="p-6 space-y-4">
@@ -450,7 +450,7 @@ const EdlCreate: React.FC = () => {
                                                 className={`p-2 rounded-lg text-sm border transition ${
                                                     currentItem.etat === etat.value 
                                                         ? `${etat.color} border-current ring-2 ring-offset-1` 
-                                                        : 'border-gray-200 hover:bg-gray-50'
+                                                        : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:bg-slate-900/50'
                                                 }`}
                                             >
                                                 {etat.label}
@@ -476,7 +476,7 @@ const EdlCreate: React.FC = () => {
                                     </label>
                                     <div className="grid grid-cols-4 gap-2">
                                         {currentItem.photos.map((src, i) => (
-                                            <div key={i} className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                                            <div key={i} className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-slate-800/50">
                                                 <img src={src} className="w-full h-full object-cover" alt="" />
                                             </div>
                                         ))}
@@ -488,7 +488,7 @@ const EdlCreate: React.FC = () => {
                                 </div>
                             </div>
                             
-                            <div className="p-4 border-t border-gray-100 flex justify-end gap-3">
+                            <div className="p-4 border-t border-gray-100 dark:border-slate-700/50 flex justify-end gap-3">
                                 <button onClick={() => setShowItemModal(false)} className="btn-ghost">Annuler</button>
                                 <button 
                                     onClick={handleAddItem}

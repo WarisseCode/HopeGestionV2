@@ -259,7 +259,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
                             placeholder="Ex: LOC-X8Z9A2"
                             value={formData.invitationCode}
                             onChange={handleChange}
-                            className="bg-white border-blue-200 focus:border-blue-500 uppercase font-mono"
+                            className="bg-white dark:bg-slate-800 border-blue-200 focus:border-blue-500 uppercase font-mono"
                         />
                     </div>
                  </div>

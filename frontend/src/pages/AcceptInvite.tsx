@@ -73,17 +73,17 @@ const AcceptInvite: React.FC = () => {
 
     if (success) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900/50 p-4">
                 <motion.div 
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center"
+                    className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl max-w-md w-full text-center"
                 >
                     <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Check size={32} />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Compte activé !</h2>
-                    <p className="text-gray-600 mb-6">{success}</p>
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Compte activé !</h2>
+                    <p className="text-gray-600 dark:text-gray-300 mb-6">{success}</p>
                     <p className="text-sm text-gray-400">Redirection vers la connexion...</p>
                 </motion.div>
             </div>
@@ -91,15 +91,15 @@ const AcceptInvite: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 font-sans">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900/50 p-4 font-sans">
             <motion.div 
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-gray-100"
+                className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl max-w-md w-full border border-gray-100 dark:border-slate-700/50"
             >
                 <div className="text-center mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Finaliser l'inscription</h1>
-                    <p className="text-gray-500 mt-2">Définissez votre mot de passe pour accéder à HopeImmo.</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Finaliser l'inscription</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-2">Définissez votre mot de passe pour accéder à HopeImmo.</p>
                 </div>
 
                 {error && (
@@ -113,7 +113,7 @@ const AcceptInvite: React.FC = () => {
                     {/* Optional Identity Fields */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Nom (Optionnel)</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Nom (Optionnel)</label>
                             <input 
                                 type="text"
                                 value={nom}
@@ -123,7 +123,7 @@ const AcceptInvite: React.FC = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Prénom (Optionnel)</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Prénom (Optionnel)</label>
                             <input 
                                 type="text"
                                 value={prenom}
@@ -135,7 +135,7 @@ const AcceptInvite: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Mot de passe</label>
                         <div className="relative">
                             <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                             <input 
@@ -150,7 +150,7 @@ const AcceptInvite: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Confirmer mot de passe</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Confirmer mot de passe</label>
                         <div className="relative">
                             <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                             <input 

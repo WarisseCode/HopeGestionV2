@@ -66,12 +66,12 @@ const CarnetContacts: React.FC = () => {
                                 {c.name.charAt(0)}
                             </div>
                             <div>
-                                <h3 className="font-bold text-gray-900">{c.name}</h3>
+                                <h3 className="font-bold text-gray-900 dark:text-white">{c.name}</h3>
                                 <p className="text-sm text-blue-600 font-medium">{c.role}</p>
                             </div>
                         </div>
 
-                        <div className="mt-4 space-y-2 text-sm text-gray-600">
+                        <div className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-300">
                              {c.phone && <div className="flex items-center gap-2"><Phone size={14} className="text-gray-400"/> {c.phone}</div>}
                              {c.email && <div className="flex items-center gap-2"><Mail size={14} className="text-gray-400"/> {c.email}</div>}
                              {c.address && <div className="flex items-center gap-2"><MapPin size={14} className="text-gray-400"/> {c.address}</div>}

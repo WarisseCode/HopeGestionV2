@@ -74,7 +74,7 @@ const EdlDetails: React.FC = () => {
         <div className="p-6 lg:p-12 max-w-4xl mx-auto print:p-0">
             {/* Nav & Actions */}
             <div className="flex items-center justify-between mb-8 print:hidden">
-                <Link to="/dashboard/etats-des-lieux" className="flex items-center gap-2 text-gray-500 hover:text-gray-900">
+                <Link to="/dashboard/etats-des-lieux" className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white">
                     <ArrowLeft size={20} /> Retour
                 </Link>
                 <div className="flex gap-3">
@@ -96,35 +96,35 @@ const EdlDetails: React.FC = () => {
             </div>
 
             {/* Document Layout */}
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 print:shadow-none print:border-none">
+            <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 print:shadow-none print:border-none">
                 {/* Header */}
-                <div className="border-b border-gray-100 pb-6 mb-8 flex justify-between items-start">
+                <div className="border-b border-gray-100 dark:border-slate-700/50 pb-6 mb-8 flex justify-between items-start">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">{getTypeLabel(edl.type_edl)}</h1>
-                        <p className="text-gray-500 uppercase tracking-widest font-medium text-sm">
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{getTypeLabel(edl.type_edl)}</h1>
+                        <p className="text-gray-500 dark:text-gray-400 uppercase tracking-widest font-medium text-sm">
                             Document Officiel
                         </p>
                     </div>
                     <div className="text-right">
-                        <div className="inline-block px-3 py-1 bg-gray-100 rounded text-sm font-mono mb-2">
+                        <div className="inline-block px-3 py-1 bg-gray-100 dark:bg-slate-800/50 rounded text-sm font-mono mb-2">
                              {edl.ref_edl}
                         </div>
                         <div className="mb-2">{getStatusBadge(edl.statut)}</div>
-                        <p className="text-sm text-gray-500">{new Date(edl.date_realisation).toLocaleDateString('fr-FR')}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{new Date(edl.date_realisation).toLocaleDateString('fr-FR')}</p>
                     </div>
                 </div>
 
                 {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-8 mb-8 bg-gray-50 p-6 rounded-xl print:bg-white print:border print:border-gray-200">
+                <div className="grid grid-cols-2 gap-8 mb-8 bg-gray-50 dark:bg-slate-900/50 p-6 rounded-xl print:bg-white dark:bg-slate-800 print:border print:border-gray-200 dark:border-slate-700">
                     <div>
                         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Bien Concerné</h3>
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
                                 <Building size={16} className="text-blue-500" />
-                                <span className="font-medium text-gray-900">{edl.ref_lot}</span>
+                                <span className="font-medium text-gray-900 dark:text-white">{edl.ref_lot}</span>
                             </div>
                             {edl.ref_location && (
-                                <div className="text-sm text-gray-600">
+                                <div className="text-sm text-gray-600 dark:text-gray-300">
                                     Contrat: {edl.ref_location}
                                 </div>
                             )}
@@ -136,9 +136,9 @@ const EdlDetails: React.FC = () => {
                             <div className="flex items-center gap-2">
                                 <User size={16} className="text-blue-500" />
                                 <div>
-                                    <div className="font-medium text-gray-900">Agent: {edl.agent_name}</div>
+                                    <div className="font-medium text-gray-900 dark:text-white">Agent: {edl.agent_name}</div>
                                     {edl.locataire_name && (
-                                        <div className="text-sm text-gray-600">Locataire: {edl.locataire_name}</div>
+                                        <div className="text-sm text-gray-600 dark:text-gray-300">Locataire: {edl.locataire_name}</div>
                                     )}
                                 </div>
                             </div>
@@ -148,21 +148,21 @@ const EdlDetails: React.FC = () => {
 
                 {/* Items List by Room */}
                 <div className="space-y-8">
-                    <h2 className="text-xl font-bold text-gray-900 border-b pb-2">Constats par Pièce</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white border-b pb-2">Constats par Pièce</h2>
                     {Object.entries(groupedItems).map(([piece, items]) => (
                         <div key={piece}>
-                            <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900 border-b border-gray-200 pb-2 mb-4">
+                            <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-slate-700 pb-2 mb-4">
                                 <ClipboardCheck className="text-blue-500" size={20} /> 
                                 {piece}
                             </h3>
                             <div className="grid grid-cols-1 gap-3">
                                 {(items as any[]).map((item: any) => (
-                                    <div key={item.id} className="bg-gray-50/50 p-4 rounded-lg hover:bg-gray-50 transition print:bg-white print:border-b">
+                                    <div key={item.id} className="bg-gray-50 dark:bg-slate-900/50/50 p-4 rounded-lg hover:bg-gray-50 dark:bg-slate-900/50 transition print:bg-white dark:bg-slate-800 print:border-b">
                                         <div className="flex items-start justify-between mb-2">
                                             <div className="flex-1">
-                                                <h4 className="font-semibold text-gray-900">{item.nom}</h4>
+                                                <h4 className="font-semibold text-gray-900 dark:text-white">{item.nom}</h4>
                                                 {item.description && (
-                                                    <p className="text-xs text-gray-500">{item.description}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{item.description}</p>
                                                 )}
                                             </div>
                                             <span className={`px-2 py-1 rounded text-xs font-bold capitalize 
@@ -185,7 +185,7 @@ const EdlDetails: React.FC = () => {
                                         {item.photos && Array.isArray(item.photos) && item.photos.length > 0 && (
                                             <div className="flex gap-1 mt-2">
                                                 {item.photos.slice(0, 3).map((src: string, idx: number) => (
-                                                    <img key={idx} src={src} className="w-16 h-16 rounded border border-gray-200 object-cover" alt="" />
+                                                    <img key={idx} src={src} className="w-16 h-16 rounded border border-gray-200 dark:border-slate-700 object-cover" alt="" />
                                                 ))}
                                             </div>
                                         )}
@@ -205,7 +205,7 @@ const EdlDetails: React.FC = () => {
                 )}
 
                 {/* Signatures */}
-                <div className="mt-12 pt-8 border-t border-gray-200 grid grid-cols-2 gap-12">
+                <div className="mt-12 pt-8 border-t border-gray-200 dark:border-slate-700 grid grid-cols-2 gap-12">
                     <div className="border rounded-xl h-32 p-4 relative">
                         <span className="text-xs text-gray-400 uppercase font-bold absolute top-3 left-3">Signature Agent</span>
                         {edl.signatures_json?.agent?.signature_url && (

@@ -37,7 +37,7 @@ const SubscriptionBadge: React.FC = () => {
         switch (status.plan?.name) {
             case 'pro': return 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 border-amber-200';
             case 'enterprise': return 'bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-800 border-purple-200';
-            default: return 'bg-gray-100 text-gray-600 border-gray-200';
+            default: return 'bg-gray-100 dark:bg-slate-800/50 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-slate-700';
         }
     };
 

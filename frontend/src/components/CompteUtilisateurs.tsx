@@ -357,8 +357,8 @@ const CompteUtilisateurs: React.FC = () => {
         <div className="space-y-6 animate-fade-in">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h2 className="text-lg font-bold text-gray-800">Gestion des Utilisateurs</h2>
-                    <p className="text-gray-500 text-sm">Gérez les accès et affectations à votre agence</p>
+                    <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">Gestion des Utilisateurs</h2>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Gérez les accès et affectations à votre agence</p>
                 </div>
                 <button 
                     onClick={() => setShowAddModal(true)}
@@ -376,9 +376,9 @@ const CompteUtilisateurs: React.FC = () => {
 
 
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto max-h-[65vh] overflow-y-auto">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700/50 overflow-x-auto max-h-[65vh] overflow-y-auto">
                 <table className="w-full text-left border-collapse min-w-[700px]">
-                    <thead className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
+                    <thead className="bg-gray-50 dark:bg-slate-900/50 text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wider">
                         <tr>
                             <th className="p-4 font-semibold">Utilisateur</th>
                             <th className="p-4 font-semibold">Email</th>
@@ -389,22 +389,22 @@ const CompteUtilisateurs: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {users.map((user) => (
-                            <tr key={user.id} className={`transition border-b border-gray-100 ${
+                            <tr key={user.id} className={`transition border-b border-gray-100 dark:border-slate-700/50 ${
                                 user.statut === 'Suspendu' 
                                     ? 'bg-orange-50/60 hover:bg-orange-100/50' 
-                                    : 'hover:bg-gray-50'
+                                    : 'hover:bg-gray-50 dark:bg-slate-900/50'
                             }`}>
                                 <td className="p-4 flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
                                         {user.prenom?.[0] || user.nom?.[0]}
                                     </div>
                                     <div>
-                                        <div className="font-medium text-gray-900">
+                                        <div className="font-medium text-gray-900 dark:text-white">
                                             {user.prenom ? `${user.prenom} ${user.nom}` : user.nom}
                                         </div>
                                     </div>
                                 </td>
-                                <td className="p-4 text-gray-600">{user.email}</td>
+                                <td className="p-4 text-gray-600 dark:text-gray-300">{user.email}</td>
                                 <td className="p-4">
                                     <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${
                                         user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
@@ -430,12 +430,12 @@ const CompteUtilisateurs: React.FC = () => {
                                 <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                                     <div className="dropdown dropdown-end">
                                         <div tabIndex={0} role="button" className="btn btn-ghost btn-sm btn-circle">
-                                            <MoreVertical size={18} className="text-gray-500" />
+                                            <MoreVertical size={18} className="text-gray-500 dark:text-gray-400" />
                                         </div>
-                                        <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow-lg bg-white rounded-box w-52 border border-gray-100">
+                                        <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow-lg bg-white dark:bg-slate-800 rounded-box w-52 border border-gray-100 dark:border-slate-700/50">
                                             {user.role !== 'admin' && (
                                                 <li>
-                                                    <a onClick={() => openAssignModal(user)} className="text-gray-700 hover:text-blue-600 hover:bg-blue-50">
+                                                    <a onClick={() => openAssignModal(user)} className="text-gray-700 dark:text-gray-200 hover:text-blue-600 hover:bg-blue-50">
                                                         <Link2 size={16} /> Gérer les accès
                                                     </a>
                                                 </li>
@@ -469,7 +469,7 @@ const CompteUtilisateurs: React.FC = () => {
                         ))}
                         {users.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="p-8 text-center text-gray-500">
+                                <td colSpan={5} className="p-8 text-center text-gray-500 dark:text-gray-400">
                                     Aucun utilisateur trouvé.
                                 </td>
                             </tr>
@@ -493,22 +493,22 @@ const CompteUtilisateurs: React.FC = () => {
             {/* Modal Ajout */}
             {showAddModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-scale-in">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md p-6 animate-scale-in">
                         <h3 className="text-xl font-bold mb-4">Ajouter un utilisateur</h3>
                         <form onSubmit={handleAddUser} className="space-y-4">
                             {/* Mode Selection */}
-                            <div className="flex bg-gray-100 p-1 rounded-lg mb-4">
+                            <div className="flex bg-gray-100 dark:bg-slate-800/50 p-1 rounded-lg mb-4">
                                 <button
                                     type="button"
                                     onClick={() => { setCreationMode('invite'); setInvitationLink(null); }}
-                                    className={`flex-1 py-1.5 text-sm font-medium rounded-md transition ${creationMode === 'invite' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}
+                                    className={`flex-1 py-1.5 text-sm font-medium rounded-md transition ${creationMode === 'invite' ? 'bg-white dark:bg-slate-800 shadow text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}
                                 >
                                     Invitation (Recommandé)
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setCreationMode('direct')}
-                                    className={`flex-1 py-1.5 text-sm font-medium rounded-md transition ${creationMode === 'direct' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}
+                                    className={`flex-1 py-1.5 text-sm font-medium rounded-md transition ${creationMode === 'direct' ? 'bg-white dark:bg-slate-800 shadow text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}
                                 >
                                     Création Directe
                                 </button>
@@ -561,9 +561,9 @@ const CompteUtilisateurs: React.FC = () => {
                                     )}
 
                                     <div>
-                                        <label className="text-xs text-gray-500 mb-1 block">Rôle</label>
+                                        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Rôle</label>
                                         <select 
-                                            className="p-2 border rounded-lg w-full bg-white"
+                                            className="p-2 border rounded-lg w-full bg-white dark:bg-slate-800"
                                             value={newUser.role}
                                             onChange={e => setNewUser({...newUser, role: e.target.value})}
                                         >
@@ -579,7 +579,7 @@ const CompteUtilisateurs: React.FC = () => {
                                         <button 
                                             type="button"
                                             onClick={() => setShowAddModal(false)}
-                                            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                                            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-slate-800/50 rounded-lg"
                                         >
                                             Annuler
                                         </button>
@@ -603,7 +603,7 @@ const CompteUtilisateurs: React.FC = () => {
                                             <input 
                                                 readOnly 
                                                 value={invitationLink} 
-                                                className="flex-1 p-2 text-sm border rounded bg-white text-gray-600"
+                                                className="flex-1 p-2 text-sm border rounded bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300"
                                             />
                                             <button onClick={copyLink} className="p-2 bg-gray-200 rounded hover:bg-gray-300">
                                                 <Link2 size={16}/>
@@ -621,7 +621,7 @@ const CompteUtilisateurs: React.FC = () => {
                                     <button 
                                         type="button" 
                                         onClick={() => { setShowAddModal(false); setInvitationLink(null); loadUsers(); }}
-                                        className="text-gray-500 hover:underline text-sm"
+                                        className="text-gray-500 dark:text-gray-400 hover:underline text-sm"
                                     >
                                         Fermer et Rafraîchir
                                     </button>
@@ -635,26 +635,26 @@ const CompteUtilisateurs: React.FC = () => {
             {/* Modal Affectation */}
             {showAssignModal && selectedUser && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 animate-scale-in max-h-[80vh] overflow-hidden flex flex-col">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-lg p-6 animate-scale-in max-h-[80vh] overflow-hidden flex flex-col">
                         <div className="flex justify-between items-center mb-4">
                             <div>
                                 <h3 className="text-xl font-bold">Affectation aux Propriétaires</h3>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
                                     {selectedUser.prenom ? `${selectedUser.prenom} ${selectedUser.nom}` : selectedUser.nom} ({selectedUser.role})
                                 </p>
                             </div>
-                            <button onClick={() => setShowAssignModal(false)} className="text-gray-400 hover:text-gray-600">
+                            <button onClick={() => setShowAssignModal(false)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300">
                                 <X size={24} />
                             </button>
                         </div>
 
-                        <p className="text-xs text-gray-500 mb-3">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
                             Cochez les propriétaires que cet utilisateur peut gérer.
                         </p>
 
-                        <div className="flex-1 overflow-y-auto border rounded-lg divide-y bg-gray-50">
+                        <div className="flex-1 overflow-y-auto border rounded-lg divide-y bg-gray-50 dark:bg-slate-900/50">
                             {owners.length === 0 && (
-                                <div className="p-4 text-center text-gray-500 text-sm">
+                                <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
                                     Aucun propriétaire disponible.
                                 </div>
                             )}
@@ -664,7 +664,7 @@ const CompteUtilisateurs: React.FC = () => {
                                 const isExpanded = expandedOwnerId === owner.id;
 
                                 return (
-                                    <div key={owner.id} className={`transition-colors ${isAssigned ? 'bg-white' : ''}`}>
+                                    <div key={owner.id} className={`transition-colors ${isAssigned ? 'bg-white dark:bg-slate-800' : ''}`}>
                                         <div className="flex items-center gap-3 p-3">
                                             <input 
                                                 type="checkbox"
@@ -673,14 +673,14 @@ const CompteUtilisateurs: React.FC = () => {
                                                 className="w-4 h-4 text-blue-600 rounded"
                                             />
                                             <div className="flex-1">
-                                                <div className="font-medium text-gray-800">{owner.nom}</div>
+                                                <div className="font-medium text-gray-800 dark:text-gray-100">{owner.nom}</div>
                                                 <div className="text-xs text-gray-400 capitalize">{owner.type_proprietaire}</div>
                                             </div>
                                             
                                             {isAssigned && assignment && (
                                                 <div className="flex items-center gap-2">
                                                      <select 
-                                                        className="text-xs border rounded p-1 bg-gray-50"
+                                                        className="text-xs border rounded p-1 bg-gray-50 dark:bg-slate-900/50"
                                                         value={assignment.role}
                                                         onChange={(e) => updateAssignmentRole(owner.id, e.target.value)}
                                                     >
@@ -692,7 +692,7 @@ const CompteUtilisateurs: React.FC = () => {
                                                     </select>
                                                     <button 
                                                         onClick={() => setExpandedOwnerId(isExpanded ? null : owner.id)}
-                                                        className={`p-1 rounded-md hover:bg-gray-100 ${isExpanded ? 'text-blue-600 bg-blue-50' : 'text-gray-400'}`}
+                                                        className={`p-1 rounded-md hover:bg-gray-100 dark:bg-slate-800/50 ${isExpanded ? 'text-blue-600 bg-blue-50' : 'text-gray-400'}`}
                                                         title="Paramètres avancés"
                                                     >
                                                         <Settings size={16} />
@@ -704,7 +704,7 @@ const CompteUtilisateurs: React.FC = () => {
                                         {/* Expanded Permission Matrix */}
                                         {isAssigned && isExpanded && assignment && (
                                             <div className="px-4 pb-4 animate-fade-in pl-10">
-                                                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 grid grid-cols-2 gap-2 text-xs">
+                                                <div className="bg-gray-50 dark:bg-slate-900/50 rounded-lg p-3 border border-gray-100 dark:border-slate-700/50 grid grid-cols-2 gap-2 text-xs">
                                                     <label className="flex items-center gap-2 cursor-pointer">
                                                         <input type="checkbox" checked={assignment.permissions.can_view_finances} 
                                                             onChange={() => togglePermission(owner.id, 'can_view_finances')} />
@@ -739,13 +739,13 @@ const CompteUtilisateurs: React.FC = () => {
                         </div>
 
                         <div className="flex justify-between items-center mt-4 pt-4 border-t">
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
                                 {assignmentsMap.size} propriétaire(s) sélectionné(s)
                             </span>
                             <div className="flex gap-2">
                                 <button 
                                     onClick={() => setShowAssignModal(false)}
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                                    className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-slate-800/50 rounded-lg"
                                 >
                                     Annuler
                                 </button>
@@ -764,12 +764,12 @@ const CompteUtilisateurs: React.FC = () => {
             {/* Modal Guest Access */}
             {showGuestModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-scale-in">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md p-6 animate-scale-in">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-xl font-bold flex items-center gap-2">
                                 <Key className="text-emerald-500" /> Générer Accès Invité
                             </h3>
-                            <button onClick={() => setShowGuestModal(false)} className="text-gray-400 hover:text-gray-600"><X size={24}/></button>
+                            <button onClick={() => setShowGuestModal(false)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300"><X size={24}/></button>
                         </div>
 
                         {!generatedKey ? (
@@ -802,11 +802,11 @@ const CompteUtilisateurs: React.FC = () => {
                                 
                                 {/* NEW: Role Selector */}
                                 <div>
-                                    <label className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
                                         <Shield size={12}/> Rôle de l'invité
                                     </label>
                                     <select 
-                                        className="p-2 border rounded-lg w-full bg-white"
+                                        className="p-2 border rounded-lg w-full bg-white dark:bg-slate-800"
                                         value={guestForm.role}
                                         onChange={e => setGuestForm({...guestForm, role: e.target.value})}
                                     >
@@ -822,11 +822,11 @@ const CompteUtilisateurs: React.FC = () => {
                                 </div>
                                 
                                 <div>
-                                    <label className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
                                         <Clock size={12}/> Durée de validité
                                     </label>
                                     <select 
-                                        className="p-2 border rounded-lg w-full bg-white"
+                                        className="p-2 border rounded-lg w-full bg-white dark:bg-slate-800"
                                         value={guestForm.durationDays}
                                         onChange={e => setGuestForm({...guestForm, durationDays: parseInt(e.target.value)})}
                                     >
@@ -841,7 +841,7 @@ const CompteUtilisateurs: React.FC = () => {
                                     <button 
                                         type="button"
                                         onClick={() => setShowGuestModal(false)}
-                                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                                        className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-slate-800/50 rounded-lg"
                                     >
                                         Annuler
                                     </button>
@@ -858,14 +858,14 @@ const CompteUtilisateurs: React.FC = () => {
                                 <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600">
                                     <Key size={32} />
                                 </div>
-                                <h4 className="text-lg font-bold text-gray-800">Clé d'Accès Générée !</h4>
-                                <p className="text-gray-500 text-sm">Transmettez cette clé à votre invité.</p>
+                                <h4 className="text-lg font-bold text-gray-800 dark:text-gray-100">Clé d'Accès Générée !</h4>
+                                <p className="text-gray-500 dark:text-gray-400 text-sm">Transmettez cette clé à votre invité.</p>
                                 
-                                <div className="bg-gray-100 p-4 rounded-xl border border-gray-200 mt-4 relative group">
-                                    <div className="font-mono text-2xl tracking-widest text-center font-bold text-gray-800">
+                                <div className="bg-gray-100 dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700 mt-4 relative group">
+                                    <div className="font-mono text-2xl tracking-widest text-center font-bold text-gray-800 dark:text-gray-100">
                                         {generatedKey.key}
                                     </div>
-                                    <div className="text-xs text-gray-500 mt-2">
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                                         Expire le : {new Date(generatedKey.expiresAt).toLocaleDateString()}
                                     </div>
                                 </div>
@@ -879,7 +879,7 @@ const CompteUtilisateurs: React.FC = () => {
                                 
                                 <button 
                                     onClick={() => { setShowGuestModal(false); setGeneratedKey(null); }}
-                                    className="text-gray-400 hover:text-gray-600 text-sm mt-2"
+                                    className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-sm mt-2"
                                 >
                                     Fermer
                                 </button>

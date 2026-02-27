@@ -70,16 +70,16 @@ const TasksPage: React.FC = () => {
           case 'urgent': return 'text-red-600 bg-red-50 border-red-200';
           case 'high': return 'text-orange-600 bg-orange-50 border-orange-200';
           case 'medium': return 'text-blue-600 bg-blue-50 border-blue-200';
-          default: return 'text-gray-600 bg-gray-50 border-gray-200';
+          default: return 'text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-slate-900/50 border-gray-200 dark:border-slate-700';
       }
   };
 
   return (
     <div className="p-6 h-[calc(100vh-64px)] flex gap-6 overflow-hidden">
         {/* Left: Task List */}
-        <div className="flex-1 flex flex-col h-full bg-white rounded-2xl shadow-sm border overflow-hidden">
+        <div className="flex-1 flex flex-col h-full bg-white dark:bg-slate-800 rounded-2xl shadow-sm border overflow-hidden">
             {/* Header */}
-            <div className="p-4 border-b flex justify-between items-center bg-gray-50/50">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50 dark:bg-slate-900/50/50">
                 <div>
                     <h1 className="text-2xl font-bold flex items-center gap-2">
                         <CheckSquare className="text-primary"/> Tâches
@@ -87,7 +87,7 @@ const TasksPage: React.FC = () => {
                 </div>
                 <div className="flex gap-2">
                     <select 
-                        className="text-sm border rounded-lg px-2 py-1.5 bg-white"
+                        className="text-sm border rounded-lg px-2 py-1.5 bg-white dark:bg-slate-800"
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                     >
@@ -106,7 +106,7 @@ const TasksPage: React.FC = () => {
                 {tasks.map(task => (
                     <div 
                         key={task.id} 
-                        className={`group p-4 rounded-xl border hover:shadow-md transition-all cursor-pointer bg-white ${activeChatTask?.id === task.id ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                        className={`group p-4 rounded-xl border hover:shadow-md transition-all cursor-pointer bg-white dark:bg-slate-800 ${activeChatTask?.id === task.id ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                         onClick={() => setActiveChatTask(task)}
                     >
                         <div className="flex justify-between items-start mb-2">
@@ -118,8 +118,8 @@ const TasksPage: React.FC = () => {
                                     {task.status === 'done' && <CheckCircle size={12}/>}
                                 </button>
                                 <div>
-                                    <h3 className={`font-semibold ${task.status === 'done' ? 'line-through text-gray-400' : 'text-gray-900'}`}>{task.title}</h3>
-                                    <p className="text-sm text-gray-500 line-clamp-1">{task.description}</p>
+                                    <h3 className={`font-semibold ${task.status === 'done' ? 'line-through text-gray-400' : 'text-gray-900 dark:text-white'}`}>{task.title}</h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">{task.description}</p>
                                 </div>
                             </div>
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${getPriorityColor(task.priority)}`}>
@@ -157,7 +157,7 @@ const TasksPage: React.FC = () => {
                     onClose={() => setActiveChatTask(null)}
                 />
             ) : (
-                <div className="h-full bg-gray-50 rounded-2xl border border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 p-8 text-center">
+                <div className="h-full bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 p-8 text-center">
                     <MessageSquare size={48} className="mb-4 opacity-50"/>
                     <p className="font-medium">Sélectionnez une tâche pour voir les détails et discuter avec l'équipe.</p>
                 </div>

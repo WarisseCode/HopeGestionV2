@@ -125,7 +125,7 @@ const TenantPayments: React.FC = () => {
             'paid': { color: 'bg-green-100 text-green-700', icon: <CheckCircle size={14} />, label: 'Payé' },
             'approved': { color: 'bg-green-100 text-green-700', icon: <CheckCircle size={14} />, label: 'Payé' },
             'failed': { color: 'bg-red-100 text-red-700', icon: <AlertCircle size={14} />, label: 'Échoué' },
-            'cancelled': { color: 'bg-gray-100 text-gray-700', icon: <AlertCircle size={14} />, label: 'Annulé' }
+            'cancelled': { color: 'bg-gray-100 dark:bg-slate-800/50 text-gray-700 dark:text-gray-200', icon: <AlertCircle size={14} />, label: 'Annulé' }
         };
 
         const config = configs[status] || configs['pending'];
@@ -143,7 +143,7 @@ const TenantPayments: React.FC = () => {
             <div className="flex items-center justify-center h-96">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-gray-500">Chargement...</p>
+                    <p className="text-gray-500 dark:text-gray-400">Chargement...</p>
                 </div>
             </div>
         );
@@ -157,10 +157,10 @@ const TenantPayments: React.FC = () => {
         >
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
                     Mes Paiements <span className="text-primary">.</span>
                 </h1>
-                <p className="text-gray-500 font-medium mt-1">
+                <p className="text-gray-500 dark:text-gray-400 font-medium mt-1">
                     Gérez vos loyers et consultez votre historique de paiements
                 </p>
             </div>
@@ -168,7 +168,7 @@ const TenantPayments: React.FC = () => {
             {/* Pending Payments */}
             {pendingSchedules.length > 0 && (
                 <div className="space-y-4">
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                         <Calendar className="text-primary" size={24} />
                         Loyers à Payer
                     </h2>
@@ -181,7 +181,7 @@ const TenantPayments: React.FC = () => {
                             return (
                                 <Card
                                     key={schedule.id}
-                                    className={`relative overflow-hidden ${isOverdue ? 'border-red-300 bg-red-50/30' : 'border-gray-200'}`}
+                                    className={`relative overflow-hidden ${isOverdue ? 'border-red-300 bg-red-50/30' : 'border-gray-200 dark:border-slate-700'}`}
                                 >
                                     {isOverdue && (
                                         <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
@@ -191,25 +191,25 @@ const TenantPayments: React.FC = () => {
 
                                     <div className="space-y-4">
                                         <div>
-                                            <h3 className="font-bold text-lg text-gray-800">
+                                            <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">
                                                 {schedule.description || 'Loyer'}
                                             </h3>
-                                            <p className="text-sm text-gray-500">
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
                                                 Échéance: {formatDate(schedule.due_date)}
                                             </p>
                                         </div>
 
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-center">
-                                                <span className="text-gray-600">Montant total</span>
-                                                <span className="font-mono font-bold text-gray-800">
+                                                <span className="text-gray-600 dark:text-gray-300">Montant total</span>
+                                                <span className="font-mono font-bold text-gray-800 dark:text-gray-100">
                                                     {formatMoney(schedule.total_amount)}
                                                 </span>
                                             </div>
 
                                             {schedule.amount_paid > 0 && (
                                                 <div className="flex justify-between items-center text-sm">
-                                                    <span className="text-gray-500">Déjà payé</span>
+                                                    <span className="text-gray-500 dark:text-gray-400">Déjà payé</span>
                                                     <span className="font-mono text-green-600">
                                                         -{formatMoney(schedule.amount_paid)}
                                                     </span>
@@ -217,7 +217,7 @@ const TenantPayments: React.FC = () => {
                                             )}
 
                                             <div className="flex justify-between items-center pt-2 border-t">
-                                                <span className="font-bold text-gray-700">Reste à payer</span>
+                                                <span className="font-bold text-gray-700 dark:text-gray-200">Reste à payer</span>
                                                 <span className="font-mono font-bold text-primary text-lg">
                                                     {formatMoney(amountDue)}
                                                 </span>
@@ -260,14 +260,14 @@ const TenantPayments: React.FC = () => {
             {pendingSchedules.length === 0 && (
                 <Card className="text-center py-12">
                     <CheckCircle className="mx-auto text-green-500 mb-4" size={48} />
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">Tous vos loyers sont à jour !</h3>
-                    <p className="text-gray-500">Aucun paiement en attente</p>
+                    <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">Tous vos loyers sont à jour !</h3>
+                    <p className="text-gray-500 dark:text-gray-400">Aucun paiement en attente</p>
                 </Card>
             )}
 
             {/* Transaction History */}
             <div className="space-y-4">
-                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                     <Clock className="text-primary" size={24} />
                     Historique des Paiements
                 </h2>
@@ -276,7 +276,7 @@ const TenantPayments: React.FC = () => {
                     <Card className="overflow-hidden p-0">
                         <div className="overflow-x-auto">
                             <table className="table w-full text-left">
-                                <thead className="bg-gray-50">
+                                <thead className="bg-gray-50 dark:bg-slate-900/50">
                                     <tr>
                                         <th className="p-4">Date</th>
                                         <th className="p-4">Description</th>
@@ -287,17 +287,17 @@ const TenantPayments: React.FC = () => {
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {transactionHistory.map((transaction) => (
-                                        <tr key={transaction.id} className="hover:bg-gray-50">
+                                        <tr key={transaction.id} className="hover:bg-gray-50 dark:bg-slate-900/50">
                                             <td className="p-4 whitespace-nowrap">
                                                 {new Date(transaction.created_at).toLocaleDateString('fr-FR')}
                                             </td>
                                             <td className="p-4">
                                                 <div className="font-medium">{transaction.description}</div>
-                                                <div className="text-xs text-gray-500">
+                                                <div className="text-xs text-gray-500 dark:text-gray-400">
                                                     {transaction.payment_method && `via ${transaction.payment_method.toUpperCase()}`}
                                                 </div>
                                             </td>
-                                            <td className="p-4 font-mono font-bold text-gray-800">
+                                            <td className="p-4 font-mono font-bold text-gray-800 dark:text-gray-100">
                                                 {formatMoney(transaction.amount)}
                                             </td>
                                             <td className="p-4">
@@ -318,7 +318,7 @@ const TenantPayments: React.FC = () => {
                         </div>
                     </Card>
                 ) : (
-                    <Card className="text-center py-8 text-gray-500">
+                    <Card className="text-center py-8 text-gray-500 dark:text-gray-400">
                         Aucun historique de paiement
                     </Card>
                 )}
@@ -334,9 +334,9 @@ const TenantPayments: React.FC = () => {
                 {selectedSchedule && (
                     <div className="space-y-6">
                         <div className="bg-blue-50 p-4 rounded-lg">
-                            <h4 className="font-bold text-gray-800 mb-2">{selectedSchedule.description}</h4>
+                            <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2">{selectedSchedule.description}</h4>
                             <div className="flex justify-between items-center">
-                                <span className="text-gray-600">Montant à payer</span>
+                                <span className="text-gray-600 dark:text-gray-300">Montant à payer</span>
                                 <span className="text-2xl font-bold text-primary">
                                     {formatMoney(selectedSchedule.total_amount - (selectedSchedule.amount_paid || 0))}
                                 </span>
@@ -344,7 +344,7 @@ const TenantPayments: React.FC = () => {
                         </div>
 
                         <div className="space-y-3">
-                            <label className="block text-sm font-bold text-gray-700">
+                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-200">
                                 Choisissez votre opérateur Mobile Money
                             </label>
 
@@ -354,12 +354,12 @@ const TenantPayments: React.FC = () => {
                                     className={`p-4 border-2 rounded-lg transition-all ${
                                         selectedOperator === 'mtn'
                                             ? 'border-yellow-500 bg-yellow-50'
-                                            : 'border-gray-200 hover:border-gray-300'
+                                            : 'border-gray-200 dark:border-slate-700 hover:border-gray-300'
                                     }`}
                                 >
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-yellow-600 mb-1">MTN</div>
-                                        <div className="text-xs text-gray-500">Mobile Money</div>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400">Mobile Money</div>
                                     </div>
                                 </button>
 
@@ -368,18 +368,18 @@ const TenantPayments: React.FC = () => {
                                     className={`p-4 border-2 rounded-lg transition-all ${
                                         selectedOperator === 'moov'
                                             ? 'border-blue-500 bg-blue-50'
-                                            : 'border-gray-200 hover:border-gray-300'
+                                            : 'border-gray-200 dark:border-slate-700 hover:border-gray-300'
                                     }`}
                                 >
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-blue-600 mb-1">MOOV</div>
-                                        <div className="text-xs text-gray-500">Money</div>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400">Money</div>
                                     </div>
                                 </button>
                             </div>
                         </div>
 
-                        <div className="bg-gray-50 p-4 rounded-lg text-sm text-gray-600">
+                        <div className="bg-gray-50 dark:bg-slate-900/50 p-4 rounded-lg text-sm text-gray-600 dark:text-gray-300">
                             <strong>ℹ️ Comment ça marche ?</strong>
                             <ol className="list-decimal list-inside mt-2 space-y-1">
                                 <li>Vous serez redirigé vers la page de paiement sécurisée</li>

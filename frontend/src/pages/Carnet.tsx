@@ -13,19 +13,19 @@ const Carnet: React.FC = () => {
         <div className="max-w-[1600px] mx-auto p-6 space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                          <Notebook className="text-brand-600"/> Carnet Opérationnel
                     </h1>
-                    <p className="text-gray-500">Mémoire terrain, contacts et notes</p>
+                    <p className="text-gray-500 dark:text-gray-400">Mémoire terrain, contacts et notes</p>
                 </div>
             </div>
 
             {/* Tabs */}
-            <div className="bg-white rounded-xl shadow-sm p-1 inline-flex gap-1">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-1 inline-flex gap-1">
                 <button
                     onClick={() => setViewMode('notes')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
-                        viewMode === 'notes' ? 'bg-brand-50 text-brand-700 shadow-sm' : 'text-gray-500 hover:bg-gray-50'
+                        viewMode === 'notes' ? 'bg-brand-50 text-brand-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-slate-900/50'
                     }`}
                 >
                     <StickyNote size={18} /> Notes
@@ -33,7 +33,7 @@ const Carnet: React.FC = () => {
                 <button
                     onClick={() => setViewMode('contacts')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
-                        viewMode === 'contacts' ? 'bg-brand-50 text-brand-700 shadow-sm' : 'text-gray-500 hover:bg-gray-50'
+                        viewMode === 'contacts' ? 'bg-brand-50 text-brand-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-slate-900/50'
                     }`}
                 >
                     <Users size={18} /> Contacts
@@ -41,7 +41,7 @@ const Carnet: React.FC = () => {
                 <button
                     onClick={() => setViewMode('field')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
-                        viewMode === 'field' ? 'bg-brand-50 text-brand-700 shadow-sm' : 'text-gray-500 hover:bg-gray-50'
+                        viewMode === 'field' ? 'bg-brand-50 text-brand-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-slate-900/50'
                     }`}
                 >
                     <MapPin size={18} /> Suivi Terrain

@@ -162,11 +162,11 @@ const InventoryForm: React.FC = () => {
             <div className="flex items-center justify-between">
                 <button 
                     onClick={() => navigate('/dashboard/inventories')}
-                    className="flex items-center gap-2 text-gray-500 hover:text-gray-900"
+                    className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white"
                 >
                     <ChevronLeft size={20} /> Retour
                 </button>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                     {isEdit ? 'Modifier Inventaire' : 'Nouvel Inventaire'}
                 </h1>
                 <button 
@@ -184,32 +184,32 @@ const InventoryForm: React.FC = () => {
                 
                 {/* Left Column: Context */}
                 <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50">
+                        <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                             <Building size={18} /> Contexte
                         </h3>
                         
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Type de bien</label>
-                                <div className="flex bg-gray-50 p-1 rounded-xl">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Type de bien</label>
+                                <div className="flex bg-gray-50 dark:bg-slate-900/50 p-1 rounded-xl">
                                     <button 
                                         onClick={() => setHeader({...header, entity_type: 'lot'})}
-                                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${header.entity_type === 'lot' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}
+                                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${header.entity_type === 'lot' ? 'bg-white dark:bg-slate-800 shadow text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}
                                     >Lot</button>
                                     <button 
                                         onClick={() => setHeader({...header, entity_type: 'building'})}
-                                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${header.entity_type === 'building' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}
+                                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${header.entity_type === 'building' ? 'bg-white dark:bg-slate-800 shadow text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}
                                     >Immeuble</button>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                                     {header.entity_type === 'lot' ? 'Sélectionner le lot' : 'Sélectionner l\'immeuble'}
                                 </label>
                                 <select 
-                                    className="w-full p-2 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900/50 focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={header.entity_id}
                                     onChange={(e) => setHeader({...header, entity_id: Number(e.target.value)})}
                                 >
@@ -222,9 +222,9 @@ const InventoryForm: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Type d'inventaire</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Type d'inventaire</label>
                                 <select 
-                                    className="w-full p-2 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900/50 focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={header.type_inventaire}
                                     onChange={(e) => setHeader({...header, type_inventaire: e.target.value})}
                                 >
@@ -236,20 +236,20 @@ const InventoryForm: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Date</label>
                                 <input 
                                     type="date" 
-                                    className="w-full p-2 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900/50 focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={header.date_realisation}
                                     onChange={(e) => setHeader({...header, date_realisation: e.target.value})}
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Commentaire global</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Commentaire global</label>
                                 <textarea 
                                     rows={3}
-                                    className="w-full p-2 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                    className="w-full p-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900/50 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                                     value={header.commentaires}
                                     onChange={(e) => setHeader({...header, commentaires: e.target.value})}
                                 />
@@ -260,9 +260,9 @@ const InventoryForm: React.FC = () => {
 
                 {/* Right Column: Items */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-h-[600px] flex flex-col">
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 min-h-[600px] flex flex-col">
                         <div className="flex items-center justify-between mb-6">
-                            <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                            <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 <Box size={18} /> Éléments ({items.length})
                             </h3>
                             <button 
@@ -274,7 +274,7 @@ const InventoryForm: React.FC = () => {
                         </div>
 
                         {items.length === 0 ? (
-                            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-100 rounded-xl p-8">
+                            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-100 dark:border-slate-700/50 rounded-xl p-8">
                                 <ClipboardList size={48} className="mb-4 opacity-20" />
                                 <p>Aucun élément ajouté</p>
                                 <p className="text-sm">Commencez par ajouter une pièce ou un équipement</p>
@@ -288,9 +288,9 @@ const InventoryForm: React.FC = () => {
                                         <div key={cat} className="space-y-2">
                                             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-2">{cat}</h4>
                                             {catItems.map((item, idx) => (
-                                                <div key={idx} className="bg-gray-50 p-3 rounded-xl flex items-start gap-3 group hover:bg-gray-100 transition">
+                                                <div key={idx} className="bg-gray-50 dark:bg-slate-900/50 p-3 rounded-xl flex items-start gap-3 group hover:bg-gray-100 dark:bg-slate-800/50 transition">
                                                     {item.photos.length > 0 ? (
-                                                        <img src={item.photos[0]} className="w-16 h-16 rounded-lg object-cover bg-white" alt="Item" />
+                                                        <img src={item.photos[0]} className="w-16 h-16 rounded-lg object-cover bg-white dark:bg-slate-800" alt="Item" />
                                                     ) : (
                                                         <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400">
                                                             <Camera size={20} />
@@ -300,8 +300,8 @@ const InventoryForm: React.FC = () => {
                                                     <div className="flex-1">
                                                         <div className="flex items-start justify-between">
                                                             <div>
-                                                                <h5 className="font-semibold text-gray-900">{item.nom}</h5>
-                                                                <p className="text-sm text-gray-500">{item.description}</p>
+                                                                <h5 className="font-semibold text-gray-900 dark:text-white">{item.nom}</h5>
+                                                                <p className="text-sm text-gray-500 dark:text-gray-400">{item.description}</p>
                                                             </div>
                                                             <span className={`px-2 py-1 rounded text-xs font-bold ${ETATS.find(e => e.value === item.etat)?.color}`}>
                                                                 {ETATS.find(e => e.value === item.etat)?.label}
@@ -339,11 +339,11 @@ const InventoryForm: React.FC = () => {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+                            className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
                         >
-                            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl">
-                                <h3 className="font-bold text-gray-900">Ajouter un élément</h3>
-                                <button onClick={() => setShowItemModal(false)} className="text-gray-400 hover:text-gray-600">Fermer</button>
+                            <div className="p-6 border-b border-gray-100 dark:border-slate-700/50 flex justify-between items-center bg-gray-50 dark:bg-slate-900/50 rounded-t-2xl">
+                                <h3 className="font-bold text-gray-900 dark:text-white">Ajouter un élément</h3>
+                                <button onClick={() => setShowItemModal(false)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300">Fermer</button>
                             </div>
                             
                             <div className="p-6 space-y-4">
@@ -378,7 +378,7 @@ const InventoryForm: React.FC = () => {
                                                 className={`p-2 rounded-lg text-sm border transition ${
                                                     currentItem.etat === etat.value 
                                                         ? `${etat.color.replace('bg-', 'border-').replace('text-', 'bg-').split(' ')[0]} ${etat.color.split(' ')[0]} ring-2 ring-offset-1` 
-                                                        : 'border-gray-200 hover:bg-gray-50'
+                                                        : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:bg-slate-900/50'
                                                 }`}
                                             >
                                                 {etat.label}
@@ -421,7 +421,7 @@ const InventoryForm: React.FC = () => {
                                     </label>
                                     <div className="grid grid-cols-4 gap-2 mb-2">
                                         {currentItem.photos.map((src, i) => (
-                                            <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                                            <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-slate-800/50">
                                                 <img src={src} className="w-full h-full object-cover" />
                                             </div>
                                         ))}
@@ -433,7 +433,7 @@ const InventoryForm: React.FC = () => {
                                 </div>
                             </div>
                             
-                            <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-end gap-3">
+                            <div className="p-4 border-t border-gray-100 dark:border-slate-700/50 bg-gray-50 dark:bg-slate-900/50 rounded-b-2xl flex justify-end gap-3">
                                 <button onClick={() => setShowItemModal(false)} className="btn-ghost">Annuler</button>
                                 <button 
                                     onClick={handleAddItem}

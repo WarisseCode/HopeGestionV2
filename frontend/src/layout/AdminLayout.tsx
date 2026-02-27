@@ -108,7 +108,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onLogout }) => {
               to={item.path} 
                 className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200
                 ${isActive(item.path) 
-                  ? 'bg-white text-primary font-bold shadow-md translate-x-1' 
+                  ? 'bg-white dark:bg-slate-800 text-primary font-bold shadow-md translate-x-1' 
                   : 'hover:bg-primary-focus text-primary-content/80 hover:text-white hover:translate-x-1'
                 }
                 ${!isSidebarOpen && 'justify-center'}

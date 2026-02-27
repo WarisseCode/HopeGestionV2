@@ -67,17 +67,17 @@ const Contrats: React.FC = () => {
       {/* Header */}
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
             Gestion des Contrats <span className="text-primary">.</span>
           </h1>
-          <p className="text-gray-500 font-medium mt-1">
+          <p className="text-gray-500 dark:text-gray-400 font-medium mt-1">
             Centralisez et gérez tous vos contrats de location, vente et intervention.
           </p>
         </div>
         <div className="flex items-center gap-3">
              <div className="relative group hidden md:block">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
-                <input type="text" placeholder="Rechercher..." className="input input-sm h-10 pl-10 bg-white border-gray-200 focus:border-primary w-64 rounded-full shadow-sm transition-all focus:w-72" />
+                <input type="text" placeholder="Rechercher..." className="input input-sm h-10 pl-10 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 focus:border-primary w-64 rounded-full shadow-sm transition-all focus:w-72" />
             </div>
            <Button 
             variant="primary" 
@@ -94,12 +94,12 @@ const Contrats: React.FC = () => {
       </motion.div>
 
        {/* Tabs */}
-     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-center bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
-        <div className="flex p-1 bg-gray-100/50 rounded-xl overflow-x-auto">
+     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-center bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-gray-100 dark:border-slate-700/50">
+        <div className="flex p-1 bg-gray-100 dark:bg-slate-800/50/50 rounded-xl overflow-x-auto">
              <button
                 onClick={() => setActiveTab('locations')}
                 className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'locations' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                activeTab === 'locations' ? 'bg-white dark:bg-slate-800 text-primary shadow-md' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
                 }`}
             >
                 <FileText size={18} />
@@ -108,7 +108,7 @@ const Contrats: React.FC = () => {
             <button
                 onClick={() => setActiveTab('ventes')}
                 className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'ventes' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                activeTab === 'ventes' ? 'bg-white dark:bg-slate-800 text-primary shadow-md' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
                 }`}
             >
                 <Wallet size={18} />
@@ -117,7 +117,7 @@ const Contrats: React.FC = () => {
              <button
                 onClick={() => setActiveTab('interventions')}
                 className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'interventions' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                activeTab === 'interventions' ? 'bg-white dark:bg-slate-800 text-primary shadow-md' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
                 }`}
             >
                 <Clock size={18} />
@@ -135,9 +135,9 @@ const Contrats: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
              >
-                 <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
-                     <div className="flex justify-between items-center mb-6 pb-6 border-b border-gray-100">
-                         <h2 className="text-xl font-bold text-gray-800">
+                 <Card className="border-none shadow-xl bg-white dark:bg-slate-800/80 backdrop-blur-sm">
+                     <div className="flex justify-between items-center mb-6 pb-6 border-b border-gray-100 dark:border-slate-700/50">
+                         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
                             {formType === 'location' ? 'Contrat de Location' :
                              formType === 'vente' ? 'Contrat de Vente' :
                              'Contrat d\'Intervention'}
@@ -153,8 +153,8 @@ const Contrats: React.FC = () => {
                             <Input label="Partie B (Locataire/Acheteur)" value={contratForm.locataire} onChange={(e) => setContratForm({...contratForm, locataire: e.target.value})} />
                             
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Bien Immobilier</label>
-                                <select className="select select-bordered w-full bg-gray-50" value={contratForm.lot} onChange={(e) => setContratForm({...contratForm, lot: e.target.value})}>
+                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Bien Immobilier</label>
+                                <select className="select select-bordered w-full bg-gray-50 dark:bg-slate-900/50" value={contratForm.lot} onChange={(e) => setContratForm({...contratForm, lot: e.target.value})}>
                                     <option value="">Sélectionner...</option>
                                     <option value="A01">A01 - Résidence La Paix</option>
                                 </select>
@@ -170,8 +170,8 @@ const Contrats: React.FC = () => {
                              )}
 
                              <div className="md:col-span-2">
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Document numérisé (PDF)</label>
-                                <div className="h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 hover:border-primary transition-all">
+                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Document numérisé (PDF)</label>
+                                <div className="h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 dark:bg-slate-900/50 hover:border-primary transition-all">
                                     <div className="text-center">
                                         <Upload className="mx-auto mb-2" size={24}/>
                                         <p className="text-sm">Glisser-déposer le contrat signé</p>
@@ -181,7 +181,7 @@ const Contrats: React.FC = () => {
                          </>
                      </div>
 
-                     <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
+                     <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100 dark:border-slate-700/50">
                         <Button variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
                         <Button variant="primary" onClick={() => setShowForm(false)}>Enregistrer</Button>
                      </div>
@@ -217,28 +217,28 @@ const Contrats: React.FC = () => {
                     />
                  </div>
 
-                 <Card className="border-none shadow-xl bg-white overflow-hidden p-0">
+                 <Card className="border-none shadow-xl bg-white dark:bg-slate-800 overflow-hidden p-0">
                      <div className="overflow-x-auto">
                         <table className="table w-full">
-                            <thead className="bg-gray-50/50">
+                            <thead className="bg-gray-50 dark:bg-slate-900/50/50">
                                 <tr>
-                                    <th className="py-4 pl-6 font-semibold text-gray-500">Référence</th>
-                                    <th className="font-semibold text-gray-500">Parties & Bien</th>
-                                    <th className="font-semibold text-gray-500">Période</th>
-                                    <th className="font-semibold text-gray-500">Montant</th>
-                                    <th className="font-semibold text-gray-500">Statut</th>
-                                    <th className="pr-6 text-right font-semibold text-gray-500">Actions</th>
+                                    <th className="py-4 pl-6 font-semibold text-gray-500 dark:text-gray-400">Référence</th>
+                                    <th className="font-semibold text-gray-500 dark:text-gray-400">Parties & Bien</th>
+                                    <th className="font-semibold text-gray-500 dark:text-gray-400">Période</th>
+                                    <th className="font-semibold text-gray-500 dark:text-gray-400">Montant</th>
+                                    <th className="font-semibold text-gray-500 dark:text-gray-400">Statut</th>
+                                    <th className="pr-6 text-right font-semibold text-gray-500 dark:text-gray-400">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {activeTab === 'locations' && contratsLocations.map(item => (
-                                    <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="pl-6 font-medium text-gray-900">{item.reference}</td>
+                                    <tr key={item.id} className="hover:bg-gray-50 dark:bg-slate-900/50/50 transition-colors">
+                                        <td className="pl-6 font-medium text-gray-900 dark:text-white">{item.reference}</td>
                                         <td>
-                                            <div className="font-bold text-gray-800">{item.locataire}</div>
+                                            <div className="font-bold text-gray-800 dark:text-gray-100">{item.locataire}</div>
                                             <div className="text-xs text-gray-400 flex items-center gap-1"><Home size={10}/> {item.lot}</div>
                                         </td>
-                                        <td className="text-sm text-gray-600">
+                                        <td className="text-sm text-gray-600 dark:text-gray-300">
                                             {new Date(item.dateDebut).toLocaleDateString()} - {new Date(item.dateFin).toLocaleDateString()}
                                         </td>
                                         <td className="font-bold text-primary">{item.loyer.toLocaleString()} F/mois</td>
@@ -252,13 +252,13 @@ const Contrats: React.FC = () => {
                                     </tr>
                                 ))}
                                 {activeTab === 'ventes' && contratsVentes.map(item => (
-                                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="pl-6 font-medium text-gray-900">{item.reference}</td>
+                                     <tr key={item.id} className="hover:bg-gray-50 dark:bg-slate-900/50/50 transition-colors">
+                                        <td className="pl-6 font-medium text-gray-900 dark:text-white">{item.reference}</td>
                                         <td>
-                                            <div className="font-bold text-gray-800">{item.acheteur}</div>
+                                            <div className="font-bold text-gray-800 dark:text-gray-100">{item.acheteur}</div>
                                             <div className="text-xs text-gray-400 flex items-center gap-1"><Home size={10}/> {item.lot}</div>
                                         </td>
-                                        <td className="text-sm text-gray-600">
+                                        <td className="text-sm text-gray-600 dark:text-gray-300">
                                             Signé le {new Date(item.dateSignature).toLocaleDateString()}
                                         </td>
                                         <td className="font-bold text-green-600">{item.prixVente.toLocaleString()} F</td>
@@ -272,16 +272,16 @@ const Contrats: React.FC = () => {
                                     </tr>
                                 ))}
                                 {activeTab === 'interventions' && interventions.map(item => (
-                                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="pl-6 font-medium text-gray-900">{item.reference}</td>
+                                     <tr key={item.id} className="hover:bg-gray-50 dark:bg-slate-900/50/50 transition-colors">
+                                        <td className="pl-6 font-medium text-gray-900 dark:text-white">{item.reference}</td>
                                         <td>
-                                            <div className="font-bold text-gray-800">{item.description}</div>
+                                            <div className="font-bold text-gray-800 dark:text-gray-100">{item.description}</div>
                                             <div className="text-xs text-gray-400 flex items-center gap-1"><Home size={10}/> {item.bien}</div>
                                         </td>
-                                        <td className="text-sm text-gray-600">
+                                        <td className="text-sm text-gray-600 dark:text-gray-300">
                                             {new Date(item.dateDebut).toLocaleDateString()}
                                         </td>
-                                        <td className="font-bold text-gray-700">{item.cout.toLocaleString()} F</td>
+                                        <td className="font-bold text-gray-700 dark:text-gray-200">{item.cout.toLocaleString()} F</td>
                                         <td><span className="badge badge-info badge-sm gap-1">EN COURS</span></td>
                                         <td className="pr-6 text-right">
                                             <div className="flex justify-end gap-1">

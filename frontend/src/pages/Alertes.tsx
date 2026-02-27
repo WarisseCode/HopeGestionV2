@@ -193,10 +193,10 @@ const Alertes: React.FC = () => {
       {/* Header */}
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
             Centre d'Alertes <span className="text-primary">.</span>
           </h1>
-          <p className="text-gray-500 font-medium mt-1">
+          <p className="text-gray-500 dark:text-gray-400 font-medium mt-1">
             Actions requises et notifications système.
           </p>
         </div>
@@ -220,12 +220,12 @@ const Alertes: React.FC = () => {
       </motion.div>
 
        {/* Tabs */}
-     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-center bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
-        <div className="flex p-1 bg-gray-100/50 rounded-xl overflow-x-auto w-full sm:w-auto">
+     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-center bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-gray-100 dark:border-slate-700/50">
+        <div className="flex p-1 bg-gray-100 dark:bg-slate-800/50/50 rounded-xl overflow-x-auto w-full sm:w-auto">
              <button
                 onClick={() => setActiveTab('alertes')}
                 className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap ${
-                activeTab === 'alertes' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                activeTab === 'alertes' ? 'bg-white dark:bg-slate-800 text-primary shadow-md' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
                 }`}
             >
                 <AlertTriangle size={18} />
@@ -235,7 +235,7 @@ const Alertes: React.FC = () => {
             <button
                 onClick={() => setActiveTab('notifications')}
                 className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap ${
-                activeTab === 'notifications' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                activeTab === 'notifications' ? 'bg-white dark:bg-slate-800 text-primary shadow-md' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
                 }`}
             >
                 <Bell size={18} />
@@ -245,7 +245,7 @@ const Alertes: React.FC = () => {
              <button
                 onClick={() => setActiveTab('parametres')}
                 className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap ${
-                activeTab === 'parametres' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                activeTab === 'parametres' ? 'bg-white dark:bg-slate-800 text-primary shadow-md' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
                 }`}
             >
                 <Settings size={18} />
@@ -263,9 +263,9 @@ const Alertes: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
-                <div className="flex justify-between items-center mb-6 pb-6 border-b border-gray-100">
-                    <h2 className="text-xl font-bold text-gray-800">
+            <Card className="border-none shadow-xl bg-white dark:bg-slate-800/80 backdrop-blur-sm">
+                <div className="flex justify-between items-center mb-6 pb-6 border-b border-gray-100 dark:border-slate-700/50">
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
                       Configuration
                     </h2>
                     <Button variant="ghost" onClick={() => setShowForm(false)} className="btn-circle btn-sm">
@@ -273,10 +273,10 @@ const Alertes: React.FC = () => {
                     </Button>
                 </div>
                 {/* Simplified form for demo */}
-                <div className="p-8 text-center text-gray-500">
+                <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                     Fonctionnalité de simulation/création manuelle à venir.
                 </div>
-                <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
+                <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100 dark:border-slate-700/50">
                     <Button variant="ghost" onClick={() => setShowForm(false)}>Fermer</Button>
                 </div>
             </Card>
@@ -300,17 +300,17 @@ const Alertes: React.FC = () => {
             
             {/* ALERTES LIST */}
             {activeTab === 'alertes' && (
-                <Card className="border-none shadow-xl bg-white p-0 overflow-hidden">
+                <Card className="border-none shadow-xl bg-white dark:bg-slate-800 p-0 overflow-hidden">
                      <div className="overflow-x-auto">
                     <table className="table w-full">
-                        <thead className="bg-gray-50/50">
+                        <thead className="bg-gray-50 dark:bg-slate-900/50/50">
                             <tr>
-                                <th className="py-4 pl-6 text-gray-500 font-semibold">Référence</th>
-                                <th className="text-gray-500 font-semibold">Alerte</th>
-                                <th className="text-gray-500 font-semibold">Type</th>
-                                <th className="text-gray-500 font-semibold">Priorité</th>
-                                <th className="text-gray-500 font-semibold">Date</th>
-                                <th className="pr-6 text-right text-gray-500 font-semibold">Action</th>
+                                <th className="py-4 pl-6 text-gray-500 dark:text-gray-400 font-semibold">Référence</th>
+                                <th className="text-gray-500 dark:text-gray-400 font-semibold">Alerte</th>
+                                <th className="text-gray-500 dark:text-gray-400 font-semibold">Type</th>
+                                <th className="text-gray-500 dark:text-gray-400 font-semibold">Priorité</th>
+                                <th className="text-gray-500 dark:text-gray-400 font-semibold">Date</th>
+                                <th className="pr-6 text-right text-gray-500 dark:text-gray-400 font-semibold">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -320,11 +320,11 @@ const Alertes: React.FC = () => {
                                 <tr><td colSpan={6} className="text-center py-8 text-gray-400">Aucune alerte active. Tout va bien !</td></tr>
                             ) : (
                                 alertes.map(alerte => (
-                                    <tr key={alerte.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="pl-6 font-medium text-gray-800">{alerte.reference}</td>
+                                    <tr key={alerte.id} className="hover:bg-gray-50 dark:bg-slate-900/50/50 transition-colors">
+                                        <td className="pl-6 font-medium text-gray-800 dark:text-gray-100">{alerte.reference}</td>
                                         <td>
-                                            <div className="font-bold text-gray-800">{alerte.titre}</div>
-                                            <div className="text-xs text-gray-500">{alerte.description}</div>
+                                            <div className="font-bold text-gray-800 dark:text-gray-100">{alerte.titre}</div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">{alerte.description}</div>
                                         </td>
                                         <td><span className="badge badge-ghost badge-sm">{alerte.type}</span></td>
                                         <td>
@@ -336,7 +336,7 @@ const Alertes: React.FC = () => {
                                                 {alerte.priorite}
                                             </span>
                                         </td>
-                                        <td className="text-sm font-mono text-gray-500">
+                                        <td className="text-sm font-mono text-gray-500 dark:text-gray-400">
                                             {new Date(alerte.dateCreation).toLocaleDateString()}
                                         </td>
                                         <td className="pr-6 text-right">
@@ -369,7 +369,7 @@ const Alertes: React.FC = () => {
                          <div className="text-center py-10 text-gray-400">Aucune notification.</div>
                      ) : (
                          notifications.map(notif => (
-                             <Card key={notif.id} className={`border-l-4 ${!notif.is_read ? 'border-l-primary bg-primary/5' : 'border-l-gray-200 bg-white'} hover:shadow-md transition-all cursor-pointer`}
+                             <Card key={notif.id} className={`border-l-4 ${!notif.is_read ? 'border-l-primary bg-primary/5' : 'border-l-gray-200 bg-white dark:bg-slate-800'} hover:shadow-md transition-all cursor-pointer`}
                                 onClick={async () => {
                                     if (!notif.is_read) await handleMarkAsRead(notif.id);
                                     if (notif.link) navigate(notif.link);
@@ -382,10 +382,10 @@ const Alertes: React.FC = () => {
                                          </div>
                                          <div>
                                              <div className="flex items-center gap-2 mb-1">
-                                                 <h3 className={`font-bold ${!notif.is_read ? 'text-gray-900' : 'text-gray-500'}`}>{notif.title}</h3>
+                                                 <h3 className={`font-bold ${!notif.is_read ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>{notif.title}</h3>
                                                  {!notif.is_read && <span className="badge badge-primary badge-xs text-white">Nouveau</span>}
                                              </div>
-                                             <p className="text-sm text-gray-600">{notif.message}</p>
+                                             <p className="text-sm text-gray-600 dark:text-gray-300">{notif.message}</p>
                                              <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
                                                  <span className="flex items-center gap-1"><Clock size={12}/> {new Date(notif.created_at).toLocaleString()}</span>
                                              </div>
@@ -412,23 +412,23 @@ const Alertes: React.FC = () => {
             {activeTab === 'parametres' && (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {parametres.map(param => (
-                        <Card key={param.alert_type} className="hover:shadow-lg transition-all border border-gray-200">
+                        <Card key={param.alert_type} className="hover:shadow-lg transition-all border border-gray-200 dark:border-slate-700">
                             <div className="flex justify-between items-start mb-4">
-                                <div className="p-2 bg-gray-100 rounded-lg">
-                                    <Bell size={20} className="text-gray-600"/>
+                                <div className="p-2 bg-gray-100 dark:bg-slate-800/50 rounded-lg">
+                                    <Bell size={20} className="text-gray-600 dark:text-gray-300"/>
                                 </div>
                                 {savingSettings && <span className="loading loading-spinner loading-xs text-primary"></span>}
                             </div>
-                            <h3 className="font-bold text-lg text-gray-800 mb-2">
+                            <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100 mb-2">
                                 {ALERT_TYPE_LABELS[param.alert_type]?.label || param.alert_type}
                             </h3>
-                            <p className="text-sm text-gray-500 mb-4 h-10">
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 h-10">
                                 {ALERT_TYPE_LABELS[param.alert_type]?.desc || 'Paramètres de notification'}
                             </p>
                             
-                            <div className="space-y-4 pt-4 border-t border-gray-100">
+                            <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-slate-700/50">
                                 <div className="flex justify-between items-center text-sm">
-                                    <span className="font-medium text-gray-700">Email</span>
+                                    <span className="font-medium text-gray-700 dark:text-gray-200">Email</span>
                                     <input 
                                         type="checkbox" 
                                         className="toggle toggle-primary toggle-sm" 
@@ -437,7 +437,7 @@ const Alertes: React.FC = () => {
                                     />
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
-                                    <span className="font-medium text-gray-700">WhatsApp</span>
+                                    <span className="font-medium text-gray-700 dark:text-gray-200">WhatsApp</span>
                                     <input 
                                         type="checkbox" 
                                         className="toggle toggle-success toggle-sm" 
@@ -446,7 +446,7 @@ const Alertes: React.FC = () => {
                                     />
                                 </div>
                                 <div className="flex justify-between items-center text-sm opacity-50 cursor-not-allowed">
-                                    <span className="font-medium text-gray-700">SMS (Bientôt)</span>
+                                    <span className="font-medium text-gray-700 dark:text-gray-200">SMS (Bientôt)</span>
                                     <input 
                                         type="checkbox" 
                                         className="toggle toggle-sm" 

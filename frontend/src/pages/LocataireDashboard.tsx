@@ -154,7 +154,7 @@ const LocataireDashboard: React.FC = () => {
              <NotificationBell />
              <div className="text-right hidden md:block">
                 <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Mon Logement</p>
-                <p className="font-bold text-gray-800">{nomLogement}</p>
+                <p className="font-bold text-gray-800 dark:text-gray-100">{nomLogement}</p>
              </div>
         </div>
       </motion.div>
@@ -177,7 +177,7 @@ const LocataireDashboard: React.FC = () => {
                         placeholder="Ex: LOC-X8Z9 ou AG-XXXX" 
                         value={inviteCode}
                         onChange={(e) => setInviteCode(e.target.value)}
-                        className="bg-white border-blue-300 uppercase font-mono"
+                        className="bg-white dark:bg-slate-800 border-blue-300 uppercase font-mono"
                     />
                     <Button 
                         variant="primary" 
@@ -197,7 +197,7 @@ const LocataireDashboard: React.FC = () => {
           joursAvantEcheance <= 5 ? 'bg-gradient-to-r from-orange-500 to-red-500' : 'bg-gradient-to-r from-primary to-primary-focus'
         } text-white`}>
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-800/20 flex items-center justify-center">
               <Calendar size={24} />
             </div>
             <div>
@@ -208,7 +208,7 @@ const LocataireDashboard: React.FC = () => {
           </div>
           <Button 
             variant="ghost" 
-            className="bg-white text-primary hover:bg-white/90 font-semibold shadow-lg"
+            className="bg-white dark:bg-slate-800 text-primary hover:bg-white dark:bg-slate-800/90 font-semibold shadow-lg"
             onClick={() => navigate('/dashboard/finances/mobile-money')}
           >
             <CreditCard size={18} className="mr-2" />
@@ -259,7 +259,7 @@ const LocataireDashboard: React.FC = () => {
         <div className="xl:col-span-2 space-y-8">
              {/* Info Logement Card */}
              <motion.div variants={itemVariants}>
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 flex flex-col md:flex-row gap-6 items-start">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-slate-700/50 flex flex-col md:flex-row gap-6 items-start">
                      <div className="w-full md:w-1/3 rounded-xl overflow-hidden shadow-inner bg-gradient-to-br from-primary/5 to-primary/10 aspect-video md:aspect-square relative">
                         <div className="absolute inset-0 flex items-center justify-center">
                            <Home size={48} className="text-primary/30" />
@@ -268,15 +268,15 @@ const LocataireDashboard: React.FC = () => {
                      <div className="flex-1 w-full space-y-4">
                          <div className="flex justify-between items-start">
                              <div>
-                                <h3 className="text-xl font-bold text-gray-900">{nomLogement}</h3>
-                                <p className="text-gray-500">{(stats as any)?.dateDebut ? `Depuis le ${new Date((stats as any).dateDebut).toLocaleDateString()}` : ''}</p>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{nomLogement}</h3>
+                                <p className="text-gray-500 dark:text-gray-400">{(stats as any)?.dateDebut ? `Depuis le ${new Date((stats as any).dateDebut).toLocaleDateString()}` : ''}</p>
                              </div>
                              <span className={`px-3 py-1 text-sm font-bold rounded-full ${statutContrat === 'actif' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                  {statutContrat === 'actif' ? 'En règle' : 'Inactif'}
                              </span>
                          </div>
                          
-                         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100 dark:border-slate-700/50">
                              <div>
                                  <p className="text-xs text-gray-400 font-semibold uppercase">Bailleur</p>
                                  <p className="font-medium">Hope Immobilier</p>
@@ -315,16 +315,16 @@ const LocataireDashboard: React.FC = () => {
 
             {/* Payment History Card */}
             <motion.div variants={itemVariants}>
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                    <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                        <h3 className="font-bold text-gray-800">Historique des Paiements</h3>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700/50 overflow-hidden">
+                    <div className="p-6 border-b border-gray-100 dark:border-slate-700/50 flex justify-between items-center">
+                        <h3 className="font-bold text-gray-800 dark:text-gray-100">Historique des Paiements</h3>
                         <Button variant="ghost" className="btn-sm text-primary" onClick={() => navigate('/dashboard/finances')}>
                           Tout voir
                         </Button>
                     </div>
                     <div className="p-0">
                         {recentPayments.length > 0 ? recentPayments.map((paiement: any, idx: number) => (
-                             <div key={idx} className="flex items-center justify-between p-4 px-6 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
+                             <div key={idx} className="flex items-center justify-between p-4 px-6 hover:bg-gray-50 dark:bg-slate-900/50 border-b border-gray-100 dark:border-slate-700/50 last:border-0 transition-colors">
                                 <div className="flex items-center gap-4">
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                                       paiement.status === 'paid' ? 'bg-green-50' : 'bg-orange-50'
@@ -334,12 +334,12 @@ const LocataireDashboard: React.FC = () => {
                                         } />
                                     </div>
                                     <div>
-                                        <p className="font-bold text-gray-800">Loyer {paiement.month}</p>
+                                        <p className="font-bold text-gray-800 dark:text-gray-100">Loyer {paiement.month}</p>
                                         <p className="text-xs text-gray-400">{new Date(paiement.date).toLocaleDateString()} • {paiement.method || 'Virement'}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-bold text-gray-900">{formatCurrency(paiement.amount)}</p>
+                                    <p className="font-bold text-gray-900 dark:text-white">{formatCurrency(paiement.amount)}</p>
                                     <span className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-md uppercase tracking-wide ${
                                       paiement.status === 'paid' 
                                         ? 'bg-green-100 text-green-700' 
@@ -350,7 +350,7 @@ const LocataireDashboard: React.FC = () => {
                                 </div>
                             </div>
                         )) : (
-                            <p className="text-center py-8 text-gray-500">Aucun paiement récent.</p>
+                            <p className="text-center py-8 text-gray-500 dark:text-gray-400">Aucun paiement récent.</p>
                         )}
                     </div>
                 </div>
@@ -362,24 +362,24 @@ const LocataireDashboard: React.FC = () => {
             
              {/* Quick Actions */}
              <motion.div variants={itemVariants}>
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-                    <h3 className="font-bold text-gray-800 mb-4">Mes Démarches</h3>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-slate-700/50">
+                    <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4">Mes Démarches</h3>
                     <QuickActions userType="locataire" />
                 </div>
             </motion.div>
 
              {/* Upcoming Events */}
             <motion.div variants={itemVariants}>
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-                    <h3 className="font-bold text-gray-800 mb-4">À Venir</h3>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-slate-700/50">
+                    <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4">À Venir</h3>
                     <UpcomingEvents events={upcomingEvents} userType="locataire" />
                 </div>
             </motion.div>
 
             {/* Recent Activity Timeline */}
              <motion.div variants={itemVariants}>
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-                    <h3 className="font-bold text-gray-800 mb-4">Journal</h3>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-slate-700/50">
+                    <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4">Journal</h3>
                     <ActivityFeed activities={activities} />
                 </div>
             </motion.div>

@@ -158,9 +158,9 @@ const LocationForm: React.FC<LocationFormProps> = ({
     };
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 bg-gray-50/50">
+        <div className="flex flex-col flex-1 min-h-0 bg-gray-50 dark:bg-slate-900/50/50">
             {/* Steps Header */}
-            <div className="flex items-center justify-between px-12 py-6 bg-white border-b border-gray-200">
+            <div className="flex items-center justify-between px-12 py-6 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
                 {STEPS.map((step, idx) => {
                     const isActive = idx === currentStep;
                     const isCompleted = idx < currentStep;
@@ -181,7 +181,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                 {isCompleted ? <Check size={20} /> : step.icon}
                             </motion.div>
                             <span className={`mt-3 text-sm font-bold ${
-                                isActive ? 'text-blue-600' : isCompleted ? 'text-gray-800' : 'text-gray-400'
+                                isActive ? 'text-blue-600' : isCompleted ? 'text-gray-800 dark:text-gray-100' : 'text-gray-400'
                             }`}>
                                 {step.title}
                             </span>
@@ -219,11 +219,11 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
-                                                <label className="text-sm font-bold text-gray-700 uppercase tracking-wide">Locataire</label>
+                                                <label className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">Locataire</label>
                                                 {formData.tenant_id > 0 && <Check size={16} className="text-green-500" />}
                                             </div>
                                             <select
-                                                className={`w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition shadow-sm outline-none appearance-none ${isEditing ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                                className={`w-full p-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition shadow-sm outline-none appearance-none ${isEditing ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                 value={formData.tenant_id}
                                                 onChange={e => setFormData({...formData, tenant_id: parseInt(e.target.value)})}
                                                 disabled={isEditing}
@@ -237,11 +237,11 @@ const LocationForm: React.FC<LocationFormProps> = ({
 
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
-                                                <label className="text-sm font-bold text-gray-700 uppercase tracking-wide">Lot à louer</label>
+                                                <label className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">Lot à louer</label>
                                                 {formData.lot_id > 0 && <Check size={16} className="text-green-500" />}
                                             </div>
                                             <select
-                                                className={`w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition shadow-sm outline-none appearance-none ${isEditing ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                                className={`w-full p-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition shadow-sm outline-none appearance-none ${isEditing ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                 value={formData.lot_id}
                                                 onChange={e => setFormData({...formData, lot_id: parseInt(e.target.value)})}
                                                 disabled={isEditing}
@@ -257,11 +257,11 @@ const LocationForm: React.FC<LocationFormProps> = ({
 
                                         <div className="md:col-span-2 space-y-4">
                                             <div className="flex items-center justify-between">
-                                                <label className="text-sm font-bold text-gray-700 uppercase tracking-wide">Propriétaire concerné</label>
+                                                <label className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">Propriétaire concerné</label>
                                                 {formData.owner_id > 0 && <Check size={16} className="text-green-500" />}
                                             </div>
                                             <div className="md:col-span-2 p-6 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-4">
-                                                <div className="p-3 bg-white rounded-xl shadow-sm">
+                                                <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
                                                     <Home className="text-blue-500" size={24} />
                                                 </div>
                                                 {owners.length > 1 ? (
@@ -294,21 +294,21 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4 pt-4 border-t border-gray-100">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4 pt-4 border-t border-gray-100 dark:border-slate-700/50">
                                         <div className="space-y-4">
-                                            <label className="text-sm font-bold text-gray-700 uppercase tracking-wide">Date de début</label>
+                                            <label className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">Date de début</label>
                                             <input 
                                                 type="date"
-                                                className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                                className="w-full p-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
                                                 value={formData.date_debut}
                                                 onChange={e => setFormData({...formData, date_debut: e.target.value})}
                                             />
                                         </div>
                                         <div className="space-y-4">
-                                            <label className="text-sm font-bold text-gray-700 uppercase tracking-wide">Date de fin (Optionnel)</label>
+                                            <label className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">Date de fin (Optionnel)</label>
                                             <input 
                                                 type="date"
-                                                className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                                className="w-full p-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
                                                 value={formData.date_fin || ''}
                                                 onChange={e => setFormData({...formData, date_fin: e.target.value})}
                                             />
@@ -322,21 +322,21 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                 <div className="space-y-8">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-3">
-                                            <label className="text-sm font-bold text-gray-700">Durée du contrat</label>
+                                            <label className="text-sm font-bold text-gray-700 dark:text-gray-200">Durée du contrat</label>
                                             <input 
                                                 type="number"
-                                                className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                                className="w-full p-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
                                                 value={formData.duree_contrat}
                                                 onChange={e => setFormData({...formData, duree_contrat: parseInt(e.target.value)})}
                                             />
                                         </div>
 
                                         <div className="space-y-3">
-                                            <label className="text-sm font-bold text-gray-700">Loyer Mensuel</label>
+                                            <label className="text-sm font-bold text-gray-700 dark:text-gray-200">Loyer Mensuel</label>
                                             <div className="relative">
                                                 <input 
                                                     type="number"
-                                                    className="w-full p-4 pl-10 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                                    className="w-full p-4 pl-10 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
                                                     value={formData.loyer_mensuel}
                                                     onChange={e => setFormData({...formData, loyer_mensuel: parseFloat(e.target.value)})}
                                                 />
@@ -345,9 +345,9 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-3">
-                                                <label className="text-sm font-bold text-gray-700">Type de charges</label>
+                                                <label className="text-sm font-bold text-gray-700 dark:text-gray-200">Type de charges</label>
                                                 <select
-                                                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                                    className="w-full p-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
                                                     value={formData.type_charges}
                                                     onChange={e => setFormData({...formData, type_charges: e.target.value})}
                                                 >
@@ -357,10 +357,10 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                                 </select>
                                             </div>
                                             <div className="space-y-3">
-                                                <label className="text-sm font-bold text-gray-700">Montant Mensuel</label>
+                                                <label className="text-sm font-bold text-gray-700 dark:text-gray-200">Montant Mensuel</label>
                                                 <input 
                                                     type="number"
-                                                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                                    className="w-full p-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
                                                     value={formData.charges_mensuelles}
                                                     onChange={e => setFormData({...formData, charges_mensuelles: parseFloat(e.target.value)})}
                                                 />
@@ -368,19 +368,19 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                         </div>
 
                                         <div className="space-y-3">
-                                            <label className="text-sm font-bold text-gray-700">Caution</label>
+                                            <label className="text-sm font-bold text-gray-700 dark:text-gray-200">Caution</label>
                                             <input 
                                                 type="number"
-                                                className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                                className="w-full p-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
                                                 value={formData.caution}
                                                 onChange={e => setFormData({...formData, caution: parseFloat(e.target.value)})}
                                             />
                                         </div>
                                         <div className="space-y-3">
-                                            <label className="text-sm font-bold text-gray-700">Avance</label>
+                                            <label className="text-sm font-bold text-gray-700 dark:text-gray-200">Avance</label>
                                             <input 
                                                 type="number"
-                                                className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                                className="w-full p-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition"
                                                 value={formData.avance}
                                                 onChange={e => setFormData({...formData, avance: parseFloat(e.target.value)})}
                                             />
@@ -404,8 +404,8 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                                     onClick={() => setFormData({...formData, type_paiement: 'classique'})}
                                                     className={`flex-1 p-4 rounded-xl border-2 transition text-center font-bold ${
                                                         formData.type_paiement === 'classique' 
-                                                        ? 'border-purple-500 bg-white text-purple-600 shadow-sm' 
-                                                        : 'border-transparent bg-purple-100/50 text-gray-500 hover:bg-purple-100'
+                                                        ? 'border-purple-500 bg-white dark:bg-slate-800 text-purple-600 shadow-sm' 
+                                                        : 'border-transparent bg-purple-100/50 text-gray-500 dark:text-gray-400 hover:bg-purple-100'
                                                     }`}
                                                 >
                                                     Mensuel Classique
@@ -415,8 +415,8 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                                     onClick={() => setFormData({...formData, type_paiement: 'echelonne'})}
                                                     className={`flex-1 p-4 rounded-xl border-2 transition text-center font-bold ${
                                                         formData.type_paiement === 'echelonne' 
-                                                        ? 'border-purple-500 bg-white text-purple-600 shadow-sm' 
-                                                        : 'border-transparent bg-purple-100/50 text-gray-500 hover:bg-purple-100'
+                                                        ? 'border-purple-500 bg-white dark:bg-slate-800 text-purple-600 shadow-sm' 
+                                                        : 'border-transparent bg-purple-100/50 text-gray-500 dark:text-gray-400 hover:bg-purple-100'
                                                     }`}
                                                 >
                                                     Paiement Échelonné
@@ -427,9 +427,9 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                                 <div className="animate-in slide-in-from-top-4">
                                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                                         <div>
-                                                            <label className="text-xs font-bold uppercase text-gray-500">Fréquence</label>
+                                                            <label className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">Fréquence</label>
                                                             <select
-                                                                className="w-full mt-1 p-3 bg-white border rounded-lg"
+                                                                className="w-full mt-1 p-3 bg-white dark:bg-slate-800 border rounded-lg"
                                                                 value={formData.frequence_paiement}
                                                                 onChange={e => setFormData({...formData, frequence_paiement: e.target.value})}
                                                             >
@@ -439,17 +439,17 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                                             </select>
                                                         </div>
                                                         <div>
-                                                            <label className="text-xs font-bold uppercase text-gray-500">Nb échéances</label>
+                                                            <label className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">Nb échéances</label>
                                                             <input 
                                                                 type="number"
-                                                                className="w-full mt-1 p-3 bg-white border rounded-lg"
+                                                                className="w-full mt-1 p-3 bg-white dark:bg-slate-800 border rounded-lg"
                                                                 value={formData.nombre_echeances}
                                                                 onChange={e => setFormData({...formData, nombre_echeances: parseInt(e.target.value)})}
                                                             />
                                                         </div>
                                                     </div>
 
-                                                    <div className="bg-white p-4 rounded-xl border border-gray-200">
+                                                    <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
                                                         <p className="text-xs font-bold text-gray-400 uppercase mb-2">Aperçu Échéancier (Simulation)</p>
                                                         {previewSchedule.slice(0, 3).map((item) => (
                                                             <div key={item.numero} className="flex justify-between text-sm py-1 border-b last:border-0 border-gray-50">
@@ -463,19 +463,19 @@ const LocationForm: React.FC<LocationFormProps> = ({
 
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="text-sm font-bold text-gray-700">Jour d'échéance</label>
+                                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-200">Jour d'échéance</label>
                                                     <input 
                                                         type="number"
                                                         max="31"
-                                                        className="w-full p-3 bg-white border border-gray-200 rounded-xl"
+                                                        className="w-full p-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl"
                                                         value={formData.jour_echeance}
                                                         onChange={e => setFormData({...formData, jour_echeance: parseInt(e.target.value)})}
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="text-sm font-bold text-gray-700">Devise</label>
+                                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-200">Devise</label>
                                                     <select
-                                                        className="w-full p-3 bg-white border border-gray-200 rounded-xl"
+                                                        className="w-full p-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl"
                                                         value={formData.devise}
                                                         onChange={e => setFormData({...formData, devise: e.target.value})}
                                                     >
@@ -495,10 +495,10 @@ const LocationForm: React.FC<LocationFormProps> = ({
             </div>
 
             {/* Footer Buttons */}
-            <div className="p-6 bg-white border-t border-gray-200 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative z-20">
+            <div className="p-6 bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative z-20">
                 <button
                     onClick={currentStep === 0 ? onCancel : handleBack}
-                    className="px-6 py-3 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition"
+                    className="px-6 py-3 rounded-xl text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-slate-800/50 hover:text-gray-800 dark:text-gray-100 transition"
                 >
                     {currentStep === 0 ? 'Annuler' : 'Retour'}
                 </button>

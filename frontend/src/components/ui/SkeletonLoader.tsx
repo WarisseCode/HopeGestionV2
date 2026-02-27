@@ -106,7 +106,7 @@ export const SkeletonList: React.FC<{
 // Composant utilitaire pour un skeleton de KPI
 export const SkeletonKPI: React.FC<{ className?: string }> = ({ className = '' }) => {
   return (
-    <div className={`bg-white rounded-2xl p-6 border border-gray-100 ${className}`}>
+    <div className={`bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700/50 ${className}`}>
       <div className="flex items-center justify-between mb-4">
         <SkeletonLoader variant="circular" width={48} height={48} />
         <SkeletonLoader variant="text" width={60} height={24} />
@@ -124,16 +124,16 @@ export const SkeletonTable: React.FC<{
   className?: string;
 }> = ({ rows = 5, columns = 4, className = '' }) => {
   return (
-    <div className={`bg-white rounded-xl overflow-hidden border border-gray-100 ${className}`}>
+    <div className={`bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-gray-100 dark:border-slate-700/50 ${className}`}>
       {/* Header */}
-      <div className="bg-gray-50 px-6 py-4 flex gap-4">
+      <div className="bg-gray-50 dark:bg-slate-900/50 px-6 py-4 flex gap-4">
         {Array.from({ length: columns }).map((_, i) => (
           <SkeletonLoader key={i} variant="text" height={16} className="flex-1" />
         ))}
       </div>
       {/* Rows */}
       {Array.from({ length: rows }).map((_, rowIndex) => (
-        <div key={rowIndex} className="px-6 py-4 flex gap-4 border-t border-gray-100">
+        <div key={rowIndex} className="px-6 py-4 flex gap-4 border-t border-gray-100 dark:border-slate-700/50">
           {Array.from({ length: columns }).map((_, colIndex) => (
             <SkeletonLoader key={colIndex} variant="text" height={20} className="flex-1" />
           ))}

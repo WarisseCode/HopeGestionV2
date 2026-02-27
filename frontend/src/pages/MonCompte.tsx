@@ -53,13 +53,13 @@ const MonCompte: React.FC = () => {
       {/* ... Header ... */}
 
       {/* Tabs */}
-     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-center bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
-        <div className="flex p-1 bg-gray-100/50 rounded-xl overflow-x-auto">
+     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-center bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-gray-100 dark:border-slate-700/50">
+        <div className="flex p-1 bg-gray-100 dark:bg-slate-800/50/50 rounded-xl overflow-x-auto">
              {!isOwner && (
                  <button
                     onClick={() => setActiveTab('proprietaires')}
                     className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-                    activeTab === 'proprietaires' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                    activeTab === 'proprietaires' ? 'bg-white dark:bg-slate-800 text-primary shadow-md' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
                     }`}
                 >
                     <Building2 size={18} />
@@ -70,7 +70,7 @@ const MonCompte: React.FC = () => {
                 <button
                     onClick={() => setActiveTab('utilisateurs')}
                     className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-                    activeTab === 'utilisateurs' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                    activeTab === 'utilisateurs' ? 'bg-white dark:bg-slate-800 text-primary shadow-md' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
                     }`}
                 >
                     <Users size={18} />
@@ -80,7 +80,7 @@ const MonCompte: React.FC = () => {
             <button
                 onClick={() => setActiveTab('autorisation')}
                 className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'autorisation' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                activeTab === 'autorisation' ? 'bg-white dark:bg-slate-800 text-primary shadow-md' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
                 }`}
             >
                 <Shield size={18} />
@@ -89,7 +89,7 @@ const MonCompte: React.FC = () => {
              <button
                 onClick={() => setActiveTab('profile')}
                 className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'profile' ? 'bg-white text-primary shadow-md' : 'text-gray-500 hover:text-gray-700'
+                activeTab === 'profile' ? 'bg-white dark:bg-slate-800 text-primary shadow-md' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
                 }`}
             >
                 <Users size={18} />

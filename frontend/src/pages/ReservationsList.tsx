@@ -138,7 +138,7 @@ const ReservationsList: React.FC = () => {
             case 'refuse':
                 return <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 flex items-center gap-1"><XCircle size={12}/> Refusée</span>;
             default:
-                return <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700">{statut}</span>;
+                return <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 dark:bg-slate-800/50 text-gray-700 dark:text-gray-200">{statut}</span>;
         }
     };
 
@@ -147,8 +147,8 @@ const ReservationsList: React.FC = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Réservations</h1>
-                    <p className="text-gray-500">Gérez les demandes de réservation en ligne</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Réservations</h1>
+                    <p className="text-gray-500 dark:text-gray-400">Gérez les demandes de réservation en ligne</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button onClick={loadReservations} className="btn-secondary flex items-center gap-2">
@@ -173,17 +173,17 @@ const ReservationsList: React.FC = () => {
                         className={`p-4 rounded-2xl border-2 transition-all text-left ${
                             filter === stat.filter 
                                 ? `border-${stat.color}-500 bg-${stat.color}-50` 
-                                : 'border-gray-100 bg-white hover:border-gray-200'
+                                : 'border-gray-100 dark:border-slate-700/50 bg-white dark:bg-slate-800 hover:border-gray-200 dark:border-slate-700'
                         }`}
                     >
                         <p className={`text-3xl font-bold text-${stat.color}-600`}>{stat.value}</p>
-                        <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{stat.label}</p>
                     </motion.button>
                 ))}
             </div>
 
             {/* Reservations List */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 overflow-hidden">
                 {loading ? (
                     <div className="p-12 text-center text-gray-400">
                         <RefreshCw className="animate-spin mx-auto mb-2" size={24} />
@@ -204,32 +204,32 @@ const ReservationsList: React.FC = () => {
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, x: -20 }}
                                     transition={{ delay: idx * 0.05 }}
-                                    className="p-5 hover:bg-gray-50/50 transition-colors"
+                                    className="p-5 hover:bg-gray-50 dark:bg-slate-900/50/50 transition-colors"
                                 >
                                     <div className="flex flex-col md:flex-row md:items-center gap-4">
                                         {/* Info */}
                                         <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div>
                                                 <p className="text-xs text-gray-400 uppercase font-bold mb-1">Client</p>
-                                                <p className="font-semibold text-gray-900 flex items-center gap-2">
+                                                <p className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                                     <User size={14} className="text-gray-400" />
                                                     {reservation.locataire_nom} {reservation.locataire_prenoms}
                                                 </p>
-                                                <p className="text-sm text-gray-500 flex items-center gap-2">
+                                                <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
                                                     <Phone size={12} /> {reservation.telephone_principal}
                                                 </p>
                                             </div>
                                             <div>
                                                 <p className="text-xs text-gray-400 uppercase font-bold mb-1">Bien</p>
-                                                <p className="font-semibold text-gray-900 flex items-center gap-2">
+                                                <p className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                                     <Building size={14} className="text-gray-400" />
                                                     {reservation.ref_lot}
                                                 </p>
-                                                <p className="text-sm text-gray-500">{reservation.immeuble_nom}</p>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400">{reservation.immeuble_nom}</p>
                                             </div>
                                             <div>
                                                 <p className="text-xs text-gray-400 uppercase font-bold mb-1">Date souhaitée</p>
-                                                <p className="font-semibold text-gray-900 flex items-center gap-2">
+                                                <p className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                                     <Calendar size={14} className="text-gray-400" />
                                                     {new Date(reservation.date_debut).toLocaleDateString('fr-FR')}
                                                 </p>
@@ -277,7 +277,7 @@ const ReservationsList: React.FC = () => {
 
                                     {/* Notes */}
                                     {reservation.conditions_particulieres && (
-                                        <div className="mt-3 p-3 bg-gray-50 rounded-xl text-sm text-gray-600 italic">
+                                        <div className="mt-3 p-3 bg-gray-50 dark:bg-slate-900/50 rounded-xl text-sm text-gray-600 dark:text-gray-300 italic">
                                             "{reservation.conditions_particulieres}"
                                         </div>
                                     )}
@@ -302,54 +302,54 @@ const ReservationsList: React.FC = () => {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+                            className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <h2 className="text-xl font-bold text-gray-900 mb-1">Transformer en Bail</h2>
-                            <p className="text-sm text-gray-500 mb-6">
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Transformer en Bail</h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                                 {transformingReservation.ref_lot} - {transformingReservation.locataire_nom} {transformingReservation.locataire_prenoms}
                             </p>
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date de fin du bail</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Date de fin du bail</label>
                                     <input 
                                         type="date" 
                                         value={transformData.date_fin}
                                         onChange={(e) => setTransformData({...transformData, date_fin: e.target.value})}
-                                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Caution (FCFA)</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Caution (FCFA)</label>
                                         <input 
                                             type="number" 
                                             placeholder="Auto = 1 mois"
                                             value={transformData.caution}
                                             onChange={(e) => setTransformData({...transformData, caution: e.target.value})}
-                                            className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Avance (mois)</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Avance (mois)</label>
                                         <input 
                                             type="number" 
                                             min="1" 
                                             value={transformData.avance}
                                             onChange={(e) => setTransformData({...transformData, avance: e.target.value})}
-                                            className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Périodicité</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Périodicité</label>
                                     <select 
                                         value={transformData.periodicite}
                                         onChange={(e) => setTransformData({...transformData, periodicite: e.target.value})}
-                                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     >
                                         <option value="mensuel">Mensuel</option>
                                         <option value="trimestriel">Trimestriel</option>
@@ -362,7 +362,7 @@ const ReservationsList: React.FC = () => {
                             <div className="flex gap-3 mt-6">
                                 <button 
                                     onClick={() => setTransformModalOpen(false)}
-                                    className="flex-1 py-3 px-4 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition"
+                                    className="flex-1 py-3 px-4 rounded-xl border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-200 font-medium hover:bg-gray-50 dark:bg-slate-900/50 transition"
                                 >
                                     Annuler
                                 </button>

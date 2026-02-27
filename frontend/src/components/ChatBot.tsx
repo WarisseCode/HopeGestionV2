@@ -281,7 +281,7 @@ const ChatBot: React.FC = () => {
             {/* Header */}
             <div className="bg-gradient-to-r from-primary to-secondary p-4 flex items-center justify-between shadow-md shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30">
+                <div className="w-10 h-10 bg-white dark:bg-slate-800/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30">
                   <Bot size={24} className="text-white" />
                 </div>
                 <div>
@@ -299,14 +299,14 @@ const ChatBot: React.FC = () => {
                  {/* 4. Minimize Button */}
                 <button 
                   onClick={() => setIsMinimized(true)} 
-                  className="p-2 hover:bg-white/20 rounded-full text-white transition-colors"
+                  className="p-2 hover:bg-white dark:bg-slate-800/20 rounded-full text-white transition-colors"
                   title="Réduire"
                 >
                   <Minus size={20} />
                 </button>
                 <button 
                   onClick={() => setIsOpen(false)}
-                  className="p-2 hover:bg-white/20 rounded-full text-white transition-colors"
+                  className="p-2 hover:bg-white dark:bg-slate-800/20 rounded-full text-white transition-colors"
                   title="Fermer"
                 >
                   <X size={20} />
@@ -332,7 +332,7 @@ const ChatBot: React.FC = () => {
                     <div className={`px-4 py-3 rounded-2xl shadow-sm relative group text-sm leading-relaxed ${
                       message.sender === 'user'
                         ? 'bg-primary text-primary-content rounded-br-none'
-                        : 'bg-white text-gray-700 border border-gray-100 rounded-bl-none'
+                        : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-slate-700/50 rounded-bl-none'
                     }`}>
                       <p className="whitespace-pre-line">{message.text}</p>
                       
@@ -350,7 +350,7 @@ const ChatBot: React.FC = () => {
                       {message.type === 'properties' && message.data && (
                         <div className="flex gap-3 overflow-x-auto pb-4 pt-1 snap-x scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent px-1">
                           {message.data.map((prop: any) => (
-                            <div key={prop.id} className="min-w-[200px] w-[200px] bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 snap-center flex-shrink-0 hover:shadow-md transition-all cursor-pointer group"
+                            <div key={prop.id} className="min-w-[200px] w-[200px] bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-slate-700/50 snap-center flex-shrink-0 hover:shadow-md transition-all cursor-pointer group"
                                  onClick={() => handleNavigate(`/biens`)}> 
                                  {/* Note: In real app, /biens/${prop.id} */}
                               <div className="h-28 bg-gray-200 relative overflow-hidden">
@@ -361,8 +361,8 @@ const ChatBot: React.FC = () => {
                                 </span>
                               </div>
                               <div className="p-3">
-                                <h4 className="font-bold text-xs truncate mb-1 text-gray-800" title={prop.titre}>{prop.titre}</h4>
-                                <div className="flex items-center text-xs text-gray-500 mb-2">
+                                <h4 className="font-bold text-xs truncate mb-1 text-gray-800 dark:text-gray-100" title={prop.titre}>{prop.titre}</h4>
+                                <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-2">
                                   <MapPin size={10} className="mr-1 text-primary" />
                                   <span className="truncate">{prop.quartier}</span>
                                 </div>
@@ -391,7 +391,7 @@ const ChatBot: React.FC = () => {
                             <button
                               key={idx}
                               onClick={() => handleSendMessage(opt.value)}
-                              className="px-4 py-2 bg-white hover:bg-primary hover:text-white text-primary rounded-full text-xs font-semibold transition-all shadow-sm border border-primary/10 hover:shadow-md hover:-translate-y-0.5"
+                              className="px-4 py-2 bg-white dark:bg-slate-800 hover:bg-primary hover:text-white text-primary rounded-full text-xs font-semibold transition-all shadow-sm border border-primary/10 hover:shadow-md hover:-translate-y-0.5"
                             >
                               {opt.label}
                             </button>
@@ -401,15 +401,15 @@ const ChatBot: React.FC = () => {
 
                       {/* 9. Contact Form */}
                       {message.type === 'contact_form' && (
-                         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 w-full animate-fadeIn">
+                         <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700/50 w-full animate-fadeIn">
                            <div className="space-y-3">
                               <div>
-                                <label className="text-xs font-medium text-gray-500 ml-1">Email</label>
-                                <input type="email" placeholder="exemple@email.com" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 bg-gray-50 transition-all" />
+                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 ml-1">Email</label>
+                                <input type="email" placeholder="exemple@email.com" className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 bg-gray-50 dark:bg-slate-900/50 transition-all" />
                               </div>
                               <div>
-                                <label className="text-xs font-medium text-gray-500 ml-1">Téléphone</label>
-                                <input type="tel" placeholder="+229 ..." className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 bg-gray-50 transition-all" />
+                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 ml-1">Téléphone</label>
+                                <input type="tel" placeholder="+229 ..." className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 bg-gray-50 dark:bg-slate-900/50 transition-all" />
                               </div>
                               <button className="w-full bg-primary text-white py-2.5 rounded-lg text-sm font-bold hover:bg-primary-focus shadow-lg shadow-primary/20 transition-all active:scale-95">
                                 Envoyer mes infos
@@ -440,7 +440,7 @@ const ChatBot: React.FC = () => {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-white border-t border-gray-100 z-10">
+            <div className="p-4 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700/50 z-10">
                {/* 1. Suggestions rapides (au dessus de l'input) */}
               {messages.length > 0 && messages[messages.length - 1].sender === 'bot' && !messages[messages.length - 1].data && (
                 <div className="flex gap-2 overflow-x-auto pb-3 mb-1 scrollbar-hide">
@@ -448,7 +448,7 @@ const ChatBot: React.FC = () => {
                     <button 
                       key={i}
                       onClick={() => handleSendMessage(sugg.value)}
-                      className="whitespace-nowrap px-3 py-1.5 text-xs bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 rounded-full transition-colors flex items-center gap-1 font-medium"
+                      className="whitespace-nowrap px-3 py-1.5 text-xs bg-gray-50 dark:bg-slate-900/50 hover:bg-gray-100 dark:bg-slate-800/50 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-slate-700 rounded-full transition-colors flex items-center gap-1 font-medium"
                     >
                       {sugg.label}
                     </button>
@@ -463,7 +463,7 @@ const ChatBot: React.FC = () => {
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Écrivez votre message..."
-                  className="flex-1 px-4 py-3 bg-gray-50 border-transparent focus:bg-white border rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/20 transition-all text-sm placeholder:text-gray-400"
+                  className="flex-1 px-4 py-3 bg-gray-50 dark:bg-slate-900/50 border-transparent focus:bg-white dark:bg-slate-800 border rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/20 transition-all text-sm placeholder:text-gray-400"
                 />
                 <motion.button
                   onClick={() => handleSendMessage()}

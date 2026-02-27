@@ -107,22 +107,22 @@ const Modal: React.FC<ModalProps> = ({
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
                 className={`
-                  relative bg-white rounded-2xl shadow-2xl w-full ${sizeClasses[size]} 
+                  relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full ${sizeClasses[size]} 
                   ${size === 'full' ? 'flex flex-col' : 'max-h-[90vh]'}
                   overflow-hidden
                 `}
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-                  <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+                <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700/50 bg-gradient-to-r from-gray-50 to-white">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h2>
                   {showCloseButton && (
                     <button
                       onClick={onClose}
-                      className="p-2 hover:bg-gray-100 rounded-full transition-all duration-200 hover:rotate-90"
+                      className="p-2 hover:bg-gray-100 dark:bg-slate-800/50 rounded-full transition-all duration-200 hover:rotate-90"
                       aria-label="Fermer"
                     >
-                      <X size={20} className="text-gray-500" />
+                      <X size={20} className="text-gray-500 dark:text-gray-400" />
                     </button>
                   )}
                 </div>
@@ -134,7 +134,7 @@ const Modal: React.FC<ModalProps> = ({
 
                 {/* Footer */}
                 {footer && (
-                  <div className="flex justify-end gap-3 p-6 border-t border-gray-100 bg-gray-50/50">
+                  <div className="flex justify-end gap-3 p-6 border-t border-gray-100 dark:border-slate-700/50 bg-gray-50 dark:bg-slate-900/50/50">
                     {footer}
                   </div>
                 )}

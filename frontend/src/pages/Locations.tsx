@@ -204,7 +204,7 @@ const Locations: React.FC = () => {
             case 'signe': return 'bg-green-100 text-green-700';
             case 'expire': return 'bg-orange-100 text-orange-700';
             case 'resilie': return 'bg-red-100 text-red-700';
-            default: return 'bg-gray-100 text-gray-700';
+            default: return 'bg-gray-100 dark:bg-slate-800/50 text-gray-700 dark:text-gray-200';
         }
     };
 
@@ -225,8 +225,8 @@ const Locations: React.FC = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Locations & Baux</h1>
-                    <p className="text-gray-500 text-sm">Gérez les contrats de location</p>
+                    <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Locations & Baux</h1>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Gérez les contrats de location</p>
                 </div>
                 <button 
                     onClick={() => { setError(null); setIsEditing(false); setSelectedLocation(null); setShowAddModal(true); }}
@@ -246,7 +246,7 @@ const Locations: React.FC = () => {
                     <input
                         type="text"
                         placeholder="Rechercher par locataire, référence, immeuble..."
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                     />
@@ -254,7 +254,7 @@ const Locations: React.FC = () => {
                 <select
                     value={filterStatus}
                     onChange={e => setFilterStatus(e.target.value)}
-                    className="px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-primary/20"
+                    className="px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-primary/20"
                 >
                     <option value="">Tous les statuts</option>
                     <option value="actif">Actif (En cours)</option>
@@ -267,63 +267,63 @@ const Locations: React.FC = () => {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700/50">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
                             <FileText className="text-blue-600" size={20} />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-800">{locations.length}</p>
-                            <p className="text-xs text-gray-500">Total Baux</p>
+                            <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{locations.length}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Total Baux</p>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700/50">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
                             <Check className="text-green-600" size={20} />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-800">
+                            <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                                 {locations.filter(l => l.statut === 'actif').length}
                             </p>
-                            <p className="text-xs text-gray-500">Actifs</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Actifs</p>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700/50">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
                             <AlertTriangle className="text-orange-600" size={20} />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-800">
+                            <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                                 {locations.filter(l => l.statut === 'expire').length}
                             </p>
-                            <p className="text-xs text-gray-500">Expirés</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Expirés</p>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700/50">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                             <DollarSign className="text-purple-600" size={20} />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-800">
+                            <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                                 {formatCurrency(locations.filter(l => l.statut === 'actif').reduce((sum, l) => sum + (Number(l.loyer_mensuel) || 0), 0))}
                             </p>
-                            <p className="text-xs text-gray-500">Loyers mensuels</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Loyers mensuels</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700/50 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
+                        <thead className="bg-gray-50 dark:bg-slate-900/50 text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wider">
                             <tr>
                                 <th className="p-4 font-semibold">Référence</th>
                                 <th className="p-4 font-semibold">Locataire</th>
@@ -340,7 +340,7 @@ const Locations: React.FC = () => {
                                     key={location.id}
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
-                                    className="hover:bg-gray-50 transition cursor-pointer"
+                                    className="hover:bg-gray-50 dark:bg-slate-900/50 transition cursor-pointer"
                                     onClick={() => openDetail(location)}
                                 >
                                     <td className="p-4">
@@ -359,7 +359,7 @@ const Locations: React.FC = () => {
                                     <td className="p-4">
                                         <div>
                                             <div className="font-medium">{location.ref_lot}</div>
-                                            <div className="text-xs text-gray-500">{location.immeuble_nom}</div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">{location.immeuble_nom}</div>
                                         </div>
                                     </td>
                                     <td className="p-4 font-semibold text-green-600">
@@ -368,7 +368,7 @@ const Locations: React.FC = () => {
                                     <td className="p-4 text-sm">
                                         <div>{new Date(location.date_debut).toLocaleDateString('fr-FR')}</div>
                                         {location.date_fin && (
-                                            <div className="text-gray-500">→ {new Date(location.date_fin).toLocaleDateString('fr-FR')}</div>
+                                            <div className="text-gray-500 dark:text-gray-400">→ {new Date(location.date_fin).toLocaleDateString('fr-FR')}</div>
                                         )}
                                     </td>
                                     <td className="p-4">
@@ -382,14 +382,14 @@ const Locations: React.FC = () => {
                                                 <div 
                                                     tabIndex={0} 
                                                     role="button" 
-                                                    className="p-2 hover:bg-gray-100 rounded-lg transition"
+                                                    className="p-2 hover:bg-gray-100 dark:bg-slate-800/50 rounded-lg transition"
                                                 >
-                                                    <MoreHorizontal size={20} className="text-gray-600" />
+                                                    <MoreHorizontal size={20} className="text-gray-600 dark:text-gray-300" />
                                                 </div>
-                                                <ul tabIndex={0} className="dropdown-content z-[20] menu p-2 shadow-xl bg-white rounded-xl w-56 border border-gray-100">
+                                                <ul tabIndex={0} className="dropdown-content z-[20] menu p-2 shadow-xl bg-white dark:bg-slate-800 rounded-xl w-56 border border-gray-100 dark:border-slate-700/50">
                                                     <li>
                                                         <button onClick={() => openDetail(location)} className="flex items-center gap-2 py-3">
-                                                            <Eye size={16} className="text-gray-500" />
+                                                            <Eye size={16} className="text-gray-500 dark:text-gray-400" />
                                                             <span>Voir les détails</span>
                                                         </button>
                                                     </li>
@@ -432,7 +432,7 @@ const Locations: React.FC = () => {
                             ))}
                             {filteredLocations.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="p-8 text-center text-gray-500">
+                                    <td colSpan={7} className="p-8 text-center text-gray-500 dark:text-gray-400">
                                         Aucun bail trouvé
                                     </td>
                                 </tr>
@@ -455,11 +455,11 @@ const Locations: React.FC = () => {
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white rounded-xl shadow-xl w-full max-w-[95%] md:max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
+                            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-[95%] md:max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
                         >
-                            <div className="p-6 border-b sticky top-0 bg-white z-10 flex justify-between items-center">
+                            <div className="p-6 border-b sticky top-0 bg-white dark:bg-slate-800 z-10 flex justify-between items-center">
                                 <h3 className="text-xl font-bold">{isEditing ? 'Modifier le Bail' : 'Nouveau Bail'}</h3>
-                                <button onClick={() => { setShowAddModal(false); setIsEditing(false); }} className="text-gray-400 hover:text-gray-600 transition">
+                                <button onClick={() => { setShowAddModal(false); setIsEditing(false); }} className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition">
                                     <XCircle size={24} />
                                 </button>
                             </div>
@@ -492,7 +492,7 @@ const Locations: React.FC = () => {
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white rounded-xl shadow-xl w-full max-w-lg"
+                            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-lg"
                             onClick={e => e.stopPropagation()}
                         >
                             <div className="p-6 border-b">
@@ -503,7 +503,7 @@ const Locations: React.FC = () => {
                                             {selectedLocation.statut}
                                         </span>
                                     </div>
-                                    <button onClick={() => setShowDetailModal(false)} className="text-gray-400 hover:text-gray-600">
+                                    <button onClick={() => setShowDetailModal(false)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300">
                                         <X size={24} />
                                     </button>
                                 </div>
@@ -512,28 +512,28 @@ const Locations: React.FC = () => {
                             <div className="p-6 space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <p className="text-xs text-gray-500">Locataire</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Locataire</p>
                                         <p className="font-medium">{selectedLocation.locataire_prenoms} {selectedLocation.locataire_nom}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Lot</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Lot</p>
                                         <p className="font-medium">{selectedLocation.ref_lot}</p>
                                         <p className="text-xs text-gray-400">{selectedLocation.immeuble_nom}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Loyer mensuel</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Loyer mensuel</p>
                                         <p className="font-bold text-green-600">{formatCurrency(selectedLocation.loyer_mensuel, selectedLocation.devise)}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Caution</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Caution</p>
                                         <p className="font-medium">{formatCurrency(selectedLocation.caution, selectedLocation.devise)}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Date début</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Date début</p>
                                         <p className="font-medium">{new Date(selectedLocation.date_debut).toLocaleDateString('fr-FR')}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Date fin</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Date fin</p>
                                         <p className="font-medium">{selectedLocation.date_fin ? new Date(selectedLocation.date_fin).toLocaleDateString('fr-FR') : '-'}</p>
                                     </div>
                                 </div>

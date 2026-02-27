@@ -112,10 +112,10 @@ const DelegationsPage: React.FC = () => {
       {/* Header */}
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
             Mon Équipe <span className="text-primary">.</span>
           </h1>
-          <p className="text-gray-500 font-medium mt-1">
+          <p className="text-gray-500 dark:text-gray-400 font-medium mt-1">
             Gérez les accès et les permissions de vos collaborateurs.
           </p>
         </div>
@@ -147,16 +147,16 @@ const DelegationsPage: React.FC = () => {
 
       {/* Team List */}
       <motion.div variants={itemVariants}>
-      <Card className="border-none shadow-xl bg-white p-0 overflow-hidden">
+      <Card className="border-none shadow-xl bg-white dark:bg-slate-800 p-0 overflow-hidden">
         <div className="overflow-x-auto">
         <table className="table w-full">
           <thead>
-            <tr className="bg-gray-50/50">
-              <th className="py-4 pl-6 text-gray-500 font-semibold">Collaborateur</th>
-              <th className="text-gray-500 font-semibold">Rôle</th>
-              <th className="text-gray-500 font-semibold">Permissions</th>
-              <th className="text-gray-500 font-semibold">Statut</th>
-              <th className="pr-6 text-right text-gray-500 font-semibold">Actions</th>
+            <tr className="bg-gray-50 dark:bg-slate-900/50/50">
+              <th className="py-4 pl-6 text-gray-500 dark:text-gray-400 font-semibold">Collaborateur</th>
+              <th className="text-gray-500 dark:text-gray-400 font-semibold">Rôle</th>
+              <th className="text-gray-500 dark:text-gray-400 font-semibold">Permissions</th>
+              <th className="text-gray-500 dark:text-gray-400 font-semibold">Statut</th>
+              <th className="pr-6 text-right text-gray-500 dark:text-gray-400 font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -166,7 +166,7 @@ const DelegationsPage: React.FC = () => {
               <tr><td colSpan={5} className="text-center py-8 text-gray-400">Aucun membre dans votre équipe pour le moment.</td></tr>
             ) : (
               team.map(member => (
-                <tr key={member.id} className="hover:bg-gray-50/50 transition-colors">
+                <tr key={member.id} className="hover:bg-gray-50 dark:bg-slate-900/50/50 transition-colors">
                   <td className="pl-6">
                     <div className="flex items-center gap-3">
                       <div className="avatar placeholder">
@@ -175,13 +175,13 @@ const DelegationsPage: React.FC = () => {
                         </div>
                       </div>
                       <div>
-                        <div className="font-bold text-gray-800">{member.nom}</div>
+                        <div className="font-bold text-gray-800 dark:text-gray-100">{member.nom}</div>
                         <div className="text-xs text-gray-400 font-medium">{member.email}</div>
                       </div>
                     </div>
                   </td>
                   <td>
-                    <span className={`badge ${member.role === 'owner' ? 'badge-primary' : 'badge-ghost text-gray-500'} font-medium`}>
+                    <span className={`badge ${member.role === 'owner' ? 'badge-primary' : 'badge-ghost text-gray-500 dark:text-gray-400'} font-medium`}>
                       {member.role === 'owner' ? 'Propriétaire' : member.role === 'manager' ? 'Gestionnaire' : 'Comptable'}
                     </span>
                   </td>
@@ -236,9 +236,9 @@ const DelegationsPage: React.FC = () => {
           />
           
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Rôle</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Rôle</label>
             <select 
-              className="select select-bordered w-full bg-gray-50 focus:bg-white transition-colors"
+              className="select select-bordered w-full bg-gray-50 dark:bg-slate-900/50 focus:bg-white dark:bg-slate-800 transition-colors"
               value={newRole}
               onChange={(e) => setNewRole(e.target.value)}
             >
@@ -248,32 +248,32 @@ const DelegationsPage: React.FC = () => {
             </select>
           </div>
 
-          <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-3">
-             <h4 className="font-bold text-sm text-gray-700 flex items-center gap-2"><Shield size={16} className="text-primary"/> Permissions Spécifiques</h4>
+          <div className="bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl border border-gray-100 dark:border-slate-700/50 space-y-3">
+             <h4 className="font-bold text-sm text-gray-700 dark:text-gray-200 flex items-center gap-2"><Shield size={16} className="text-primary"/> Permissions Spécifiques</h4>
              
              <div className="space-y-2">
-             <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded-lg transition-colors">
+             <label className="flex items-center gap-3 cursor-pointer hover:bg-white dark:bg-slate-800 p-2 rounded-lg transition-colors">
                <input type="checkbox" className="checkbox checkbox-primary checkbox-sm" 
                  checked={targetPermissions.can_view_finances} 
                  onChange={() => handlePermissionChange('can_view_finances')}
                />
-               <span className="text-sm font-medium text-gray-600">Voir les finances</span>
+               <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Voir les finances</span>
              </label>
 
-             <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded-lg transition-colors">
+             <label className="flex items-center gap-3 cursor-pointer hover:bg-white dark:bg-slate-800 p-2 rounded-lg transition-colors">
                <input type="checkbox" className="checkbox checkbox-primary checkbox-sm" 
                  checked={targetPermissions.can_edit_properties} 
                  onChange={() => handlePermissionChange('can_edit_properties')}
                />
-               <span className="text-sm font-medium text-gray-600">Modifier les biens</span>
+               <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Modifier les biens</span>
              </label>
 
-             <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded-lg transition-colors">
+             <label className="flex items-center gap-3 cursor-pointer hover:bg-white dark:bg-slate-800 p-2 rounded-lg transition-colors">
                <input type="checkbox" className="checkbox checkbox-primary checkbox-sm" 
                  checked={targetPermissions.can_manage_tenants} 
                  onChange={() => handlePermissionChange('can_manage_tenants')}
                />
-               <span className="text-sm font-medium text-gray-600">Gérer les locataires</span>
+               <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Gérer les locataires</span>
              </label>
              </div>
           </div>
@@ -298,23 +298,23 @@ const DelegationsPage: React.FC = () => {
                 <span>Le collaborateur a été ajouté à votre équipe.</span>
             </div>
 
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-300">
                 L'utilisateur n'avait pas de compte. Un compte a été créé automatiquement.
                 <br/>
                 <strong>Veuillez lui transmettre ses identifiants :</strong>
             </p>
 
-            <div className="bg-gray-100 p-4 rounded-xl border border-gray-200 select-all">
+            <div className="bg-gray-100 dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700 select-all">
                 <div className="grid grid-cols-[80px_1fr] gap-2">
-                    <span className="font-bold text-gray-500">Email :</span>
-                    <span className="font-mono text-gray-900">{createdEmail}</span>
+                    <span className="font-bold text-gray-500 dark:text-gray-400">Email :</span>
+                    <span className="font-mono text-gray-900 dark:text-white">{createdEmail}</span>
                     
-                    <span className="font-bold text-gray-500">Mot de passe :</span>
+                    <span className="font-bold text-gray-500 dark:text-gray-400">Mot de passe :</span>
                     <span className="font-mono text-primary font-bold text-lg">{tempPassword}</span>
                 </div>
             </div>
 
-            <p className="text-xs text-gray-500 flex items-center gap-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                 <AlertTriangle size={12} />
                 Il devra changer ce mot de passe dès sa première connexion.
             </p>

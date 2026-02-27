@@ -87,7 +87,7 @@ const CarnetNotes: React.FC = () => {
                             placeholder="Sujet de la note"
                         />
                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Contenu</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Contenu</label>
                             <textarea 
                                 className="w-full border rounded-lg p-3 min-h-[100px]"
                                 value={newContent}
@@ -124,14 +124,14 @@ const CarnetNotes: React.FC = () => {
                         >
                             <Trash2 size={16} />
                         </button>
-                        <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+                        <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
                              <StickyNote size={16} className="text-yellow-600" />
                              {n.title}
                         </h3>
-                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{n.content}</p>
-                        <div className="mt-4 pt-4 border-t border-yellow-100 flex justify-between items-center text-xs text-gray-500">
+                        <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{n.content}</p>
+                        <div className="mt-4 pt-4 border-t border-yellow-100 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
                              <span>{new Date(n.created_at).toLocaleDateString()}</span>
-                             <span className="capitalize px-2 py-1 bg-white rounded-full border border-yellow-200">
+                             <span className="capitalize px-2 py-1 bg-white dark:bg-slate-800 rounded-full border border-yellow-200">
                                  {n.visibility === 'private' ? 'Privé' : 'Partagé'}
                              </span>
                         </div>
