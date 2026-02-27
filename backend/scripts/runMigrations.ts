@@ -457,6 +457,38 @@ const MIGRATIONS: Migration[] = [
                 END IF;
             END $$;
         `
+    },
+    {
+        name: '029_mobile_money_tables',
+        sql: `
+            CREATE TABLE IF NOT EXISTS mobile_money_configs (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                nom VARCHAR(100) NOT NULL,
+                operateur VARCHAR(50) NOT NULL,
+                numero VARCHAR(50) NOT NULL,
+                statut VARCHAR(50) DEFAULT 'actif',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS mobile_money_transactions (
+                id SERIAL PRIMARY KEY,
+                amount DECIMAL(12, 2) NOT NULL,
+                phone_number VARCHAR(50) NOT NULL,
+                operator VARCHAR(50) NOT NULL,
+                status VARCHAR(50) DEFAULT 'pending',
+                transaction_type VARCHAR(50) NOT NULL,
+                external_reference TEXT,
+                transaction_id VARCHAR(255),
+                payment_id INTEGER REFERENCES payments(id) ON DELETE SET NULL,
+                metadata JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_mobile_money_configs_user_id ON mobile_money_configs(user_id);
+            CREATE INDEX IF NOT EXISTS idx_momo_tx_operator ON mobile_money_transactions(operator);
+            CREATE INDEX IF NOT EXISTS idx_momo_tx_status ON mobile_money_transactions(status);
+        `
     }
 ];
 
