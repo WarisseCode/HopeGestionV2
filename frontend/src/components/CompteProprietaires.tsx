@@ -8,6 +8,7 @@ import Alert from './ui/Alert';
 import Card from './ui/Card';
 import ProprietaireForm from './proprietaires/ProprietaireForm';
 import { useMobile } from '../hooks/useMobile';
+import toast from 'react-hot-toast';
 
 interface Owner {
     id: number;
@@ -43,7 +44,6 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
     const isMobile = useMobile();
     const [owners, setOwners] = useState<Owner[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'individual' | 'company'>('all');
@@ -90,7 +90,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
             
             setOwners(mapped);
         } catch (err) {
-            setError("Impossible de charger les propriétaires.");
+            toast.error("Impossible de charger les propriétaires.");
             console.error(err);
         } finally {
             setLoading(false);
@@ -102,8 +102,9 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
             try {
                 await accountApi.deleteProprietaire(id);
                 setOwners(owners.filter(o => o.id !== id));
+                toast.success("Propriétaire désactivé avec succès.");
             } catch (err) {
-                setError("Erreur lors de la désactivation.");
+                toast.error("Erreur lors de la désactivation.");
             }
         }
     };
@@ -314,8 +315,6 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                 )}
             </div>
 
-            {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
-
             {showForm ? (
                 <ProprietaireForm
                   owner={editingProp || undefined}
@@ -324,10 +323,11 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                       await accountApi.saveProprietaire(data);
                       setShowForm(false);
                       setEditingProp(null);
+                      toast.success(data.id ? "Propriétaire modifié avec succès" : "Propriétaire créé avec succès");
                       await loadOwners();
                     } catch (err: any) {
                       console.error('Error saving owner:', err);
-                      setError(err.message || "Erreur lors de l'enregistrement.");
+                      toast.error(err.message || "Erreur lors de l'enregistrement.");
                     }
                   }}
                   onCancel={() => {

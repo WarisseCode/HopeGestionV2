@@ -159,7 +159,7 @@ const Locataires: React.FC = () => {
       setAcheteurs(achs);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Erreur lors du chargement');
+      toast.error(err.message || 'Erreur lors du chargement');
     } finally {
       setLoading(false);
     }
@@ -215,7 +215,6 @@ const Locataires: React.FC = () => {
   // Handlers
   const handleSave = async () => {
     try {
-      setError(null);
       if (!locataireForm.nom || !locataireForm.telephonePrincipal) {
         throw new Error('Nom et téléphone sont requis');
       }
@@ -236,7 +235,7 @@ const Locataires: React.FC = () => {
         avance: locataireForm.avance || 0
       };
       await createLocataire(dataToSave);
-      setSuccess('Profil créé avec succès');
+      toast.success('Profil créé avec succès');
       setShowModal(false);
       setLocataireForm({
         typeProfil: 'Locataire', nom: '', prenoms: '', telephonePrincipal: '', telephoneSecondaire: '',
@@ -245,7 +244,7 @@ const Locataires: React.FC = () => {
       });
       fetchData();
     } catch (err: any) {
-      setError(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -253,10 +252,10 @@ const Locataires: React.FC = () => {
     if (!window.confirm('Voulez-vous vraiment supprimer ce profil ?')) return;
     try {
       await deleteLocataire(id);
-      setSuccess('Profil supprimé');
+      toast.success('Profil supprimé');
       fetchData();
     } catch (err: any) {
-      setError(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -346,22 +345,6 @@ const Locataires: React.FC = () => {
           </Button>
         </div>
       </motion.div>
-
-      {/* Alerts */}
-      {error && (
-        <div className="alert alert-error">
-          <AlertCircle size={18} />
-          <span>{error}</span>
-          <button onClick={() => setError(null)} className="btn btn-ghost btn-xs btn-circle"><X size={14} /></button>
-        </div>
-      )}
-      {success && (
-        <div className="alert alert-success">
-          <CheckCircle2 size={18} />
-          <span>{success}</span>
-          <button onClick={() => setSuccess(null)} className="btn btn-ghost btn-xs btn-circle"><X size={14} /></button>
-        </div>
-      )}
 
       {/* Tabs & Filters Bar */}
       <motion.div variants={itemVariants} className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200">
