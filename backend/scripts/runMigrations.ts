@@ -489,6 +489,29 @@ const MIGRATIONS: Migration[] = [
             CREATE INDEX IF NOT EXISTS idx_momo_tx_operator ON mobile_money_transactions(operator);
             CREATE INDEX IF NOT EXISTS idx_momo_tx_status ON mobile_money_transactions(status);
         `
+    },
+    {
+        name: '030_create_document_templates',
+        sql: `
+            CREATE TABLE IF NOT EXISTS document_templates (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                type VARCHAR(50) NOT NULL,
+                content TEXT NOT NULL,
+                is_default BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            -- Insérer les modèles par défaut si la table est vide
+            INSERT INTO document_templates (name, type, content, is_default)
+            SELECT 'Contrat de Location Standard', 'lease', 'CONTRAT DE BAIL\n\nEntre les soussignés :\n\nLE BAILLEUR : {{Nom du Propriétaire}}\nReprésenté par l''agence Hope Gestion\n\nET\n\nLE PRENEUR : {{Nom du Locataire}}\n\nIL A ÉTÉ CONVENU CE QUI SUIT :\n\nLe Bailleur donne en location le bien situé à : {{Adresse du Bien}}.\n\nLoyer mensuel : {{Montant du Loyer}} FCFA.\nDate début : {{Date de Début}}.\n', TRUE
+            WHERE NOT EXISTS (SELECT 1 FROM document_templates WHERE type = 'lease');
+            
+            INSERT INTO document_templates (name, type, content, is_default)
+            SELECT 'Quittance de Loyer Simple', 'receipt', 'QUITTANCE DE LOYER\n\nPériode : {{Période}}\n\nReçu de M/Mme {{Nom du Locataire}}\nLa somme de {{Montant Payé}} FCFA\nPour le loyer du bien situé à : {{Adresse du Bien}}.\n\nFait le {{Date du Jour}}.', TRUE
+            WHERE NOT EXISTS (SELECT 1 FROM document_templates WHERE type = 'receipt');
+        `
     }
 ];
 
