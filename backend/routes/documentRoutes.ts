@@ -219,18 +219,18 @@ router.post('/generate', permissions.canWrite('documents'), async (req: Authenti
             if (dbRes.rows.length === 0) return res.status(404).json({ message: 'Bail introuvable' });
             const row = dbRes.rows[0];
             
-            // Map to variables
+            // Map to variables (French labels matching templateRoutes)
             data = {
-                '{{TenantName}}': `${row.t_prenom} ${row.t_nom}`,
-                '{{TenantPhone}}': row.t_tel,
-                '{{OwnerName}}': row.o_name || `${row.o_fname} ${row.o_name}`,
-                '{{OwnerPhone}}': row.o_phone,
-                '{{PropertyAddress}}': row.b_adresse,
-                '{{PropertyType}}': row.b_type,
-                '{{RentAmount}}': row.loyer_actuel,
-                '{{StartDate}}': new Date(row.date_debut).toLocaleDateString('fr-FR'),
-                '{{EndDate}}': row.date_fin ? new Date(row.date_fin).toLocaleDateString('fr-FR') : 'Indéterminée',
-                '{{RefLot}}': row.ref_lot
+                '{{Nom du Locataire}}': `${row.t_prenom} ${row.t_nom}`,
+                '{{Téléphone Locataire}}': row.t_tel,
+                '{{Nom du Propriétaire}}': row.o_name || `${row.o_fname} ${row.o_name}`,
+                '{{Téléphone Propriétaire}}': row.o_phone,
+                '{{Adresse du Bien}}': row.b_adresse,
+                '{{Type de Bien}}': row.b_type,
+                '{{Montant du Loyer}}': row.loyer_actuel,
+                '{{Date de Début}}': new Date(row.date_debut).toLocaleDateString('fr-FR'),
+                '{{Date de Fin}}': row.date_fin ? new Date(row.date_fin).toLocaleDateString('fr-FR') : 'Indéterminée',
+                '{{Référence Lot}}': row.ref_lot
             };
         } else {
             return res.status(400).json({ message: 'Type de document non supporté pour la génération automatique' });
@@ -406,7 +406,7 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
             doc.image(logoPath, 35, 15, { height: 70 });
         } else {
             doc.roundedRect(25, 10, 200, 80, 10).fill('#FFFFFF');
-            doc.fillColor('#1E3A8A').fontSize(22).font('Helvetica-Bold').text('HOPE GIMMO', 45, 35);
+            doc.fillColor('#1E3A8A').fontSize(22).font('Helvetica-Bold').text('HOPE GESTION', 45, 35);
         }
 
         // Right side: contract info on blue
@@ -432,7 +432,7 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
         
         doc.font('Helvetica-Bold').fontSize(11).text('LE BAILLEUR (Propriétaire / Représentant) :');
         doc.font('Helvetica').fontSize(11).text(ownerName || 'Non renseigné');
-        doc.text(`Représenté par : Cabinet HOPE GIMMO`);
+        doc.text(`Représenté par : Cabinet HOPE GESTION`);
         doc.text(`Téléphone : ${data.o_tel || 'Non communiqué'}`);
         doc.moveDown(1);
         
@@ -485,7 +485,7 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
         
         // Header mini for Page 2
         doc.rect(0, 0, pageWidth, 40).fill('#1E3A8A'); 
-        doc.fillColor('#FFFFFF').fontSize(12).font('Helvetica-Bold').text('HOPE GIMMO', 50, 15);
+        doc.fillColor('#FFFFFF').fontSize(12).font('Helvetica-Bold').text('HOPE GESTION', 50, 15);
         doc.fontSize(9).font('Helvetica').text(`Vérification des signatures - Réf: ${data.reference_bail || 'N/A'}`, pageWidth - 300, 16, { align: 'right', width: 250 });
         
         doc.fillColor('#1F2937');

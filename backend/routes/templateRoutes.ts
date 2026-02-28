@@ -74,35 +74,55 @@ router.delete('/:id', permissions.canWrite('documents'), async (req: Authenticat
     }
 });
 
-// GET /api/templates/variables/:type - Get available variables
+// GET /api/templates/variables/:type - Get available variables with French labels
 router.get('/variables/:type', async (req: AuthenticatedRequest, res: Response) => {
     const { type } = req.params;
-    let variables: string[] = [];
+    let variables: { variable: string; label: string }[] = [];
 
     switch (type) {
         case 'lease':
             variables = [
-                '{{TenantName}}', '{{TenantPhone}}',
-                '{{OwnerName}}', '{{OwnerPhone}}',
-                '{{PropertyAddress}}', '{{PropertyType}}', '{{Floor}}',
-                '{{RentAmount}}', '{{StartDate}}', '{{EndDate}}',
-                '{{RefLot}}'
+                { variable: '{{Nom du Locataire}}', label: 'Nom complet du locataire' },
+                { variable: '{{Téléphone Locataire}}', label: 'Numéro de téléphone du locataire' },
+                { variable: '{{Email Locataire}}', label: 'Adresse email du locataire' },
+                { variable: '{{Nom du Propriétaire}}', label: 'Nom complet du propriétaire / bailleur' },
+                { variable: '{{Téléphone Propriétaire}}', label: 'Numéro de téléphone du propriétaire' },
+                { variable: '{{Adresse du Bien}}', label: 'Adresse complète du bien immobilier' },
+                { variable: '{{Type de Bien}}', label: 'Type de bien (Appartement, Maison, etc.)' },
+                { variable: '{{Étage}}', label: 'Étage du lot' },
+                { variable: '{{Référence Lot}}', label: 'Référence du lot (ex: A01)' },
+                { variable: '{{Montant du Loyer}}', label: 'Montant du loyer mensuel en FCFA' },
+                { variable: '{{Date de Début}}', label: 'Date de début du bail' },
+                { variable: '{{Date de Fin}}', label: 'Date de fin du bail' },
             ];
             break;
         case 'receipt':
             variables = [
-                '{{TenantName}}',
-                '{{Period}}',
-                '{{Amount}}',
-                '{{PropertyAddress}}',
-                '{{Date}}'
+                { variable: '{{Nom du Locataire}}', label: 'Nom complet du locataire' },
+                { variable: '{{Période}}', label: 'Période concernée (ex: Janvier 2026)' },
+                { variable: '{{Montant Payé}}', label: 'Montant du paiement en FCFA' },
+                { variable: '{{Adresse du Bien}}', label: 'Adresse complète du bien' },
+                { variable: '{{Date du Jour}}', label: 'Date du jour (auto)' },
+            ];
+            break;
+        case 'notice':
+            variables = [
+                { variable: '{{Nom du Locataire}}', label: 'Nom complet du locataire' },
+                { variable: '{{Adresse du Bien}}', label: 'Adresse complète du bien' },
+                { variable: '{{Montant Dû}}', label: 'Montant impayé total' },
+                { variable: '{{Nombre de Mois}}', label: 'Nombre de mois d\'impayés' },
+                { variable: '{{Date du Jour}}', label: 'Date du jour (auto)' },
             ];
             break;
         default:
-            variables = ['{{Date}}', '{{Me}}'];
+            variables = [
+                { variable: '{{Date du Jour}}', label: 'Date du jour (auto)' },
+                { variable: '{{Mon Nom}}', label: 'Votre nom (gestionnaire connecté)' },
+            ];
     }
 
     res.json(variables);
 });
 
 export default router;
+
