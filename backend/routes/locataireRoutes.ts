@@ -196,9 +196,28 @@ router.get('/:id', protect, async (req: any, res) => {
 router.post('/', protect, async (req: any, res) => {
     try {
         const userId = req.user.id;
-        const ownerId = await getManagedOwnerId(userId);
+        const userRole = req.user.role || req.userRole;
+        const userType = req.user.user_type;
+        
+        let ownerId = await getManagedOwnerId(userId, userRole, userType);
+        let finalOwnerId = ownerId;
 
-        if (!ownerId) return res.status(403).json({ message: "Vous devez gérer une organisation pour créer un locataire." });
+        if (finalOwnerId === null) {
+            // Un admin global ne devrait pas se voir interdire la création (fallback 1 = par défaut)
+            if (userRole === 'admin') {
+                const firstOwner = await pool.query(`SELECT id FROM owners LIMIT 1`);
+                if (firstOwner.rows.length > 0) finalOwnerId = firstOwner.rows[0].id;
+                else return res.status(403).json({ message: "Le système n'a aucun propriétaire/agence enregistré. Impossible de rattacher le locataire." });
+            } else {
+                return res.status(403).json({ message: "Vous devez gérer une organisation (être lié à un propriétaire ou agence) pour créer un locataire." });
+            }
+        }
+
+        if (finalOwnerId === -1 && userRole === 'admin') {
+            const firstOwner = await pool.query(`SELECT id FROM owners LIMIT 1`);
+            if (firstOwner.rows.length > 0) finalOwnerId = firstOwner.rows[0].id;
+            else return res.status(403).json({ message: "Le système n'a aucun propriétaire/agence enregistré. Impossible de rattacher le locataire." });
+        }
 
         const {
             nom, prenoms, email, telephone_principal, telephone_secondaire,
@@ -241,7 +260,7 @@ router.post('/', protect, async (req: any, res) => {
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Actif', $11, $12, $13, $14, $15, $16, $17, $18, $19) 
             RETURNING id, invitation_code`,
             [
-                ownerId, nom, prenoms, cleanEmail, telephone_principal, cleanStartPhone2,
+                finalOwnerId, nom, prenoms, cleanEmail, telephone_principal, cleanStartPhone2,
                 nationalite, type_piece, numero_piece, type || 'Locataire', mode_paiement_preferentiel,
                 cleanAddress, cleanExpDate, cleanPhotoProfil, cleanPhotoPiece,
                 caution || 0, avance || 0, paiement_echelonne || false,
@@ -281,13 +300,23 @@ router.put('/:id', protect, async (req: any, res) => {
     try {
         const userId = req.user.id;
         const tenantId = req.params.id;
-        const ownerId = await getManagedOwnerId(userId);
+        const userRole = req.user.role || req.userRole;
+        const userType = req.user.user_type;
+        
+        let ownerId = await getManagedOwnerId(userId, userRole, userType);
 
-        if (!ownerId) return res.status(403).json({ message: "Non autorisé" });
+        // Verification appartenance sauf pour le global admin
+        if (ownerId === null && userRole !== 'admin') {
+             return res.status(403).json({ message: "Non autorisé" });
+        }
 
-        // Vérif appartenance
-        const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
-        if (tenantCheck.rows.length === 0) return res.status(404).json({ message: "Locataire non trouvé" });
+        if (ownerId !== -1 && userRole !== 'admin') {
+            const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
+            if (tenantCheck.rows.length === 0) return res.status(404).json({ message: "Locataire non trouvé ou non autorisé" });
+        } else {
+             const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1', [tenantId]);
+             if (tenantCheck.rows.length === 0) return res.status(404).json({ message: "Locataire non trouvé" });
+        }
 
         const {
             nom, prenoms, email, telephone_principal, telephone_secondaire,
@@ -339,12 +368,23 @@ router.delete('/:id', protect, async (req: any, res) => {
     try {
         const userId = req.user.id;
         const tenantId = req.params.id;
-        const ownerId = await getManagedOwnerId(userId);
+        const userRole = req.user.role || req.userRole;
+        const userType = req.user.user_type;
+        
+        let ownerId = await getManagedOwnerId(userId, userRole, userType);
 
-        if (!ownerId) return res.status(403).json({ message: "Non autorisé" });
+        // Verification appartenance sauf pour le global admin
+        if (ownerId === null && userRole !== 'admin') {
+             return res.status(403).json({ message: "Non autorisé" });
+        }
 
-        const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
-        if (tenantCheck.rows.length === 0) return res.status(404).json({ message: "Locataire non trouvé" });
+        if (ownerId !== -1 && userRole !== 'admin') {
+            const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
+            if (tenantCheck.rows.length === 0) return res.status(404).json({ message: "Locataire non trouvé ou non autorisé" });
+        } else {
+             const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1', [tenantId]);
+             if (tenantCheck.rows.length === 0) return res.status(404).json({ message: "Locataire non trouvé" });
+        }
 
         await pool.query("UPDATE tenants SET statut = 'Archivé' WHERE id = $1", [tenantId]);
 
