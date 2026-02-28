@@ -512,6 +512,30 @@ const MIGRATIONS: Migration[] = [
             SELECT 'Quittance de Loyer Simple', 'receipt', 'QUITTANCE DE LOYER\n\nPériode : {{Période}}\n\nReçu de M/Mme {{Nom du Locataire}}\nLa somme de {{Montant Payé}} FCFA\nPour le loyer du bien situé à : {{Adresse du Bien}}.\n\nFait le {{Date du Jour}}.', TRUE
             WHERE NOT EXISTS (SELECT 1 FROM document_templates WHERE type = 'receipt');
         `
+    },
+    {
+        name: '031_document_permissions',
+        sql: `
+            -- Ajouter les permissions pour le module documents
+            INSERT INTO permission_matrix (role, module, can_read, can_write, can_delete, can_validate)
+            VALUES 
+            ('admin', 'documents', TRUE, TRUE, TRUE, TRUE),
+            ('gestionnaire', 'documents', TRUE, TRUE, FALSE, FALSE),
+            ('manager', 'documents', TRUE, TRUE, FALSE, TRUE),
+            ('comptable', 'documents', TRUE, FALSE, FALSE, FALSE),
+            ('agent_recouvreur', 'documents', TRUE, FALSE, FALSE, FALSE),
+            ('viewer', 'documents', TRUE, FALSE, FALSE, FALSE)
+            ON CONFLICT (role, module) DO NOTHING;
+            
+            -- Corriger les permissions de documents pour les owners si existants
+            DO $$ BEGIN
+                IF EXISTS (SELECT 1 FROM permission_matrix WHERE role = 'owner') THEN
+                    INSERT INTO permission_matrix (role, module, can_read, can_write, can_delete, can_validate)
+                    VALUES ('owner', 'documents', TRUE, FALSE, FALSE, FALSE)
+                    ON CONFLICT (role, module) DO NOTHING;
+                END IF;
+            END $$;
+        `
     }
 ];
 
