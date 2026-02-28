@@ -50,7 +50,7 @@ const Alertes: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const [parametres, setParametres] = useState<NotificationSetting[]>([]);
-  const [savingSettings, setSavingSettings] = useState(false);
+  const [savingSettingId, setSavingSettingId] = useState<string | null>(null);
 
   const ALERT_TYPE_LABELS: Record<string, { label: string, desc: string }> = {
     'PAYMENT_REMINDER': { label: 'Rappel de loyer', desc: 'Notification avant la date d\'échéance' },
@@ -138,13 +138,13 @@ const Alertes: React.FC = () => {
       setParametres(updated);
       
       try {
-          setSavingSettings(true);
+          setSavingSettingId(alertType);
           await updateNotificationSettings(updated);
           toast.success('Paramètres mis à jour');
       } catch (error) {
           toast.error('Erreur lors de la sauvegarde');
       } finally {
-          setSavingSettings(false);
+          setSavingSettingId(null);
       }
   };
 
@@ -315,12 +315,22 @@ const Alertes: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {loading ? (
-                                <tr><td colSpan={6} className="text-center py-8"><span className="loading loading-spinner loading-md"></span></td></tr>
+                                <tr><td colSpan={6} className="text-center py-12"><span className="loading loading-spinner loading-lg text-primary"></span></td></tr>
                             ) : alertes.length === 0 ? (
-                                <tr><td colSpan={6} className="text-center py-8 text-gray-400">Aucune alerte active. Tout va bien !</td></tr>
+                                <tr>
+                                    <td colSpan={6} className="text-center py-20 px-6">
+                                        <div className="flex flex-col items-center justify-center space-y-4">
+                                            <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center text-success mb-2">
+                                                <CheckCircle size={40} />
+                                            </div>
+                                            <h3 className="text-xl font-bold text-base-content/90">Aucune alerte active</h3>
+                                            <p className="text-base-content/60 max-w-sm mx-auto">Votre parc immobilier est fluide, aucun événement ne requiert votre attention immédiate pour le moment !</p>
+                                        </div>
+                                    </td>
+                                </tr>
                             ) : (
                                 alertes.map(alerte => (
-                                    <tr key={alerte.id} className="hover:bg-base-200/50 transition-colors">
+                                    <tr key={alerte.id} className="hover:bg-base-200/50 transition-colors group cursor-pointer">
                                         <td className="pl-6 font-medium text-base-content/90">{alerte.reference}</td>
                                         <td>
                                             <div className="font-bold text-base-content/90">{alerte.titre}</div>
@@ -364,12 +374,20 @@ const Alertes: React.FC = () => {
             {activeTab === 'notifications' && (
                 <div className="grid gap-4">
                      {loading ? (
-                         <div className="text-center py-8"><span className="loading loading-spinner loading-md"></span></div>
+                         <div className="text-center py-12"><span className="loading loading-spinner loading-lg text-primary"></span></div>
                      ) : notifications.length === 0 ? (
-                         <div className="text-center py-10 text-gray-400">Aucune notification.</div>
+                         <div className="flex justify-center items-center py-24">
+                             <div className="flex flex-col items-center justify-center space-y-4 text-center">
+                                 <div className="w-20 h-20 bg-base-200 rounded-full flex items-center justify-center text-base-content/40 mb-2 shadow-inner">
+                                     <Bell size={40} />
+                                 </div>
+                                 <h3 className="text-xl font-bold text-base-content/90">Aucune notification</h3>
+                                 <p className="text-base-content/60 max-w-sm mx-auto">Vous êtes à jour. Vous recevrez ici les confirmations et rappels divers du système.</p>
+                             </div>
+                         </div>
                      ) : (
                          notifications.map(notif => (
-                             <Card key={notif.id} className={`border-l-4 ${!notif.is_read ? 'border-l-primary bg-primary/5' : 'border-l-gray-200 bg-base-100'} hover:shadow-md transition-all cursor-pointer`}
+                             <Card key={notif.id} className={`border-l-4 ${!notif.is_read ? 'border-l-primary bg-primary/5' : 'border-l-base-200 bg-base-100/60 backdrop-blur-sm'} hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer`}
                                 onClick={async () => {
                                     if (!notif.is_read) await handleMarkAsRead(notif.id);
                                     if (notif.link) navigate(notif.link);
@@ -412,23 +430,23 @@ const Alertes: React.FC = () => {
             {activeTab === 'parametres' && (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {parametres.map(param => (
-                        <Card key={param.alert_type} className="hover:shadow-lg transition-all border border-base-300">
+                        <Card key={param.alert_type} className="hover:shadow-xl transition-all duration-300 border border-base-200 hover:border-primary/30">
                             <div className="flex justify-between items-start mb-4">
-                                <div className="p-2 bg-base-300 rounded-lg">
-                                    <Bell size={20} className="text-base-content/70"/>
+                                <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+                                    <Bell size={22} />
                                 </div>
-                                {savingSettings && <span className="loading loading-spinner loading-xs text-primary"></span>}
+                                {savingSettingId === param.alert_type && <span className="loading loading-spinner loading-xs text-primary"></span>}
                             </div>
-                            <h3 className="font-bold text-lg text-base-content/90 mb-2">
+                            <h3 className="font-bold text-lg text-base-content/90 mb-1">
                                 {ALERT_TYPE_LABELS[param.alert_type]?.label || param.alert_type}
                             </h3>
-                            <p className="text-sm text-base-content/60 mb-4 h-10">
+                            <p className="text-sm text-base-content/60 mb-6 h-10 leading-relaxed">
                                 {ALERT_TYPE_LABELS[param.alert_type]?.desc || 'Paramètres de notification'}
                             </p>
                             
-                            <div className="space-y-4 pt-4 border-t border-base-200">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="font-medium text-base-content/80">Email</span>
+                            <div className="space-y-4 pt-5 border-t border-base-200">
+                                <div className="flex justify-between items-center text-sm group">
+                                    <span className="font-medium text-base-content/80 group-hover:text-base-content transition-colors">Email</span>
                                     <input 
                                         type="checkbox" 
                                         className="toggle toggle-primary toggle-sm" 
@@ -436,16 +454,16 @@ const Alertes: React.FC = () => {
                                         onChange={() => handleToggleSetting(param.alert_type, 'email')}
                                     />
                                 </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="font-medium text-base-content/80">WhatsApp</span>
+                                <div className="flex justify-between items-center text-sm group">
+                                    <span className="font-medium text-base-content/80 group-hover:text-base-content transition-colors">WhatsApp</span>
                                     <input 
                                         type="checkbox" 
-                                        className="toggle toggle-success toggle-sm" 
+                                        className="toggle toggle-success toggle-sm group-hover:shadow-[0_0_8px_rgba(34,197,94,0.4)] transition-all" 
                                         checked={param.channel_whatsapp}
                                         onChange={() => handleToggleSetting(param.alert_type, 'whatsapp')}
                                     />
                                 </div>
-                                <div className="flex justify-between items-center text-sm opacity-50 cursor-not-allowed">
+                                <div className="flex justify-between items-center text-sm opacity-50 cursor-not-allowed group">
                                     <span className="font-medium text-base-content/80">SMS (Bientôt)</span>
                                     <input 
                                         type="checkbox" 
