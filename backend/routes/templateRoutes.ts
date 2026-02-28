@@ -1,6 +1,6 @@
 // backend/routes/templateRoutes.ts
 import { Router, Response } from 'express';
-import pool from '../db/database';
+import { pool } from '../index'; // Use the shared pool from index
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
 
