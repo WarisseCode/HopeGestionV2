@@ -57,7 +57,11 @@ export async function getLocataires(type?: string, search?: string): Promise<Loc
         headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    if (!response.ok) throw new Error('Erreur lors du chargement des locataires');
+    if (!response.ok) {
+        let errMsg = 'Erreur lors du chargement des locataires';
+        try { const errData = await response.json(); if (errData.message) errMsg = errData.message; } catch (e) {}
+        throw new Error(errMsg);
+    }
     const data = await response.json();
     return data.locataires || [];
 }
@@ -68,7 +72,11 @@ export async function getLocataireDetails(id: number): Promise<LocataireDetails>
         headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    if (!response.ok) throw new Error('Erreur détails locataire');
+    if (!response.ok) {
+        let errMsg = 'Erreur détails locataire';
+        try { const errData = await response.json(); if (errData.message) errMsg = errData.message; } catch (e) {}
+        throw new Error(errMsg);
+    }
     return await response.json();
 }
 
@@ -83,7 +91,11 @@ export async function createLocataire(data: Partial<Locataire>): Promise<number>
         body: JSON.stringify(data)
     });
 
-    if (!response.ok) throw new Error('Erreur création locataire');
+    if (!response.ok) {
+        let errMsg = 'Erreur création locataire';
+        try { const errData = await response.json(); if (errData.message) errMsg = errData.message; } catch (e) {}
+        throw new Error(errMsg);
+    }
     const resData = await response.json();
     return resData.id;
 }
@@ -99,7 +111,11 @@ export async function updateLocataire(id: number, data: Partial<Locataire>): Pro
         body: JSON.stringify(data)
     });
 
-    if (!response.ok) throw new Error('Erreur modification locataire');
+    if (!response.ok) {
+        let errMsg = 'Erreur modification locataire';
+        try { const errData = await response.json(); if (errData.message) errMsg = errData.message; } catch (e) {}
+        throw new Error(errMsg);
+    }
 }
 
 export async function deleteLocataire(id: number): Promise<void> {
@@ -109,7 +125,11 @@ export async function deleteLocataire(id: number): Promise<void> {
         headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    if (!response.ok) throw new Error('Erreur suppression locataire');
+    if (!response.ok) {
+        let errMsg = 'Erreur suppression locataire';
+        try { const errData = await response.json(); if (errData.message) errMsg = errData.message; } catch (e) {}
+        throw new Error(errMsg);
+    }
 }
 
 export async function approveLocataire(id: number): Promise<void> {
@@ -119,7 +139,11 @@ export async function approveLocataire(id: number): Promise<void> {
         headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    if (!response.ok) throw new Error('Erreur approbation locataire');
+    if (!response.ok) {
+        let errMsg = 'Erreur approbation locataire';
+        try { const errData = await response.json(); if (errData.message) errMsg = errData.message; } catch (e) {}
+        throw new Error(errMsg);
+    }
 }
 
 export async function rejectLocataire(id: number): Promise<void> {
@@ -129,5 +153,9 @@ export async function rejectLocataire(id: number): Promise<void> {
         headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    if (!response.ok) throw new Error('Erreur rejet locataire');
+    if (!response.ok) {
+        let errMsg = 'Erreur rejet locataire';
+        try { const errData = await response.json(); if (errData.message) errMsg = errData.message; } catch (e) {}
+        throw new Error(errMsg);
+    }
 }
