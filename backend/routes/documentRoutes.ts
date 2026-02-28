@@ -397,21 +397,24 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
         };
 
         // Header Section (Dark Blue banner)
-        doc.rect(0, 0, pageWidth, 90).fill('#1E3A8A'); 
-        // Insert logo image instead of text
-        // process.cwd() resolves to the backend root in both dev and production (dist/)
+        doc.rect(0, 0, pageWidth, 100).fill('#1E3A8A'); 
+
+        // Logo on a white pill-shaped badge for clean contrast
         const logoPath = path.join(process.cwd(), 'assets', 'logo.png');
         if (fs.existsSync(logoPath)) {
-            doc.image(logoPath, 30, 10, { height: 70 });
+            doc.roundedRect(25, 10, 200, 80, 10).fill('#FFFFFF');
+            doc.image(logoPath, 35, 15, { height: 70 });
         } else {
-            // Fallback to text if logo file not found
-            doc.fillColor('#FFFFFF').fontSize(24).font('Helvetica-Bold').text('HOPE GIMMO', 50, 25);
+            doc.roundedRect(25, 10, 200, 80, 10).fill('#FFFFFF');
+            doc.fillColor('#1E3A8A').fontSize(22).font('Helvetica-Bold').text('HOPE GIMMO', 45, 35);
         }
-        doc.fillColor('#FFFFFF').fontSize(10).font('Helvetica-Oblique').text('Votre partenaire immobilier de confiance', 50, 55);
-        
-        doc.fontSize(12).font('Helvetica-Bold').text('CONTRAT DE BAIL', pageWidth - 250, 25, { align: 'right', width: 200 });
-        doc.fontSize(10).font('Helvetica').text(`Réf: ${data.reference_bail || 'Auto-généré'}`, pageWidth - 250, 45, { align: 'right', width: 200 });
-        doc.fontSize(10).text(`Date d'édition: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth - 250, 60, { align: 'right', width: 200 });
+
+        // Right side: contract info on blue
+        doc.fillColor('#FFFFFF').fontSize(13).font('Helvetica-Bold').text('CONTRAT DE BAIL', pageWidth - 250, 20, { align: 'right', width: 200 });
+        doc.fillColor('#CBD5E1').fontSize(10).font('Helvetica').text(`Réf: ${data.reference_bail || 'Auto-généré'}`, pageWidth - 250, 42, { align: 'right', width: 200 });
+        doc.fillColor('#CBD5E1').fontSize(10).text(`Date d'édition: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth - 250, 58, { align: 'right', width: 200 });
+        // Subtle tagline
+        doc.fillColor('#93C5FD').fontSize(8).font('Helvetica-Oblique').text('Votre partenaire immobilier de confiance', pageWidth - 250, 76, { align: 'right', width: 200 });
 
         doc.fillColor('#1E3A8A');
         doc.y = 120;
