@@ -127,6 +127,15 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
     try {
         const cleanPhone = req.body.phone ? req.body.phone.replace(/[^\d+]/g, '') : null;
         const cleanMobileMoney = req.body.mobile_money_number ? req.body.mobile_money_number.replace(/[^\d+]/g, '') : null;
+        
+        // Validation des champs obligatoires (name et phone sont NOT NULL en DB)
+        const finalName = req.body.name || req.body.company_name;
+        if (!finalName || finalName.trim() === '') {
+            return res.status(400).json({ message: "Le nom ou la raison sociale est obligatoire." });
+        }
+        if (!cleanPhone || cleanPhone.trim() === '') {
+            return res.status(400).json({ message: "Le numéro de téléphone est obligatoire." });
+        }
 
         // Générer un code manager sécurisé (AG- + 6 alphanum aléatoires)
         const managerCode = `AG-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
@@ -142,7 +151,7 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
             RETURNING *`,
             [
                 req.body.type || 'individual',
-                req.body.name || req.body.company_name, // Nom ou Raison sociale
+                finalName, // Nom ou Raison sociale validé
                 req.body.first_name || req.body.prenom || '', // Support both field names
                 cleanPhone,
                 req.body.phone_secondary || req.body.secondary_phone || null, // Support both field names
