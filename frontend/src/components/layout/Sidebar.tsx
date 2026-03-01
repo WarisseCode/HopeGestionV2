@@ -315,7 +315,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
           </nav>
 
           {/* Bottom Actions (Profile + Logout) */}
-          <div className="p-4 border-t border-base-200/50 bg-gradient-to-t from-base-200/30 to-transparent shrink-0 flex flex-col gap-2">
+          <div className="p-4 border-t border-base-300 bg-base-200/50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] shrink-0 flex flex-col gap-2">
               
               {/* User Profile Area */}
               <div className={`flex items-center gap-3 p-2 rounded-xl transition-colors ${(!isOpen && !isMobile) ? 'justify-center cursor-pointer hover:bg-base-200/50' : 'hover:bg-base-100/50'} tooltip tooltip-right`} data-tip={(!isOpen && !isMobile) ? "Mon profil" : ""}>
