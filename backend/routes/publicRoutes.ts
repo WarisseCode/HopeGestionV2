@@ -29,7 +29,7 @@ router.get('/lots', async (req: Request, res: Response) => {
                 b.longitude
             FROM lots l
             JOIN buildings b ON l.building_id = b.id
-            WHERE l.statut = 'libre'
+            WHERE LOWER(l.statut) IN ('libre', 'vacant')
             ORDER BY l.id DESC
         `);
 

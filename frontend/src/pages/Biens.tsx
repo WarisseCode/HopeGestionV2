@@ -28,10 +28,13 @@ import ImmeubleForm from '../components/biens/ImmeubleForm';
 import LotForm from '../components/biens/LotForm';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getImmeubles, getLots, saveImmeuble, saveLot, deleteImmeuble, deleteLot } from '../api/bienApi';
+import { getSubscriptionStatus } from '../api/subscriptionApi';
 import type { Immeuble, Lot } from '../api/bienApi';
+import type { SubscriptionStatus } from '../api/subscriptionApi';
 import { getProprietaires, accountApi } from '../api/accountApi';
 import type { Proprietaire, Utilisateur } from '../api/accountApi';
 import AssignmentForm from '../components/biens/AssignmentForm';
+import toast from 'react-hot-toast';
 
 
 // Constants
@@ -68,6 +71,7 @@ const Biens: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
 
   // Search & Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -159,16 +163,21 @@ const Biens: React.FC = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [immeublesData, lotsData, propsData, usersData] = await Promise.all([
+      const [immeublesData, lotsData, propsData, usersData, subStatus] = await Promise.all([
         getImmeubles(),
         getLots(),
         getProprietaires(),
-        accountApi.getUsers()
+        accountApi.getUsers(),
+        getSubscriptionStatus().catch(err => {
+            console.error("Erreur chargement abonnement", err);
+            return null;
+        })
       ]);
       setImmeubles(immeublesData);
       setLots(lotsData);
       setProprietaires(propsData);
       setUsers(usersData);
+      if (subStatus) setSubscriptionStatus(subStatus);
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Erreur lors du chargement des données');
@@ -388,22 +397,41 @@ const Biens: React.FC = () => {
             onChange={setSearchQuery}
             className="w-64"
           />
-          <Button 
-            variant="primary" 
-            className="rounded-full px-6 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all font-semibold"
-            onClick={() => {
-              if (activeTab === 'immeubles') {
-                setEditingImmeuble({ nom: '', type: 'Immeuble', adresse: '', ville: '', pays: 'Bénin', description: '', owner_id: 0, photo: '' });
-                setShowImmeubleModal(true);
-              } else {
-                setEditingLot({ reference: '', type: 'Appartement', building_id: 0, etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: '' });
-                setShowLotModal(true);
-              }
-            }}
-          >
-            <Plus size={18} className="mr-2" />
-            Nouveau {activeTab === 'immeubles' ? 'Immeuble' : 'Lot'}
-          </Button>
+          {(() => {
+            const isLimitReached = Boolean(subscriptionStatus && 
+              subscriptionStatus.plan.max_properties !== -1 && 
+              (subscriptionStatus.usage?.current_properties ?? 0) >= subscriptionStatus.plan.max_properties);
+
+            return (
+              <div 
+                className="relative group"
+                title={isLimitReached ? "Limite d'abonnement atteinte. Passez au plan Pro." : ""}
+              >
+                <Button 
+                  variant="primary" 
+                  disabled={isLimitReached}
+                  className={`rounded-full px-6 shadow-lg shadow-primary/20 transition-all font-semibold \${isLimitReached ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-primary/40'}`}
+                  onClick={() => {
+                    if (isLimitReached) {
+                      toast('Limite de biens atteinte. Veuillez upgrader votre abonnement.', { icon: '👑' });
+                      // Optionally navigate to billing page here
+                      return;
+                    }
+                    if (activeTab === 'immeubles') {
+                      setEditingImmeuble({ nom: '', type: 'Immeuble', adresse: '', ville: '', pays: 'Bénin', description: '', owner_id: 0, photo: '' });
+                      setShowImmeubleModal(true);
+                    } else {
+                      setEditingLot({ reference: '', type: 'Appartement', building_id: 0, etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: '' });
+                      setShowLotModal(true);
+                    }
+                  }}
+                >
+                  <Plus size={18} className="mr-2" />
+                  Nouveau {activeTab === 'immeubles' ? 'Immeuble' : 'Lot'}
+                </Button>
+              </div>
+            );
+          })()}
         </div>
       </motion.div>
 

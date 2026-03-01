@@ -3,6 +3,7 @@ import { Router, Response } from 'express';
 import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
+import { checkPropertyLimit } from '../middleware/subscriptionLimits';
 import { filterByOwner, buildOwnerWhereClause } from '../middleware/ownerIsolation';
 import permissions from '../middleware/permissionMiddleware';
 
@@ -217,7 +218,7 @@ router.post('/immeubles', permissions.canWrite('biens'), async (req: Authenticat
 });
 
 // POST /api/biens/lots : Créer ou mettre à jour un lot
-router.post('/lots', permissions.canWrite('biens'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/lots', permissions.canWrite('biens'), checkPropertyLimit, async (req: AuthenticatedRequest, res: Response) => {
 
     const { 
         id, 

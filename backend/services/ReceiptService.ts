@@ -45,6 +45,7 @@ export interface ReceiptData {
         startDate: Date;
         monthlyRent: number;
     };
+    userPlan: string;
 }
 
 // ============================================================================
@@ -107,7 +108,15 @@ class ReceiptService {
                 lot.numero as lot_number,
                 lot.type as lot_type,
                 o.nom as owner_name,
-                'Adresse du propriétaire' as owner_address
+                'Adresse du propriétaire' as owner_address,
+                COALESCE((
+                    SELECT p.name 
+                    FROM owner_user ou
+                    JOIN subscriptions s ON s.user_id = ou.user_id AND s.status = 'active'
+                    JOIN plans p ON p.id = s.plan_id
+                    WHERE ou.owner_id = l.owner_id AND ou.is_active = TRUE
+                    ORDER BY s.end_date DESC NULLS FIRST LIMIT 1
+                ), 'free') as user_plan_name
             FROM payments p
             JOIN leases l ON p.lease_id = l.id
             JOIN tenants t ON l.tenant_id = t.id
@@ -153,7 +162,8 @@ class ReceiptService {
             lease: {
                 startDate: new Date(row.lease_start),
                 monthlyRent: parseFloat(row.monthly_rent)
-            }
+            },
+            userPlan: row.user_plan_name
         };
     }
 
@@ -179,6 +189,20 @@ class ReceiptService {
                 const mediumText = '#5A5A5A';
                 const lightText = '#8C8C8C';
                 const lightBg = '#F5F7FA';
+
+                // WATERMARK FOR FREE PLAN
+                if (data.userPlan === 'free') {
+                    doc.save();
+                    doc.rotate(-45, { origin: [pageWidth / 2, doc.page.height / 2] });
+                    doc.fontSize(60)
+                       .fillOpacity(0.05)
+                       .fillColor(navy)
+                       .text('MODE GRATUIT', 0, doc.page.height / 2 - 30, {
+                           width: pageWidth,
+                           align: 'center'
+                       });
+                    doc.restore();
+                }
 
                 // ─── HEADER ───
                 let y = 40;
@@ -326,9 +350,14 @@ class ReceiptService {
                 // ─── FOOTER BAR ───
                 const footerY = doc.page.height - 35;
                 doc.rect(0, footerY, pageWidth, 35).fill(navy);
-                doc.fontSize(7).font('Helvetica').fillColor('#FFFFFF')
+                
+                const footerText = data.userPlan === 'free' 
+                    ? 'Généré gratuitement via HopeGestion — (Passez à HopeGestion Pro pour supprimer ce message)'
+                    : 'Document généré automatiquement par la plateforme HopeGestion — www.hopegestion.com';
+                    
+                doc.fontSize(data.userPlan === 'free' ? 8 : 7).font(data.userPlan === 'free' ? 'Helvetica-Bold' : 'Helvetica').fillColor('#FFFFFF')
                     .text(
-                        'Document généré automatiquement par la plateforme HopeGestion — www.hopegestion.com',
+                        footerText,
                         0, footerY + 13, { align: 'center', width: pageWidth }
                     );
 

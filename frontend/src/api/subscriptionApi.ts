@@ -21,6 +21,10 @@ export interface SubscriptionStatus {
     end_date?: string;
     days_remaining?: number | null;
     is_premium: boolean;
+    usage?: {
+        current_properties: number;
+        current_tenants: number;
+    };
 }
 
 export interface SubscribeRequest {

@@ -1,6 +1,7 @@
 import express from 'express';
 import pool from '../db/database';
 import { protect } from '../middleware/authMiddleware';
+import { checkTenantLimit } from '../middleware/subscriptionLimits';
 import { AuditService } from '../services/AuditService';
 import permissions from '../middleware/permissionMiddleware';
 
@@ -193,7 +194,7 @@ router.get('/:id', protect, async (req: any, res) => {
 });
 
 // POST /api/locataires - Création
-router.post('/', protect, async (req: any, res) => {
+router.post('/', protect, permissions.canWrite('locataires'), checkTenantLimit, async (req: any, res) => {
     try {
         const userId = req.user.id;
         const userRole = req.user.role || req.userRole;

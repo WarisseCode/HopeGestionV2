@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getLocataires, createLocataire, deleteLocataire, approveLocataire, rejectLocataire } from '../api/locataireApi';
+import { getSubscriptionStatus } from '../api/subscriptionApi';
 import type { Locataire } from '../api/locataireApi';
+import type { SubscriptionStatus } from '../api/subscriptionApi';
 import { 
   Users, 
   UserPlus, 
@@ -101,6 +103,7 @@ const Locataires: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -145,9 +148,13 @@ const Locataires: React.FC = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [locsAll, achs] = await Promise.all([
+      const [locsAll, achs, subStatus] = await Promise.all([
         getLocataires('Locataire'),
-        getLocataires('Acheteur')
+        getLocataires('Acheteur'),
+        getSubscriptionStatus().catch(err => {
+            console.error("Erreur chargement abonnement", err);
+            return null;
+        })
       ]);
       
       // Separate Active from Pending
@@ -157,6 +164,7 @@ const Locataires: React.FC = () => {
       setLocataires(activeLocs);
       setRequests(pendingLocs);
       setAcheteurs(achs);
+      if (subStatus) setSubscriptionStatus(subStatus);
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || 'Erreur lors du chargement');
@@ -331,18 +339,38 @@ const Locataires: React.FC = () => {
             onChange={setSearchQuery}
             className="w-full md:w-72"
           />
-          <Button 
-            variant="primary" 
-            className="rounded-full px-6 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all font-semibold whitespace-nowrap"
-            onClick={() => {
-              setFormType('creation');
-              setLocataireForm({ ...locataireForm, typeProfil: activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire' });
-              setShowModal(true);
-            }}
-          >
-            <UserPlus size={18} className="mr-2" />
-            Nouveau {activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire'}
-          </Button>
+          
+          {(() => {
+            const isLimitReached = Boolean(subscriptionStatus && 
+              subscriptionStatus.plan.max_tenants !== -1 && 
+              (subscriptionStatus.usage?.current_tenants ?? 0) >= subscriptionStatus.plan.max_tenants);
+
+            return (
+              <div 
+                className="relative group"
+                title={isLimitReached ? "Limite d'abonnement atteinte. Passez au plan Pro." : ""}
+              >
+                <Button 
+                  variant="primary" 
+                  disabled={isLimitReached}
+                  className={`rounded-full px-6 shadow-lg shadow-primary/20 transition-all font-semibold whitespace-nowrap \${isLimitReached ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-primary/40'}`}
+                  onClick={() => {
+                    if (isLimitReached) {
+                      toast('Limite de locataires atteinte. Veuillez upgrader votre abonnement.', { icon: '👑' });
+                      navigate('/dashboard/abonnement');
+                      return;
+                    }
+                    setFormType('creation');
+                    setLocataireForm({ ...locataireForm, typeProfil: activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire' });
+                    setShowModal(true);
+                  }}
+                >
+                  <UserPlus size={18} className="mr-2" />
+                  Nouveau {activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire'}
+                </Button>
+              </div>
+            );
+          })()}
         </div>
       </motion.div>
 

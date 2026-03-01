@@ -1,11 +1,12 @@
 // frontend/src/components/public/PropertyCarousel.tsx
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { MapPin, Home, Maximize2, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { mockProperties } from '../../data/mockProperties';
 import type { PublicProperty } from '../../data/mockProperties';
 import Button from '../ui/Button';
+import { API_BASE } from '../../config';
+import SkeletonLoader from '../ui/SkeletonLoader';
 
 interface PropertyCardProps {
   property: PublicProperty;
@@ -107,35 +108,62 @@ const PropertyCarousel: React.FC = () => {
   const navigate = useNavigate();
   const [index, setIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [properties, setProperties] = useState<PublicProperty[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch properties from API instead of mock
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/public/lots`);
+        if (res.ok) {
+          const data = await res.json();
+          // Trier par les plus récents en premier (déjà fait par le backend normalement)
+          // On prend les 10 deniers biens pour le carousel d'accueil
+          setProperties(data.slice(0, 10));
+        }
+      } catch (err) {
+        console.error('Error fetching properties:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProperties();
+  }, []);
   
   // Create a triple set of properties to ensure smooth infinite scrolling in both directions
   // [Set 1 (Clone)] [Set 2 (Real)] [Set 3 (Clone)]
-  const items = [...mockProperties, ...mockProperties, ...mockProperties];
-  const realLength = mockProperties.length;
+  const items = properties.length > 0 ? [...properties, ...properties, ...properties] : [];
+  const realLength = properties.length;
   // Start at the middle set
-  const startIndex = realLength;
+  const startIndex = realLength > 0 ? realLength : 0;
   
   const CARD_WIDTH = 340 + 32; // card + gap
   const controls = useAnimation();
   
   // Initialize index at the start of the middle set
   useEffect(() => {
-    setIndex(startIndex);
-  }, []);
+    if (realLength > 0) {
+      setIndex(startIndex);
+      controls.set({ x: -startIndex * CARD_WIDTH });
+    }
+  }, [realLength, startIndex, CARD_WIDTH, controls]);
 
   // Handle auto-scroll
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || realLength <= 1) return;
 
     const timer = setInterval(() => {
       handleNext();
     }, 3000);
 
     return () => clearInterval(timer);
-  }, [index, isPaused]);
+  }, [index, isPaused, realLength]);
 
   // Handle Infinite Loop Logic
   useEffect(() => {
+    if (realLength <= 1) return;
+
     // If we reach the end of the 3rd set, jump back to start of 2nd set
     if (index >= realLength * 2) {
       const resetIndex = index - realLength;
@@ -155,7 +183,7 @@ const PropertyCarousel: React.FC = () => {
         transition: { duration: 0.5, ease: "easeInOut" }
       });
     }
-  }, [index, controls, realLength]);
+  }, [index, controls, realLength, CARD_WIDTH]);
 
   const handleNext = () => {
     setIndex(prev => prev + 1);
@@ -197,67 +225,84 @@ const PropertyCarousel: React.FC = () => {
 
         {/* Carousel Container */}
         <div 
-          className="relative max-w-full overflow-hidden"
+          className="relative max-w-full overflow-hidden min-h-[400px]"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          {/* Navigation Buttons */}
-          <button
-            onClick={() => {
-              handlePrev();
-              setIsPaused(true); // Pause interacting manually
-            }}
-            className="absolute left-4 top-1/2 z-20 w-12 h-12 rounded-full bg-base-100/80 backdrop-blur-sm shadow-xl border border-base-200 flex items-center justify-center transition-all duration-300 hover:bg-primary hover:text-white hover:scale-110 cursor-pointer"
-            style={{ transform: 'translateY(-50%)' }}
-            aria-label="Previous property"
-          >
-            <ChevronLeft size={24} />
-          </button>
-          
-          <button
-            onClick={() => {
-              handleNext();
-              setIsPaused(true); // Pause interacting manually
-            }}
-            className="absolute right-4 top-1/2 z-20 w-12 h-12 rounded-full bg-base-100/80 backdrop-blur-sm shadow-xl border border-base-200 flex items-center justify-center transition-all duration-300 hover:bg-primary hover:text-white hover:scale-110 cursor-pointer"
-            style={{ transform: 'translateY(-50%)' }}
-            aria-label="Next property"
-          >
-            <ChevronRight size={24} />
-          </button>
-
-          {/* Draggable/Animated List */}
-          <div className="py-10">
-             <motion.div
-                className="flex gap-8"
-                animate={controls}
-                initial={{ x: -startIndex * CARD_WIDTH }}
-                drag="x"
-                dragConstraints={{ left: -10000, right: 10000 }} // Allow free drag, we snap back
-                onDragEnd={(e, { offset, velocity }) => {
-                  const swipe = offset.x; // Drag distance
-                  if (swipe < -50) {
-                    handleNext();
-                  } else if (swipe > 50) {
-                    handlePrev();
-                  } else {
-                    // Snap back if not dragged enough
-                    controls.start({ x: -index * CARD_WIDTH });
-                  }
-                  // Temporary pause after drag
-                  setIsPaused(true);
-                  setTimeout(() => setIsPaused(false), 2000);
-                }}
-             >
-                {items.map((property, idx) => (
-                  <PropertyCard
-                    key={`${property.id}-${idx}`}
-                    property={property}
-                    onViewDetails={handleViewDetails}
-                  />
+          {loading ? (
+             <div className="flex gap-8 py-10 overflow-x-auto px-4 hide-scrollbar">
+                {[1, 2, 3].map((_, i) => (
+                  <div key={i} className="flex-shrink-0 w-[340px]">
+                    <SkeletonLoader variant="card" />
+                  </div>
                 ))}
-             </motion.div>
-          </div>
+             </div>
+          ) : properties.length === 0 ? (
+             <div className="flex flex-col items-center justify-center py-20 opacity-70">
+                <Home size={64} className="mb-4 text-base-300" />
+                <p className="text-xl">Aucun bien disponible pour le moment.</p>
+             </div>
+          ) : (
+            <>
+              {/* Navigation Buttons */}
+              <button
+                onClick={() => {
+                  handlePrev();
+                  setIsPaused(true); // Pause interacting manually
+                }}
+                className="absolute left-4 top-1/2 z-20 w-12 h-12 rounded-full bg-base-100/80 backdrop-blur-sm shadow-xl border border-base-200 flex items-center justify-center transition-all duration-300 hover:bg-primary hover:text-white hover:scale-110 cursor-pointer"
+                style={{ transform: 'translateY(-50%)' }}
+                aria-label="Previous property"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              
+              <button
+                onClick={() => {
+                  handleNext();
+                  setIsPaused(true); // Pause interacting manually
+                }}
+                className="absolute right-4 top-1/2 z-20 w-12 h-12 rounded-full bg-base-100/80 backdrop-blur-sm shadow-xl border border-base-200 flex items-center justify-center transition-all duration-300 hover:bg-primary hover:text-white hover:scale-110 cursor-pointer"
+                style={{ transform: 'translateY(-50%)' }}
+                aria-label="Next property"
+              >
+                <ChevronRight size={24} />
+              </button>
+
+              {/* Draggable/Animated List */}
+              <div className="py-10 mx-[-8px]">
+                <motion.div
+                    className="flex gap-8 px-[8px]"
+                    animate={controls}
+                    initial={{ x: -startIndex * CARD_WIDTH }}
+                    drag="x"
+                    dragConstraints={{ left: -10000, right: 10000 }} // Allow free drag, we snap back
+                    onDragEnd={(e, { offset }) => {
+                      const swipe = offset.x; // Drag distance
+                      if (swipe < -50) {
+                        handleNext();
+                      } else if (swipe > 50) {
+                        handlePrev();
+                      } else {
+                        // Snap back if not dragged enough
+                        controls.start({ x: -index * CARD_WIDTH });
+                      }
+                      // Temporary pause after drag
+                      setIsPaused(true);
+                      setTimeout(() => setIsPaused(false), 2000);
+                    }}
+                >
+                    {items.map((property, idx) => (
+                      <PropertyCard
+                        key={`${property.id}-${idx}`}
+                        property={property}
+                        onViewDetails={handleViewDetails}
+                      />
+                    ))}
+                </motion.div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* CTA Button */}
@@ -277,7 +322,7 @@ const PropertyCarousel: React.FC = () => {
             <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
           </Button>
           <p className="text-sm text-base-content/50 mt-4">
-            Plus de {mockProperties.length} biens actuellement disponibles
+            {properties.length > 0 ? `Déjà ${properties.length} biens affichés récemment` : "Découvrez nos futures annonces"}
           </p>
         </motion.div>
       </div>

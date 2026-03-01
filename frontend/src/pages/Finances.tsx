@@ -21,7 +21,10 @@ import { KPICard } from '../components/dashboard';
 import { financeApi } from '../api/financeApi';
 import type { Payment } from '../api/financeApi';
 import { getLocataires, getLocataireDetails } from '../api/locataireApi';
+import { getSubscriptionStatus } from '../api/subscriptionApi';
 import type { Locataire } from '../api/locataireApi';
+import type { SubscriptionStatus } from '../api/subscriptionApi';
+import toast from 'react-hot-toast';
 
 // Sub-modules
 import FinanceSchedules from './finance/FinanceSchedules';
@@ -35,7 +38,6 @@ import FinanceChart from '../components/finance/FinanceChart';
 const Finances: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'paiements' | 'echeances' | 'en_ligne' | 'depenses' | 'prets' | 'fiscalite'>('echeances');
   const [showForm, setShowForm] = useState(false);
-  const [activeSubModule, setActiveSubModule] = useState<string>('paiements');
 
   const [paiements, setPaiements] = useState<Payment[]>([]);
   const [stats, setStats] = useState({ 
@@ -44,7 +46,7 @@ const Finances: React.FC = () => {
       net_balance: 0, 
       pending_total: 0 
   });
-  const [loading, setLoading] = useState(true);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
 
   // Period selector state
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -64,27 +66,29 @@ const Finances: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedMonth, selectedYear]);
 
   const fetchData = async () => {
     try {
-      setLoading(true);
-      const [pData, pStats, locs] = await Promise.all([
+      const [pData, pStats, locs, subStatus] = await Promise.all([
         financeApi.getPayments(),
         financeApi.getStats(selectedMonth, selectedYear),
-        getLocataires('Locataire')
+        getLocataires('Locataire'),
+        getSubscriptionStatus().catch(err => {
+            console.error("Erreur chargement abonnement", err);
+            return null;
+        })
       ]);
       
       setPaiements(pData);
       setLocataires(locs);
+      if (subStatus) setSubscriptionStatus(subStatus);
       
-      // @ts-ignore - stats updated in backend
+      // @ts-expect-error - stats updated in backend
       setStats(pStats);
 
     } catch (error) {
       console.error("Erreur chargement finances:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -93,7 +97,7 @@ const Finances: React.FC = () => {
     const reloadStats = async () => {
       try {
         const pStats = await financeApi.getStats(selectedMonth, selectedYear);
-        // @ts-ignore
+        // @ts-expect-error
         setStats(pStats);
       } catch (error) {
         console.error('Erreur stats:', error);
@@ -161,11 +165,6 @@ const Finances: React.FC = () => {
 
 
   const [showGenerateModal, setShowGenerateModal] = useState(false);
-
-  const handleGenerateSchedules = async () => {
-      // Logic moved to onConfirm of Modal
-      setShowGenerateModal(true);
-  };
 
   const confirmGenerateSchedules = async () => {
       try {
@@ -305,12 +304,20 @@ const Finances: React.FC = () => {
                 <ArrowDownRight size={18}/> Revenus & Loyers
             </button>
             <button
-                onClick={() => setActiveTab('en_ligne')}
+                onClick={() => {
+                    if (subscriptionStatus && !subscriptionStatus.is_premium) {
+                        toast('Fonctionnalité Premium. Veuillez upgrader votre abonnement.', { icon: '👑' });
+                        return;
+                    }
+                    setActiveTab('en_ligne')
+                }}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
                 activeTab === 'en_ligne' ? 'bg-cyan-50 text-cyan-700 shadow-sm border border-cyan-100' : 'text-base-content/60 hover:bg-base-200'
-                }`}
+                } \${subscriptionStatus && !subscriptionStatus.is_premium ? 'opacity-50 grayscale' : ''}`}
+                title={subscriptionStatus && !subscriptionStatus.is_premium ? "Fonctionnalité Premium" : ""}
             >
                 📱 Paiements en ligne
+                {subscriptionStatus && !subscriptionStatus.is_premium && <span className="ml-1 text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded border border-yellow-200">PRO</span>}
             </button>
             <button
                 onClick={() => setActiveTab('depenses')}
@@ -321,20 +328,36 @@ const Finances: React.FC = () => {
                 <ArrowUpRight size={18}/> Dépenses & Factures
             </button>
              <button
-                onClick={() => setActiveTab('prets')}
+                onClick={() => {
+                    if (subscriptionStatus && !subscriptionStatus.is_premium) {
+                        toast('Fonctionnalité Premium. Veuillez upgrader votre abonnement.', { icon: '👑' });
+                        return;
+                    }
+                    setActiveTab('prets')
+                }}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
                 activeTab === 'prets' ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100' : 'text-base-content/60 hover:bg-base-200'
-                }`}
+                } \${subscriptionStatus && !subscriptionStatus.is_premium ? 'opacity-50 grayscale' : ''}`}
+                title={subscriptionStatus && !subscriptionStatus.is_premium ? "Fonctionnalité Premium" : ""}
             >
                 <Building2 size={18}/> Prêts & Financements
+                {subscriptionStatus && !subscriptionStatus.is_premium && <span className="ml-1 text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded border border-yellow-200">PRO</span>}
             </button>
              <button
-                onClick={() => setActiveTab('fiscalite')}
+                onClick={() => {
+                    if (subscriptionStatus && !subscriptionStatus.is_premium) {
+                        toast('Fonctionnalité Premium. Veuillez upgrader votre abonnement.', { icon: '👑' });
+                        return;
+                    }
+                    setActiveTab('fiscalite')
+                }}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
                 activeTab === 'fiscalite' ? 'bg-purple-50 text-purple-700 shadow-sm border border-purple-100' : 'text-base-content/60 hover:bg-base-200'
-                }`}
+                } \${subscriptionStatus && !subscriptionStatus.is_premium ? 'opacity-50 grayscale' : ''}`}
+                title={subscriptionStatus && !subscriptionStatus.is_premium ? "Fonctionnalité Premium" : ""}
             >
                 <Calculator size={18}/> Fiscalité
+                {subscriptionStatus && !subscriptionStatus.is_premium && <span className="ml-1 text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded border border-yellow-200">PRO</span>}
             </button>
         </div>
       </div>
