@@ -74,7 +74,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
     // Fetch alerts count
     const fetchAlertsCount = async () => {
         try {
-            const alerts = await getAlerts();
+            const { alerts } = await getAlerts();
             setAlertsCount(alerts.length);
         } catch (error) {
             console.error('Error fetching alerts count', error);
