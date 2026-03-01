@@ -68,3 +68,19 @@ export async function updateNotificationSettings(settings: NotificationSetting[]
     });
     if (!response.ok) throw new Error('Erreur sauvegarde paramètres');
 }
+
+export async function sendTestNotification(type: string, message: string): Promise<void> {
+    const token = getToken();
+    const response = await fetch(`${API_URL}/test`, {
+        method: 'POST',
+        headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ type, message })
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Erreur envoi notification test');
+    }
+}

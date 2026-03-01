@@ -536,6 +536,20 @@ const MIGRATIONS: Migration[] = [
                 END IF;
             END $$;
         `
+    },
+    {
+        name: '032_dismissed_alerts',
+        sql: `
+            -- Table pour persister les alertes ignorées par utilisateur
+            CREATE TABLE IF NOT EXISTS dismissed_alerts (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                alert_id VARCHAR(100) NOT NULL,
+                dismissed_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(user_id, alert_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_dismissed_alerts_user ON dismissed_alerts(user_id);
+        `
     }
 ];
 

@@ -32,9 +32,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { KPICard } from '../components/dashboard';
 import { getNotifications, markAsRead, markAllAsRead } from '../api/notificationApi';
 import type { AppNotification } from '../api/notificationApi';
-import { getAlerts } from '../api/alertApi';
+import { getAlerts, dismissAlert, resetDismissedAlerts } from '../api/alertApi';
 import type { Alert } from '../api/alertApi';
-import { getNotificationSettings, updateNotificationSettings } from '../api/notificationApi';
+import { getNotificationSettings, updateNotificationSettings, sendTestNotification } from '../api/notificationApi';
 import type { NotificationSetting } from '../api/notificationApi';
 
 const Alertes: React.FC = () => {
@@ -47,10 +47,16 @@ const Alertes: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   
   const [alertes, setAlertes] = useState<Alert[]>([]);
+  const [dismissedCount, setDismissedCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [dismissingId, setDismissingId] = useState<string | null>(null);
 
   const [parametres, setParametres] = useState<NotificationSetting[]>([]);
   const [savingSettingId, setSavingSettingId] = useState<string | null>(null);
+
+  // Test Notification form
+  const [testNotifForm, setTestNotifForm] = useState({ type: 'info', message: '' });
+  const [sendingTestNotif, setSendingTestNotif] = useState(false);
 
   const ALERT_TYPE_LABELS: Record<string, { label: string, desc: string }> = {
     'PAYMENT_REMINDER': { label: 'Rappel de loyer', desc: 'Notification avant la date d\'échéance' },
@@ -91,7 +97,8 @@ const Alertes: React.FC = () => {
       const fetchAlerts = async () => {
           try {
               const alertsData = await getAlerts();
-              setAlertes(Array.isArray(alertsData) ? alertsData : []);
+              setAlertes(alertsData.alerts);
+              setDismissedCount(alertsData.dismissedCount);
           } catch (error) {
               console.error("Erreur alertes", error);
           }
@@ -164,12 +171,57 @@ const Alertes: React.FC = () => {
 
   const handleMarkAllRead = async () => {
       try {
-          await markAllAsRead(); // API call (needs implementation in notificationApi if not exists, but we mocked logic in fetch)
-          // Re-fetch to be safe
+          await markAllAsRead();
           fetchData();
           toast.success("Toutes les notifications marquées comme lues");
       } catch (error) {
           console.error("Erreur marquage tout lu", error);
+      }
+  };
+
+  const handleDismiss = async (alertId: string) => {
+      try {
+          setDismissingId(alertId);
+          await dismissAlert(alertId);
+          setAlertes(prev => prev.filter(a => a.id !== alertId));
+          setDismissedCount(prev => prev + 1);
+          toast.success('Alerte ignorée');
+      } catch (err: any) {
+          toast.error(err.message || 'Erreur lors de l\'ignorance');
+      } finally {
+          setDismissingId(null);
+      }
+  };
+
+  const handleResetDismissed = async () => {
+      try {
+          await resetDismissedAlerts();
+          toast.success('Alertes ignorées réinitialisées');
+          fetchData();
+      } catch (err: any) {
+          toast.error(err.message || 'Erreur');
+      }
+  };
+
+  const handleSendTestNotif = async () => {
+      if (!testNotifForm.message.trim()) {
+          toast.error('Veuillez entrer un message');
+          return;
+      }
+      try {
+          setSendingTestNotif(true);
+          await sendTestNotification(testNotifForm.type, testNotifForm.message);
+          toast.success('Notification de test envoyée !');
+          setShowForm(false);
+          setTestNotifForm({ type: 'info', message: '' });
+          // Reload notifications
+          const notifsData = await getNotifications();
+          setNotifications(notifsData.notifications || []);
+          setUnreadCount(notifsData.unreadCount || 0);
+      } catch (err: any) {
+          toast.error(err.message || 'Erreur');
+      } finally {
+          setSendingTestNotif(false);
       }
   };
 
@@ -266,18 +318,54 @@ const Alertes: React.FC = () => {
             <Card className="border-none shadow-xl bg-base-100/80 backdrop-blur-sm">
                 <div className="flex justify-between items-center mb-6 pb-6 border-b border-base-200">
                     <h2 className="text-xl font-bold text-base-content/90">
-                      Configuration
+                        {formType === 'notification' ? 'Test Notification' : 'Simulation d\'Alerte'}
                     </h2>
                     <Button variant="ghost" onClick={() => setShowForm(false)} className="btn-circle btn-sm">
                         <XCircle size={24} className="text-gray-400" />
                     </Button>
                 </div>
-                {/* Simplified form for demo */}
-                <div className="p-8 text-center text-base-content/60">
-                    Fonctionnalité de simulation/création manuelle à venir.
-                </div>
+
+                {formType === 'notification' && (
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-sm font-semibold text-base-content/70 mb-2 block">Type</label>
+                            <select
+                                value={testNotifForm.type}
+                                onChange={e => setTestNotifForm({...testNotifForm, type: e.target.value})}
+                                className="select select-bordered w-full"
+                            >
+                                <option value="info">ℹ️ Info</option>
+                                <option value="success">✅ Succès</option>
+                                <option value="warning">⚠️ Avertissement</option>
+                                <option value="error">❌ Erreur</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-sm font-semibold text-base-content/70 mb-2 block">Message</label>
+                            <textarea
+                                value={testNotifForm.message}
+                                onChange={e => setTestNotifForm({...testNotifForm, message: e.target.value})}
+                                placeholder="Ex: Loyer du lot B203 reçu le 01/03/2026"
+                                className="textarea textarea-bordered w-full h-28 resize-none"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {formType !== 'notification' && (
+                    <div className="p-8 text-center text-base-content/60">
+                        Fonctionnalité de simulation manuelle à venir.
+                    </div>
+                )}
+
                 <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-base-200">
                     <Button variant="ghost" onClick={() => setShowForm(false)}>Fermer</Button>
+                    {formType === 'notification' && (
+                        <Button variant="primary" onClick={handleSendTestNotif} disabled={sendingTestNotif}>
+                            {sendingTestNotif ? <span className="loading loading-spinner loading-xs mr-2"></span> : null}
+                            Envoyer la notification
+                        </Button>
+                    )}
                 </div>
             </Card>
           </motion.div>
@@ -294,13 +382,20 @@ const Alertes: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <KPICard icon={AlertTriangle} label="Action Requise" value={alertes.length.toString()} color="orange" />
                     <KPICard icon={TrendingUp} label="Priorité Haute" value={alertes.filter(a => a.priorite === 'Urgente' || a.priorite === 'Haute').length.toString()} color="pink" />
-                    <KPICard icon={CheckCircle} label="Résolues (Auto)" value="-" color="green" />
+                    <KPICard icon={CheckCircle} label="Ignorées" value={dismissedCount.toString()} color="green" />
                 </div>
             )}
             
             {/* ALERTES LIST */}
             {activeTab === 'alertes' && (
                 <Card className="border-none shadow-xl bg-base-100 p-0 overflow-hidden">
+                    {dismissedCount > 0 && (
+                        <div className="px-6 pt-4 flex justify-end">
+                            <button onClick={handleResetDismissed} className="text-xs text-base-content/50 hover:text-primary underline transition-colors">
+                                Réafficher les alertes ignorées ({dismissedCount})
+                            </button>
+                        </div>
+                    )}
                      <div className="overflow-x-auto">
                     <table className="table w-full">
                         <thead className="bg-base-200/50">
@@ -350,16 +445,28 @@ const Alertes: React.FC = () => {
                                             {new Date(alerte.dateCreation).toLocaleDateString()}
                                         </td>
                                         <td className="pr-6 text-right">
-                                            {alerte.link && (
-                                                <Button 
-                                                    variant="secondary" 
-                                                    size="sm" 
-                                                    className="btn-xs gap-1"
-                                                    onClick={() => navigate(alerte.link!)}
+                                            <div className="flex items-center gap-2 justify-end">
+                                                {alerte.link && (
+                                                    <Button 
+                                                        variant="secondary" 
+                                                        size="sm" 
+                                                        className="btn-xs gap-1"
+                                                        onClick={() => navigate(alerte.link!)}
+                                                    >
+                                                        Traiter <ArrowRight size={12}/>
+                                                    </Button>
+                                                )}
+                                                <button
+                                                    className="btn btn-xs btn-ghost text-base-content/40 hover:text-error hover:bg-error/10 transition-all"
+                                                    onClick={() => handleDismiss(alerte.id)}
+                                                    disabled={dismissingId === alerte.id}
+                                                    title="Ignorer cette alerte"
                                                 >
-                                                    Traiter <ArrowRight size={12}/>
-                                                </Button>
-                                            )}
+                                                    {dismissingId === alerte.id 
+                                                        ? <span className="loading loading-spinner loading-xs"></span>
+                                                        : <XCircle size={14} />}
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
