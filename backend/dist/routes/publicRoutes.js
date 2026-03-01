@@ -8,10 +8,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const database_1 = __importDefault(require("../db/database"));
 const router = (0, express_1.Router)();
-// GET /api/public/lots - Get all available lots for public display
+// GET /api/public/lots - Get all available lots AND buildings for public display
 router.get('/lots', async (req, res) => {
     try {
-        const result = await database_1.default.query(`
+        // 1. Récupérer les lots libres
+        const lotsResult = await database_1.default.query(`
             SELECT 
                 l.id,
                 l.ref_lot,
@@ -31,41 +32,86 @@ router.get('/lots', async (req, res) => {
                 b.longitude
             FROM lots l
             JOIN buildings b ON l.building_id = b.id
-            WHERE l.statut = 'libre'
+            WHERE LOWER(l.statut) IN ('libre', 'vacant')
             ORDER BY l.id DESC
         `);
-        // Transform data to match frontend expectations
-        const lots = result.rows.map(lot => {
-            // Parse photos array from PostgreSQL format
-            let imageUrl = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80';
-            if (lot.photos && lot.photos.length > 0) {
-                imageUrl = lot.photos[0];
+        // 2. Récupérer les immeubles (s'ils n'ont pas de lots ou simplement tous les immeubles actifs)
+        // On considère qu'un bâtiment entier peut être loué ou affiché.
+        const buildingsResult = await database_1.default.query(`
+            SELECT 
+                b.id,
+                b.nom as titre,
+                b.type,
+                b.description,
+                0 as surface, /* on pourrait l'ajouter plus tard */
+                0 as loyer_mensuel,
+                b.total_lots as nb_pieces,
+                'entier' as etage,
+                b.statut,
+                b.photos,
+                b.nom as immeuble_nom,
+                b.adresse as immeuble_adresse,
+                b.ville,
+                b.quartier,
+                b.latitude,
+                b.longitude
+            FROM buildings b
+            WHERE b.statut = 'actif'
+            ORDER BY b.id DESC
+        `);
+        // Transform lots data to match frontend expectations
+        const formatItem = (item, isBuilding = false) => {
+            let photos = [];
+            if (item.photos && item.photos.length > 0) {
+                photos = Array.isArray(item.photos) ? item.photos : [item.photos];
             }
+            const imageUrl = photos[0] || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80';
+            const typeLabel = item.type || (isBuilding ? 'Immeuble' : 'Appartement');
+            const location = item.quartier ? `à ${item.quartier}` : (item.ville ? `à ${item.ville}` : '');
+            let titre = isBuilding
+                ? (item.titre || `${typeLabel} ${location}`)
+                : (item.description && item.description.length > 10 ? `${typeLabel} ${location}` : `${typeLabel} ${item.surface ? `${item.surface}m²` : ''} ${location}`);
+            const amenitiesByType = {
+                'Villa': ['Parking', 'Jardin', 'Gardien', 'Eau courante', 'Groupe électrogène'],
+                'Appartement': ['Eau courante', 'Électricité', 'Sécurité bâtiment'],
+                'Studio': ['Eau courante', 'Électricité'],
+                'Bureau': ['Climatisation', 'Parking', 'Électricité', 'Internet'],
+                'Entrepôt': ['Électricité', 'Gardien'],
+                'Commerce': ['Eau courante', 'Électricité', 'Accès facile'],
+                'Immeuble': ['Parking', 'Sécurité bâtiment', 'Eau courante', 'Électricité'],
+            };
+            const amenities = amenitiesByType[item.type] || ['Eau courante', 'Électricité'];
             return {
-                id: lot.id,
-                ref_lot: lot.ref_lot,
-                type: lot.type || 'Appartement',
-                titre: `${lot.type || 'Bien'} - ${lot.ref_lot}`,
-                description: lot.description || `${lot.type} de ${lot.surface}m² avec ${lot.nb_pieces} pièces`,
-                surface: lot.surface || 0,
-                loyer: lot.loyer_mensuel || 0,
-                pieces: lot.nb_pieces || 0,
+                id: isBuilding ? `b-${item.id}` : item.id, // Prevent duplicate IDs between lots and buildings in React lists
+                originalId: item.id,
+                isBuilding,
+                ref_lot: item.ref_lot || `B-${item.id}`,
+                type: typeLabel,
+                titre: titre.trim(),
+                description: item.description || `${typeLabel} ${isBuilding ? "entier" : `de ${item.surface || 0}m²`} situé ${location}`,
+                surface: item.surface || 0,
+                loyer: item.loyer_mensuel || 0,
+                pieces: item.nb_pieces || 0,
                 chambres: 0,
                 sallesBain: 0,
-                etage: lot.etage,
-                ville: lot.ville || 'Abidjan',
-                quartier: lot.quartier || '',
-                adresse: lot.immeuble_adresse || '',
-                immeuble: lot.immeuble_nom,
-                latitude: parseFloat(lot.latitude) || 5.345,
-                longitude: parseFloat(lot.longitude) || -4.024,
+                etage: item.etage,
+                ville: item.ville || 'Abidjan',
+                quartier: item.quartier || '',
+                adresse: item.immeuble_adresse || '',
+                immeuble: item.immeuble_nom,
+                latitude: parseFloat(item.latitude) || 5.345,
+                longitude: parseFloat(item.longitude) || -4.024,
                 image: imageUrl,
-                photos: lot.photos || [],
+                photos,
                 disponible: true,
-                amenities: []
+                amenities
             };
-        });
-        res.json(lots);
+        };
+        const formattedLots = lotsResult.rows.map(l => formatItem(l, false));
+        const formattedBuildings = buildingsResult.rows.map(b => formatItem(b, true));
+        // Combiner les deux listes
+        const allItems = [...formattedBuildings, ...formattedLots];
+        res.json(allItems);
     }
     catch (error) {
         console.error('Error fetching public lots:', error);

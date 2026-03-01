@@ -70,13 +70,35 @@ router.get('/categories', async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
-// POST /api/expenses - Create expense
-router.post('/', permissionMiddleware_1.default.canWrite('finances'), async (req, res) => {
+const uploadMiddleware_1 = require("../middleware/uploadMiddleware");
+// POST /api/expenses - Create expense (with optional proof upload)
+router.post('/', permissionMiddleware_1.default.canWrite('finances'), uploadMiddleware_1.upload.single('proof'), async (req, res) => {
     try {
-        const { building_id, lot_id, owner_id, category, description, amount, date_expense, supplier_name, proof_url } = req.body;
+        const { building_id, lot_id, owner_id, category, description, amount, date_expense, supplier_name } = req.body;
         // Validation simple
         if (!amount || !date_expense || !category) {
             return res.status(400).json({ message: 'Champs obligatoires manquants' });
+        }
+        // Determine owner_id
+        let finalOwnerId = owner_id;
+        if (building_id) {
+            // Auto-fetch owner from building to ensure consistency
+            const buildingResult = await database_1.default.query('SELECT owner_id FROM buildings WHERE id = $1', [building_id]);
+            if (buildingResult.rows.length > 0) {
+                finalOwnerId = buildingResult.rows[0].owner_id;
+            }
+        }
+        // If still no owner_id, this is an issue for strict isolation
+        if (!finalOwnerId) {
+            console.warn('⚠️ Creating expense without owner_id - will be invisible to strict isolation filters');
+            // Optionally return 400 here if we want to enforce it strictly
+            // return res.status(400).json({ message: 'Propriétaire ou Immeuble requis' });
+        }
+        // Handle uploaded proof file
+        let proofUrl = req.body.proof_url || null;
+        if (req.file) {
+            // Build relative URL path for static serving
+            proofUrl = `/uploads/expenses/${req.file.filename}`;
         }
         const result = await database_1.default.query(`
             INSERT INTO expenses (
@@ -87,13 +109,13 @@ router.post('/', permissionMiddleware_1.default.canWrite('finances'), async (req
         `, [
             building_id || null,
             lot_id || null,
-            owner_id || null,
+            finalOwnerId || null,
             category,
             description || '',
             amount,
             date_expense,
             supplier_name || '',
-            proof_url || null
+            proofUrl
         ]);
         res.status(201).json(result.rows[0]);
     }

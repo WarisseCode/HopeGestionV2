@@ -68,4 +68,79 @@ router.get('/transactions', async (req, res) => {
         res.status(500).json({ message: "Erreur serveur" });
     }
 });
+// --- ROUTES CONFIGURATION COMPTES ---
+// GET /api/mobile-money/configs
+router.get('/configs', async (req, res) => {
+    try {
+        if (!req.userId)
+            return res.status(401).json({ message: "Non authentifié" });
+        const configs = await mobileMoneyService_1.mobileMoneyService.getConfigs(req.userId);
+        res.json(configs);
+    }
+    catch (error) {
+        console.error('Erreur get configs:', error);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
+// POST /api/mobile-money/configs
+router.post('/configs', async (req, res) => {
+    try {
+        if (!req.userId)
+            return res.status(401).json({ message: "Non authentifié" });
+        const config = await mobileMoneyService_1.mobileMoneyService.addConfig({ ...req.body, userId: req.userId });
+        res.json(config);
+    }
+    catch (error) {
+        console.error('Erreur add config:', error);
+        res.status(500).json({ message: error.message || "Erreur serveur" });
+    }
+});
+// PUT /api/mobile-money/configs/:id
+router.put('/configs/:id', async (req, res) => {
+    try {
+        if (!req.userId)
+            return res.status(401).json({ message: "Non authentifié" });
+        const id = req.params.id;
+        if (!id)
+            return res.status(400).json({ message: "ID manquant" });
+        const config = await mobileMoneyService_1.mobileMoneyService.updateConfig(parseInt(id), req.userId, req.body);
+        res.json(config);
+    }
+    catch (error) {
+        console.error('Erreur update config:', error);
+        res.status(500).json({ message: error.message || "Erreur serveur" });
+    }
+});
+// DELETE /api/mobile-money/configs/:id
+router.delete('/configs/:id', async (req, res) => {
+    try {
+        if (!req.userId)
+            return res.status(401).json({ message: "Non authentifié" });
+        const id = req.params.id;
+        if (!id)
+            return res.status(400).json({ message: "ID manquant" });
+        await mobileMoneyService_1.mobileMoneyService.deleteConfig(parseInt(id), req.userId);
+        res.json({ success: true });
+    }
+    catch (error) {
+        console.error('Erreur delete config:', error);
+        res.status(500).json({ message: error.message || "Erreur serveur" });
+    }
+});
+// PATCH /api/mobile-money/configs/:id/toggle
+router.patch('/configs/:id/toggle', async (req, res) => {
+    try {
+        if (!req.userId)
+            return res.status(401).json({ message: "Non authentifié" });
+        const id = req.params.id;
+        if (!id)
+            return res.status(400).json({ message: "ID manquant" });
+        const config = await mobileMoneyService_1.mobileMoneyService.toggleConfigStatus(parseInt(id), req.userId);
+        res.json(config);
+    }
+    catch (error) {
+        console.error('Erreur toggle config:', error);
+        res.status(500).json({ message: error.message || "Erreur serveur" });
+    }
+});
 exports.default = router;

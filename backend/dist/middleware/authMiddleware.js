@@ -7,8 +7,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.protect = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const config_1 = require("../config/config");
+const database_1 = __importDefault(require("../db/database"));
 // 2. Fonction principale du middleware
-const protect = (req, res, next) => {
+const protect = async (req, res, next) => {
     // 1. Récupérer le jeton de l'en-tête "Authorization"
     const authHeader = req.headers.authorization;
     // Vérification de la présence et du format "Bearer [TOKEN]"
@@ -29,6 +30,18 @@ const protect = (req, res, next) => {
         if (typeof decoded === 'object' && decoded !== null && 'id' in decoded && 'role' in decoded) {
             const payload = decoded;
             console.log(`[AUTH] User authenticated. ID: ${payload.id}, Role: ${payload.role}, IsGuest: ${payload.isGuest || false}`);
+            // Récupérer l'email depuis la DB si pas dans le token
+            let userEmail = payload.email || null;
+            if (!userEmail) {
+                try {
+                    const userRow = await database_1.default.query('SELECT email FROM users WHERE id = $1', [payload.id]);
+                    if (userRow.rows.length > 0)
+                        userEmail = userRow.rows[0].email;
+                }
+                catch (dbErr) {
+                    console.warn('[AUTH] Could not fetch user email from DB:', dbErr);
+                }
+            }
             // 3. Ajouter l'ID et le Rôle de l'utilisateur à l'objet requête (req)
             // Les routes futures pourront accéder à ces infos via req.userId et req.userRole.
             req.userId = payload.id;
@@ -37,6 +50,7 @@ const protect = (req, res, next) => {
             req.user = {
                 id: payload.id,
                 role: payload.role,
+                email: userEmail,
                 userType: payload.userType || 'gestionnaire',
                 // Guest-specific fields
                 isGuest: payload.isGuest || false,

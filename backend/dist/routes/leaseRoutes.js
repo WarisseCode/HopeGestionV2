@@ -45,6 +45,7 @@ const ownerIsolation_1 = require("../middleware/ownerIsolation");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const notificationService_1 = require("../services/notificationService");
+const leaseService_1 = require("../services/leaseService");
 dotenv.config();
 const router = (0, express_1.Router)();
 const database_1 = __importDefault(require("../db/database"));
@@ -53,54 +54,8 @@ router.get('/', permissionMiddleware_1.default.canRead('locataires'), ownerIsola
     try {
         const { statut } = req.query;
         const ownerIds = req.ownerIds;
-        const ownerWhereClause = (0, ownerIsolation_1.buildOwnerWhereClause)(ownerIds);
-        let query = `
-            SELECT 
-                l.id,
-                l.reference_bail,
-                l.date_debut,
-                l.date_fin,
-                l.loyer_actuel as loyer_mensuel,
-                l.caution,
-                l.avance,
-                l.charges_mensuelles,
-                l.type_charges,
-                l.statut,
-                l.devise,
-                l.type_paiement,
-                l.jour_echeance,
-                l.duree_contrat,
-                l.contrat_genere,
-                l.type_contrat,
-                l.prix_vente,
-                l.conditions_particulieres,
-                l.created_at,
-                t.nom as locataire_nom,
-                t.prenoms as locataire_prenoms,
-                t.telephone_principal as locataire_telephone,
-                t.photo_profil_url as locataire_photo,
-                lot.ref_lot,
-                lot.type as lot_type,
-                b.nom as immeuble_nom,
-                o.name as proprietaire_nom,
-                o.id as owner_id
-            FROM leases l
-            LEFT JOIN tenants t ON l.tenant_id = t.id
-            LEFT JOIN lots lot ON l.lot_id = lot.id
-            LEFT JOIN buildings b ON lot.building_id = b.id
-            LEFT JOIN owners o ON l.owner_id = o.id
-            WHERE ${ownerWhereClause.replace(/owner_id/g, 'l.owner_id')}
-        `;
-        const params = [];
-        let paramIndex = 1;
-        if (statut) {
-            query += ` AND l.statut = $${paramIndex}`;
-            params.push(statut);
-            paramIndex++;
-        }
-        query += ` ORDER BY l.created_at DESC`;
-        const result = await database_1.default.query(query, params);
-        res.json({ locations: result.rows });
+        const leases = await leaseService_1.LeaseService.findAll(ownerIds, { statut: statut });
+        res.json({ locations: leases });
     }
     catch (error) {
         console.error('Error fetching leases:', error);

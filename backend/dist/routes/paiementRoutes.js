@@ -99,14 +99,14 @@ router.get('/stats', permissionMiddleware_1.default.canRead('finance'), async (r
         // Admin voit tout (pas de filtre)
         // Revenus du mois en cours
         const revenusMois = await index_1.pool.query(`
-            SELECT COALESCE(SUM(p.montant), 0) as total
+            SELECT COALESCE(SUM(p.montant), 0) as total 
             FROM payments p
             WHERE date_trunc('month', p.date_paiement) = date_trunc('month', CURRENT_DATE)
             ${ownerFilter}
         `, params);
         // Revenus année
         const revenusAnnee = await index_1.pool.query(`
-            SELECT COALESCE(SUM(p.montant), 0) as total
+            SELECT COALESCE(SUM(p.montant), 0) as total 
             FROM payments p
             WHERE date_trunc('year', p.date_paiement) = date_trunc('year', CURRENT_DATE)
             ${ownerFilter}
@@ -146,7 +146,7 @@ router.get('/history', permissionMiddleware_1.default.canRead('finance'), async 
             SELECT 
                 TO_CHAR(p.date_paiement, 'Mon') as mois,
                 EXTRACT(MONTH FROM p.date_paiement) as mois_num,
-                COALESCE(SUM(p.montant), 0) as total
+                COALESCE(SUM(p.montant), 0) as total 
             FROM payments p
             WHERE p.date_paiement >= CURRENT_DATE - INTERVAL '6 months'
             ${ownerFilter}

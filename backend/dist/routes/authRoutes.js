@@ -5,12 +5,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const authMiddleware_1 = require("../middleware/authMiddleware");
 // Outils de sécurité
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const crypto_1 = __importDefault(require("crypto"));
 const AuditService_1 = require("../services/AuditService");
 const EmailService_1 = __importDefault(require("../services/EmailService"));
+const passwordUtils_1 = require("../utils/passwordUtils");
+// Re-trigger compilation for new EmailService method
 const router = (0, express_1.Router)();
 // Pour que les routes aient accès à la DB (Méthode simple pour le MVP)
 const database_1 = __importDefault(require("../db/database"));
@@ -18,7 +21,7 @@ const config_1 = require("../config/config");
 const SALT_ROUNDS = 10; // Niveau de complexité pour bcrypt
 // 1. Endpoint d'INSCRIPTION
 router.post('/register', async (req, res) => {
-    const { email, password, prenoms, nom, telephone, userType, nomAgence } = req.body;
+    const { email, password, prenoms, nom, telephone, userType, nomAgence, invitationCode } = req.body;
     try {
         // Validation des champs requis
         if (!email || !password || !nom || !prenoms || !telephone) {
@@ -36,26 +39,10 @@ router.post('/register', async (req, res) => {
             });
         }
         // 🔒 SECURITY: Enhanced password validation
-        if (password.length < 8) {
+        const passwordValidation = (0, passwordUtils_1.validatePassword)(password);
+        if (!passwordValidation.isValid) {
             return res.status(400).json({
-                message: 'Le mot de passe doit contenir au moins 8 caractères.'
-            });
-        }
-        // Check password complexity
-        const hasUpperCase = /[A-Z]/.test(password);
-        const hasLowerCase = /[a-z]/.test(password);
-        const hasNumber = /\d/.test(password);
-        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-        if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-            return res.status(400).json({
-                message: 'Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre.'
-            });
-        }
-        // Check for common weak passwords
-        const weakPasswords = ['password123', '12345678', 'azerty123', 'qwerty123', 'admin123'];
-        if (weakPasswords.includes(password.toLowerCase())) {
-            return res.status(400).json({
-                message: 'Ce mot de passe est trop commun. Choisissez un mot de passe plus sécurisé.'
+                message: passwordValidation.message
             });
         }
         // Nettoyage et validation du téléphone
@@ -96,6 +83,57 @@ router.post('/register', async (req, res) => {
             ipAddress: req.ip || 'unknown',
             userAgent: req.headers['user-agent'] || 'unknown'
         });
+        // Handle Invitation Code (Link to existing tenant OR Manager Org)
+        if (invitationCode) {
+            try {
+                // 1. Try to find INDIVIDUAL tenant invitation
+                const tenantRes = await database_1.default.query(`SELECT id FROM tenants WHERE invitation_code = $1 AND user_id IS NULL`, [invitationCode]);
+                if (tenantRes.rows.length > 0) {
+                    const tenantId = tenantRes.rows[0].id;
+                    const userId = result.rows[0].id;
+                    // Update tenant with User info (Synchronization as requested)
+                    await database_1.default.query(`UPDATE tenants SET 
+                            user_id = $1,
+                            nom = $2, 
+                            email = $3, 
+                            telephone_principal = $4,
+                            prenoms = $5
+                         WHERE id = $6`, [userId, nom, sanitizedEmail, finalPhone, prenoms, tenantId]);
+                    // Force role to 'locataire'
+                    await database_1.default.query(`UPDATE users SET user_type = 'locataire', role = 'locataire' WHERE id = $1`, [userId]);
+                    console.log(`[Auth] User ${userId} linked to Tenant ${tenantId} via INDIVIDUAL code.`);
+                }
+                else {
+                    // 2. Try to find MANAGER/AGENCY code
+                    const ownerRes = await database_1.default.query(`SELECT id FROM owners WHERE manager_code = $1`, [invitationCode]);
+                    if (ownerRes.rows.length > 0) {
+                        const ownerId = ownerRes.rows[0].id;
+                        const userId = result.rows[0].id;
+                        // Create NEW Tenant for this owner
+                        const newTenantCode = 'LOC-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                        // Note: tenants table requires nom, prenoms, telephone_principal
+                        const newTenant = await database_1.default.query(`INSERT INTO tenants (
+                                owner_id, nom, prenoms, email, telephone_principal, 
+                                statut, type, invitation_code, user_id
+                            ) VALUES ($1, $2, $3, $4, $5, 'Nouveau', 'Locataire', $6, $7)
+                            RETURNING id`, [
+                            ownerId, nom, prenoms, sanitizedEmail, finalPhone,
+                            newTenantCode, userId
+                        ]);
+                        // Force role to 'locataire'
+                        await database_1.default.query(`UPDATE users SET user_type = 'locataire', role = 'locataire' WHERE id = $1`, [userId]);
+                        console.log(`[Auth] User ${userId} created as new Tenant ${newTenant.rows[0].id} via MANAGER code ${ownerId}.`);
+                    }
+                    else {
+                        console.warn(`[Auth] Invalid invitation code: ${invitationCode} for user ${result.rows[0].id}`);
+                    }
+                }
+            }
+            catch (linkErr) {
+                console.error('[Auth] Error processing invitation code:', linkErr);
+                // Non-blocking error
+            }
+        }
         res.status(201).json({
             message: 'Utilisateur créé avec succès.',
             userId: result.rows[0].id
@@ -239,7 +277,11 @@ const verifyToken = (req, res, next) => {
 router.get('/profile', verifyToken, async (req, res) => {
     try {
         const userId = req.user.id;
-        const result = await database_1.default.query(`SELECT id, nom, user_type, role, email, telephone, photo_url, preferences, is_guest 
+        const result = await database_1.default.query(`SELECT 
+                id, nom, user_type, role, email, telephone,
+                COALESCE(photo_url, NULL) as photo_url,
+                COALESCE(preferences, '{}') as preferences,
+                COALESCE(is_guest, FALSE) as is_guest
              FROM users WHERE id = $1`, [userId]);
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Utilisateur non trouvé.' });
@@ -526,11 +568,13 @@ router.post('/invite-user', verifyToken, async (req, res) => {
         if (!telephone || !nom || !role) {
             return res.status(400).json({ message: 'Nom, Téléphone et Rôle sont requis.' });
         }
-        // 1. Créer le compte utilisateur en statut "invited" (ou "inactif" si "invited" n'est pas dans l'enum)
+        // Générer un email placeholder si non fourni (la colonne email est NOT NULL)
+        const userEmail = email || `invite_${telephone.replace(/[^0-9]/g, '')}@hopegestion.local`;
+        // 1. Créer le compte utilisateur en statut "invited"
         // On met un hash impossible pour le password temporairement.
         const tempHash = '$2b$10$INVALIDHASHForInvitedUserOnlyXXXXXXXXXXXXXXXXXXXXX';
         // Check duplicate
-        const check = await database_1.default.query('SELECT id FROM users WHERE email = $1 OR telephone = $2', [email || '', telephone]);
+        const check = await database_1.default.query('SELECT id FROM users WHERE email = $1 OR telephone = $2', [userEmail, telephone]);
         if (check.rows.length > 0) {
             return res.status(409).json({ message: 'Un utilisateur existe déjà avec cet email ou téléphone.' });
         }
@@ -539,15 +583,14 @@ router.post('/invite-user', verifyToken, async (req, res) => {
             await client.query('BEGIN');
             const insertRes = await client.query(`INSERT INTO users (email, password_hash, nom, user_type, role, telephone, statut, access_scope, created_by) 
                  VALUES ($1, $2, TRIM($3 || ' ' || $4), $5, $5, $6, 'invited', $7, $8) 
-                 RETURNING id`, [email || null, tempHash, nom, prenom || '', role, telephone, access_scope || 'assigned', issuerId]);
+                 RETURNING id`, [userEmail, tempHash, nom, prenom || '', role, telephone, access_scope || 'assigned', issuerId]);
             const userId = insertRes.rows[0].id;
             // 2. Générer Token
             const token = crypto_1.default.randomBytes(32).toString('hex');
             const expiresAt = new Date(Date.now() + 48 * 3600 * 1000); // 48h
             // 3. Stocker Invitation
-            // Using user_id column directly (added in migration 28)
             await client.query(`INSERT INTO user_invitations (token, email, role, issuer_id, permissions, expires_at, user_id)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7)`, [token, email || telephone, role, issuerId, {}, expiresAt, userId]);
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)`, [token, userEmail, role, issuerId, JSON.stringify({}), expiresAt, userId]);
             await client.query('COMMIT');
             // 4. Retourner le lien (pour envoi WhatsApp)
             // L'URL frontend: /accept-invite?token=...
@@ -568,8 +611,8 @@ router.post('/invite-user', verifyToken, async (req, res) => {
         }
     }
     catch (error) {
-        console.error('Erreur invitation:', error);
-        res.status(500).json({ message: 'Erreur serveur.' });
+        console.error('Erreur invitation:', error.message, error.stack);
+        res.status(500).json({ message: `Erreur serveur: ${error.message}` });
     }
 });
 // 7. Endpoint ACCEPT INVITE (POST)
@@ -628,6 +671,8 @@ router.post('/create-guest', verifyToken, async (req, res) => {
     try {
         if (!nom)
             return res.status(400).json({ message: 'Le nom est requis.' });
+        if (!telephone)
+            return res.status(400).json({ message: 'Le numéro de téléphone est requis.' });
         // 1. Generate unique Guest Key
         // Format: GUEST-XXXX-YYYY (Random hex)
         const randomPart = crypto_1.default.randomBytes(4).toString('hex').toUpperCase();
@@ -642,6 +687,15 @@ router.post('/create-guest', verifyToken, async (req, res) => {
         const client = await database_1.default.connect();
         try {
             await client.query('BEGIN');
+            // Check for duplicate telephone or dummy email (unlikely for email but safe)
+            const duplicateCheck = await client.query('SELECT id FROM users WHERE telephone = $1 OR email = $2', [telephone, dummyEmail]);
+            if (duplicateCheck.rows.length > 0) {
+                await client.query('ROLLBACK');
+                client.release();
+                return res.status(409).json({
+                    message: `Un utilisateur existe déjà avec ce numéro de téléphone (${telephone}). Chaque accès invité doit avoir un numéro unique.`
+                });
+            }
             // Get issuer's agency_id
             const issuerRes = await client.query('SELECT agency_id FROM users WHERE id = $1', [issuerId]);
             const agencyId = issuerRes.rows[0]?.agency_id;
@@ -775,14 +829,19 @@ router.post('/create-guest', verifyToken, async (req, res) => {
         }
         catch (err) {
             await client.query('ROLLBACK');
-            throw err;
+            console.error('ERROR in /create-guest:', err);
+            res.status(500).json({
+                message: 'Erreur serveur lors de la création de l\'accès invité.',
+                error: err.message, // Temporairement pour débugger
+                stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+            });
         }
         finally {
             client.release();
         }
     }
-    catch (error) {
-        console.error('Erreur création invité:', error);
+    catch (err) {
+        console.error('OUTER ERROR in /create-guest:', err);
         res.status(500).json({ message: 'Erreur serveur.' });
     }
 });
@@ -953,30 +1012,17 @@ router.post('/reset-password', async (req, res) => {
             return res.status(400).json({ message: 'Token invalide.' });
         }
         // 3. Validate new password policy (same as registration)
-        if (newPassword.length < 8) {
+        const passwordValidation = (0, passwordUtils_1.validatePassword)(newPassword);
+        if (!passwordValidation.isValid) {
             return res.status(400).json({
-                message: 'Le mot de passe doit contenir au moins 8 caractères.'
-            });
-        }
-        const hasUpperCase = /[A-Z]/.test(newPassword);
-        const hasLowerCase = /[a-z]/.test(newPassword);
-        const hasNumber = /\d/.test(newPassword);
-        if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-            return res.status(400).json({
-                message: 'Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre.'
-            });
-        }
-        const weakPasswords = ['password123', '12345678', 'azerty123', 'qwerty123', 'admin123'];
-        if (weakPasswords.includes(newPassword.toLowerCase())) {
-            return res.status(400).json({
-                message: 'Ce mot de passe est trop commun. Choisissez un mot de passe plus sécurisé.'
+                message: passwordValidation.message
             });
         }
         // 4. Hash the received token to compare with DB
         const tokenHash = crypto_1.default.createHash('sha256').update(token).digest('hex');
         // 5. Find valid token (not expired, not used)
-        const tokenResult = await database_1.default.query(`SELECT user_id, expires_at, used_at
-             FROM password_reset_tokens
+        const tokenResult = await database_1.default.query(`SELECT user_id, expires_at, used_at 
+             FROM password_reset_tokens 
              WHERE token_hash = $1`, [tokenHash]);
         if (tokenResult.rows.length === 0) {
             console.warn(`⚠️  Invalid reset token attempted from IP: ${req.ip}`);
@@ -1059,6 +1105,209 @@ router.get('/validate-reset-token/:token', async (req, res) => {
     catch (error) {
         console.error('❌ Error validating token:', error);
         res.status(500).json({ valid: false, message: 'Erreur de validation.' });
+    }
+});
+// 8. Endpoint de liaison manuelle (post-inscription)
+// 8. Endpoint de liaison manuelle (post-inscription)
+router.post('/link-tenant', authMiddleware_1.protect, async (req, res) => {
+    const { invitationCode } = req.body;
+    const userId = req.userId;
+    if (!invitationCode) {
+        return res.status(400).json({ message: 'Code invitation requis.' });
+    }
+    const client = await database_1.default.connect();
+    try {
+        await client.query('BEGIN');
+        // 0. CHECK IF USER ALREADY LINKED
+        // Multi-tenant support: We DO NOT unlink previous tenants anymore.
+        // We just log it for info.
+        const existingLinkRes = await client.query(`SELECT id FROM tenants WHERE user_id = $1`, [userId]);
+        if (existingLinkRes.rows.length > 0) {
+            console.log(`[Auth] User ${userId} is already linked to tenant(s) ${existingLinkRes.rows.map(r => r.id).join(', ')}. Adding new link...`);
+        }
+        // 1. Try individual invitation code first (LOC-XXXXXX)
+        const tenantRes = await client.query(`SELECT id FROM tenants WHERE invitation_code = $1 AND user_id IS NULL`, [invitationCode.toUpperCase()]);
+        if (tenantRes.rows.length > 0) {
+            const tenantId = tenantRes.rows[0].id;
+            // Get user info for synchronization
+            const userRes = await client.query(`SELECT nom, email, telephone FROM users WHERE id = $1`, [userId]);
+            // Link tenant to user
+            await client.query(`UPDATE tenants SET user_id = $1 WHERE id = $2`, [userId, tenantId]);
+            // Sync user data to tenant
+            if (userRes.rows.length > 0) {
+                const u = userRes.rows[0];
+                await client.query(`UPDATE tenants SET 
+                        nom = COALESCE($1, nom), 
+                        email = COALESCE($2, email), 
+                        telephone_principal = COALESCE($3, telephone_principal)
+                     WHERE id = $4`, [u.nom, u.email, u.telephone, tenantId]);
+            }
+            // Update user role
+            await client.query(`UPDATE users SET user_type = 'locataire', role = 'locataire' WHERE id = $1`, [userId]);
+            await client.query('COMMIT');
+            return res.json({ message: 'Dossier locataire lié avec succès.', tenantId });
+        }
+        // 2. Try manager code (AG-XXXXXX)
+        const ownerRes = await client.query(`SELECT id, email, name FROM owners WHERE manager_code = $1`, [invitationCode.toUpperCase()]);
+        if (ownerRes.rows.length > 0) {
+            const owner = ownerRes.rows[0];
+            const ownerId = owner.id;
+            // CHECK DOUBLE LINK (Prevent linking to same owner twice)
+            const doubleLinkRes = await client.query(`SELECT id FROM tenants WHERE user_id = $1 AND owner_id = $2`, [userId, ownerId]);
+            if (doubleLinkRes.rows.length > 0) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ message: 'Vous êtes déjà lié à ce gestionnaire.' });
+            }
+            // Get user info
+            const userRes = await client.query(`SELECT nom, email, telephone FROM users WHERE id = $1`, [userId]);
+            const u = userRes.rows[0] || {};
+            // Generate unique invitation code for the new tenant
+            const codeRes = await client.query(`SELECT 'LOC-' || substr(md5(random()::text || clock_timestamp()::text), 1, 6) AS code`);
+            const newCode = codeRes.rows[0].code.toUpperCase();
+            const nameParts = (u.nom || 'Locataire').split(' ');
+            const lastName = nameParts[0] || 'Locataire';
+            const firstName = nameParts.slice(1).join(' ') || lastName;
+            // Create new tenant linked to this owner and user
+            const newTenant = await client.query(`INSERT INTO tenants (nom, prenoms, email, telephone_principal, owner_id, user_id, invitation_code, statut, type)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, 'En attente', 'Locataire')
+                 RETURNING id`, [lastName, firstName, u.email || '', u.telephone || '', ownerId, userId, newCode]);
+            const tenantId = newTenant.rows[0]?.id;
+            if (!tenantId) {
+                await client.query('ROLLBACK');
+                return res.status(500).json({ message: 'Erreur lors de la création du dossier locataire.' });
+            }
+            // Update user role
+            await client.query(`UPDATE users SET user_type = 'locataire', role = 'locataire' WHERE id = $1`, [userId]);
+            // NOTIFY ALL USERS linked to this owner (propriétaires ET gestionnaires)
+            const linkedUsersRes = await client.query(`SELECT ou.user_id FROM owner_user ou
+                 WHERE ou.owner_id = $1 AND ou.is_active = TRUE`, [ownerId]);
+            if (linkedUsersRes.rows.length > 0) {
+                const notifTitle = "Nouvelle demande de liaison";
+                const notifMessage = `Le locataire ${u.nom || 'Inconnu'} souhaite rejoindre votre agence via le code gestionnaire.`;
+                for (const row of linkedUsersRes.rows) {
+                    await client.query(`INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+                         VALUES ($1, 'info', $2, $3, '/dashboard/locataires?tab=requests', false, NOW())`, [row.user_id, notifTitle, notifMessage]);
+                }
+                console.log(`[Auth] Notified ${linkedUsersRes.rows.length} user(s) for owner_id=${ownerId}`);
+            }
+            else {
+                console.warn(`[Auth] No linked users found for owner_id=${ownerId} — notification not sent`);
+            }
+            await client.query('COMMIT');
+            console.log(`[Auth] New tenant request via manager code: tenant_id=${tenantId}, owner_id=${ownerId}, user_id=${userId}`);
+            return res.json({ message: 'Demande envoyée. En attente de validation par le gestionnaire.', tenantId });
+        }
+        // 3. No match found
+        await client.query('ROLLBACK');
+        return res.status(404).json({ message: 'Code invalide ou déjà utilisé.' });
+    }
+    catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error linking tenant:', error);
+        const detail = error?.message || 'Erreur inconnue';
+        const sqlDetail = error?.column ? `Colonne: ${error.column}` : '';
+        const sqlTable = error?.table ? `Table: ${error.table}` : '';
+        const sqlConstraint = error?.constraint ? `Contrainte: ${error.constraint}` : '';
+        const fullDetail = [detail, sqlDetail, sqlTable, sqlConstraint].filter(Boolean).join(' | ');
+        res.status(500).json({
+            message: 'Erreur lors de la liaison.',
+            detail: fullDetail,
+            errorCode: error?.code || null
+        });
+    }
+    finally {
+        client.release();
+    }
+});
+// Récupérer les codes gestionnaire (pour le dashboard gestionnaire)
+// Retourne tous les owners gérés avec leurs codes respectifs
+router.post('/manager-code', authMiddleware_1.protect, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const userEmail = req.user.email;
+        console.log(`[manager-code] START user_id=${userId} email=${userEmail}`);
+        // Étape 0 : S'assurer que la colonne manager_code existe et est NULLABLE (auto-migration)
+        try {
+            await database_1.default.query(`ALTER TABLE owners ADD COLUMN IF NOT EXISTS manager_code VARCHAR(20)`);
+            await database_1.default.query(`ALTER TABLE owners ALTER COLUMN manager_code DROP NOT NULL`);
+            await database_1.default.query(`CREATE INDEX IF NOT EXISTS idx_owners_manager_code ON owners(manager_code)`);
+        }
+        catch (e) {
+            // Ignore si la colonne/index existe déjà
+        }
+        // Étape 1 : Générer des codes pour tous les owners qui n'en ont pas
+        const genResult = await database_1.default.query(`
+            UPDATE owners SET manager_code = 'AG-' || UPPER(SUBSTRING(MD5(id::text || COALESCE(name,'') || RANDOM()::text), 1, 6))
+            WHERE manager_code IS NULL OR manager_code = ''
+            RETURNING id, manager_code
+        `);
+        if (genResult.rows.length > 0) {
+            console.log(`[manager-code] Auto-generated codes for ${genResult.rows.length} owners:`, genResult.rows.map((r) => `${r.id}→${r.manager_code}`).join(', '));
+        }
+        // Étape 2 : Chercher les owners liés à cet utilisateur
+        // Stratégie A : Via owner_user
+        let result = await database_1.default.query(`SELECT o.id as owner_id, o.name as owner_name, o.manager_code
+             FROM owners o
+             JOIN owner_user ou ON o.id = ou.owner_id
+             WHERE ou.user_id = $1 AND ou.is_active = TRUE
+               AND o.manager_code IS NOT NULL AND o.manager_code != ''
+             ORDER BY o.name ASC`, [userId]);
+        console.log(`[manager-code] Stratégie A (owner_user): ${result.rows.length} résultats`);
+        // Stratégie B : Par email (case-insensitive)
+        if (result.rows.length === 0 && userEmail) {
+            result = await database_1.default.query(`SELECT id as owner_id, name as owner_name, manager_code
+                 FROM owners
+                 WHERE LOWER(email) = LOWER($1)
+                   AND manager_code IS NOT NULL AND manager_code != ''
+                 ORDER BY name ASC`, [userEmail]);
+            console.log(`[manager-code] Stratégie B (email): ${result.rows.length} résultats`);
+            // Si trouvé par email mais pas dans owner_user, créer le lien owner_user
+            if (result.rows.length > 0) {
+                const ownerId = result.rows[0].owner_id;
+                try {
+                    await database_1.default.query(`
+                        INSERT INTO owner_user (owner_id, user_id, role, is_active, start_date,
+                            can_view_finances, can_manage_tenants, can_manage_properties, can_manage_leases, can_manage_documents)
+                        VALUES ($1, $2, 'owner', TRUE, CURRENT_DATE, TRUE, TRUE, TRUE, TRUE, TRUE)
+                        ON CONFLICT (owner_id, user_id) DO NOTHING
+                    `, [ownerId, userId]);
+                    console.log(`[manager-code] Auto-created owner_user link: owner=${ownerId} user=${userId}`);
+                }
+                catch (e) {
+                    console.warn(`[manager-code] Could not auto-create owner_user link:`, e);
+                }
+            }
+        }
+        // Stratégie C : Chercher un owner avec le même téléphone
+        if (result.rows.length === 0) {
+            const userPhone = await database_1.default.query(`SELECT telephone FROM users WHERE id = $1`, [userId]);
+            if (userPhone.rows.length > 0 && userPhone.rows[0].telephone) {
+                result = await database_1.default.query(`SELECT id as owner_id, name as owner_name, manager_code
+                     FROM owners
+                     WHERE phone = $1
+                       AND manager_code IS NOT NULL AND manager_code != ''
+                     ORDER BY name ASC`, [userPhone.rows[0].telephone]);
+                console.log(`[manager-code] Stratégie C (phone): ${result.rows.length} résultats`);
+            }
+        }
+        if (result.rows.length > 0) {
+            console.log(`[manager-code] SUCCESS → code=${result.rows[0].manager_code}`);
+            res.json({
+                managerCode: result.rows[0].manager_code,
+                owners: result.rows
+            });
+        }
+        else {
+            console.warn(`[manager-code] FAIL: No owner found for user_id=${userId} (email=${userEmail})`);
+            // Debug: lister tous les owners pour traçabilité
+            const allOwners = await database_1.default.query(`SELECT id, name, email, phone, manager_code FROM owners LIMIT 10`);
+            console.log(`[manager-code] DEBUG: premiers owners =`, JSON.stringify(allOwners.rows));
+            res.json({ managerCode: null, owners: [] });
+        }
+    }
+    catch (error) {
+        console.error('[manager-code] Error:', error);
+        res.status(500).json({ message: "Erreur serveur" });
     }
 });
 exports.default = router;

@@ -223,18 +223,18 @@ router.post('/generate', permissionMiddleware_1.default.canWrite('documents'), a
             if (dbRes.rows.length === 0)
                 return res.status(404).json({ message: 'Bail introuvable' });
             const row = dbRes.rows[0];
-            // Map to variables
+            // Map to variables (French labels matching templateRoutes)
             data = {
-                '{{TenantName}}': `${row.t_prenom} ${row.t_nom}`,
-                '{{TenantPhone}}': row.t_tel,
-                '{{OwnerName}}': row.o_name || `${row.o_fname} ${row.o_name}`,
-                '{{OwnerPhone}}': row.o_phone,
-                '{{PropertyAddress}}': row.b_adresse,
-                '{{PropertyType}}': row.b_type,
-                '{{RentAmount}}': row.loyer_actuel,
-                '{{StartDate}}': new Date(row.date_debut).toLocaleDateString('fr-FR'),
-                '{{EndDate}}': row.date_fin ? new Date(row.date_fin).toLocaleDateString('fr-FR') : 'Indéterminée',
-                '{{RefLot}}': row.ref_lot
+                '{{Nom du Locataire}}': `${row.t_prenom} ${row.t_nom}`,
+                '{{Téléphone Locataire}}': row.t_tel,
+                '{{Nom du Propriétaire}}': row.o_name || `${row.o_fname} ${row.o_name}`,
+                '{{Téléphone Propriétaire}}': row.o_phone,
+                '{{Adresse du Bien}}': row.b_adresse,
+                '{{Type de Bien}}': row.b_type,
+                '{{Montant du Loyer}}': row.loyer_actuel,
+                '{{Date de Début}}': new Date(row.date_debut).toLocaleDateString('fr-FR'),
+                '{{Date de Fin}}': row.date_fin ? new Date(row.date_fin).toLocaleDateString('fr-FR') : 'Indéterminée',
+                '{{Référence Lot}}': row.ref_lot
             };
         }
         else {
@@ -289,13 +289,20 @@ router.post('/generate', permissionMiddleware_1.default.canWrite('documents'), a
 router.post('/generate/lease/:id', permissionMiddleware_1.default.canWrite('documents'), async (req, res) => {
     try {
         const leaseId = req.params.id;
+        // Check if document already exists for this lease
+        const existingDoc = await database_1.default.query("SELECT id FROM documents WHERE entity_type = 'lease' AND entity_id = $1 AND categorie = 'baux'", [leaseId]);
+        if (existingDoc.rows.length > 0) {
+            return res.status(400).json({
+                message: 'Un contrat de bail existe déjà pour cette location dans la liste des documents.'
+            });
+        }
         // Fetch lease data with correct joins
         const leaseQuery = `
             SELECT 
-                l.id, l.date_debut, l.date_fin, l.loyer_actuel, l.signature_url, l.date_signature_electronique,
-                t.nom as t_nom, t.prenoms as t_prenom, t.telephone_principal as t_tel,
+                l.id, l.reference_bail, l.date_debut, l.date_fin, l.loyer_actuel, l.signature_url, l.date_signature_electronique, l.conditions_particulieres,
+                t.nom as t_nom, t.prenoms as t_prenom, t.telephone_principal as t_tel, t.email as t_email,
                 b.adresse as b_adresse, b.type as b_type,
-                o.name as o_nom, o.first_name as o_prenom, o.phone as o_tel,
+                o.name as o_nom, o.first_name as o_prenom, o.phone as o_tel, o.company_name,
                 lo.ref_lot, lo.etage
             FROM leases l
             JOIN tenants t ON l.tenant_id = t.id
@@ -312,7 +319,7 @@ router.post('/generate/lease/:id', permissionMiddleware_1.default.canWrite('docu
         const tenantName = `${data.t_prenom} ${data.t_nom}`;
         const ownerName = data.company_name || `${data.o_prenom || ''} ${data.o_nom || ''}`.trim();
         // Generate PDF
-        const doc = new pdfkit_1.default({ margin: 50 });
+        const doc = new pdfkit_1.default({ margin: 50, bufferPages: true, size: 'A4' });
         const chunks = [];
         doc.on('data', (chunk) => chunks.push(chunk));
         doc.on('error', (err) => {
@@ -351,102 +358,141 @@ router.post('/generate/lease/:id', permissionMiddleware_1.default.canWrite('docu
                 res.status(500).json({ message: 'Erreur lors de la sauvegarde du document' });
             }
         });
-        // Write PDF content
-        doc.fontSize(18).font('Helvetica-Bold').text('CONTRAT DE BAIL À USAGE D\'HABITATION', { align: 'center' });
+        // Write PDF content - NEW DESIGN
+        const pageWidth = doc.page.width;
+        const pageHeight = doc.page.height;
+        // Helper function for section titles
+        const drawSectionTitle = (title, yPos) => {
+            // Check if we need a new page for the section
+            if (yPos > pageHeight - 150) {
+                doc.addPage();
+                yPos = 50; // New Y
+            }
+            doc.roundedRect(50, yPos, pageWidth - 100, 25, 4).fillAndStroke('#F3F4F6', '#E5E7EB');
+            // Re-set fill color for text
+            doc.fillColor('#1F2937').fontSize(11).font('Helvetica-Bold').text(title, 60, yPos + 7);
+            doc.fillColor('#4B5563'); // Default text color for body
+            return yPos + 35; // Return new Y for body
+        };
+        // Header Section (Dark Blue banner)
+        doc.rect(0, 0, pageWidth, 100).fill('#1E3A8A');
+        // Logo on a white pill-shaped badge for clean contrast
+        const logoPath = path_1.default.join(process.cwd(), 'assets', 'logo.png');
+        if (fs_1.default.existsSync(logoPath)) {
+            doc.roundedRect(25, 10, 200, 80, 10).fill('#FFFFFF');
+            doc.image(logoPath, 35, 15, { height: 70 });
+        }
+        else {
+            doc.roundedRect(25, 10, 200, 80, 10).fill('#FFFFFF');
+            doc.fillColor('#1E3A8A').fontSize(22).font('Helvetica-Bold').text('HOPE GESTION', 45, 35);
+        }
+        // Right side: contract info on blue
+        doc.fillColor('#FFFFFF').fontSize(13).font('Helvetica-Bold').text('CONTRAT DE BAIL', pageWidth - 250, 20, { align: 'right', width: 200 });
+        doc.fillColor('#CBD5E1').fontSize(10).font('Helvetica').text(`Réf: ${data.reference_bail || 'Auto-généré'}`, pageWidth - 250, 42, { align: 'right', width: 200 });
+        doc.fillColor('#CBD5E1').fontSize(10).text(`Date d'édition: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth - 250, 58, { align: 'right', width: 200 });
+        // Subtle tagline
+        doc.fillColor('#93C5FD').fontSize(8).font('Helvetica-Oblique').text('Votre partenaire immobilier de confiance', pageWidth - 250, 76, { align: 'right', width: 200 });
+        doc.fillColor('#1E3A8A');
+        doc.y = 120;
+        // Title
+        doc.fontSize(16).font('Helvetica-Bold').text('CONTRAT DE BAIL À USAGE D\'HABITATION', 50, doc.y, { align: 'center', characterSpacing: 1 });
         doc.moveDown(2);
-        doc.fontSize(14).font('Helvetica-Bold').text('Entre les soussignés :');
-        doc.moveDown(0.5);
-        doc.fontSize(12).font('Helvetica-Bold').text('LE BAILLEUR : ', { continued: true });
-        doc.font('Helvetica').text(ownerName || 'Non renseigné');
-        doc.text(`Représenté par l'agence HopeImmo`);
-        doc.text(`Téléphone : ${data.o_tel || 'Non renseigné'}`);
-        doc.moveDown(0.5);
-        doc.fontSize(12).font('Helvetica-Bold').text('ET', { align: 'center' });
-        doc.moveDown(0.5);
-        doc.font('Helvetica-Bold').text('LE PRENEUR (Locataire) : ', { continued: true, align: 'left' });
-        doc.font('Helvetica').text(tenantName);
-        doc.text(`Téléphone : ${data.t_tel}`);
+        // Content
+        doc.fillColor('#4B5563');
+        // 1. Parties au contrat
+        let currentY = drawSectionTitle('1. LES PARTIES AU CONTRAT', doc.y);
+        doc.y = currentY;
+        doc.font('Helvetica-Bold').fontSize(11).text('LE BAILLEUR (Propriétaire / Représentant) :');
+        doc.font('Helvetica').fontSize(11).text(ownerName || 'Non renseigné');
+        doc.text(`Représenté par : Cabinet HOPE GESTION`);
+        doc.text(`Téléphone : ${data.o_tel || 'Non communiqué'}`);
         doc.moveDown(1);
-        doc.fontSize(14).font('Helvetica-Bold').text('IL A ÉTÉ CONVENU CE QUI SUIT :');
-        doc.moveDown(0.5);
-        doc.fontSize(12).font('Helvetica-Bold').text('Article 1 : Objet du contrat');
-        doc.fontSize(11).font('Helvetica').text(`Le Bailleur donne en location au Preneur les locaux situés à : ${data.b_adresse}.`);
-        doc.text(`Type de bien : ${data.b_type || 'Appartement'}.`);
-        doc.moveDown(0.5);
-        doc.fontSize(12).font('Helvetica-Bold').text('Article 2 : Durée');
-        doc.fontSize(11).font('Helvetica').text(`Le présent bail est consenti pour une durée déterminée commençant le ${new Date(data.date_debut).toLocaleDateString('fr-FR')}.` +
-            (data.date_fin ? ` Et se terminant le ${new Date(data.date_fin).toLocaleDateString('fr-FR')}.` : ' Renouvelable par tacite reconduction.'));
-        doc.moveDown(0.5);
-        doc.fontSize(12).font('Helvetica-Bold').text('Article 3 : Loyer et Charges');
-        doc.fontSize(11).font('Helvetica').text(`Le loyer mensuel est fixé à la somme de ${data.loyer_actuel} FCFA.`);
-        doc.moveDown(0.5);
-        doc.fontSize(12).font('Helvetica-Bold').text('Conditions Particulières');
-        doc.fontSize(11).font('Helvetica-Oblique').text(data.conditions_particulieres || 'Aucune condition particulière.');
+        doc.font('Helvetica-Bold').fontSize(11).text('LE PRENEUR (Locataire Principal) :');
+        doc.font('Helvetica').fontSize(11).text(tenantName);
+        doc.text(`Téléphone : ${data.t_tel || 'Non communiqué'}`);
+        doc.text(`Email : ${data.t_email || 'Non communiqué'}`);
         doc.moveDown(1);
-        // Add signature if exists
+        // 2. Désignation
+        currentY = drawSectionTitle('2. DÉSIGNATION DES LIEUX LOUÉS', doc.y);
+        doc.y = currentY;
+        doc.font('Helvetica-Bold').text(`Désignation du Lot : `, { continued: true });
+        doc.font('Helvetica').text(`${data.ref_lot} (Catégorie Usage : ${data.b_type || 'Résidentiel'})`);
+        doc.font('Helvetica-Bold').text(`Adresse complète : `, { continued: true });
+        doc.font('Helvetica').text(`${data.b_adresse || 'Non assignée'}`);
+        doc.font('Helvetica-Bold').text(`Étage : `, { continued: true });
+        doc.font('Helvetica').text(`${data.etage || 'Standard'}`);
+        doc.moveDown(1);
+        // 3. Durée et Loyer
+        currentY = drawSectionTitle('3. DURÉE ET LLOYER DU BAIL', doc.y);
+        doc.y = currentY;
+        doc.font('Helvetica').text(`Le présent contrat de bail est conclu pour une durée commençant le `, { continued: true, align: 'justify' });
+        doc.font('Helvetica-Bold').text(`${new Date(data.date_debut).toLocaleDateString('fr-FR')}`, { continued: true });
+        if (data.date_fin) {
+            doc.font('Helvetica').text(` et s'achevant contractuellement le `, { continued: true });
+            doc.font('Helvetica-Bold').text(`${new Date(data.date_fin).toLocaleDateString('fr-FR')}`, { continued: true });
+            doc.font('Helvetica').text(`.`);
+        }
+        else {
+            doc.font('Helvetica').text(`, et est renouvelable par tacite reconduction.`);
+        }
+        doc.moveDown(1);
+        doc.font('Helvetica-Bold').text('Montant du Loyer mensuel prévu : ', { continued: true });
+        doc.font('Helvetica').text(`${Number(data.loyer_actuel).toLocaleString('fr-FR')} FCFA / mois`);
+        doc.moveDown(1);
+        // 4. Conditions optionnelles
+        currentY = drawSectionTitle('4. CLAUSES ET CONDITIONS PARTICULIÈRES', doc.y);
+        doc.y = currentY;
+        doc.font('Helvetica-Oblique').text(data.conditions_particulieres || 'Le bail se déroule de plein droit sous les autres conditions d\'usage et de loi relatives aux baux d\'habitation de la législation en vigueur dans le pays. Aucune condition spécifique supplémentaire n\'a d\'autre part été expressément demandée par les deux parties contractantes.');
+        doc.moveDown(2);
+        // Signatures Page logic
+        doc.addPage();
+        // Header mini for Page 2
+        doc.rect(0, 0, pageWidth, 40).fill('#1E3A8A');
+        doc.fillColor('#FFFFFF').fontSize(12).font('Helvetica-Bold').text('HOPE GESTION', 50, 15);
+        doc.fontSize(9).font('Helvetica').text(`Vérification des signatures - Réf: ${data.reference_bail || 'N/A'}`, pageWidth - 300, 16, { align: 'right', width: 250 });
+        doc.fillColor('#1F2937');
+        doc.y = 80;
+        doc.fontSize(14).font('Helvetica-Bold').text('5. SIGNATURES DES PARTIES', 50, doc.y, { align: 'center' });
+        doc.moveDown(2);
+        doc.fontSize(10).font('Helvetica').text(`Fait en deux exemplaires originaux, réputés de bonne foi et destinés à valoir ce que de droit, à ___________________, le ${new Date().toLocaleDateString('fr-FR')}.`, { align: 'justify' });
+        doc.moveDown(3);
+        const sigY = doc.y;
+        doc.fontSize(11).font('Helvetica-Bold');
+        doc.text('POUR LE BAILLEUR', 50, sigY, { width: (pageWidth - 100) / 2, align: 'left' });
+        doc.text('ET POUR LE PRENEUR (Locataire)', 50 + (pageWidth - 100) / 2, sigY, { width: (pageWidth - 100) / 2, align: 'right' });
+        doc.moveDown(0.5);
+        doc.fontSize(9).font('Helvetica-Oblique').fillColor('#6B7280');
+        doc.text('(Signature précédée de la mention "Lu et Approuvé")', 50, doc.y, { width: (pageWidth - 100) / 2, align: 'left' });
+        if (!data.signature_url) {
+            doc.text('(Signature précédée de la mention "Lu et Approuvé")', 50 + (pageWidth - 100) / 2, doc.y - 12, { width: (pageWidth - 100) / 2, align: 'right' });
+        }
         if (data.signature_url) {
             try {
-                console.log(`[DEBUG] CWD: ${process.cwd()}`);
-                // URL: /uploads/signatures/... or uploads/signatures/...
-                // If uploads is in project root (../uploads from backend), and we are in backend:
-                // Try to find the file
                 const relativePath = data.signature_url.startsWith('/') ? data.signature_url.slice(1) : data.signature_url;
-                // Try root uploads first (HopeGestionV2/uploads)
                 let signaturePath = path_1.default.join(process.cwd(), '../', relativePath);
-                if (!fs_1.default.existsSync(signaturePath)) {
-                    // Try backend uploads (HopeGestionV2/backend/uploads)
+                if (!fs_1.default.existsSync(signaturePath))
                     signaturePath = path_1.default.join(process.cwd(), relativePath);
-                }
-                console.log(`[DEBUG] Resolved signature path: ${signaturePath}`);
-                console.log(`[DEBUG] File exists? ${fs_1.default.existsSync(signaturePath)}`);
                 if (fs_1.default.existsSync(signaturePath)) {
-                    console.log('[DEBUG] Embedding signature image...');
-                    doc.moveDown(1);
-                    doc.fontSize(11).font('Helvetica-Bold').text('LE PRENEUR (Signature Électronique) :', { underline: true });
-                    doc.moveDown(0.5);
-                    doc.image(signaturePath, { width: 150 });
-                    console.log('[DEBUG] Signature image embedded.');
+                    // Preneur signature block
+                    doc.image(signaturePath, 50 + (pageWidth - 100) / 2 + 50, sigY + 30, { width: 140 });
                     if (data.date_signature_electronique) {
-                        doc.fontSize(9).font('Helvetica-Oblique')
-                            .fillColor('#666666')
-                            .text(`Document signé électroniquement le : ${new Date(data.date_signature_electronique).toLocaleString('fr-FR')}`);
-                        doc.text('Certifié par HopeGestion - Intégrité garantie.');
-                        doc.fillColor('black'); // Reset
+                        doc.fontSize(8).font('Helvetica-Bold')
+                            .fillColor('#10B981') // Success Green
+                            .text(`DOCUMENT SIGNÉ ÉLECTRONIQUEMENT\nDate : ${new Date(data.date_signature_electronique).toLocaleString('fr-FR')}\nCertifié par la plateforme HopeGestion\n(Intégrité numérique garantie)`, 50 + (pageWidth - 100) / 2, sigY + 110, { width: (pageWidth - 100) / 2, align: 'right' });
                     }
-                    doc.moveDown(1);
-                }
-                else {
-                    console.warn('[WARN] Signature file not found at path:', signaturePath);
                 }
             }
             catch (err) {
                 console.error('Error embedding signature in PDF:', err);
             }
         }
-        else {
-            console.log('[DEBUG] No signature_url found for this lease.');
+        // Footer Numbering
+        const pages = doc.bufferedPageRange();
+        for (let i = 0; i < pages.count; i++) {
+            doc.switchToPage(i);
+            doc.fillColor('#9CA3AF').fontSize(8).text(`— Page ${i + 1} sur ${pages.count} — \nPropulsé avec confiance et transparence par le système ERP HopeGestion`, 50, pageHeight - 50, { align: 'center' });
         }
-        doc.moveDown(1);
-        doc.fontSize(10).font('Helvetica').text(`Fait à Cotonou, le ${new Date().toLocaleDateString('fr-FR')}`, { align: 'right' });
-        doc.moveDown(2);
-        console.log('[DEBUG] Finalizing PDF document...');
-        const currentY = doc.y;
-        const pageWidth = doc.page.width - 100;
-        doc.fontSize(12).font('Helvetica-Bold');
-        doc.text('Le Bailleur', 50, currentY, { width: pageWidth / 2, align: 'center' });
-        doc.text('Le Preneur', 50 + pageWidth / 2, currentY, { width: pageWidth / 2, align: 'center' });
-        doc.moveDown(0.5);
-        doc.fontSize(10).font('Helvetica-Oblique');
-        doc.text('(Signature précédée de la mention', 50, doc.y, { width: pageWidth / 2, align: 'center' });
-        doc.text('"Lu et Approuvé")', 50, doc.y, { width: pageWidth / 2, align: 'center' });
-        if (!data.signature_url) {
-            doc.text('(Signature précédée de la mention', 50 + pageWidth / 2, currentY + 15, { width: pageWidth / 2, align: 'center' });
-            doc.text('"Lu et Approuvé")', 50 + pageWidth / 2, doc.y, { width: pageWidth / 2, align: 'center' });
-        }
-        else {
-            doc.fillColor('#008000').text('Document Signé Électroniquement', 50 + pageWidth / 2, currentY + 15, { width: pageWidth / 2, align: 'center' });
-            doc.fillColor('black');
-        }
+        // Finalize doc
         doc.end();
     }
     catch (error) {

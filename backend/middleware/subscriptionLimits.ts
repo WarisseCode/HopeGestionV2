@@ -78,7 +78,7 @@ export const checkPropertyLimit = async (req: AuthenticatedRequest, res: Respons
 
         if (currentCount >= sub.max_properties) {
              return res.status(403).json({ 
-                 message: \`Limite atteinte. Votre plan (\${sub.plan_name}) permet un maximum de \${sub.max_properties} biens. Passez au plan Pro pour débloquer cette limite.\` 
+                 message: `Limite atteinte. Votre plan (${sub.plan_name}) permet un maximum de ${sub.max_properties} biens. Passez au plan Pro pour débloquer cette limite.` 
              });
         }
 
@@ -123,7 +123,7 @@ export const checkTenantLimit = async (req: AuthenticatedRequest, res: Response,
 
         if (currentCount >= sub.max_tenants) {
              return res.status(403).json({ 
-                 message: \`Limite atteinte. Votre plan (\${sub.plan_name}) permet un maximum de \${sub.max_tenants} locataires. Passez au plan Pro.\` 
+                 message: `Limite atteinte. Votre plan (${sub.plan_name}) permet un maximum de ${sub.max_tenants} locataires. Passez au plan Pro.` 
              });
         }
 

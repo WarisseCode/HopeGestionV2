@@ -35,16 +35,25 @@ router.get('/status', authMiddleware_1.protect, async (req, res) => {
         if (subResult.rows.length === 0) {
             // Default to Free plan
             const freePlan = await index_1.pool.query(`SELECT * FROM plans WHERE name = 'free' LIMIT 1`);
+            let countPropertiesRes = await index_1.pool.query(`SELECT COUNT(l.id) as total_lots FROM lots l JOIN buildings b ON l.building_id = b.id JOIN owner_user ou ON b.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
+            let countTenantsRes = await index_1.pool.query(`SELECT COUNT(t.id) as total_tenants FROM tenants t JOIN owner_user ou ON t.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
             return res.json({
-                plan: freePlan.rows[0] || { name: 'free', display_name: 'Gratuit' },
+                plan: freePlan.rows[0] || { name: 'free', display_name: 'Gratuit', max_properties: 3, max_tenants: 5 },
                 status: 'free',
                 days_remaining: null,
-                is_premium: false
+                is_premium: false,
+                usage: {
+                    current_properties: parseInt(countPropertiesRes.rows[0].total_lots),
+                    current_tenants: parseInt(countTenantsRes.rows[0].total_tenants)
+                }
             });
         }
         const subscription = subResult.rows[0];
         const endDate = subscription.end_date ? new Date(subscription.end_date) : null;
         const daysRemaining = endDate ? Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+        // Récupération de l'usage actuel
+        let countPropertiesRes = await index_1.pool.query(`SELECT COUNT(l.id) as total_lots FROM lots l JOIN buildings b ON l.building_id = b.id JOIN owner_user ou ON b.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
+        let countTenantsRes = await index_1.pool.query(`SELECT COUNT(t.id) as total_tenants FROM tenants t JOIN owner_user ou ON t.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
         res.json({
             subscription_id: subscription.id,
             plan: {
@@ -59,7 +68,11 @@ router.get('/status', authMiddleware_1.protect, async (req, res) => {
             start_date: subscription.start_date,
             end_date: subscription.end_date,
             days_remaining: daysRemaining,
-            is_premium: subscription.plan_name !== 'free'
+            is_premium: subscription.plan_name !== 'free',
+            usage: {
+                current_properties: parseInt(countPropertiesRes.rows[0].total_lots),
+                current_tenants: parseInt(countTenantsRes.rows[0].total_tenants)
+            }
         });
     }
     catch (error) {

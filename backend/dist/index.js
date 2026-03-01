@@ -1,5 +1,4 @@
 "use strict";
-// backend/index.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -38,7 +37,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pool = void 0;
-// Importations de base
+// backend/index.ts
+// Force restart
 const express_1 = __importDefault(require("express"));
 const path_1 = __importDefault(require("path"));
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
@@ -66,10 +66,13 @@ const PORT = process.env.PORT || 5000;
 console.log('✅ JWT_SECRET validation passed');
 // Auto-seed Super Admin if none exists
 const seedAdmin_1 = require("./scripts/seedAdmin");
+const runMigrations_1 = require("./scripts/runMigrations");
 exports.pool.connect()
     .then(async (client) => {
     console.log('Successfully connected to PostgreSQL!');
     client.release();
+    // Exécuter les migrations automatiques (idempotentes)
+    await (0, runMigrations_1.runMigrations)();
     // Seed Super Admin on first startup
     await (0, seedAdmin_1.seedSuperAdmin)();
 })
@@ -241,6 +244,9 @@ app.use('/api/subscriptions', subscriptionRoutes_1.default); // Mix of public (p
 // Routes Webhooks FedaPay (paiements)
 const fedapayWebhookRoutes_1 = __importDefault(require("./routes/fedapayWebhookRoutes"));
 app.use('/api/webhooks/fedapay', fedapayWebhookRoutes_1.default);
+// Routes Rent Payments (Paiement en ligne des loyers)
+const rentPaymentRoutes_1 = __importDefault(require("./routes/rentPaymentRoutes"));
+app.use('/api/rent-payments', authMiddleware_1.protect, rentPaymentRoutes_1.default);
 // Route Test Protégée (pour validation rapide de 'protect')
 // Route Test Protégée (pour validation rapide de 'protect')
 app.get('/api/profil', authMiddleware_1.protect, async (req, res) => {

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // backend/routes/compteRoutes.ts
 const express_1 = require("express");
 const database_1 = __importDefault(require("../db/database"));
+const AuditService_1 = require("../services/AuditService");
 const router = (0, express_1.Router)();
 // GET /api/compte/proprietaires : Récupérer la liste des propriétaires
 router.get('/proprietaires', async (req, res) => {
@@ -16,10 +17,13 @@ router.get('/proprietaires', async (req, res) => {
     try {
         let query = `
             SELECT id, type, name as nom, first_name as prenom, phone as telephone, 
-                   phone_secondary as "telephoneSecondaire", email, address as adresse, 
+                   phone_secondary as "telephoneSecondaire", phone_secondary as "phone_secondary",
+                   email, address as adresse, address as address,
                    city as ville, country as pays, id_number as "numeroPiece", 
-                   photo, management_mode as "modeGestion",
-                   mobile_money_number as "mobileMoney",
+                   id_number as "id_number",
+                   photo, photo_url, phone_secondary,
+                   management_mode as "modeGestion",
+                   mobile_money_number as "mobileMoney", 
                    id_number as "rccmNumber"
             FROM owners
             WHERE is_active = TRUE
@@ -67,11 +71,11 @@ router.get('/utilisateurs', async (req, res) => {
             `;
         }
         else {
-            // Gestionnaire/Proprietaire see only users they created
+            // Gestionnaire/Proprietaire see themselves AND users they created/invited
             query = `
                 SELECT id, nom, '' as prenom, telephone, email, role, photo_url as photo, statut, created_at
                 FROM users
-                WHERE id = $1
+                WHERE id = $1 OR created_by = $1
                 ORDER BY nom ASC
             `;
             queryParams = [req.userId];
@@ -114,14 +118,26 @@ router.post('/proprietaires', async (req, res) => {
     try {
         const cleanPhone = req.body.phone ? req.body.phone.replace(/[^\d+]/g, '') : null;
         const cleanMobileMoney = req.body.mobile_money_number ? req.body.mobile_money_number.replace(/[^\d+]/g, '') : null;
+        // Validation des champs obligatoires (name et phone sont NOT NULL en DB)
+        const finalName = req.body.name || req.body.company_name;
+        if (!finalName || finalName.trim() === '') {
+            return res.status(400).json({ message: "Le nom ou la raison sociale est obligatoire." });
+        }
+        if (!cleanPhone || cleanPhone.trim() === '') {
+            return res.status(400).json({ message: "Le numéro de téléphone est obligatoire." });
+        }
+        // Générer un code manager sécurisé (AG- + 6 alphanum aléatoires)
+        const managerCode = `AG-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        console.log(`[compteRoutes] Creating owner with managerCode: ${managerCode}`);
         // Insérer le propriétaire (schema matches ownerRoutes.ts)
         const newOwner = await database_1.default.query(`INSERT INTO owners (
                 type, name, first_name, phone, phone_secondary, email,
-                address, city, country, id_number, photo, mobile_money_number, management_mode
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+                address, city, country, id_number, photo, mobile_money_number, management_mode,
+                manager_code
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
             RETURNING *`, [
             req.body.type || 'individual',
-            req.body.name || req.body.company_name, // Nom ou Raison sociale
+            finalName, // Nom ou Raison sociale validé
             req.body.first_name || req.body.prenom || '', // Support both field names
             cleanPhone,
             req.body.phone_secondary || req.body.secondary_phone || null, // Support both field names
@@ -132,7 +148,8 @@ router.post('/proprietaires', async (req, res) => {
             req.body.id_number || null,
             req.body.photo || req.body.photo_url || null, // Support both field names
             cleanMobileMoney || (req.body.mobile_money ? req.body.mobile_money.replace(/[^\d+]/g, '') : null), // Support both
-            req.body.management_mode || 'direct'
+            req.body.management_mode || 'direct',
+            managerCode
         ]);
         const ownerId = newOwner.rows[0].id;
         // Lier à l'utilisateur qui crée (si ce n'est pas un admin pur qui crée pour les autres)
@@ -144,13 +161,12 @@ router.post('/proprietaires', async (req, res) => {
             // On continue même si la liaison échoue (non critique pour la création)
         }
         // Log action
-        try {
-            await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'CREATE_OWNER', 'COMPTE', JSON.stringify({ name: req.body.name || req.body.company_name })]);
-        }
-        catch (logError) {
-            console.error('Erreur audit_log:', logError);
-            // On continue même si le log échoue
-        }
+        await AuditService_1.AuditService.log({
+            userId: req.userId.toString(),
+            action: 'CREATE_OWNER',
+            module: 'COMPTE',
+            details: { name: req.body.name || req.body.company_name }
+        });
         res.status(201).json(newOwner.rows[0]);
     }
     catch (error) {
@@ -177,54 +193,81 @@ router.put('/proprietaires/:id', async (req, res) => {
             }
         }
         // Support multiple field names for backward compatibility
-        const { name, type, phone, email, address, company_name, rccm_number, mobile_money, mobile_money_number, telephoneSecondaire, secondary_phone, phone_secondary, first_name, prenom, management_mode, delegation_start_date, delegation_end_date } = req.body;
+        const { name, type, phone, email, address, city, country, company_name, rccm_number, id_number, mobile_money, mobile_money_number, telephoneSecondaire, secondary_phone, phone_secondary, first_name, prenom, management_mode, photo, photo_url } = req.body;
         // Nettoyage des numéros avec support de multiples noms de champs
-        const rawPhone = phone;
+        const rawPhone = phone?.toString();
         const cleanPhone = rawPhone ? rawPhone.replace(/[\s\-\(\)\.]/g, '') : null;
-        const rawPhoneSec = phone_secondary || secondary_phone || telephoneSecondaire;
+        const rawPhoneSec = (phone_secondary || secondary_phone || telephoneSecondaire)?.toString();
         const cleanPhoneSec = rawPhoneSec ? rawPhoneSec.replace(/[\s\-\(\)\.]/g, '') : null;
-        const rawMobileMoney = mobile_money_number || mobile_money;
+        const rawMobileMoney = (mobile_money_number || mobile_money)?.toString();
         const cleanMobileMoney = rawMobileMoney ? rawMobileMoney.replace(/[\s\-\(\)\.]/g, '') : null;
-        const updatedOwner = await database_1.default.query(`UPDATE owners 
-             SET name = COALESCE($1, name),
-                 type = COALESCE($2, type),
-                 phone = COALESCE($3, phone),
-                 email = COALESCE($4, email),
-                 address = COALESCE($5, address),
-                 first_name = COALESCE($6, first_name),
-                 company_name = COALESCE($7, company_name),
-                 rccm_number = COALESCE($8, rccm_number),
-                 mobile_money_number = COALESCE($9, mobile_money_number),
-                 phone_secondary = COALESCE($10, phone_secondary),
-                 management_mode = COALESCE($11, management_mode),
-                 delegation_start_date = COALESCE($12, delegation_start_date),
-                 delegation_end_date = COALESCE($13, delegation_end_date),
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $14 RETURNING *`, [
-            name || company_name, // Support both
-            type,
-            cleanPhone,
-            email,
-            address,
-            first_name || prenom || null, // Support both field names
-            company_name,
-            rccm_number,
-            cleanMobileMoney,
-            cleanPhoneSec,
-            management_mode,
-            delegation_start_date,
-            delegation_end_date,
-            ownerId
-        ]);
+        let updatedOwner;
+        try {
+            // Note: On met à jour id_number ET rccm_number pour être cohérent avec le type de propriétaire
+            updatedOwner = await database_1.default.query(`UPDATE owners 
+                 SET name = COALESCE($1, name), 
+                     type = COALESCE($2, type), 
+                     phone = COALESCE($3, phone), 
+                     email = COALESCE($4, email), 
+                     address = COALESCE($5, address),
+                     city = COALESCE($6, city),
+                     country = COALESCE($7, country),
+                     first_name = COALESCE($8, first_name),
+                     id_number = COALESCE($9, id_number), 
+                     rccm_number = COALESCE($14, rccm_number),
+                     mobile_money_number = COALESCE($10, mobile_money_number),
+                     phone_secondary = COALESCE($11, phone_secondary),
+                     management_mode = COALESCE($12, management_mode),
+                     photo_url = COALESCE($15, photo_url),
+                     updated_at = CURRENT_TIMESTAMP
+                 WHERE id = $13 RETURNING *`, [
+                name || company_name || null,
+                type || null,
+                cleanPhone || null,
+                email || null,
+                address || null,
+                city || null,
+                country || null,
+                first_name || prenom || null,
+                id_number || null,
+                cleanMobileMoney || null,
+                cleanPhoneSec || null,
+                management_mode || null,
+                ownerId,
+                rccm_number || null,
+                photo || photo_url || null
+            ]);
+        }
+        catch (error) {
+            console.error('Erreur SQL modification propriétaire:', error);
+            if (error.code === '23505') {
+                if (error.constraint === 'owners_phone_key') {
+                    return res.status(400).json({ message: 'Ce numéro de téléphone est déjà utilisé par un autre propriétaire.' });
+                }
+                if (error.constraint === 'owners_email_key') {
+                    return res.status(400).json({ message: 'Cette adresse email est déjà utilisée par un autre propriétaire.' });
+                }
+                return res.status(400).json({ message: `Une donnée unique est déjà utilisée : ${error.detail || error.message}` });
+            }
+            throw error;
+        }
         if (updatedOwner.rows.length === 0) {
             return res.status(404).json({ message: 'Propriétaire non trouvé' });
         }
-        await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'UPDATE_OWNER', 'COMPTE', `Propriétaire ID: ${ownerId}`]);
+        await AuditService_1.AuditService.log({
+            userId: req.userId.toString(),
+            action: 'UPDATE_OWNER',
+            module: 'COMPTE',
+            details: { ownerId, message: `Propriétaire ID: ${ownerId}` }
+        });
         res.json(updatedOwner.rows[0]);
     }
     catch (error) {
         console.error('Erreur modification propriétaire:', error);
-        res.status(500).json({ message: 'Erreur serveur lors de la modification.' });
+        res.status(500).json({
+            message: 'Erreur serveur lors de la modification.',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 // POST /api/compte/utilisateurs : Créer ou mettre à jour un utilisateur
@@ -255,7 +298,12 @@ router.post('/utilisateurs', async (req, res) => {
             const hashedPassword = await bcrypt.hash(mot_de_passe || 'TempPassword123!', 10);
             result = await database_1.default.query(query, [nom, telephone, email, role, photo, statut || 'actif', hashedPassword, role || 'gestionnaire']);
         }
-        await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, id ? 'UPDATE_USER' : 'CREATE_USER', 'COMPTE', `Utilisateur: ${nom}`]);
+        await AuditService_1.AuditService.log({
+            userId: req.userId.toString(),
+            action: id ? 'UPDATE_USER' : 'CREATE_USER',
+            module: 'COMPTE',
+            details: { nom, message: `Utilisateur: ${nom}` }
+        });
         res.status(200).json(result.rows[0]);
     }
     catch (error) {
@@ -293,7 +341,12 @@ router.post('/autorisations', async (req, res) => {
             niveauAcces.suppression || false,
             modules.paiements || false // Using paiements module for audit logs access check maybe? or just adding 0/1
         ]);
-        await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'SET_PERMISSIONS', 'COMPTE', `Utilisateur ID: ${utilisateur}, Proprietaire ID: ${proprietaire}`]);
+        await AuditService_1.AuditService.log({
+            userId: req.userId.toString(),
+            action: 'SET_PERMISSIONS',
+            module: 'COMPTE',
+            details: { utilisateur, proprietaire, message: `Utilisateur ID: ${utilisateur}, Proprietaire ID: ${proprietaire}` }
+        });
         res.status(200).json(result.rows[0]);
     }
     catch (error) {
@@ -309,7 +362,12 @@ router.delete('/proprietaires/:id', async (req, res) => {
     try {
         const { id } = req.params;
         await database_1.default.query('UPDATE owners SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
-        await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'DEACTIVATE_OWNER', 'COMPTE', `Propriétaire ID: ${id}`]);
+        await AuditService_1.AuditService.log({
+            userId: req.userId.toString(),
+            action: 'DEACTIVATE_OWNER',
+            module: 'COMPTE',
+            details: { ownerId: id, message: `Propriétaire ID: ${id}` }
+        });
         res.status(200).json({ message: 'Propriétaire désactivé avec succès' });
     }
     catch (error) {
@@ -325,7 +383,12 @@ router.patch('/utilisateurs/:id/suspend', async (req, res) => {
     try {
         const { id } = req.params;
         await database_1.default.query('UPDATE users SET statut = $1 WHERE id = $2', ['Suspendu', id]);
-        await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'SUSPEND_USER', 'COMPTE', `Utilisateur ID: ${id}`]);
+        await AuditService_1.AuditService.log({
+            userId: req.userId.toString(),
+            action: 'SUSPEND_USER',
+            module: 'COMPTE',
+            details: { userId: id, message: `Utilisateur ID: ${id}` }
+        });
         res.status(200).json({ message: 'Utilisateur suspendu avec succès' });
     }
     catch (error) {
@@ -352,7 +415,12 @@ router.delete('/utilisateurs/:id', async (req, res) => {
         await client.query('DELETE FROM owner_user WHERE user_id = $1', [id]);
         // 3. Remove user
         await client.query('DELETE FROM users WHERE id = $1', [id]);
-        await client.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'DELETE_USER', 'COMPTE', `Utilisateur ID: ${id} (Supprimé définitivement)`]);
+        await AuditService_1.AuditService.log({
+            userId: req.userId.toString(),
+            action: 'DELETE_USER',
+            module: 'COMPTE',
+            details: { userId: id, message: `Utilisateur ID: ${id} (Supprimé définitivement)` }
+        });
         await client.query('COMMIT');
         res.status(200).json({ message: 'Utilisateur supprimé définitivement' });
     }
@@ -379,7 +447,12 @@ router.patch('/utilisateurs/:id/reactivate', async (req, res) => {
     try {
         const { id } = req.params;
         await database_1.default.query('UPDATE users SET statut = $1 WHERE id = $2', ['Actif', id]);
-        await database_1.default.query('INSERT INTO audit_logs (user_id, action, module, details) VALUES ($1, $2, $3, $4)', [req.userId, 'REACTIVATE_USER', 'COMPTE', `Utilisateur ID: ${id}`]);
+        await AuditService_1.AuditService.log({
+            userId: req.userId.toString(),
+            action: 'REACTIVATE_USER',
+            module: 'COMPTE',
+            details: { userId: id, message: `Utilisateur ID: ${id}` }
+        });
         res.status(200).json({ message: 'Utilisateur réactivé avec succès' });
     }
     catch (error) {

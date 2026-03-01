@@ -131,4 +131,63 @@ router.post('/', permissionMiddleware_1.default.canWrite('finances'), async (req
         client.release();
     }
 });
+// PUT /api/loans/:id/close - Close/Complete a loan
+router.put('/:id/close', permissionMiddleware_1.default.canWrite('finances'), async (req, res) => {
+    const client = await database_1.default.connect();
+    try {
+        await client.query('BEGIN');
+        const { id } = req.params;
+        // Verify loan exists and is active
+        const loanRes = await client.query('SELECT * FROM loans WHERE id = $1', [id]);
+        if (loanRes.rows.length === 0)
+            return res.status(404).json({ message: 'Prêt non trouvé' });
+        if (loanRes.rows[0].status === 'paid')
+            return res.status(400).json({ message: 'Prêt déjà clôturé' });
+        // Update loan status
+        await client.query('UPDATE loans SET status = $1 WHERE id = $2', ['paid', id]);
+        // Mark all remaining pending installments as paid
+        await client.query(`UPDATE loan_payments SET status = 'paid', payment_date = NOW() WHERE loan_id = $1 AND status = 'pending'`, [id]);
+        await client.query('COMMIT');
+        res.json({ message: 'Prêt clôturé avec succès' });
+    }
+    catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error closing loan:', error);
+        res.status(500).json({ message: 'Erreur clôture prêt' });
+    }
+    finally {
+        client.release();
+    }
+});
+// PUT /api/loans/:id/installment/:paymentId/pay - Mark an installment as paid
+router.put('/:id/installment/:paymentId/pay', permissionMiddleware_1.default.canWrite('finances'), async (req, res) => {
+    const client = await database_1.default.connect();
+    try {
+        await client.query('BEGIN');
+        const { id, paymentId } = req.params;
+        // Verify installment exists and belongs to this loan
+        const installmentRes = await client.query('SELECT * FROM loan_payments WHERE id = $1 AND loan_id = $2', [paymentId, id]);
+        if (installmentRes.rows.length === 0)
+            return res.status(404).json({ message: 'Échéance non trouvée' });
+        if (installmentRes.rows[0].status === 'paid')
+            return res.status(400).json({ message: 'Échéance déjà payée' });
+        // Mark as paid
+        await client.query(`UPDATE loan_payments SET status = 'paid', payment_date = NOW() WHERE id = $1`, [paymentId]);
+        // Check if all installments are now paid -> auto-close loan
+        const remainingRes = await client.query('SELECT COUNT(*) as remaining FROM loan_payments WHERE loan_id = $1 AND status != $2', [id, 'paid']);
+        if (parseInt(remainingRes.rows[0].remaining) === 0) {
+            await client.query('UPDATE loans SET status = $1 WHERE id = $2', ['paid', id]);
+        }
+        await client.query('COMMIT');
+        res.json({ message: 'Échéance payée', installment: { ...installmentRes.rows[0], status: 'paid' } });
+    }
+    catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error paying installment:', error);
+        res.status(500).json({ message: 'Erreur paiement échéance' });
+    }
+    finally {
+        client.release();
+    }
+});
 exports.default = router;

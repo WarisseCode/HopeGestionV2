@@ -39,6 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // backend/routes/bienRoutes.ts
 const express_1 = require("express");
 const dotenv = __importStar(require("dotenv"));
+const subscriptionLimits_1 = require("../middleware/subscriptionLimits");
 const ownerIsolation_1 = require("../middleware/ownerIsolation");
 const permissionMiddleware_1 = __importDefault(require("../middleware/permissionMiddleware"));
 dotenv.config();
@@ -70,6 +71,7 @@ router.get('/immeubles', permissionMiddleware_1.default.canRead('biens'), ownerI
                 b.video_url,
                 b.plan_masse_url,
                 b.nombre_etages,
+                b.total_lots,
                 o.name as owner_name,
                 o.first_name as owner_first_name,
                 o.type as owner_type,
@@ -169,7 +171,7 @@ router.post('/immeubles', permissionMiddleware_1.default.canWrite('biens'), asyn
     const { id, nom, type, adresse, ville, pays, description, owner_id, 
     // Nouveaux champs
     // Nouveaux champs
-    latitude, longitude, quartier, gestionnaire_id, statut, photos, video_url, plan_masse_url, nombre_etages, photo // Main photo
+    latitude, longitude, quartier, gestionnaire_id, statut, photos, video_url, plan_masse_url, nombre_etages, total_lots, photo // Main photo
      } = req.body;
     if (!owner_id) {
         return res.status(400).json({ message: 'Propriétaire (owner_id) est requis.' });
@@ -189,13 +191,13 @@ router.post('/immeubles', permissionMiddleware_1.default.canWrite('biens'), asyn
                  SET nom = $1, type = $2, adresse = $3, ville = $4, pays = $5, description = $6, owner_id = $7,
                      latitude = $8, longitude = $9, quartier = $10, gestionnaire_id = $11, statut = $12,
                      photos = $13, video_url = $14, plan_masse_url = $15, nombre_etages = $16,
-                     photo_url = $17,
+                     photo_url = $17, total_lots = $18,
                      updated_at = CURRENT_TIMESTAMP
-                 WHERE id = $18
+                 WHERE id = $19
                  RETURNING *`, [nom, type, adresse, ville, pays, description, owner_id,
                 latitude || null, longitude || null, quartier || null, gestionnaire_id || null, statut || 'actif',
                 photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, nombre_etages || 1,
-                photo || null,
+                photo || null, total_lots || 0,
                 id]);
             if (result.rows.length === 0) {
                 return res.status(404).json({ message: 'Immeuble non trouvé.' });
@@ -206,12 +208,12 @@ router.post('/immeubles', permissionMiddleware_1.default.canWrite('biens'), asyn
             // Création
             const result = await database_1.default.query(`INSERT INTO buildings (owner_id, nom, type, adresse, ville, pays, description,
                                         latitude, longitude, quartier, gestionnaire_id, statut,
-                                        photos, video_url, plan_masse_url, nombre_etages, photo_url)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+                                        photos, video_url, plan_masse_url, nombre_etages, photo_url, total_lots) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) 
                  RETURNING *`, [owner_id, nom, type, adresse, ville, pays, description,
                 latitude || null, longitude || null, quartier || null, gestionnaire_id || null, statut || 'actif',
                 photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, nombre_etages || 1,
-                photo || null]);
+                photo || null, total_lots || 0]);
             res.status(200).json(result.rows[0]);
         }
     }
@@ -221,7 +223,7 @@ router.post('/immeubles', permissionMiddleware_1.default.canWrite('biens'), asyn
     }
 });
 // POST /api/biens/lots : Créer ou mettre à jour un lot
-router.post('/lots', permissionMiddleware_1.default.canWrite('biens'), async (req, res) => {
+router.post('/lots', permissionMiddleware_1.default.canWrite('biens'), subscriptionLimits_1.checkPropertyLimit, async (req, res) => {
     const { id, immeuble, // Nom de l'immeuble - legacy, préférer building_id
     building_id, // Identifiant direct préféré
     reference, type, etage, bloc, superficie, nbPieces, loyer, charges, 

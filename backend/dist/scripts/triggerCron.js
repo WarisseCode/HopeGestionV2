@@ -1,6 +1,5 @@
 "use strict";
 // backend/scripts/triggerCron.ts
-// import fetch from 'node-fetch'; // Backend runs on Node 18+, has native fetch
 Object.defineProperty(exports, "__esModule", { value: true });
 const BASE_URL = 'http://127.0.0.1:5000';
 const EMAIL = 'auto_manager@hope.com';

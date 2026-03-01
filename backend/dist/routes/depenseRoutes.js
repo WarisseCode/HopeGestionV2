@@ -66,13 +66,13 @@ router.get('/stats', permissionMiddleware_1.default.canRead('finance'), ownerIso
         const ownerIds = req.ownerIds;
         const whereClause = (0, ownerIsolation_1.buildOwnerWhereClause)(ownerIds);
         const depensesMois = await index_1.pool.query(`
-            SELECT COALESCE(SUM(amount), 0) as total
+            SELECT COALESCE(SUM(amount), 0) as total 
             FROM expenses 
             WHERE date_trunc('month', date_expense) = date_trunc('month', CURRENT_DATE)
             AND ${whereClause.replace(/owner_id/g, 'owner_id')}
         `);
         const depensesAnnee = await index_1.pool.query(`
-            SELECT COALESCE(SUM(amount), 0) as total
+            SELECT COALESCE(SUM(amount), 0) as total 
             FROM expenses 
             WHERE date_trunc('year', date_expense) = date_trunc('year', CURRENT_DATE)
             AND ${whereClause.replace(/owner_id/g, 'owner_id')}
@@ -96,7 +96,7 @@ router.get('/history', permissionMiddleware_1.default.canRead('finance'), ownerI
             SELECT 
                 TO_CHAR(date_expense, 'Mon') as mois,
                 EXTRACT(MONTH FROM date_expense) as mois_num,
-                COALESCE(SUM(amount), 0) as total
+                COALESCE(SUM(amount), 0) as total 
             FROM expenses 
             WHERE date_expense >= CURRENT_DATE - INTERVAL '6 months'
             AND ${whereClause.replace(/owner_id/g, 'owner_id')}

@@ -82,12 +82,17 @@ router.post('/', authMiddleware_1.protect, async (req, res) => {
         if (existingResult.rows.length > 0) {
             return res.status(400).json({ success: false, message: 'Ce numéro de téléphone est déjà utilisé' });
         }
+        // Générer un code manager sécurisé (AG- + 6 alphanum aléatoires)
+        const managerCode = `AG-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        console.log(`[ownerRoutes] Creating owner with managerCode: ${managerCode}`);
         const result = await database_1.default.query(`INSERT INTO owners (
                 type, name, first_name, phone, phone_secondary, email,
-                address, city, country, id_number, photo, mobile_money_number, management_mode
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`, [
+                address, city, country, id_number, photo, mobile_money_number, management_mode,
+                manager_code
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`, [
             type || 'individual', name, first_name, phone, phone_secondary, email,
-            address, city, country || 'Bénin', id_number, photo, mobile_money_number, management_mode || 'direct'
+            address, city, country || 'Bénin', id_number, photo, mobile_money_number, management_mode || 'direct',
+            managerCode
         ]);
         const ownerId = result.rows[0].id;
         const userId = req.userId;
