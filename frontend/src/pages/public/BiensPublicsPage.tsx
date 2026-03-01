@@ -28,7 +28,9 @@ import { API_BASE } from '../../config';
 
 // Property interface matching API response
 interface PublicProperty {
-  id: number;
+  id: string | number;
+  originalId?: number;
+  isBuilding?: boolean;
   ref_lot: string;
   type: string;
   titre: string;
@@ -58,18 +60,18 @@ const BiensPublicsPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<PublicProperty | null>(null);
   const [sortBy, setSortBy] = useState<'price-asc' | 'price-desc' | 'recent' | 'distance'>('recent');
-  const [highlightedPropertyId, setHighlightedPropertyId] = useState<number | null>(null);
+  const [highlightedPropertyId, setHighlightedPropertyId] = useState<string | number | null>(null);
   const [maxDistance, setMaxDistance] = useState<number>(0); // 0 = no distance filter
   
-  const propertyRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const propertyRefs = useRef<Map<string | number, HTMLDivElement>>(new Map());
   
   // Favorites (localStorage)
-  const [favorites, setFavorites] = useState<number[]>(() => {
+  const [favorites, setFavorites] = useState<(string | number)[]>(() => {
     try { return JSON.parse(localStorage.getItem('hopegestion_favorites') || '[]'); }
     catch { return []; }
   });
 
-  const toggleFavorite = (id: number, e: React.MouseEvent) => {
+  const toggleFavorite = (id: string | number, e: React.MouseEvent) => {
     e.stopPropagation();
     setFavorites(prev => {
       const next = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
@@ -132,16 +134,19 @@ const BiensPublicsPage: React.FC = () => {
   useEffect(() => {
     const propertyId = searchParams.get('property');
     if (propertyId) {
-      const id = parseInt(propertyId);
-      const property = properties.find(p => p.id === id);
+      // l'id dans l'URL est probablement un string normal ou un "b-ID"
+      const idStr = propertyId;
+      const idNum = parseInt(propertyId);
+      
+      const property = properties.find(p => p.id === idStr || p.id === idNum || p.originalId === idNum);
       
       if (property) {
         // Set the highlighted property for visual feedback
-        setHighlightedPropertyId(id);
+        setHighlightedPropertyId(property.id);
         
         // Wait for rendering then scroll to the property
         setTimeout(() => {
-          const propertyElement = propertyRefs.current.get(id);
+          const propertyElement = propertyRefs.current.get(property.id);
           if (propertyElement) {
             propertyElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
             
@@ -161,7 +166,7 @@ const BiensPublicsPage: React.FC = () => {
         }, 3000);
       }
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, properties]);
 
   // Filter and sort properties
   const filteredProperties = useMemo(() => {

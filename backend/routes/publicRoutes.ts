@@ -5,10 +5,11 @@ import pool from '../db/database';
 
 const router = Router();
 
-// GET /api/public/lots - Get all available lots for public display
+// GET /api/public/lots - Get all available lots AND buildings for public display
 router.get('/lots', async (req: Request, res: Response) => {
     try {
-        const result = await pool.query(`
+        // 1. Récupérer les lots libres
+        const lotsResult = await pool.query(`
             SELECT 
                 l.id,
                 l.ref_lot,
@@ -31,24 +32,47 @@ router.get('/lots', async (req: Request, res: Response) => {
             WHERE l.statut = 'libre'
             ORDER BY l.id DESC
         `);
+
+        // 2. Récupérer les immeubles (s'ils n'ont pas de lots ou simplement tous les immeubles actifs)
+        // On considère qu'un bâtiment entier peut être loué ou affiché.
+        const buildingsResult = await pool.query(`
+            SELECT 
+                b.id,
+                b.nom as titre,
+                b.type,
+                b.description,
+                0 as surface, /* on pourrait l'ajouter plus tard */
+                0 as loyer_mensuel,
+                b.total_lots as nb_pieces,
+                'entier' as etage,
+                b.statut,
+                b.photos,
+                b.nom as immeuble_nom,
+                b.adresse as immeuble_adresse,
+                b.ville,
+                b.quartier,
+                b.latitude,
+                b.longitude
+            FROM buildings b
+            WHERE b.statut = 'actif'
+            ORDER BY b.id DESC
+        `);
         
-        // Transform data to match frontend expectations
-        const lots = result.rows.map(lot => {
-            // Parse photos array from PostgreSQL format
+        // Transform lots data to match frontend expectations
+        const formatItem = (item: any, isBuilding: boolean = false) => {
             let photos: string[] = [];
-            if (lot.photos && lot.photos.length > 0) {
-                photos = Array.isArray(lot.photos) ? lot.photos : [lot.photos];
+            if (item.photos && item.photos.length > 0) {
+                photos = Array.isArray(item.photos) ? item.photos : [item.photos];
             }
             const imageUrl = photos[0] || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80';
 
-            // Generate attractive title
-            const typeLabel = lot.type || 'Bien';
-            const location = lot.quartier ? `à ${lot.quartier}` : (lot.ville ? `à ${lot.ville}` : '');
-            const titre = lot.description && lot.description.length > 10 
-                ? `${typeLabel} ${location}`.trim()
-                : `${typeLabel} ${lot.surface ? `${lot.surface}m²` : ''} ${location}`.trim();
+            const typeLabel = item.type || (isBuilding ? 'Immeuble' : 'Appartement');
+            const location = item.quartier ? `à ${item.quartier}` : (item.ville ? `à ${item.ville}` : '');
+            
+            let titre = isBuilding 
+                ? (item.titre || `${typeLabel} ${location}`) 
+                : (item.description && item.description.length > 10 ? `${typeLabel} ${location}` : `${typeLabel} ${item.surface ? `${item.surface}m²` : ''} ${location}`);
 
-            // Default amenities by property type
             const amenitiesByType: Record<string, string[]> = {
                 'Villa': ['Parking', 'Jardin', 'Gardien', 'Eau courante', 'Groupe électrogène'],
                 'Appartement': ['Eau courante', 'Électricité', 'Sécurité bâtiment'],
@@ -56,35 +80,44 @@ router.get('/lots', async (req: Request, res: Response) => {
                 'Bureau': ['Climatisation', 'Parking', 'Électricité', 'Internet'],
                 'Entrepôt': ['Électricité', 'Gardien'],
                 'Commerce': ['Eau courante', 'Électricité', 'Accès facile'],
+                'Immeuble': ['Parking', 'Sécurité bâtiment', 'Eau courante', 'Électricité'],
             };
-            const amenities = amenitiesByType[lot.type] || ['Eau courante', 'Électricité'];
+            const amenities = amenitiesByType[item.type] || ['Eau courante', 'Électricité'];
 
             return {
-                id: lot.id,
-                ref_lot: lot.ref_lot,
-                type: lot.type || 'Appartement',
-                titre,
-                description: lot.description || `${typeLabel} de ${lot.surface || 0}m² situé ${location}`,
-                surface: lot.surface || 0,
-                loyer: lot.loyer_mensuel || 0,
-                pieces: lot.nb_pieces || 0,
+                id: isBuilding ? `b-${item.id}` : item.id, // Prevent duplicate IDs between lots and buildings in React lists
+                originalId: item.id,
+                isBuilding,
+                ref_lot: item.ref_lot || `B-${item.id}`,
+                type: typeLabel,
+                titre: titre.trim(),
+                description: item.description || `${typeLabel} ${isBuilding ? "entier" : `de ${item.surface || 0}m²`} situé ${location}`,
+                surface: item.surface || 0,
+                loyer: item.loyer_mensuel || 0,
+                pieces: item.nb_pieces || 0,
                 chambres: 0,
                 sallesBain: 0,
-                etage: lot.etage,
-                ville: lot.ville || 'Abidjan',
-                quartier: lot.quartier || '',
-                adresse: lot.immeuble_adresse || '',
-                immeuble: lot.immeuble_nom,
-                latitude: parseFloat(lot.latitude) || 5.345,
-                longitude: parseFloat(lot.longitude) || -4.024,
+                etage: item.etage,
+                ville: item.ville || 'Abidjan',
+                quartier: item.quartier || '',
+                adresse: item.immeuble_adresse || '',
+                immeuble: item.immeuble_nom,
+                latitude: parseFloat(item.latitude) || 5.345,
+                longitude: parseFloat(item.longitude) || -4.024,
                 image: imageUrl,
                 photos,
                 disponible: true,
                 amenities
             };
-        });
+        };
 
-        res.json(lots);
+        const formattedLots = lotsResult.rows.map(l => formatItem(l, false));
+        const formattedBuildings = buildingsResult.rows.map(b => formatItem(b, true));
+
+        // Combiner les deux listes
+        const allItems = [...formattedBuildings, ...formattedLots];
+
+        res.json(allItems);
     } catch (error) {
         console.error('Error fetching public lots:', error);
         res.status(500).json({ message: 'Erreur serveur' });
