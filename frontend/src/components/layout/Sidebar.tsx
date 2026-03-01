@@ -211,64 +211,38 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
       </AnimatePresence>
 
       <aside 
-          className={`shadow-lg z-50 transition-all duration-300 ease-in-out flex flex-col items-stretch border-r border-base-300
+          className={`shadow-2xl z-50 transition-all duration-300 ease-in-out flex flex-col items-stretch border-r border-base-200/50 backdrop-blur-xl
             ${isMobile 
-                ? `fixed inset-y-0 left-0 w-72 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} bg-base-100` 
-                : `${isOpen ? 'w-72' : 'w-20'} relative h-full bg-base-100`
+                ? `fixed inset-y-0 left-0 w-72 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} bg-base-100/90` 
+                : `${isOpen ? 'w-72' : 'w-20'} relative h-full bg-base-100/80`
             }
           `}
         >
           {/* Logo Area */}
-          <div className="h-20 flex items-center justify-between px-6 border-b border-base-200 bg-transparent shrink-0">
+          <div className="h-20 flex items-center justify-center px-4 border-b border-base-200/50 bg-transparent shrink-0">
             {(isOpen || isMobile) ? (
-                 <div className="flex items-center gap-2">
-                    <img src="/logo.png" alt="Hg" className="h-10 w-auto object-contain" />
-                    <span className="font-heading font-bold text-xl text-base-content/90 tracking-tight">Hope<span className="text-primary-600">Gestion</span></span>
+                 <div className="flex items-center justify-between w-full">
+                    <img src="/logo.png" alt="Logo" className="h-12 w-auto object-contain drop-shadow-sm" />
+                    <button 
+                      onClick={toggleSidebar} 
+                      className="p-2 rounded-xl hover:bg-base-300/50 text-slate-400 hover:text-base-content/80 transition-colors md:hidden"
+                    >
+                      <X size={20} />
+                    </button>
                  </div>
             ) : (
-               <img src="/logo.png" alt="HG" className="h-8 w-8 mx-auto object-contain" />
+               <img src="/logo.png" alt="Logo" className="h-10 w-10 mx-auto object-contain drop-shadow-sm transition-transform hover:scale-110 cursor-pointer" onClick={toggleSidebar} />
             )}
-            <button 
-              onClick={toggleSidebar} 
-              className="p-2 rounded-xl hover:bg-base-300 text-slate-400 hover:text-base-content/70 transition-colors md:hidden"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* User Profile (Compact) */}
-          <div className="py-6 px-4 border-b border-base-200 flex items-center gap-3 bg-transparent shrink-0">
-              <div className="avatar placeholder online">
-                <div className="bg-primary-50 text-primary-600 rounded-2xl w-12 h-12 flex items-center justify-center border border-primary-100 shadow-sm overflow-hidden">
-                  {userProfile?.photo_url ? (
-                    <img 
-                      src={userProfile.photo_url} 
-                      alt="Avatar" 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-sm font-bold font-heading">
-                        {userProfile?.nom?.substring(0, 2).toUpperCase() || 'WG'}
-                    </span>
-                  )}
-                </div>
-              </div>
-              {(isOpen || isMobile) && (
-                  <div className="overflow-hidden flex-1 min-w-0">
-                      <p className="font-bold text-sm truncate text-base-content/90 font-heading">{userProfile?.nom || 'Utilisateur'}</p>
-                      <p className="text-xs text-base-content/60 truncate capitalize font-medium">{userProfile?.role || 'Membre'}</p>
-                  </div>
-              )}
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-transparent">
+          <nav className="flex-1 overflow-y-auto px-3 py-6 space-y-6 scrollbar-thin scrollbar-thumb-base-300/50 scrollbar-track-transparent">
               {menuGroups.map((group, idx) => (
                   <div key={idx} className="group-section">
                       {/* Group Title */}
                       {(isOpen || isMobile) && (
                           <div 
-                              className="flex items-center justify-between px-2 mb-2 cursor-pointer text-xs font-bold text-base-content/40 uppercase tracking-wider hover:text-primary transition-colors"
+                              className="flex items-center justify-between px-3 mb-3 cursor-pointer text-[11px] font-bold text-base-content/40 uppercase tracking-widest hover:text-primary transition-colors"
                               onClick={() => toggleGroup(group.title)}
                           >
                               <span>{group.title}</span>
@@ -277,7 +251,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                       )}
                       
                      {/* Divider for collapsed view */}
-                     {(!isOpen && !isMobile) && idx > 0 && <div className="h-px bg-base-200 my-2 mx-2"></div>}
+                     {(!isOpen && !isMobile) && idx > 0 && <div className="h-px bg-base-200/50 my-4 mx-4"></div>}
 
                       {/* Group Items */}
                       <AnimatePresence initial={false}>
@@ -290,39 +264,48 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                                   className="space-y-1 overflow-hidden"
                                >
                                    {group.items.map((item, itemIdx) => (
-                                      <Link 
-                                          key={item.path}
-                                          to={`/dashboard${item.path}`} 
-                                          onClick={() => isMobile && toggleSidebar()} 
-                                          className={`
-                                            flex items-center gap-3 px-3 py-2.5 mx-2 rounded-xl transition-all duration-200 group relative
-                                            ${isActive(item.path) 
-                                              ? 'bg-primary-50 text-primary-700 font-bold shadow-sm' 
-                                              : 'text-base-content/60 hover:bg-base-200 hover:text-base-content font-medium'
-                                            }
-                                            ${(!isOpen && !isMobile) ? 'justify-center px-2 mx-1' : ''}
-                                          `}
-                                          title={(!isOpen && !isMobile) ? item.label : ''}
+                                      <div 
+                                        key={item.path} 
+                                        className={(!isOpen && !isMobile) ? "tooltip tooltip-right w-full flex justify-center z-50 dropdown-content" : ""} 
+                                        data-tip={item.label}
                                       >
-                                          {isActive(item.path) && (
-                                              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary-600 rounded-r-full" />
-                                          )}
+                                          <Link 
+                                              to={`/dashboard${item.path}`} 
+                                              onClick={() => isMobile && toggleSidebar()} 
+                                              className={`
+                                                flex items-center gap-3 px-3 py-2.5 mx-2 rounded-xl transition-all duration-300 group relative overflow-hidden
+                                                ${isActive(item.path) 
+                                                  ? 'bg-gradient-to-r from-primary-50 to-transparent text-primary-700 font-bold shadow-sm ring-1 ring-primary-100/50' 
+                                                  : 'text-base-content/60 hover:bg-base-200/50 hover:text-base-content font-medium'
+                                                }
+                                                ${(!isOpen && !isMobile) ? 'justify-center px-0 mx-1 w-12 h-12' : ''}
+                                              `}
+                                          >
+                                              {isActive(item.path) && (
+                                                  <span className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 rounded-r-full shadow-[0_0_8px_rgba(var(--color-primary-500),0.6)]" />
+                                              )}
 
-                                          <span className={`${isActive(item.path) ? 'text-primary-600' : 'text-slate-400 group-hover:text-primary-500'} transition-colors`}>
-                                              {item.icon}
-                                          </span>
-                                          
-                                          {(isOpen || isMobile) && (
-                                              <div className="flex-1 flex justify-between items-center min-w-0">
-                                                  <span className="truncate text-sm">{item.label}</span>
-                                                  {item.badge && item.badge > 0 && (
-                                                      <span className="flex items-center justify-center min-w-[20px] h-5 rounded-full bg-red-500 text-white text-[10px] font-bold px-1.5 shadow-sm">
-                                                          {item.badge}
-                                                      </span>
-                                                  )}
-                                              </div>
-                                          )}
-                                      </Link>
+                                              {/* Hover Effect Background */}
+                                              {(!isActive(item.path)) && (
+                                                <span className="absolute inset-0 bg-base-content/5 scale-0 group-hover:scale-100 transition-transform duration-300 rounded-xl origin-center" />
+                                              )}
+
+                                              <span className={`relative z-10 ${isActive(item.path) ? 'text-primary-600' : 'text-slate-400 group-hover:text-primary-500'} transition-colors duration-300`}>
+                                                  {item.icon}
+                                              </span>
+                                              
+                                              {(isOpen || isMobile) && (
+                                                  <div className="flex-1 flex justify-between items-center min-w-0 relative z-10">
+                                                      <span className="truncate text-sm">{item.label}</span>
+                                                      {item.badge && item.badge > 0 && (
+                                                          <span className="flex items-center justify-center min-w-[20px] h-5 rounded-full bg-red-500 text-white text-[10px] font-bold px-1.5 shadow-sm">
+                                                              {item.badge}
+                                                          </span>
+                                                      )}
+                                                  </div>
+                                              )}
+                                          </Link>
+                                      </div>
                                    ))}
                                </motion.div>
                           )}
@@ -331,18 +314,49 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
               ))}
           </nav>
 
-          {/* Bottom Actions */}
-          <div className="p-4 border-t border-base-200 bg-base-100/50 shrink-0">
-             <button 
-               onClick={onLogout}
-               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-error hover:bg-error/10 w-full transition-colors group
-                 ${(!isOpen && !isMobile) && 'justify-center'}
-               `}
-               title="Déconnexion"
-             >
-               <LogOut size={20} className="group-hover:scale-110 transition-transform" />
-               {(isOpen || isMobile) && <span className="font-medium text-sm">Déconnexion</span>}
-             </button>
+          {/* Bottom Actions (Profile + Logout) */}
+          <div className="p-4 border-t border-base-200/50 bg-gradient-to-t from-base-200/30 to-transparent shrink-0 flex flex-col gap-2">
+              
+              {/* User Profile Area */}
+              <div className={`flex items-center gap-3 p-2 rounded-xl transition-colors ${(!isOpen && !isMobile) ? 'justify-center cursor-pointer hover:bg-base-200/50' : 'hover:bg-base-100/50'} tooltip tooltip-right`} data-tip={(!isOpen && !isMobile) ? "Mon profil" : ""}>
+                  <div className="avatar placeholder online shrink-0">
+                    <div className="bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600 rounded-2xl w-10 h-10 flex items-center justify-center border border-primary-200/50 shadow-sm overflow-hidden ring-2 ring-transparent transition-all cursor-pointer hover:ring-primary-300">
+                      {userProfile?.photo_url ? (
+                        <img 
+                          src={userProfile.photo_url} 
+                          alt="Avatar" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-sm font-bold font-heading">
+                            {userProfile?.nom?.substring(0, 2).toUpperCase() || 'WG'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {(isOpen || isMobile) && (
+                      <div className="overflow-hidden flex-1 min-w-0 flex flex-col justify-center">
+                          <p className="font-bold text-sm truncate text-base-content/90 font-heading leading-tight">{userProfile?.nom || 'Utilisateur'}</p>
+                          <p className="text-[11px] text-base-content/50 truncate capitalize font-medium mt-0.5">{userProfile?.role || 'Membre'}</p>
+                      </div>
+                  )}
+              </div>
+
+              {/* Logout Button */}
+              <div className={(!isOpen && !isMobile) ? "tooltip tooltip-right w-full flex justify-center" : ""} data-tip="Déconnexion">
+                <button 
+                  onClick={onLogout}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-error/80 hover:text-error hover:bg-error/10 w-full transition-all duration-300 group relative overflow-hidden
+                    ${(!isOpen && !isMobile) ? 'justify-center w-12 h-12 px-0' : ''}
+                  `}
+                >
+                  {/* Hover ripple */}
+                  <span className="absolute inset-0 bg-error/5 scale-0 group-hover:scale-100 transition-transform duration-300 rounded-xl origin-center" />
+                  
+                  <LogOut size={18} className="group-hover:scale-110 transition-transform relative z-10" />
+                  {(isOpen || isMobile) && <span className="font-medium text-sm relative z-10">Déconnexion</span>}
+                </button>
+              </div>
           </div>
         </aside>
     </>
