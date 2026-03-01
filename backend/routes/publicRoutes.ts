@@ -35,17 +35,36 @@ router.get('/lots', async (req: Request, res: Response) => {
         // Transform data to match frontend expectations
         const lots = result.rows.map(lot => {
             // Parse photos array from PostgreSQL format
-            let imageUrl = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80';
+            let photos: string[] = [];
             if (lot.photos && lot.photos.length > 0) {
-                imageUrl = lot.photos[0];
+                photos = Array.isArray(lot.photos) ? lot.photos : [lot.photos];
             }
-            
+            const imageUrl = photos[0] || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80';
+
+            // Generate attractive title
+            const typeLabel = lot.type || 'Bien';
+            const location = lot.quartier ? `à ${lot.quartier}` : (lot.ville ? `à ${lot.ville}` : '');
+            const titre = lot.description && lot.description.length > 10 
+                ? `${typeLabel} ${location}`.trim()
+                : `${typeLabel} ${lot.surface ? `${lot.surface}m²` : ''} ${location}`.trim();
+
+            // Default amenities by property type
+            const amenitiesByType: Record<string, string[]> = {
+                'Villa': ['Parking', 'Jardin', 'Gardien', 'Eau courante', 'Groupe électrogène'],
+                'Appartement': ['Eau courante', 'Électricité', 'Sécurité bâtiment'],
+                'Studio': ['Eau courante', 'Électricité'],
+                'Bureau': ['Climatisation', 'Parking', 'Électricité', 'Internet'],
+                'Entrepôt': ['Électricité', 'Gardien'],
+                'Commerce': ['Eau courante', 'Électricité', 'Accès facile'],
+            };
+            const amenities = amenitiesByType[lot.type] || ['Eau courante', 'Électricité'];
+
             return {
                 id: lot.id,
                 ref_lot: lot.ref_lot,
                 type: lot.type || 'Appartement',
-                titre: `${lot.type || 'Bien'} - ${lot.ref_lot}`,
-                description: lot.description || `${lot.type} de ${lot.surface}m² avec ${lot.nb_pieces} pièces`,
+                titre,
+                description: lot.description || `${typeLabel} de ${lot.surface || 0}m² situé ${location}`,
                 surface: lot.surface || 0,
                 loyer: lot.loyer_mensuel || 0,
                 pieces: lot.nb_pieces || 0,
@@ -59,9 +78,9 @@ router.get('/lots', async (req: Request, res: Response) => {
                 latitude: parseFloat(lot.latitude) || 5.345,
                 longitude: parseFloat(lot.longitude) || -4.024,
                 image: imageUrl,
-                photos: lot.photos || [],
+                photos,
                 disponible: true,
-                amenities: []
+                amenities
             };
         });
 

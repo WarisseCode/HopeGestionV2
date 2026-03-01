@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -22,6 +21,7 @@ const PublicNavbar: React.FC = () => {
         { name: 'FAQ', path: '/#faq' },
         { name: 'Contact', path: '/#contact' },
     ];
+
 
     return (
         <motion.div 
@@ -48,6 +48,16 @@ const PublicNavbar: React.FC = () => {
                             )}
                         </li>
                     ))}
+                    <li>
+                        <Link
+                            to="/biens"
+                            className={`font-semibold text-primary hover:text-primary transition-colors ${
+                                location.pathname === '/biens' ? 'text-primary font-bold' : ''
+                            }`}
+                        >
+                            🏠 Biens disponibles
+                        </Link>
+                    </li>
                 </ul>
             </div>
 

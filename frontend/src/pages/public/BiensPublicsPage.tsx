@@ -8,9 +8,7 @@ import {
   Filter, 
   Search, 
   X, 
-  Phone, 
-  Mail,
-  ChevronDown,
+  Phone,
   Grid3X3,
   List,
   Heart,
@@ -24,6 +22,9 @@ import { useSearchParams, Link } from 'react-router-dom';
 import PublicLayout from '../../layout/PublicLayout';
 import Button from '../../components/ui/Button';
 import { useGeolocation } from '../../hooks/useGeolocation';
+import { API_BASE } from '../../config';
+
+// Property interface matching API response
 
 // Property interface matching API response
 interface PublicProperty {
@@ -42,6 +43,7 @@ interface PublicProperty {
   latitude: number;
   longitude: number;
   image: string;
+  photos: string[];
   amenities: string[];
   disponible: boolean;
 }
@@ -60,6 +62,34 @@ const BiensPublicsPage: React.FC = () => {
   const [maxDistance, setMaxDistance] = useState<number>(0); // 0 = no distance filter
   
   const propertyRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  
+  // Favorites (localStorage)
+  const [favorites, setFavorites] = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem('hopegestion_favorites') || '[]'); }
+    catch { return []; }
+  });
+
+  const toggleFavorite = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavorites(prev => {
+      const next = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
+      localStorage.setItem('hopegestion_favorites', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const shareProperty = (property: PublicProperty, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/biens?property=${property.id}`;
+    if (navigator.share) {
+      navigator.share({ title: property.titre, text: property.description, url });
+    } else {
+      navigator.clipboard.writeText(url).then(() => alert('Lien copié !'));
+    }
+  };
+
+  // Photo carousel state for modal
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   
   // Geolocation hook
   const { 
@@ -80,7 +110,7 @@ const BiensPublicsPage: React.FC = () => {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/public/lots');
+        const res = await fetch(`${API_BASE}/api/public/lots`);
         if (res.ok) {
           const data = await res.json();
           setProperties(data);
@@ -135,7 +165,7 @@ const BiensPublicsPage: React.FC = () => {
 
   // Filter and sort properties
   const filteredProperties = useMemo(() => {
-    let result = properties.filter(p => {
+    const filtered = properties.filter(p => {
       if (selectedType && p.type !== selectedType) return false;
       if (selectedCity && p.ville !== selectedCity) return false;
       if (p.loyer < priceRange[0] || p.loyer > priceRange[1]) return false;
@@ -158,18 +188,18 @@ const BiensPublicsPage: React.FC = () => {
 
     // Sort
     if (sortBy === 'price-asc') {
-      result.sort((a, b) => a.loyer - b.loyer);
+      return [...filtered].sort((a, b) => a.loyer - b.loyer);
     } else if (sortBy === 'price-desc') {
-      result.sort((a, b) => b.loyer - a.loyer);
+      return [...filtered].sort((a, b) => b.loyer - a.loyer);
     } else if (sortBy === 'distance' && permissionGranted) {
-      result.sort((a, b) => {
+      return [...filtered].sort((a, b) => {
         const distA = calculateDistance(a.latitude, a.longitude) || Infinity;
         const distB = calculateDistance(b.latitude, b.longitude) || Infinity;
         return distA - distB;
       });
     }
 
-    return result;
+    return filtered;
   }, [properties, selectedType, selectedCity, priceRange, searchQuery, sortBy, maxDistance, permissionGranted, latitude, longitude, calculateDistance]);
 
   const formatPrice = (price: number) => {
@@ -184,18 +214,6 @@ const BiensPublicsPage: React.FC = () => {
     setMaxDistance(0);
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.05 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
-  };
 
   return (
     <PublicLayout>
@@ -304,7 +322,7 @@ const BiensPublicsPage: React.FC = () => {
                   <select 
                     className="select select-bordered w-full"
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as any)}
+                    onChange={(e) => setSortBy(e.target.value as 'price-asc' | 'price-desc' | 'recent' | 'distance')}
                   >
                     <option value="recent">Plus récents</option>
                     <option value="price-asc">Prix croissant</option>
@@ -425,7 +443,10 @@ const BiensPublicsPage: React.FC = () => {
                     ? 'border-blue-500 ring-4 ring-blue-500/30 animate-pulse' 
                     : ''
                 }`}
-                onClick={() => setSelectedProperty(property)}
+                onClick={() => {
+                  setActivePhotoIndex(0);
+                  setSelectedProperty(property);
+                }}
               >
                 {/* Image */}
                 <div className={`relative overflow-hidden ${viewMode === 'list' ? 'w-80 flex-shrink-0' : 'h-52'}`}>
@@ -457,10 +478,20 @@ const BiensPublicsPage: React.FC = () => {
                         {calculateDistance(property.latitude, property.longitude)?.toFixed(1)} km
                       </span>
                     )}
-                    <button className="p-2 bg-base-100/90 rounded-full hover:bg-base-100 transition-colors opacity-0 group-hover:opacity-100">
-                      <Heart size={16} className="text-base-content/70" />
+                    <button
+                      className={`p-2 rounded-full transition-all hover:scale-110 opacity-0 group-hover:opacity-100 ${
+                        favorites.includes(property.id) ? 'bg-red-500 text-white' : 'bg-base-100/90 text-base-content/70'
+                      }`}
+                      onClick={(e) => toggleFavorite(property.id, e)}
+                      title={favorites.includes(property.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                    >
+                      <Heart size={16} className={favorites.includes(property.id) ? 'fill-white' : ''} />
                     </button>
-                    <button className="p-2 bg-base-100/90 rounded-full hover:bg-base-100 transition-colors opacity-0 group-hover:opacity-100">
+                    <button
+                      className="p-2 bg-base-100/90 rounded-full hover:bg-base-100 transition-colors opacity-0 group-hover:opacity-100"
+                      onClick={(e) => shareProperty(property, e)}
+                      title="Partager ce bien"
+                    >
                       <Share2 size={16} className="text-base-content/70" />
                     </button>
                   </div>
@@ -539,16 +570,37 @@ const BiensPublicsPage: React.FC = () => {
           </div>
 
           {/* Empty State */}
-          {filteredProperties.length === 0 && (
-            <div className="text-center py-20">
-              <div className="text-6xl mb-4">🏠</div>
-              <h3 className="text-xl font-bold text-base-content mb-2">Aucun bien trouvé</h3>
-              <p className="text-base-content/60 mb-6">
-                Essayez de modifier vos critères de recherche
+          {!loadingProperties && filteredProperties.length === 0 && (
+            <div className="text-center py-24">
+              <div className="w-24 h-24 bg-base-200 rounded-full flex items-center justify-center text-base-content/30 mx-auto mb-6 shadow-inner">
+                <Home size={48} />
+              </div>
+              <h3 className="text-2xl font-bold text-base-content mb-3">Aucun bien trouvé</h3>
+              <p className="text-base-content/60 mb-8 max-w-sm mx-auto">
+                Aucun bien ne correspond à vos critères actuels. Élargissez votre recherche.
               </p>
-              <Button variant="primary" onClick={clearFilters}>
-                Réinitialiser les filtres
-              </Button>
+              <Button variant="primary" onClick={clearFilters}>Réinitialiser les filtres</Button>
+            </div>
+          )}
+
+          {/* Skeleton Loader */}
+          {loadingProperties && (
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="bg-base-100 rounded-2xl overflow-hidden shadow-lg border border-base-200 animate-pulse">
+                  <div className="h-52 bg-base-300" />
+                  <div className="p-5 space-y-3">
+                    <div className="h-5 bg-base-300 rounded w-3/4" />
+                    <div className="h-4 bg-base-300 rounded w-1/2" />
+                    <div className="h-3 bg-base-300 rounded w-full" />
+                    <div className="h-3 bg-base-300 rounded w-5/6" />
+                    <div className="flex gap-2 mt-4">
+                      <div className="h-10 bg-base-300 rounded-xl flex-1" />
+                      <div className="h-10 w-10 bg-base-300 rounded-xl" />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -571,13 +623,42 @@ const BiensPublicsPage: React.FC = () => {
               className="bg-base-100 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Modal Header Image */}
-              <div className="relative h-72">
-                <img
-                  src={selectedProperty.image}
-                  alt={selectedProperty.titre}
-                  className="w-full h-full object-cover"
-                />
+              {/* Modal Header Image / Carousel */}
+              <div className="relative h-72 bg-base-200">
+                {selectedProperty.photos && selectedProperty.photos.length > 1 ? (
+                  <>
+                    <img
+                      src={selectedProperty.photos[activePhotoIndex]}
+                      alt={selectedProperty.titre}
+                      className="w-full h-full object-cover transition-all duration-300"
+                    />
+                    {/* Carousel Controls */}
+                    <button
+                      onClick={() => setActivePhotoIndex(i => Math.max(0, i - 1))}
+                      disabled={activePhotoIndex === 0}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 disabled:opacity-30"
+                    >‹</button>
+                    <button
+                      onClick={() => setActivePhotoIndex(i => Math.min(selectedProperty.photos.length - 1, i + 1))}
+                      disabled={activePhotoIndex === selectedProperty.photos.length - 1}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 disabled:opacity-30"
+                    >›</button>
+                    {/* Dots */}
+                    <div className="absolute bottom-16 left-0 right-0 flex justify-center gap-1.5">
+                      {selectedProperty.photos.map((_: string, i: number) => (
+                        <button key={i} onClick={() => setActivePhotoIndex(i)}
+                          className={`w-2 h-2 rounded-full transition-all ${ i === activePhotoIndex ? 'bg-white scale-125' : 'bg-white/50' }`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <img
+                    src={selectedProperty.image}
+                    alt={selectedProperty.titre}
+                    className="w-full h-full object-cover"
+                  />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                 <button
                   onClick={() => setSelectedProperty(null)}
