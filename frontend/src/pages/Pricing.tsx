@@ -170,10 +170,10 @@ const Pricing: React.FC = () => {
 
     const getPlanGradient = (name: string) => {
         switch (name) {
-            case 'free': return 'from-slate-100/80 to-slate-50 dark:from-slate-800 dark:to-slate-900 border-slate-200 dark:border-slate-700';
+            case 'free': return 'from-base-100 to-base-200 border-base-300 shadow-sm';
             case 'pro': return 'from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 ring-2 ring-amber-300 dark:ring-amber-600';
-            case 'enterprise': return 'from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-700';
-            default: return 'from-slate-100/80 to-slate-50 dark:from-slate-800 dark:to-slate-900';
+            case 'enterprise': return 'from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-700 shadow-sm';
+            default: return 'from-base-100 to-base-200 border-base-300';
         }
     };
 
