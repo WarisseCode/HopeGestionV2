@@ -124,6 +124,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
         <div id="onboarding-header">
           <Header 
               toggleSidebar={toggleSidebar}
+              isSidebarOpen={isSidebarOpen}
               pageTitle={getPageTitle()}
               userProfile={userProfile}
               onLogout={onLogout}

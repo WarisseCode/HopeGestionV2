@@ -2,20 +2,20 @@
 // frontend/src/components/layout/Header.tsx
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, Search, Home, ChevronRight, Settings, Crown, Sun, Moon } from 'lucide-react';
+import { Search, Home, ChevronRight, Settings, Crown, Sun, Moon, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import NotificationBell from '../NotificationBell';
 import SubscriptionBadge from '../SubscriptionBadge';
 import { updateProfile } from '../../api/accountApi';
-import toast from 'react-hot-toast';
 
 interface HeaderProps {
   toggleSidebar: () => void;
+  isSidebarOpen: boolean;
   pageTitle: string;
   userProfile: any;
   onLogout: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ toggleSidebar, pageTitle, userProfile, onLogout }) => {
+const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle, userProfile, onLogout }) => {
   const location = useLocation();
   const [theme, setTheme] = React.useState<'hopegestion' | 'dark'>('hopegestion');
 
@@ -82,7 +82,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, pageTitle, userProfile, 
               className="p-2 rounded-lg hover:bg-base-200 text-base-content active:scale-95 transition-transform"
               aria-label="Toggle Menu"
             >
-                <Menu size={22} />
+                {isSidebarOpen ? <PanelLeftClose size={22} /> : <PanelLeftOpen size={22} />}
             </button>
             {getBreadcrumbs()}
         </div>
