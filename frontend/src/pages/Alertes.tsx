@@ -1,24 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Bell, 
-  Edit3, 
-  Eye, 
-  Trash2, 
-  Calendar, 
-  Users,
-  Home,
-  FileText,
-  Mail,
-  Settings,
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Bell,
+  Eye,
   CheckCircle,
   XCircle,
   AlertTriangle,
   Clock,
-  Filter,
-  Smartphone,
-
-  ArrowRight,
-  TrendingUp
+  TrendingUp,
+  RefreshCw,
+  Settings
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -34,13 +24,30 @@ import type { Alert } from '../api/alertApi';
 import { getNotificationSettings, updateNotificationSettings } from '../api/notificationApi';
 import type { NotificationSetting } from '../api/notificationApi';
 
+const DEFAULT_SETTINGS: NotificationSetting[] = [
+    { alert_type: 'PAYMENT_RECEIVED', channel_email: true, channel_whatsapp: true, channel_sms: false },
+    { alert_type: 'PAYMENT_LATE', channel_email: true, channel_whatsapp: true, channel_sms: true },
+    { alert_type: 'INTERVENTION_PLANNED', channel_email: true, channel_whatsapp: true, channel_sms: false },
+    { alert_type: 'DOCUMENT_SIGNED', channel_email: true, channel_whatsapp: false, channel_sms: false }
+];
+
+const ALERT_TYPE_LABELS: Record<string, { label: string, desc: string }> = {
+  'PAYMENT_REMINDER': { label: 'Rappel de loyer', desc: 'Notification avant la date d\'échéance' },
+  'LEASE_EXPIRY': { label: 'Fin de bail', desc: 'Alerte quand un contrat arrive à terme' },
+  'INTERVENTION': { label: 'Interventions', desc: 'Nouvelles demandes ou mises à jour' },
+  'DOCUMENT_SIGNED': { label: 'Documents signés', desc: 'Confirmation de signature électronique' },
+  'PAYMENT_RECEIVED': { label: 'Paiement reçu', desc: 'Confirmation de réception de loyer' },
+  'PAYMENT_LATE': { label: 'Retard de paiement', desc: 'Alerte de loyer impayé' },
+  'INTERVENTION_PLANNED': { label: 'Intervention planifiée', desc: 'Rappel de date d\'intervention' },
+};
+
 const Alertes: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'alertes' | 'notifications' | 'parametres'>('alertes');
-  
+
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  
+
   const [alertes, setAlertes] = useState<Alert[]>([]);
   const [dismissedCount, setDismissedCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -49,39 +56,19 @@ const Alertes: React.FC = () => {
   const [parametres, setParametres] = useState<NotificationSetting[]>([]);
   const [savingSettingId, setSavingSettingId] = useState<string | null>(null);
 
-  const ALERT_TYPE_LABELS: Record<string, { label: string, desc: string }> = {
-    'PAYMENT_REMINDER': { label: 'Rappel de loyer', desc: 'Notification avant la date d\'échéance' },
-    'LEASE_EXPIRY': { label: 'Fin de bail', desc: 'Alerte quand un contrat arrive à terme' },
-    'INTERVENTION': { label: 'Interventions', desc: 'Nouvelles demandes ou mises à jour' },
-    'DOCUMENT_SIGNED': { label: 'Documents signés', desc: 'Confirmation de signature électronique' }
-  };
 
-  const DEFAULT_SETTINGS: NotificationSetting[] = [
-    { alert_type: 'PAYMENT_REMINDER', channel_email: true, channel_whatsapp: false, channel_sms: false },
-    { alert_type: 'LEASE_EXPIRY', channel_email: true, channel_whatsapp: false, channel_sms: false },
-    { alert_type: 'INTERVENTION', channel_email: true, channel_whatsapp: false, channel_sms: false },
-    { alert_type: 'DOCUMENT_SIGNED', channel_email: true, channel_whatsapp: false, channel_sms: false }
-  ];
 
-  const [alerteForm, setAlerteForm] = useState({
-    reference: '', titre: '', description: '', destinataire: 'Gestionnaire', type: 'Paiement', priorite: 'Moyenne', frequence: 'Mensuelle', dateEcheance: '', canal: ['Email']
-  });
-
-  useEffect(() => {
-      fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
       setLoading(true);
-      
+
       // Independent fetches to prevent one blocking others
       const fetchNotifications = async () => {
           try {
               const notifsData = await getNotifications();
               setNotifications(notifsData.notifications || []);
               setUnreadCount(notifsData.unreadCount || 0);
-          } catch (error) {
-              console.error("Erreur notifications", error);
+          } catch (err) {
+              console.error("Erreur notifications", err);
           }
       };
 
@@ -90,8 +77,8 @@ const Alertes: React.FC = () => {
               const alertsData = await getAlerts();
               setAlertes(alertsData.alerts);
               setDismissedCount(alertsData.dismissedCount);
-          } catch (error) {
-              console.error("Erreur alertes", error);
+          } catch (err) {
+              console.error("Erreur alertes", err);
           }
       };
 
@@ -103,9 +90,9 @@ const Alertes: React.FC = () => {
               } else {
                   setParametres(settingsData);
               }
-          } catch (error) {
-              console.error("Erreur paramètres", error);
-              setParametres(DEFAULT_SETTINGS); // Fallback to default on error
+          } catch (err) {
+              console.error("Erreur paramètres", err);
+              setParametres(DEFAULT_SETTINGS); // Fallback to default on err
           }
       };
 
@@ -115,31 +102,35 @@ const Alertes: React.FC = () => {
               fetchAlerts(),
               fetchSettings()
           ]);
-      } catch (error) {
-          console.error("Erreur globale fetchData", error);
+      } catch (err) {
+          console.error("Erreur globale fetchData", err);
           toast.error("Erreur lors du chargement des données");
       } finally {
           setLoading(false);
       }
-  };
+  }, []);
+
+  useEffect(() => {
+      fetchData();
+  }, [fetchData]);
 
   const handleToggleSetting = async (alertType: string, channel: 'email' | 'whatsapp' | 'sms') => {
       const updated = parametres.map(p => {
           if (p.alert_type === alertType) {
-              return { 
-                  ...p, 
-                  [`channel_${channel}`]: !p[`channel_${channel}` as keyof NotificationSetting] 
+              return {
+                  ...p,
+                  [`channel_${channel}`]: !p[`channel_${channel}` as keyof NotificationSetting]
               };
           }
           return p;
       });
       setParametres(updated);
-      
+
       try {
           setSavingSettingId(alertType);
           await updateNotificationSettings(updated);
           toast.success('Paramètres mis à jour');
-      } catch (error) {
+      } catch {
           toast.error('Erreur lors de la sauvegarde');
       } finally {
           setSavingSettingId(null);
@@ -155,7 +146,7 @@ const Alertes: React.FC = () => {
       setUnreadCount(prev => Math.max(0, prev - 1));
       playNotificationSound();
       toast.success('Notification marquée comme lue');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       toast.error('Erreur lors de la mise à jour');
     }  };
@@ -177,8 +168,9 @@ const Alertes: React.FC = () => {
           setAlertes(prev => prev.filter(a => a.id !== alertId));
           setDismissedCount(prev => prev + 1);
           toast.success('Alerte ignorée');
-      } catch (err: any) {
-          toast.error(err.message || 'Erreur lors de l\'ignorance');
+      } catch (err: unknown) {
+          const errorMessage = err instanceof Error ? err.message : 'Erreur lors de l\'ignorance';
+          toast.error(errorMessage);
       } finally {
           setDismissingId(null);
       }
@@ -189,8 +181,9 @@ const Alertes: React.FC = () => {
           await resetDismissedAlerts();
           toast.success('Alertes ignorées réinitialisées');
           fetchData();
-      } catch (err: any) {
-          toast.error(err.message || 'Erreur');
+      } catch (err: unknown) {
+          const errorMessage = err instanceof Error ? err.message : 'Erreur';
+          toast.error(errorMessage);
       }
   };
 
@@ -229,32 +222,32 @@ const Alertes: React.FC = () => {
       </motion.div>
 
        {/* Tabs */}
-     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-center bg-base-100 rounded-2xl p-2 shadow-sm border border-base-200">
-        <div className="flex p-1 bg-base-300/50 rounded-xl overflow-x-auto w-full sm:w-auto">
+     <motion.div variants={itemVariants} className="flex justify-center md:justify-start">
+        <div className="flex p-1.5 bg-base-200/50 rounded-2xl overflow-x-auto w-full sm:w-auto shadow-inner ring-1 ring-base-content/5">
              <button
                 onClick={() => setActiveTab('alertes')}
-                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap ${
-                activeTab === 'alertes' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content/80'
+                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm transition-all duration-300 flex items-center justify-center gap-2.5 whitespace-nowrap ${
+                activeTab === 'alertes' ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-content/5 font-bold' : 'text-base-content/60 hover:text-base-content/90 hover:bg-base-100/50 font-medium'
                 }`}
             >
                 <AlertTriangle size={18} />
                 Alertes
-                <span className="badge badge-neutral badge-xs ml-1">{alertes.length}</span>
+                <span className={`badge badge-xs ml-0.5 border-none shadow-sm ${activeTab === 'alertes' ? 'bg-primary/10 text-primary font-bold' : 'badge-ghost text-base-content/50'}`}>{alertes.length}</span>
             </button>
             <button
                 onClick={() => setActiveTab('notifications')}
-                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap ${
-                activeTab === 'notifications' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content/80'
+                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm transition-all duration-300 flex items-center justify-center gap-2.5 whitespace-nowrap ${
+                activeTab === 'notifications' ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-content/5 font-bold' : 'text-base-content/60 hover:text-base-content/90 hover:bg-base-100/50 font-medium'
                 }`}
             >
                 <Bell size={18} />
                 Notifications
-                {unreadCount > 0 && <span className="badge badge-error badge-xs ml-1 text-white">{unreadCount}</span>}
+                {unreadCount > 0 && <span className="badge badge-error badge-xs ml-0.5 text-white shadow-sm ring-1 ring-error/20 font-bold tracking-wide">{unreadCount}</span>}
             </button>
              <button
                 onClick={() => setActiveTab('parametres')}
-                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap ${
-                activeTab === 'parametres' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content/80'
+                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm transition-all duration-300 flex items-center justify-center gap-2.5 whitespace-nowrap ${
+                activeTab === 'parametres' ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-content/5 font-bold' : 'text-base-content/60 hover:text-base-content/90 hover:bg-base-100/50 font-medium'
                 }`}
             >
                 <Settings size={18} />
@@ -283,46 +276,47 @@ const Alertes: React.FC = () => {
             
             {/* ALERTES LIST */}
             {activeTab === 'alertes' && (
-                <Card className="border-none shadow-xl bg-base-100 p-0 overflow-hidden">
+                <Card className="border-none shadow-xl hover:shadow-2xl hover:shadow-base-content/5 transition-shadow bg-base-100 p-0 overflow-hidden ring-1 ring-base-content/5 rounded-3xl">
                     {dismissedCount > 0 && (
-                        <div className="px-6 pt-4 flex justify-end">
-                            <button onClick={handleResetDismissed} className="text-xs text-base-content/50 hover:text-primary underline transition-colors">
-                                Réafficher les alertes ignorées ({dismissedCount})
+                        <div className="px-6 py-4 flex justify-end bg-base-200/30 border-b border-base-200">
+                            <button onClick={handleResetDismissed} className="text-xs font-semibold text-base-content/50 hover:text-primary transition-colors flex items-center gap-1.5 bg-base-100 px-3 py-1.5 rounded-lg ring-1 ring-base-content/10 shadow-sm hover:ring-primary/30">
+                                <RefreshCw size={12} />
+                                Restaurer les alertes ignorées ({dismissedCount})
                             </button>
                         </div>
                     )}
                      <div className="overflow-x-auto">
                     <table className="table w-full">
-                        <thead className="bg-base-200/80 text-base-content/70 text-xs uppercase tracking-wider">
+                        <thead className="bg-base-200/80 text-base-content/70 text-[11px] font-bold uppercase tracking-widest">
                             <tr>
-                                <th className="py-5 pl-6 font-bold rounded-tl-xl">Référence</th>
-                                <th className="font-bold">Alerte</th>
-                                <th className="font-bold">Type</th>
-                                <th className="font-bold">Priorité</th>
-                                <th className="font-bold">Date</th>
-                                <th className="pr-6 text-right font-bold rounded-tr-xl">Action</th>
+                                <th className="py-5 pl-8 text-left rounded-tl-none">Référence</th>
+                                <th className="py-5 text-left">Alerte</th>
+                                <th className="py-5 text-left">Type</th>
+                                <th className="py-5 text-left">Priorité</th>
+                                <th className="py-5 text-left">Date</th>
+                                <th className="py-5 pr-8 text-right rounded-tr-none">Action</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-base-200/50">
                             {loading ? (
-                                <tr><td colSpan={6} className="text-center py-12"><span className="loading loading-spinner loading-lg text-primary"></span></td></tr>
+                                <tr><td colSpan={6} className="text-center py-16"><span className="loading loading-spinner text-primary loading-lg"></span></td></tr>
                             ) : alertes.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="text-center py-24 px-6 bg-base-100/30">
+                                    <td colSpan={6} className="text-center py-32 px-6 bg-base-100/30">
                                         <div className="flex flex-col items-center justify-center space-y-5">
                                             <div className="relative">
                                                 <div className="w-24 h-24 bg-success/10 rounded-full flex items-center justify-center text-success mb-2 shadow-inner ring-4 ring-success/5">
                                                     <CheckCircle size={48} strokeWidth={1.5} />
                                                 </div>
-                                                <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-base-100 rounded-full flex items-center justify-center shadow-md">
-                                                    <div className="w-6 h-6 bg-success/20 rounded-full animate-ping absolute"></div>
-                                                    <div className="w-4 h-4 bg-success rounded-full"></div>
+                                                <div className="absolute -bottom-1 -right-1 w-8 h-8 flex items-center justify-center">
+                                                    <div className="w-6 h-6 bg-success/30 rounded-full animate-ping absolute"></div>
+                                                    <div className="w-4 h-4 bg-success rounded-full shadow-md ring-2 ring-base-100"></div>
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
-                                                <h3 className="text-2xl font-bold text-base-content">L'esprit tranquille</h3>
-                                                <p className="text-base-content/60 max-w-md mx-auto text-sm leading-relaxed">
-                                                    Votre parc immobilier est sous contrôle. Aucun événement ne requiert votre attention immédiate pour le moment !
+                                                <h3 className="text-2xl font-extrabold text-base-content">L'esprit tranquille</h3>
+                                                <p className="text-base-content/50 max-w-sm mx-auto text-[13px] leading-relaxed">
+                                                    Votre parc immobilier est sous total contrôle. Aucun événement ne requiert votre attention pour le moment.
                                                 </p>
                                             </div>
                                         </div>
@@ -330,46 +324,48 @@ const Alertes: React.FC = () => {
                                 </tr>
                             ) : (
                                 alertes.map(alerte => (
-                                    <tr key={alerte.id} className="hover:bg-base-200/50 transition-colors group cursor-pointer">
-                                        <td className="pl-6 font-medium text-base-content/90">{alerte.reference}</td>
-                                        <td>
-                                            <div className="font-bold text-base-content/90">{alerte.titre}</div>
-                                            <div className="text-xs text-base-content/60">{alerte.description}</div>
+                                    <tr key={alerte.id} className="hover:bg-primary/5 transition-colors group cursor-pointer border-b border-base-200/50 hover:border-primary/10">
+                                        <td className="pl-8 py-5">
+                                            <span className="font-mono text-[13px] font-semibold text-base-content/70 bg-base-200/50 px-2 py-1 rounded-md">{alerte.reference}</span>
                                         </td>
-                                        <td><span className="badge badge-ghost badge-sm">{alerte.type}</span></td>
-                                        <td>
-                                             <span className={`badge ${
-                                                alerte.priorite === 'Urgente' ? 'badge-error text-white' : 
-                                                alerte.priorite === 'Haute' ? 'badge-warning text-white' : 
-                                                'badge-info text-white'
-                                                } gap-1`}>
+                                        <td className="py-5">
+                                            <div className="font-bold text-[14px] text-base-content mb-0.5 group-hover:text-primary transition-colors">{alerte.titre}</div>
+                                            <div className="text-[13px] text-base-content/60 line-clamp-1">{alerte.description}</div>
+                                        </td>
+                                        <td className="py-5"><span className="badge badge-ghost badge-sm font-medium px-2.5 py-3 border-none ring-1 ring-base-content/10 bg-base-100">{alerte.type}</span></td>
+                                        <td className="py-5">
+                                             <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider ${
+                                                alerte.priorite === 'Urgente' ? 'bg-error/10 text-error ring-1 ring-error/20' : 
+                                                alerte.priorite === 'Haute' ? 'bg-warning/10 text-warning-content ring-1 ring-warning/20' : 
+                                                'bg-info/10 text-info ring-1 ring-info/20'
+                                                } gap-1.5`}>
+                                                {alerte.priorite === 'Urgente' && <div className="w-1.5 h-1.5 rounded-full bg-error animate-pulse"></div>}
+                                                {alerte.priorite === 'Haute' && <div className="w-1.5 h-1.5 rounded-full bg-warning"></div>}
+                                                {(alerte.priorite === 'Moyenne' || alerte.priorite === 'Basse' || (alerte.priorite as string) === 'Normale') && <div className="w-1.5 h-1.5 rounded-full bg-info"></div>}
                                                 {alerte.priorite}
                                             </span>
                                         </td>
-                                        <td className="text-sm font-mono text-base-content/60">
+                                        <td className="text-[13px] font-medium text-base-content/50 py-5">
                                             {new Date(alerte.dateCreation).toLocaleDateString()}
                                         </td>
-                                        <td className="pr-6 text-right">
-                                            <div className="flex items-center gap-2 justify-end">
-                                                {alerte.link && (
-                                                    <Button 
-                                                        variant="secondary" 
-                                                        size="sm" 
-                                                        className="btn-xs gap-1"
-                                                        onClick={() => navigate(alerte.link!)}
-                                                    >
-                                                        Traiter <ArrowRight size={12}/>
-                                                    </Button>
-                                                )}
-                                                <button
-                                                    className="btn btn-xs btn-ghost text-base-content/40 hover:text-error hover:bg-error/10 transition-all"
-                                                    onClick={() => handleDismiss(alerte.id)}
+                                        <td className="pr-8 py-5 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/alertes/${alerte.id}`); }}
+                                                    className="btn btn-ghost btn-circle btn-sm text-base-content/40 hover:text-primary hover:bg-primary/10 transition-colors tooltip tooltip-left"
+                                                    data-tip="Voir les détails"
+                                                >
+                                                    <Eye size={16} />
+                                                </button>
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); handleDismiss(alerte.id); }}
+                                                    className="btn btn-ghost btn-circle btn-sm text-base-content/40 hover:text-error hover:bg-error/10 transition-colors tooltip tooltip-left"
+                                                    data-tip="Ignorer l'alerte"
                                                     disabled={dismissingId === alerte.id}
-                                                    title="Ignorer cette alerte"
                                                 >
                                                     {dismissingId === alerte.id 
-                                                        ? <span className="loading loading-spinner loading-xs"></span>
-                                                        : <XCircle size={14} />}
+                                                        ? <span className="loading loading-spinner loading-xs text-error"></span>
+                                                        : <XCircle size={16} />}
                                                 </button>
                                             </div>
                                         </td>
