@@ -173,10 +173,10 @@ router.post('/:id/validate', ownerIsolation_1.filterByOwner, async (req, res) =>
         }
         // Update reservation status
         await database_1.default.query('UPDATE leases SET statut = $1, updated_at = NOW() WHERE id = $2 AND type_contrat = $3', [statut, id, 'reservation']);
-        // If accepted, update lot status to 'reserve'
+        // If accepted, update lot status to 'reserve' (only if a specific lot is attached)
         if (statut === 'actif') {
             const leaseResult = await database_1.default.query('SELECT lot_id FROM leases WHERE id = $1', [id]);
-            if (leaseResult.rows.length > 0) {
+            if (leaseResult.rows.length > 0 && leaseResult.rows[0].lot_id) {
                 await database_1.default.query('UPDATE lots SET statut = $1 WHERE id = $2', ['reserve', leaseResult.rows[0].lot_id]);
             }
         }
@@ -194,9 +194,11 @@ router.post('/:id/transform', async (req, res) => {
         const { date_fin, caution, avance, periodicite = 'mensuel' } = req.body;
         // 1. Get the reservation
         const reservationResult = await database_1.default.query(`
-            SELECT l.*, lot.loyer_mensuel, lot.building_id
+            SELECT l.*, 
+                   COALESCE(lot.loyer_mensuel, l.loyer_actuel) as loyer_mensuel, 
+                   COALESCE(lot.building_id, l.lot_id /* which is null */) as building_id
             FROM leases l
-            JOIN lots lot ON l.lot_id = lot.id
+            LEFT JOIN lots lot ON l.lot_id = lot.id
             WHERE l.id = $1 AND l.type_contrat = 'reservation' AND l.statut = 'actif'
         `, [id]);
         if (reservationResult.rows.length === 0) {
@@ -230,8 +232,12 @@ router.post('/:id/transform', async (req, res) => {
             reservation.loyer_mensuel || reservation.loyer_actuel || 0,
             id
         ]);
-        // 4. Update lot status to 'occupe'
-        await database_1.default.query('UPDATE lots SET statut = $1 WHERE id = $2', ['occupe', reservation.lot_id]);
+        // 4. Update lot status to 'occupe' (if it is a lot)
+        if (reservation.lot_id) {
+            await database_1.default.query('UPDATE lots SET statut = $1 WHERE id = $2', ['occupe', reservation.lot_id]);
+        }
+        // If it's a building and no lot is attached, we wouldn't update the lots table.
+        // We could theoretically update buildings.statut if we had an 'occupe' status for buildings.
         // 5. Optionally: create first payment schedule entry (échéancier)
         // This can be added later as a more complete feature
         res.json({

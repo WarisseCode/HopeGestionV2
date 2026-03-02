@@ -173,10 +173,10 @@ router.post('/:id/validate', filterByOwner, async (req: AuthenticatedRequest, re
             [statut, id, 'reservation']
         );
 
-        // If accepted, update lot status to 'reserve'
+        // If accepted, update lot status to 'reserve' (only if a specific lot is attached)
         if (statut === 'actif') {
             const leaseResult = await pool.query('SELECT lot_id FROM leases WHERE id = $1', [id]);
-            if (leaseResult.rows.length > 0) {
+            if (leaseResult.rows.length > 0 && leaseResult.rows[0].lot_id) {
                 await pool.query('UPDATE lots SET statut = $1 WHERE id = $2', ['reserve', leaseResult.rows[0].lot_id]);
             }
         }
@@ -200,9 +200,11 @@ router.post('/:id/transform', async (req: AuthenticatedRequest, res: Response) =
         
         // 1. Get the reservation
         const reservationResult = await pool.query(`
-            SELECT l.*, lot.loyer_mensuel, lot.building_id
+            SELECT l.*, 
+                   COALESCE(lot.loyer_mensuel, l.loyer_actuel) as loyer_mensuel, 
+                   COALESCE(lot.building_id, l.lot_id /* which is null */) as building_id
             FROM leases l
-            JOIN lots lot ON l.lot_id = lot.id
+            LEFT JOIN lots lot ON l.lot_id = lot.id
             WHERE l.id = $1 AND l.type_contrat = 'reservation' AND l.statut = 'actif'
         `, [id]);
 
@@ -241,8 +243,12 @@ router.post('/:id/transform', async (req: AuthenticatedRequest, res: Response) =
             id
         ]);
 
-        // 4. Update lot status to 'occupe'
-        await pool.query('UPDATE lots SET statut = $1 WHERE id = $2', ['occupe', reservation.lot_id]);
+        // 4. Update lot status to 'occupe' (if it is a lot)
+        if (reservation.lot_id) {
+            await pool.query('UPDATE lots SET statut = $1 WHERE id = $2', ['occupe', reservation.lot_id]);
+        }
+        // If it's a building and no lot is attached, we wouldn't update the lots table.
+        // We could theoretically update buildings.statut if we had an 'occupe' status for buildings.
 
         // 5. Optionally: create first payment schedule entry (échéancier)
         // This can be added later as a more complete feature
