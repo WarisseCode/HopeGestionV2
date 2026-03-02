@@ -257,9 +257,9 @@ router.post('/:id/transform', async (req: AuthenticatedRequest, res: Response) =
             message: 'Réservation transformée en bail avec succès',
             reference: newReference 
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error transforming reservation:', error);
-        res.status(500).json({ message: 'Erreur lors de la transformation' });
+        res.status(500).json({ message: `Erreur interne: ${error.message}` });
     }
 });
 

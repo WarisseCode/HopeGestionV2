@@ -247,7 +247,7 @@ router.post('/:id/transform', async (req, res) => {
     }
     catch (error) {
         console.error('Error transforming reservation:', error);
-        res.status(500).json({ message: 'Erreur lors de la transformation' });
+        res.status(500).json({ message: `Erreur interne: ${error.message}` });
     }
 });
 exports.default = router;
