@@ -293,14 +293,14 @@ const Alertes: React.FC = () => {
                     )}
                      <div className="overflow-x-auto">
                     <table className="table w-full">
-                        <thead className="bg-base-200/50">
+                        <thead className="bg-base-200/80 text-base-content/70 text-xs uppercase tracking-wider">
                             <tr>
-                                <th className="py-4 pl-6 text-base-content/60 font-semibold">Référence</th>
-                                <th className="text-base-content/60 font-semibold">Alerte</th>
-                                <th className="text-base-content/60 font-semibold">Type</th>
-                                <th className="text-base-content/60 font-semibold">Priorité</th>
-                                <th className="text-base-content/60 font-semibold">Date</th>
-                                <th className="pr-6 text-right text-base-content/60 font-semibold">Action</th>
+                                <th className="py-5 pl-6 font-bold rounded-tl-xl">Référence</th>
+                                <th className="font-bold">Alerte</th>
+                                <th className="font-bold">Type</th>
+                                <th className="font-bold">Priorité</th>
+                                <th className="font-bold">Date</th>
+                                <th className="pr-6 text-right font-bold rounded-tr-xl">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -308,13 +308,23 @@ const Alertes: React.FC = () => {
                                 <tr><td colSpan={6} className="text-center py-12"><span className="loading loading-spinner loading-lg text-primary"></span></td></tr>
                             ) : alertes.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="text-center py-20 px-6">
-                                        <div className="flex flex-col items-center justify-center space-y-4">
-                                            <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center text-success mb-2">
-                                                <CheckCircle size={40} />
+                                    <td colSpan={6} className="text-center py-24 px-6 bg-base-100/30">
+                                        <div className="flex flex-col items-center justify-center space-y-5">
+                                            <div className="relative">
+                                                <div className="w-24 h-24 bg-success/10 rounded-full flex items-center justify-center text-success mb-2 shadow-inner ring-4 ring-success/5">
+                                                    <CheckCircle size={48} strokeWidth={1.5} />
+                                                </div>
+                                                <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-base-100 rounded-full flex items-center justify-center shadow-md">
+                                                    <div className="w-6 h-6 bg-success/20 rounded-full animate-ping absolute"></div>
+                                                    <div className="w-4 h-4 bg-success rounded-full"></div>
+                                                </div>
                                             </div>
-                                            <h3 className="text-xl font-bold text-base-content/90">Aucune alerte active</h3>
-                                            <p className="text-base-content/60 max-w-sm mx-auto">Votre parc immobilier est fluide, aucun événement ne requiert votre attention immédiate pour le moment !</p>
+                                            <div className="space-y-1">
+                                                <h3 className="text-2xl font-bold text-base-content">L'esprit tranquille</h3>
+                                                <p className="text-base-content/60 max-w-md mx-auto text-sm leading-relaxed">
+                                                    Votre parc immobilier est sous contrôle. Aucun événement ne requiert votre attention immédiate pour le moment !
+                                                </p>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -378,47 +388,55 @@ const Alertes: React.FC = () => {
                      {loading ? (
                          <div className="text-center py-12"><span className="loading loading-spinner loading-lg text-primary"></span></div>
                      ) : notifications.length === 0 ? (
-                         <div className="flex justify-center items-center py-24">
-                             <div className="flex flex-col items-center justify-center space-y-4 text-center">
-                                 <div className="w-20 h-20 bg-base-200 rounded-full flex items-center justify-center text-base-content/40 mb-2 shadow-inner">
-                                     <Bell size={40} />
+                         <div className="flex justify-center items-center py-32 bg-base-100 rounded-2xl border border-base-200/50 shadow-sm">
+                             <div className="flex flex-col items-center justify-center space-y-5 text-center">
+                                 <div className="w-24 h-24 bg-gradient-to-tr from-base-200 to-base-300 rounded-3xl rotate-3 flex items-center justify-center text-base-content/30 mb-2 shadow-inner border border-base-100">
+                                     <div className="-rotate-3">
+                                         <Bell size={44} strokeWidth={1.5} />
+                                     </div>
                                  </div>
-                                 <h3 className="text-xl font-bold text-base-content/90">Aucune notification</h3>
-                                 <p className="text-base-content/60 max-w-sm mx-auto">Vous êtes à jour. Vous recevrez ici les confirmations et rappels divers du système.</p>
+                                 <div className="space-y-1">
+                                    <h3 className="text-2xl font-bold text-base-content">Boîte de réception vide</h3>
+                                    <p className="text-base-content/50 max-w-md mx-auto text-sm">
+                                        Vous êtes parfaitement à jour. Les confirmations, rapports et rappels du système apparaîtront ici.
+                                    </p>
+                                 </div>
                              </div>
                          </div>
                      ) : (
                          notifications.map(notif => (
-                             <Card key={notif.id} className={`border-l-4 ${!notif.is_read ? 'border-l-primary bg-primary/5' : 'border-l-base-200 bg-base-100/60 backdrop-blur-sm'} hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer`}
+                             <Card key={notif.id} className={`border-none ${!notif.is_read ? 'bg-primary/5 ring-1 ring-primary/20' : 'bg-base-100/60 backdrop-blur-sm border border-base-200'} hover:shadow-xl hover:shadow-base-content/5 transition-all duration-300 hover:-translate-y-1 cursor-pointer group`}
                                 onClick={async () => {
                                     if (!notif.is_read) await handleMarkAsRead(notif.id);
                                     if (notif.link) navigate(notif.link);
                                 }}
                              >
-                                 <div className="flex flex-col md:flex-row justify-between gap-4">
-                                     <div className="flex items-start gap-4">
-                                         <div className={`p-3 rounded-full ${notif.type === 'success' ? 'bg-green-100 text-green-600' : notif.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                                             {notif.type === 'success' ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
+                                 <div className="flex flex-col md:flex-row justify-between gap-5">
+                                     <div className="flex items-start gap-5">
+                                         <div className={`p-3.5 rounded-2xl ${notif.type === 'success' ? 'bg-green-100/80 text-green-600 dark:bg-green-900/30' : notif.type === 'error' ? 'bg-red-100/80 text-red-600 dark:bg-red-900/30' : 'bg-blue-100/80 text-blue-600 dark:bg-blue-900/30'} flex-shrink-0 shadow-sm`}>
+                                             {notif.type === 'success' ? <CheckCircle size={22} /> : <AlertTriangle size={22} />}
                                          </div>
-                                         <div>
-                                             <div className="flex items-center gap-2 mb-1">
-                                                 <h3 className={`font-bold ${!notif.is_read ? 'text-base-content' : 'text-base-content/60'}`}>{notif.title}</h3>
-                                                 {!notif.is_read && <span className="badge badge-primary badge-xs text-white">Nouveau</span>}
+                                         <div className="pt-1">
+                                             <div className="flex items-center gap-3 mb-1.5">
+                                                 <h3 className={`text-[15px] font-bold ${!notif.is_read ? 'text-base-content' : 'text-base-content/70 group-hover:text-base-content transition-colors'}`}>{notif.title}</h3>
+                                                 {!notif.is_read && <span className="badge badge-primary badge-sm px-2 py-2 text-[10px] font-bold tracking-wider text-white shadow-sm ring-1 ring-primary/20">NOUVEAU</span>}
                                              </div>
-                                             <p className="text-sm text-base-content/70">{notif.message}</p>
-                                             <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                                                 <span className="flex items-center gap-1"><Clock size={12}/> {new Date(notif.created_at).toLocaleString()}</span>
+                                             <p className="text-sm text-base-content/60 leading-relaxed max-w-2xl">{notif.message}</p>
+                                             <div className="flex items-center gap-4 mt-3 text-xs font-medium text-base-content/40">
+                                                 <span className="flex items-center gap-1.5 bg-base-200/50 px-2.5 py-1 rounded-md"><Clock size={12}/> {new Date(notif.created_at).toLocaleString()}</span>
                                              </div>
                                          </div>
                                      </div>
-                                     <div className="flex items-center gap-2 self-end md:self-center">
+                                     <div className="flex items-center gap-3 self-end md:self-center">
                                          {notif.link && (
-                                             <Button variant="primary" size="sm" className="btn-xs gap-1 text-white" onClick={(e) => { e.stopPropagation(); if (!notif.is_read) handleMarkAsRead(notif.id); navigate(notif.link!); }}>
-                                                 Voir <ArrowRight size={12}/>
+                                             <Button variant="primary" size="sm" className="h-9 px-4 gap-2 text-white shadow-md shadow-primary/20 hover:shadow-primary/40 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); if (!notif.is_read) handleMarkAsRead(notif.id); navigate(notif.link!); }}>
+                                                 Consulter
                                              </Button>
                                          )}
                                          {!notif.is_read && (
-                                             <Button variant="ghost" size="sm" className="text-gray-400 hover:text-primary" onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notif.id); }}>Marquer comme lu</Button>
+                                             <button className="btn btn-ghost btn-circle btn-sm text-base-content/40 hover:text-primary hover:bg-primary/10 transition-colors tooltip tooltip-left" data-tip="Marquer comme lu" onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notif.id); }}>
+                                                 <CheckCircle size={18} />
+                                             </button>
                                          )}
                                      </div>
                                  </div>
