@@ -128,11 +128,12 @@ router.get('/', filterByOwner, async (req: AuthenticatedRequest, res: Response) 
         const result = await pool.query(`
             SELECT l.*, 
                    t.nom as locataire_nom, t.prenoms as locataire_prenoms, t.telephone_principal,
-                   lot.ref_lot, b.nom as immeuble_nom
+                   COALESCE(lot.ref_lot, 'Immeuble Complet') as ref_lot, 
+                   COALESCE(b.nom, 'Non assigné') as immeuble_nom
             FROM leases l
             JOIN tenants t ON l.tenant_id = t.id
-            JOIN lots lot ON l.lot_id = lot.id
-            JOIN buildings b ON lot.building_id = b.id
+            LEFT JOIN lots lot ON l.lot_id = lot.id
+            LEFT JOIN buildings b ON lot.building_id = b.id
             WHERE l.type_contrat = 'reservation'
             AND ${whereClause.replace(/owner_id/g, 'l.owner_id')}
             ORDER BY l.created_at DESC
