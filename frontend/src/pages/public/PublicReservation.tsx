@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 // @ts-ignore
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { API_URL } from '../../config';
 
 const PublicReservation: React.FC = () => {
     const { lotId } = useParams();
@@ -33,7 +34,7 @@ const PublicReservation: React.FC = () => {
             // Fetch real lot data from public API
             const fetchLot = async () => {
                 try {
-                    const res = await fetch(`http://localhost:5000/api/public/lots/${lotId}`);
+                    const res = await fetch(`${API_URL}/public/lots/${lotId}`);
                     if (res.ok) {
                         const data = await res.json();
                         setLot({
@@ -75,7 +76,7 @@ const PublicReservation: React.FC = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await fetch(`http://localhost:5000/api/reservations/public`, {
+            const res = await fetch(`${API_URL}/reservations/public`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -175,7 +176,7 @@ const PublicReservation: React.FC = () => {
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-base-content/60 uppercase">Téléphone (WhatsApp)</label>
                                     <div className="relative">
-                                        <input required type="tel" className="w-full pl-10 pr-4 py-3 bg-base-200 text-base-content placeholder-base-content/50 border-none rounded-xl focus:ring-2 focus:ring-primary" placeholder="+225 07..."
+                                        <input required type="tel" className="w-full pl-10 pr-4 py-3 bg-base-200 text-base-content placeholder-base-content/50 border-none rounded-xl focus:ring-2 focus:ring-primary" placeholder="+229 01..."
                                             value={formData.telephone} onChange={e => setFormData({...formData, telephone: e.target.value})} />
                                         <Phone size={18} className="absolute left-3 top-3.5 text-base-content/40" />
                                     </div>
