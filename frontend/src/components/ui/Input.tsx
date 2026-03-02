@@ -63,7 +63,7 @@ const Input: React.FC<InputProps> = ({
         `}
       >
         {startIcon && (
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-base-content/40">
             {startIcon}
           </div>
         )}
@@ -79,7 +79,7 @@ const Input: React.FC<InputProps> = ({
             bg-transparent border-0 
             focus:ring-0 focus:outline-none 
             text-base-content 
-            placeholder:text-gray-400
+            placeholder:text-base-content/40
             text-sm
             ${className}
           `}
@@ -89,7 +89,7 @@ const Input: React.FC<InputProps> = ({
             <AlertCircle size={18} />
           </div>
         ) : endIcon ? (
-          <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400">
+          <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-base-content/40">
             {endIcon}
           </div>
         ) : null}

@@ -108,7 +108,7 @@ const PublicReservation: React.FC = () => {
                         Votre référence : <span className="font-mono font-bold text-base-content bg-base-300 px-2 py-1 rounded">{reference}</span><br/>
                         Un gestionnaire va vous recontacter sur WhatsApp très rapidement.
                     </p>
-                    <button onClick={() => window.location.href = '/'} className="btn-primary w-full justify-center">
+                    <button onClick={() => window.location.href = '/'} className="btn btn-primary text-white w-full justify-center">
                         Retour à l'accueil
                     </button>
                 </motion.div>
@@ -160,14 +160,14 @@ const PublicReservation: React.FC = () => {
                                     <div className="space-y-1">
                                         <label className="text-xs font-bold text-base-content/60 uppercase">Nom</label>
                                         <div className="relative">
-                                            <input required type="text" className="w-full pl-10 pr-4 py-3 bg-base-200 border-none rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="Nom"
+                                            <input required type="text" className="w-full pl-10 pr-4 py-3 bg-base-200 text-base-content placeholder-base-content/50 border-none rounded-xl focus:ring-2 focus:ring-primary" placeholder="Nom"
                                                 value={formData.nom} onChange={e => setFormData({...formData, nom: e.target.value})} />
-                                            <User size={18} className="absolute left-3 top-3.5 text-gray-400" />
+                                            <User size={18} className="absolute left-3 top-3.5 text-base-content/40" />
                                         </div>
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-xs font-bold text-base-content/60 uppercase">Prénoms</label>
-                                        <input required type="text" className="w-full px-4 py-3 bg-base-200 border-none rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="Prénoms"
+                                        <input required type="text" className="w-full px-4 py-3 bg-base-200 text-base-content placeholder-base-content/50 border-none rounded-xl focus:ring-2 focus:ring-primary" placeholder="Prénoms"
                                             value={formData.prenoms} onChange={e => setFormData({...formData, prenoms: e.target.value})} />
                                     </div>
                                 </div>
@@ -175,23 +175,23 @@ const PublicReservation: React.FC = () => {
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-base-content/60 uppercase">Téléphone (WhatsApp)</label>
                                     <div className="relative">
-                                        <input required type="tel" className="w-full pl-10 pr-4 py-3 bg-base-200 border-none rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="+225 07..."
+                                        <input required type="tel" className="w-full pl-10 pr-4 py-3 bg-base-200 text-base-content placeholder-base-content/50 border-none rounded-xl focus:ring-2 focus:ring-primary" placeholder="+225 07..."
                                             value={formData.telephone} onChange={e => setFormData({...formData, telephone: e.target.value})} />
-                                        <Phone size={18} className="absolute left-3 top-3.5 text-gray-400" />
+                                        <Phone size={18} className="absolute left-3 top-3.5 text-base-content/40" />
                                     </div>
-                                    <p className="text-xs text-blue-500 flex items-center gap-1"><Info size={12}/> Important pour validation rapide</p>
+                                    <p className="text-xs text-primary flex items-center gap-1"><Info size={12}/> Important pour validation rapide</p>
                                 </div>
 
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-base-content/60 uppercase">Email (Optionnel)</label>
                                     <div className="relative">
-                                        <input type="email" className="w-full pl-10 pr-4 py-3 bg-base-200 border-none rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="exemple@email.com"
+                                        <input type="email" className="w-full pl-10 pr-4 py-3 bg-base-200 text-base-content placeholder-base-content/50 border-none rounded-xl focus:ring-2 focus:ring-primary" placeholder="exemple@email.com"
                                             value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-                                        <Mail size={18} className="absolute left-3 top-3.5 text-gray-400" />
+                                        <Mail size={18} className="absolute left-3 top-3.5 text-base-content/40" />
                                     </div>
                                 </div>
                                 
-                                <button type="button" onClick={() => setStep(1)} className="w-full btn-primary py-4 text-lg justify-center mt-4">
+                                <button type="button" onClick={() => setStep(1)} className="btn btn-primary text-white w-full py-4 text-lg justify-center mt-4">
                                     Suivant <ArrowRight size={20} className="ml-2" />
                                 </button>
                             </motion.div>
@@ -199,19 +199,19 @@ const PublicReservation: React.FC = () => {
 
                         {step === 1 && (
                             <motion.div initial={{x: 20, opacity:0}} animate={{x:0, opacity:1}} className="space-y-4">
-                                <button type="button" onClick={() => setStep(0)} className="text-sm font-bold text-gray-400 hover:text-base-content/70 mb-2">← Retour</button>
+                                <button type="button" onClick={() => setStep(0)} className="text-sm font-bold text-base-content/50 hover:text-base-content mb-2 transition-colors">← Retour</button>
                                 
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-base-content/60 uppercase">Type de Projet</label>
                                     <div className="grid grid-cols-2 gap-3">
                                         <button type="button" 
                                             onClick={() => setFormData({...formData, type_projet: 'location'})}
-                                            className={`p-3 rounded-xl border-2 font-bold transition ${formData.type_projet === 'location' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-base-300 text-gray-400'}`}>
+                                            className={`p-3 rounded-xl border-2 font-bold transition flex items-center justify-center ${formData.type_projet === 'location' ? 'border-primary bg-primary/10 text-primary' : 'border-base-300 text-base-content/50 hover:border-base-content/30 hover:bg-base-200/50'}`}>
                                             Location Simple
                                         </button>
                                         <button type="button" 
                                             onClick={() => setFormData({...formData, type_projet: 'achat'})}
-                                            className={`p-3 rounded-xl border-2 font-bold transition ${formData.type_projet === 'achat' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-base-300 text-gray-400'}`}>
+                                            className={`p-3 rounded-xl border-2 font-bold transition flex items-center justify-center ${formData.type_projet === 'achat' ? 'border-primary bg-primary/10 text-primary' : 'border-base-300 text-base-content/50 hover:border-base-content/30 hover:bg-base-200/50'}`}>
                                             Achat / Vente
                                         </button>
                                     </div>
@@ -220,30 +220,30 @@ const PublicReservation: React.FC = () => {
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-base-content/60 uppercase">Date souhaitée</label>
                                     <div className="relative">
-                                        <input required type="date" className="w-full pl-10 pr-4 py-3 bg-base-200 border-none rounded-xl focus:ring-2 focus:ring-blue-500"
+                                        <input required type="date" className="w-full pl-10 pr-4 py-3 bg-base-200 text-base-content border-none rounded-xl focus:ring-2 focus:ring-primary"
                                             value={formData.date_debut} onChange={e => setFormData({...formData, date_debut: e.target.value})} />
-                                        <Calendar size={18} className="absolute left-3 top-3.5 text-gray-400" />
+                                        <Calendar size={18} className="absolute left-3 top-3.5 text-base-content/40" />
                                     </div>
                                 </div>
 
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-base-content/60 uppercase">Message (Optionnel)</label>
-                                    <textarea className="w-full px-4 py-3 bg-base-200 border-none rounded-xl focus:ring-2 focus:ring-blue-500 h-24" 
+                                    <textarea className="w-full px-4 py-3 bg-base-200 text-base-content placeholder-base-content/50 border-none rounded-xl focus:ring-2 focus:ring-primary h-24" 
                                         placeholder="Précisions sur votre demande..."
                                         value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} />
                                 </div>
 
-                                <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                                <div className="bg-warning/10 p-4 rounded-xl border border-warning/20">
                                     <div className="flex gap-3">
-                                        <Clock className="text-orange-500 shrink-0" size={24} />
-                                        <p className="text-xs font-medium text-orange-800 leading-relaxed">
+                                        <Clock className="text-warning shrink-0" size={24} />
+                                        <p className="text-xs font-medium text-warning-content leading-relaxed">
                                             Cette réservation est valable <span className="font-bold">24 heures</span> en attente de validation. Un acompte pourra être demandé.
                                         </p>
                                     </div>
                                 </div>
 
-                                <button type="submit" disabled={loading} className="w-full btn-primary py-4 text-lg justify-center shadow-blue-500/30 shadow-lg hover:shadow-xl transition-all">
-                                    {loading ? 'Envoi...' : 'Confirmer la Demande'}
+                                <button type="submit" disabled={loading} className="btn btn-primary text-white w-full py-4 text-lg justify-center shadow-primary/30 shadow-lg hover:shadow-xl transition-all">
+                                    {loading ? <span className="loading loading-spinner"></span> : 'Confirmer la Demande'}
                                 </button>
                             </motion.div>
                         )}
