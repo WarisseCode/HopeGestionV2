@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Bell, 
-  Plus, 
   Edit3, 
   Eye, 
   Trash2, 
@@ -10,7 +9,6 @@ import {
   Home,
   FileText,
   Mail,
-  MessageCircle,
   Settings,
   CheckCircle,
   XCircle,
@@ -27,21 +25,18 @@ import { useNavigate } from 'react-router-dom';
 import { playNotificationSound } from '../utils/sound';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
-import Input from '../components/ui/Input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { KPICard } from '../components/dashboard';
 import { getNotifications, markAsRead, markAllAsRead } from '../api/notificationApi';
 import type { AppNotification } from '../api/notificationApi';
 import { getAlerts, dismissAlert, resetDismissedAlerts } from '../api/alertApi';
 import type { Alert } from '../api/alertApi';
-import { getNotificationSettings, updateNotificationSettings, sendTestNotification } from '../api/notificationApi';
+import { getNotificationSettings, updateNotificationSettings } from '../api/notificationApi';
 import type { NotificationSetting } from '../api/notificationApi';
 
 const Alertes: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'alertes' | 'notifications' | 'parametres'>('alertes');
-  const [showForm, setShowForm] = useState(false);
-  const [formType, setFormType] = useState<'alerte' | 'notification' | 'parametre'>('alerte');
   
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -53,10 +48,6 @@ const Alertes: React.FC = () => {
 
   const [parametres, setParametres] = useState<NotificationSetting[]>([]);
   const [savingSettingId, setSavingSettingId] = useState<string | null>(null);
-
-  // Test Notification form
-  const [testNotifForm, setTestNotifForm] = useState({ type: 'info', message: '' });
-  const [sendingTestNotif, setSendingTestNotif] = useState(false);
 
   const ALERT_TYPE_LABELS: Record<string, { label: string, desc: string }> = {
     'PAYMENT_REMINDER': { label: 'Rappel de loyer', desc: 'Notification avant la date d\'échéance' },
@@ -203,28 +194,6 @@ const Alertes: React.FC = () => {
       }
   };
 
-  const handleSendTestNotif = async () => {
-      if (!testNotifForm.message.trim()) {
-          toast.error('Veuillez entrer un message');
-          return;
-      }
-      try {
-          setSendingTestNotif(true);
-          await sendTestNotification(testNotifForm.type, testNotifForm.message);
-          toast.success('Notification de test envoyée !');
-          setShowForm(false);
-          setTestNotifForm({ type: 'info', message: '' });
-          // Reload notifications
-          const notifsData = await getNotifications();
-          setNotifications(notifsData.notifications || []);
-          setUnreadCount(notifsData.unreadCount || 0);
-      } catch (err: any) {
-          toast.error(err.message || 'Erreur');
-      } finally {
-          setSendingTestNotif(false);
-      }
-  };
-
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -256,18 +225,6 @@ const Alertes: React.FC = () => {
             {activeTab === 'notifications' && (
                 <Button variant="ghost" onClick={handleMarkAllRead} className="text-sm">Tout marquer comme lu</Button>
             )}
-            <Button 
-            variant="primary" 
-            className="rounded-full px-6 h-10 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all font-semibold"
-            onClick={() => {
-                setFormType(activeTab === 'alertes' ? 'alerte' : activeTab === 'notifications' ? 'notification' : 'parametre');
-                setShowForm(true);
-            }}
-            >
-            <Plus size={18} className="mr-2" />
-            {activeTab === 'alertes' ? 'Simuler Alerte' : 
-            activeTab === 'notifications' ? 'Test Notification' : 'Nouveau Paramètre'}
-            </Button>
         </div>
       </motion.div>
 
@@ -308,68 +265,6 @@ const Alertes: React.FC = () => {
 
       {/* Contenu principal */}
       <AnimatePresence mode="wait">
-      {showForm ? (
-          <motion.div
-            key="form"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-          >
-            <Card className="border-none shadow-xl bg-base-100/80 backdrop-blur-sm">
-                <div className="flex justify-between items-center mb-6 pb-6 border-b border-base-200">
-                    <h2 className="text-xl font-bold text-base-content/90">
-                        {formType === 'notification' ? 'Test Notification' : 'Simulation d\'Alerte'}
-                    </h2>
-                    <Button variant="ghost" onClick={() => setShowForm(false)} className="btn-circle btn-sm">
-                        <XCircle size={24} className="text-gray-400" />
-                    </Button>
-                </div>
-
-                {formType === 'notification' && (
-                    <div className="space-y-4">
-                        <div>
-                            <label className="text-sm font-semibold text-base-content/70 mb-2 block">Type</label>
-                            <select
-                                value={testNotifForm.type}
-                                onChange={e => setTestNotifForm({...testNotifForm, type: e.target.value})}
-                                className="select select-bordered w-full"
-                            >
-                                <option value="info">ℹ️ Info</option>
-                                <option value="success">✅ Succès</option>
-                                <option value="warning">⚠️ Avertissement</option>
-                                <option value="error">❌ Erreur</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-sm font-semibold text-base-content/70 mb-2 block">Message</label>
-                            <textarea
-                                value={testNotifForm.message}
-                                onChange={e => setTestNotifForm({...testNotifForm, message: e.target.value})}
-                                placeholder="Ex: Loyer du lot B203 reçu le 01/03/2026"
-                                className="textarea textarea-bordered w-full h-28 resize-none"
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {formType !== 'notification' && (
-                    <div className="p-8 text-center text-base-content/60">
-                        Fonctionnalité de simulation manuelle à venir.
-                    </div>
-                )}
-
-                <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-base-200">
-                    <Button variant="ghost" onClick={() => setShowForm(false)}>Fermer</Button>
-                    {formType === 'notification' && (
-                        <Button variant="primary" onClick={handleSendTestNotif} disabled={sendingTestNotif}>
-                            {sendingTestNotif ? <span className="loading loading-spinner loading-xs mr-2"></span> : null}
-                            Envoyer la notification
-                        </Button>
-                    )}
-                </div>
-            </Card>
-          </motion.div>
-      ) : (
         <motion.div
             key="list"
             initial={{ opacity: 0 }}
@@ -585,7 +480,6 @@ const Alertes: React.FC = () => {
                  </div>
             )}
         </motion.div>
-      )}
       </AnimatePresence>
     </motion.div>
   );
