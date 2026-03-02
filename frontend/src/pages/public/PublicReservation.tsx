@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { MapPin, Calendar, Clock, ArrowRight, User, Phone, Mail, CheckCircle, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 // @ts-ignore
@@ -9,7 +9,6 @@ import { API_URL } from '../../config';
 
 const PublicReservation: React.FC = () => {
     const { lotId } = useParams();
-    const navigate = useNavigate();
     const [step, setStep] = useState(0);
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -17,7 +16,7 @@ const PublicReservation: React.FC = () => {
     const [lot, setLot] = useState<any>(null);
 
     const [formData, setFormData] = useState({
-        lot_id: parseInt(lotId || '0'),
+        lot_id: lotId || '0',
         nom: '',
         prenoms: '',
         email: '',
@@ -27,7 +26,7 @@ const PublicReservation: React.FC = () => {
         message: ''
     });
 
-    const [loadingLot, setLoadingLot] = useState(true);
+
 
     useEffect(() => {
         if (lotId) {
@@ -64,8 +63,6 @@ const PublicReservation: React.FC = () => {
                     }
                 } catch (err) {
                     console.error('Error fetching lot:', err);
-                } finally {
-                    setLoadingLot(false);
                 }
             };
             fetchLot();

@@ -127,8 +127,58 @@ router.get('/lots', async (req: Request, res: Response) => {
 // GET /api/public/lots/:id - Get single lot details for reservation page
 router.get('/lots/:id', async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
+        const id = req.params.id || '';
         
+        if (!id) {
+            return res.status(400).json({ message: 'ID requis' });
+        }
+        
+        const isBuilding = id.startsWith('b-');
+        const dbId = isBuilding ? parseInt(id.replace('b-', '')) : parseInt(id);
+
+        if (isNaN(dbId)) {
+            return res.status(400).json({ message: 'ID invalide' });
+        }
+
+        if (isBuilding) {
+            const buildingResult = await pool.query(`
+                SELECT b.*, o.name as proprietaire_nom
+                FROM buildings b
+                LEFT JOIN owners o ON b.owner_id = o.id
+                WHERE b.id = $1
+            `, [dbId]);
+
+            if (buildingResult.rows.length === 0) {
+                return res.status(404).json({ message: 'Immeuble introuvable' });
+            }
+
+            const building = buildingResult.rows[0];
+            let imageUrl = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80';
+            if (building.photos && building.photos.length > 0) {
+                const photos = Array.isArray(building.photos) ? building.photos : [building.photos];
+                if (photos[0]) imageUrl = photos[0];
+            }
+
+            return res.json({
+                id: `b-${building.id}`,
+                ref_lot: `B-${building.id}`,
+                type: building.type || 'Immeuble',
+                description: building.nom || building.description || 'Immeuble complet',
+                surface: 0,
+                loyer: 0, // Un immeuble n'a pas forcément de loyer global directement visible à ce niveau sans lots
+                ville: building.ville || 'Abidjan',
+                quartier: building.quartier || '',
+                adresse: building.adresse || '',
+                immeuble: building.nom,
+                latitude: parseFloat(building.latitude) || 5.345,
+                longitude: parseFloat(building.longitude) || -4.024,
+                image: imageUrl,
+                statut: building.statut,
+                proprietaire: building.proprietaire_nom
+            });
+        }
+
+        // --- LOT EXISTANT ---
         const result = await pool.query(`
             SELECT 
                 l.id,
@@ -152,7 +202,7 @@ router.get('/lots/:id', async (req: Request, res: Response) => {
             JOIN buildings b ON l.building_id = b.id
             LEFT JOIN owners o ON b.owner_id = o.id
             WHERE l.id = $1
-        `, [id]);
+        `, [dbId]);
         
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Lot introuvable' });
@@ -161,7 +211,8 @@ router.get('/lots/:id', async (req: Request, res: Response) => {
         const lot = result.rows[0];
         let imageUrl = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80';
         if (lot.photos && lot.photos.length > 0) {
-            imageUrl = lot.photos[0];
+            const photos = Array.isArray(lot.photos) ? lot.photos : [lot.photos];
+            if (photos[0]) imageUrl = photos[0];
         }
         
         res.json({

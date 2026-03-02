@@ -53,12 +53,32 @@ router.post('/public', async (req, res) => {
         if (!lot_id || !nom || !telephone) {
             return res.status(400).json({ message: 'Champs obligatoires manquants (Lot, Nom, Téléphone)' });
         }
-        // 1. Get Lot & Owner Info
-        const lotResult = await database_1.default.query('SELECT l.*, b.id as building_id, b.owner_id FROM lots l JOIN buildings b ON l.building_id = b.id WHERE l.id = $1', [lot_id]);
-        if (lotResult.rows.length === 0) {
-            return res.status(404).json({ message: 'Lot introuvable' });
+        // 1. Get Lot or Building & Owner Info
+        const lotIdStr = String(lot_id);
+        const isBuilding = lotIdStr.startsWith('b-');
+        const dbId = isBuilding ? parseInt(lotIdStr.replace('b-', '')) : parseInt(lotIdStr);
+        let ownerId = null;
+        let loyer = 0;
+        let descriptionReservation = `Réservation Web - Projet: ${type_projet}. Message: ${message || ''}`;
+        let actualLotId = null;
+        if (isBuilding) {
+            const buildResult = await database_1.default.query('SELECT * FROM buildings WHERE id = $1', [dbId]);
+            if (buildResult.rows.length === 0) {
+                return res.status(404).json({ message: 'Immeuble introuvable' });
+            }
+            ownerId = buildResult.rows[0].owner_id;
+            descriptionReservation = `Immeuble: ${buildResult.rows[0].nom}. ` + descriptionReservation;
+            // actualLotId reste null
         }
-        const lot = lotResult.rows[0];
+        else {
+            const lotResult = await database_1.default.query('SELECT l.*, b.id as building_id, b.owner_id FROM lots l JOIN buildings b ON l.building_id = b.id WHERE l.id = $1', [dbId]);
+            if (lotResult.rows.length === 0) {
+                return res.status(404).json({ message: 'Lot introuvable' });
+            }
+            ownerId = lotResult.rows[0].owner_id;
+            loyer = lotResult.rows[0].loyer_mensuel || 0;
+            actualLotId = dbId;
+        }
         // 2. Check if Tenant exists (by phone) or Create Prospect
         let tenantId;
         const tenantCheck = await database_1.default.query('SELECT id FROM tenants WHERE telephone_principal = $1', [telephone]);
@@ -89,12 +109,12 @@ router.post('/public', async (req, res) => {
             RETURNING id, reference_bail
         `, [
             tenantId,
-            lot_id,
-            lot.owner_id,
+            actualLotId,
+            ownerId,
             reference,
             date_debut || new Date(),
-            `Réservation Web - Projet: ${type_projet}. Message: ${message || ''}`,
-            lot.loyer_mensuel || 0
+            descriptionReservation,
+            loyer
         ]);
         // 4. Update Lot Status (Optional: maybe keep 'libre' until validation?)
         // Let's keep it 'libre' but maybe flagged? Or 'reserve_en_attente' if we added that status to enum?
