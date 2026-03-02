@@ -101,7 +101,7 @@ const PublicReservation: React.FC = () => {
                     <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                         <CheckCircle className="text-green-600" size={40} />
                     </div>
-                    <h2 className="text-2xl font-bold text-base-content mb-2">Demande Reçue !</h2>
+                    <h2 className="text-2xl font-bold text-base-content mb-2">Demande envoyée !</h2>
                     <p className="text-base-content/60 mb-6">
                         Votre référence : <span className="font-mono font-bold text-base-content bg-base-300 px-2 py-1 rounded">{reference}</span><br/>
                         Un gestionnaire va vous recontacter sur WhatsApp très rapidement.
