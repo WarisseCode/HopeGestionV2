@@ -6,6 +6,7 @@ import {
     ArrowRight, RefreshCw, Filter, ChevronDown, ExternalLink, Building
 } from 'lucide-react';
 import { getToken } from '../api/authApi';
+import { API_BASE } from '../config';
 
 interface Reservation {
     id: number;
@@ -31,7 +32,7 @@ const ReservationsList: React.FC = () => {
         setLoading(true);
         try {
             const token = getToken();
-            const res = await fetch('http://localhost:5000/api/reservations', {
+            const res = await fetch(`${API_BASE}/api/reservations`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!res.ok) throw new Error('Erreur chargement');
@@ -51,7 +52,7 @@ const ReservationsList: React.FC = () => {
         try {
             const token = getToken();
             const newStatus = action === 'accept' ? 'actif' : 'refuse';
-            const res = await fetch(`http://localhost:5000/api/reservations/${id}/validate`, {
+            const res = await fetch(`${API_BASE}/api/reservations/${id}/validate`, {
                 method: 'POST',
                 headers: { 
                     'Authorization': `Bearer ${token}`,
@@ -98,7 +99,7 @@ const ReservationsList: React.FC = () => {
         setTransformLoading(true);
         try {
             const token = getToken();
-            const res = await fetch(`http://localhost:5000/api/reservations/${transformingReservation.id}/transform`, {
+            const res = await fetch(`${API_BASE}/api/reservations/${transformingReservation.id}/transform`, {
                 method: 'POST',
                 headers: { 
                     'Authorization': `Bearer ${token}`,
