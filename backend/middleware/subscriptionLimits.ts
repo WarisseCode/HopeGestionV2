@@ -133,3 +133,50 @@ export const checkTenantLimit = async (req: AuthenticatedRequest, res: Response,
          return res.status(500).json({ message: 'Erreur interne lors de la vérification des limites.' });
     }
 };
+
+/**
+ * Middleware pour bloquer la création d'AGENCES MUTLIPLES (owners)
+ * si le plan n'est pas 'Entreprise'.
+ */
+export const checkAgencyLimit = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.userId;
+        if (!userId) return res.status(401).json({ message: 'Non authentifié' });
+
+        // Administrateurs non soumis aux limites
+        if (req.userRole === 'admin') {
+            return next();
+        }
+
+        const sub = await getUserSubscriptionDetails(userId);
+        
+        // Autorisation: Plan Enterprise
+        // On considère que les plans 'entreprise' autorisent le multi-agence. (nom = entreprise, entreprise_mensuel, etc.)
+        if (sub.plan_name && sub.plan_name.toLowerCase().includes('entreprise')) {
+            return next(); // Passe-droit validé
+        }
+
+        // Compter les agences (owners) déjà possédées par l'utilisateur
+        const countQuery = `
+            SELECT COUNT(id) as total_agencies
+            FROM owner_user
+            WHERE user_id = $1 AND role = 'owner' AND is_active = TRUE
+        `;
+        
+        const countResult = await pool.query(countQuery, [userId]);
+        const currentCount = parseInt(countResult.rows[0].total_agencies);
+
+        // Limite fixée à 1 pour tous les plans non-Entreprise
+        if (currentCount >= 1) {
+             return res.status(403).json({ 
+                 message: `Limite atteinte. Votre plan (${sub.plan_name}) permet un maximum de 1 agence. Passez au plan Entreprise pour gérer une structure multi-agences.` 
+             });
+        }
+
+        next();
+    } catch (error) {
+         console.error('Erreur checkAgencyLimit:', error);
+         return res.status(500).json({ message: 'Erreur interne lors de la vérification des agences.' });
+    }
+};
+

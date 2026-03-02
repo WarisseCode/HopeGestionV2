@@ -54,6 +54,7 @@ router.get('/status', authMiddleware_1.protect, async (req, res) => {
         // Récupération de l'usage actuel
         let countPropertiesRes = await index_1.pool.query(`SELECT COUNT(l.id) as total_lots FROM lots l JOIN buildings b ON l.building_id = b.id JOIN owner_user ou ON b.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
         let countTenantsRes = await index_1.pool.query(`SELECT COUNT(t.id) as total_tenants FROM tenants t JOIN owner_user ou ON t.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
+        let countAgenciesRes = await index_1.pool.query(`SELECT COUNT(id) as total_agencies FROM owner_user WHERE user_id = $1 AND role = 'owner' AND is_active = TRUE`, [userId]);
         res.json({
             subscription_id: subscription.id,
             plan: {
@@ -71,7 +72,8 @@ router.get('/status', authMiddleware_1.protect, async (req, res) => {
             is_premium: subscription.plan_name !== 'free',
             usage: {
                 current_properties: parseInt(countPropertiesRes.rows[0].total_lots),
-                current_tenants: parseInt(countTenantsRes.rows[0].total_tenants)
+                current_tenants: parseInt(countTenantsRes.rows[0].total_tenants),
+                current_agencies: parseInt(countAgenciesRes.rows[0].total_agencies)
             }
         });
     }

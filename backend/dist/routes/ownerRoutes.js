@@ -7,6 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const authMiddleware_1 = require("../middleware/authMiddleware");
 const ownerIsolation_1 = require("../middleware/ownerIsolation");
+const subscriptionLimits_1 = require("../middleware/subscriptionLimits");
 const database_1 = __importDefault(require("../db/database"));
 const router = (0, express_1.Router)();
 // GET /api/owners - Liste des propriétaires
@@ -72,7 +73,7 @@ router.get('/:id', authMiddleware_1.protect, ownerIsolation_1.checkOwnerAccess, 
     }
 });
 // POST /api/owners - Créer un nouveau propriétaire
-router.post('/', authMiddleware_1.protect, async (req, res) => {
+router.post('/', authMiddleware_1.protect, subscriptionLimits_1.checkAgencyLimit, async (req, res) => {
     try {
         const { type, name, first_name, phone, phone_secondary, email, address, city, country, id_number, photo, mobile_money_number, management_mode } = req.body;
         if (!name || !phone) {

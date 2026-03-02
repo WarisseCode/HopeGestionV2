@@ -24,6 +24,7 @@ export interface SubscriptionStatus {
     usage?: {
         current_properties: number;
         current_tenants: number;
+        current_agencies?: number;
     };
 }
 

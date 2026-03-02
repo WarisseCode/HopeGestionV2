@@ -2,6 +2,7 @@
 import { Router, Response } from 'express';
 import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 import { checkOwnerAccess } from '../middleware/ownerIsolation';
+import { checkAgencyLimit } from '../middleware/subscriptionLimits';
 import db from '../db/database';
 
 const router = Router();
@@ -81,7 +82,7 @@ router.get('/:id', protect, checkOwnerAccess, async (req: AuthenticatedRequest, 
 });
 
 // POST /api/owners - Créer un nouveau propriétaire
-router.post('/', protect, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', protect, checkAgencyLimit, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const {
             type, name, first_name, phone, phone_secondary, email,

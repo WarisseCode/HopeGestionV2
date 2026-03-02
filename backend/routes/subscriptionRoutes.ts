@@ -68,7 +68,10 @@ router.get('/status', protect, async (req: AuthenticatedRequest, res) => {
             `SELECT COUNT(t.id) as total_tenants FROM tenants t JOIN owner_user ou ON t.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`,
             [userId]
         );
-
+        let countAgenciesRes = await pool.query(
+            `SELECT COUNT(id) as total_agencies FROM owner_user WHERE user_id = $1 AND role = 'owner' AND is_active = TRUE`,
+            [userId]
+        );
         res.json({
             subscription_id: subscription.id,
             plan: {
@@ -86,7 +89,8 @@ router.get('/status', protect, async (req: AuthenticatedRequest, res) => {
             is_premium: subscription.plan_name !== 'free',
             usage: {
                 current_properties: parseInt(countPropertiesRes.rows[0].total_lots),
-                current_tenants: parseInt(countTenantsRes.rows[0].total_tenants)
+                current_tenants: parseInt(countTenantsRes.rows[0].total_tenants),
+                current_agencies: parseInt(countAgenciesRes.rows[0].total_agencies)
             }
         });
     } catch (error) {

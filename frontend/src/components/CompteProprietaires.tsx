@@ -9,6 +9,8 @@ import Card from './ui/Card';
 import ProprietaireForm from './proprietaires/ProprietaireForm';
 import { useMobile } from '../hooks/useMobile';
 import toast from 'react-hot-toast';
+import { getSubscriptionStatus } from '../api/subscriptionApi';
+import type { SubscriptionStatus } from '../api/subscriptionApi';
 
 interface Owner {
     id: number;
@@ -57,10 +59,21 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
     });
     
     const [editingProp, setEditingProp] = useState<any>(null);
+    const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
 
     useEffect(() => {
         loadOwners();
+        loadSubscription();
     }, []);
+
+    const loadSubscription = async () => {
+        try {
+            const status = await getSubscriptionStatus();
+            setSubscriptionStatus(status);
+        } catch (error) {
+            console.error('Erreur lors du chargement du statut abonnement', error);
+        }
+    };
 
     const loadOwners = async () => {
         try {
@@ -142,6 +155,10 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
     });
 
     const activeFiltersCount = (filterType !== 'all' ? 1 : 0) + (filterMode !== 'all' ? 1 : 0);
+
+    // Déterminer si l'aide au blocage Multi-Agences s'applique
+    const isEnterprisePlan = subscriptionStatus?.plan?.name?.toLowerCase().includes('entreprise');
+    const hasReachedAgencyLimit = Boolean(!isEnterprisePlan && (subscriptionStatus?.usage?.current_agencies ?? 0) >= 1);
 
     if (loading) return <div className="p-8 text-center text-base-content/60">Chargement des propriétaires...</div>;
 
@@ -301,16 +318,20 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                             </ul>
                         </div>
 
-                        <button 
-                            onClick={() => {
-                                setEditingProp(null);
-                                setShowForm(true);
-                            }}
-                            className="btn btn-primary btn-sm gap-2 h-10 shadow-sm"
-                        >
-                            <Plus size={18} /> 
-                            <span className="hidden sm:inline">Nouveau</span>
-                        </button>
+                        <div className="tooltip tooltip-left" data-tip={hasReachedAgencyLimit ? "Passez au plan Entreprise pour gérer plusieurs agences" : "Créer une nouvelle agence / propriétaire"}>
+                            <button 
+                                onClick={() => {
+                                    if(hasReachedAgencyLimit) return;
+                                    setEditingProp(null);
+                                    setShowForm(true);
+                                }}
+                                disabled={hasReachedAgencyLimit}
+                                className={`btn btn-sm gap-2 h-10 shadow-sm ${hasReachedAgencyLimit ? 'btn-disabled opacity-50 bg-base-300' : 'btn-primary'}`}
+                            >
+                                <Plus size={18} /> 
+                                <span className="hidden sm:inline">Nouveau</span>
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
