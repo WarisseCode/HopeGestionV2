@@ -393,10 +393,6 @@ const GestionnaireDashboard: React.FC = () => {
                 </div>
             )}
 
-            <Button variant="primary" className="rounded-full px-6 h-10 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all">
-                <Plus size={18} className="mr-2" />
-                Nouveau
-            </Button>
         </div>
       </motion.div>
 
