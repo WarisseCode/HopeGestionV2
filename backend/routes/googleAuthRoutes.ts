@@ -95,8 +95,8 @@ router.post('/google', async (req: Request, res: Response) => {
             isNewUser = true;
             
             const insertResult = await pool.query(
-                `INSERT INTO users (email, nom, google_id, auth_provider, avatar_url, user_type, role, statut)
-                 VALUES ($1, $2, $3, 'google', $4, 'pending', 'pending', 'actif')
+                `INSERT INTO users (email, nom, google_id, auth_provider, avatar_url, user_type, role, statut, is_verified)
+                 VALUES ($1, $2, $3, 'google', $4, 'pending', 'pending', 'actif', true)
                  RETURNING id, email, nom, user_type, role`,
                 [email, name || `${prenom} ${nom}`, googleId, photoUrl]
             );
