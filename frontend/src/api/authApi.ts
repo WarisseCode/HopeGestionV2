@@ -119,3 +119,21 @@ export async function linkTenant(_userId: number, invitationCode: string): Promi
     
     return data;
 }
+
+// Vérifier le code OTP
+export async function verifyEmail(email: string, otp: string): Promise<AuthResponse> {
+    const data = await apiCall<AuthResponse>(`${BASE_URL}/auth/verify-email`, {
+        method: 'POST',
+        body: JSON.stringify({ email, otp }),
+    });
+    return data;
+}
+
+// Renvoyer le code OTP
+export async function resendOtp(email: string): Promise<{ message: string }> {
+    const data = await apiCall<{ message: string }>(`${BASE_URL}/auth/resend-otp`, {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+    });
+    return data;
+}

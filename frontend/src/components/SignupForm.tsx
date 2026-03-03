@@ -84,9 +84,9 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
         formData.userType,
         formData.invitationCode
       );
+      // Rediriger vers la page de vérification d'email
+      navigate('/verify-email', { state: { email: formData.email } });
       
-      // Appeler la fonction de succès
-      onSignupSuccess();
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue lors de l\'inscription. Veuillez réessayer.');
       console.error('Erreur d\'inscription:', err);
@@ -272,7 +272,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
               className="w-full mt-6"
               disabled={loading}
             >
-              {loading ? 'Création en cours...' : 'Créer mon compte'}
+              {loading ? 'Inscription en cours...' : 'Créer mon compte'}
               <ArrowRight size={16} className="ml-2" />
             </Button>
           </form>

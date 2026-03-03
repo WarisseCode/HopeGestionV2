@@ -85,12 +85,43 @@ router.post('/register', async (req, res) => {
         // Hachage du mot de passe
         const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
         
+        // Génération de l'OTP (6 chiffres)
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
         // Insertion dans la base de données
         const result = await pool.query(
-            `INSERT INTO users (email, password_hash, nom, user_type, role, telephone) 
-             VALUES ($1, $2, TRIM($3 || ' ' || $4), $5, $5, $6) RETURNING id`,
-            [sanitizedEmail, password_hash, nom, prenoms, userType || 'gestionnaire', finalPhone]
+            `INSERT INTO users (email, password_hash, nom, user_type, role, telephone, is_verified, verification_otp, otp_expires_at) 
+             VALUES ($1, $2, TRIM($3 || ' ' || $4), $5, $5, $6, false, $7, $8) RETURNING id`,
+            [sanitizedEmail, password_hash, nom, prenoms, userType || 'gestionnaire', finalPhone, otp, otpExpiresAt]
         );
+
+        // Envoyer l'email avec le code OTP
+        try {
+            await EmailService.sendEmail(
+                sanitizedEmail,
+                'Vérification de votre compte - Hope Gestion',
+                `Bonjour ${prenoms},\n\nMerci de vous être inscrit sur Hope Gestion.\nVotre code de vérification est : ${otp}\nIl est valide pendant 15 minutes.\n\nL'équipe Hope Gestion.`,
+                `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+                    <div style="background-color: #2c3e50; padding: 20px; text-align: center;">
+                        <h1 style="color: white; margin: 0;">Code de vérification</h1>
+                    </div>
+                    <div style="padding: 20px; background-color: #f9f9f9; text-align: center;">
+                        <p style="font-size: 16px; color: #333;">Bonjour <strong>${prenoms}</strong>,</p>
+                        <p style="font-size: 16px; color: #333;">Merci de vous être inscrit. Utilisez le code ci-dessous pour vérifier votre compte :</p>
+                        <div style="margin: 30px 0; padding: 15px; background-color: white; border-radius: 8px; border: 2px dashed #3498db; display: inline-block;">
+                            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2c3e50;">${otp}</span>
+                        </div>
+                        <p style="font-size: 14px; margin-top: 20px; color: #666;">Ce code expire dans 15 minutes.</p>
+                    </div>
+                </div>
+                `
+            );
+        } catch (emailErr) {
+            console.error('[Auth] Failed to send verification email:', emailErr);
+            // On ne bloque pas l'inscription si l'email échoue (pour que l'utilisateur puisse demander un renvoi)
+        }
 
         // Log successful registration
         await AuditService.log({
@@ -248,7 +279,7 @@ router.post('/login', async (req, res) => {
 
         // 1. Rechercher l'utilisateur par email
         const result = await pool.query(
-            'SELECT id, password_hash, role, user_type, statut FROM users WHERE email = $1',
+            'SELECT id, password_hash, role, user_type, statut, is_verified FROM users WHERE email = $1',
             [sanitizedEmail]
         );
 
@@ -266,6 +297,14 @@ router.post('/login', async (req, res) => {
         if (utilisateur.statut === 'inactif' || utilisateur.statut === 'suspendu') {
             return res.status(401).json({ 
                 message: 'Votre compte est inactif ou suspendu. Veuillez contacter l\'administrateur.' 
+            });
+        }
+
+        // Vérifier si l'email est validé
+        if (utilisateur.is_verified === false) {
+             return res.status(403).json({ 
+                isVerified: false, 
+                message: 'Veuillez vérifier votre adresse email avec le code que nous vous avons envoyé.' 
             });
         }
 
@@ -330,6 +369,123 @@ router.post('/login', async (req, res) => {
             message: 'Une erreur est survenue lors de la connexion. Veuillez réessayer.',
             error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
         });
+    }
+});
+
+// 2a. Endpoint de VERIFICATION EMAIL (POST)
+router.post('/verify-email', async (req, res) => {
+    const { email, otp } = req.body;
+    try {
+        if (!email || !otp) {
+            return res.status(400).json({ message: 'Email et code de vérification requis.' });
+        }
+
+        const sanitizedEmail = email.trim().toLowerCase();
+        const result = await pool.query(
+            'SELECT id, verification_otp, otp_expires_at, is_verified, role, user_type FROM users WHERE email = $1',
+            [sanitizedEmail]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Utilisateur introuvable.' });
+        }
+
+        const user = result.rows[0];
+
+        if (user.is_verified) {
+            return res.status(400).json({ message: 'Cet email est déjà vérifié.' });
+        }
+
+        if (user.verification_otp !== otp.trim()) {
+             return res.status(400).json({ message: 'Code de vérification incorrect.' });
+        }
+
+        if (new Date(user.otp_expires_at) < new Date()) {
+             return res.status(400).json({ message: 'Ce code a expiré. Veuillez en demander un nouveau.' });
+        }
+
+        // Marquer comme vérifié et nettoyer les champs OTP
+        await pool.query(
+            'UPDATE users SET is_verified = true, verification_otp = NULL, otp_expires_at = NULL WHERE id = $1',
+            [user.id]
+        );
+
+        // Connexion automatique après vérification : on génère un token JWT
+        const expiresIn = process.env.JWT_EXPIRES_IN || '24h';
+        const token = jwt.sign(
+            { id: user.id, role: user.role, userType: user.user_type || 'gestionnaire' },
+            JWT_SECRET,
+            { expiresIn } as any
+        );
+
+        res.status(200).json({
+            message: 'Email vérifié avec succès.',
+            token,
+            role: user.role,
+            userId: user.id
+        });
+
+    } catch (error) {
+        console.error('Erreur verify-email:', error);
+        res.status(500).json({ message: 'Erreur interne lors de la vérification.' });
+    }
+});
+
+// 2b. Endpoint RESEND OTP (POST)
+router.post('/resend-otp', async (req, res) => {
+    const { email } = req.body;
+    try {
+        if (!email) {
+            return res.status(400).json({ message: 'L\'email est requis pour renvoyer le code.' });
+        }
+        
+        const sanitizedEmail = email.trim().toLowerCase();
+        const result = await pool.query('SELECT id, nom, is_verified FROM users WHERE email = $1', [sanitizedEmail]);
+
+        if (result.rows.length === 0) {
+            // Pour des raisons de sécurité, on ne dit pas si l'email existe ou pas
+            return res.status(200).json({ message: 'Si l\'email existe, un nouveau code a été envoyé.' });
+        }
+
+        const user = result.rows[0];
+        if (user.is_verified) {
+             return res.status(400).json({ message: 'Cet email est déjà vérifié. Connectez-vous.' });
+        }
+
+        const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        const newExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+        await pool.query(
+            'UPDATE users SET verification_otp = $1, otp_expires_at = $2 WHERE id = $3',
+            [newOtp, newExpiresAt, user.id]
+        );
+
+        // Envoyer l'email
+        await EmailService.sendEmail(
+            sanitizedEmail,
+            'Nouveau code de vérification - Hope Gestion',
+            `Bonjour ${user.nom},\n\nVotre nouveau code de vérification est : ${newOtp}\n\nL'équipe Hope Gestion.`,
+            `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+                <div style="background-color: #2c3e50; padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">Nouveau Code de vérification</h1>
+                </div>
+                <div style="padding: 20px; text-align: center;">
+                    <p style="font-size: 16px;">Voici votre nouveau code :</p>
+                    <div style="margin: 20px 0; padding: 15px; background-color: #f9f9f9; border-radius: 8px; border: 2px dashed #e67e22; display: inline-block;">
+                        <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #e67e22;">${newOtp}</span>
+                    </div>
+                    <p style="font-size: 14px; margin-top: 20px; color: #666;">Ce code expire dans 15 minutes.</p>
+                </div>
+            </div>
+            `
+        );
+
+        res.status(200).json({ message: 'Un nouveau code a été envoyé.' });
+
+    } catch (error) {
+        console.error('Erreur resend-otp:', error);
+        res.status(500).json({ message: 'Erreur lors du renvoi de l\'email.' });
     }
 });
 

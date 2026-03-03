@@ -18,6 +18,7 @@ interface LoginFormProps {
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onGoBackToHome, onNavigateToSignup }) => {
+    const navigate = useNavigate();
     const [loginMode, setLoginMode] = useState<'email' | 'key'>('email');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -40,17 +41,20 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onGoBackToHome, o
             }
             onLoginSuccess();
         } catch (err: any) {
-            setError(err.message || 'Échec de la connexion. Veuillez vérifier vos identifiants.');
+            if (err.message && err.message.includes('Veuillez vérifier votre adresse email')) {
+                // Redirection vers OTP si compte non vérifié
+                navigate('/verify-email', { state: { email } });
+            } else {
+                setError(err.message || 'Échec de la connexion. Veuillez vérifier vos identifiants.');
+            }
         } finally {
             setLoading(false);
         }
-    // Duplicate block removed
     };
     
     // ... rest of component
 
 
-    const navigate = useNavigate();
     const [googleLoading, setGoogleLoading] = useState(false);
 
     const handleGoogleSuccess = async (credentialResponse: any) => {

@@ -36,6 +36,31 @@ class EmailService {
             }
         });
     }
+    /**
+     * Send a generic email
+     * @param to - Recipient email address
+     * @param subject - Email subject
+     * @param text - Plain text body
+     * @param html - HTML body (optional)
+     */
+    async sendEmail(to: string, subject: string, text: string, html?: string): Promise<boolean> {
+        try {
+            const mailOptions = {
+                from: process.env.EMAIL_FROM || '"Hope Gestion" <noreply@hopegestion.com>',
+                to,
+                subject,
+                text,
+                html: html || text // Utilise le texte simple si HTML n'est pas fourni
+            };
+
+            const info = await this.transporter.sendMail(mailOptions);
+            console.log(`✅ Email sent to ${to} (Subject: ${subject})`);
+            return true;
+        } catch (error) {
+            console.error(`❌ Error sending email to ${to}:`, error);
+            return false;
+        }
+    }
 
     /**
      * Send password reset email

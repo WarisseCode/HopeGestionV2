@@ -9,6 +9,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import CompleteProfile from './pages/CompleteProfile';
 import AcceptInvite from './pages/AcceptInvite';
+import VerifyEmail from './pages/VerifyEmail';
 import LocataireDashboard from './pages/LocataireDashboard';
 import ProprietaireDashboard from './pages/ProprietaireDashboard';
 import GestionnaireDashboard from './pages/GestionnaireDashboard';
@@ -120,6 +121,7 @@ const App: React.FC = () => {
                     <Route path="/" element={<HomePage />} />
                     <Route path="/login" element={<LoginFormWithNavigation />} />
                     <Route path="/signup" element={<SignupFormWithNavigation />} />
+                    <Route path="/verify-email" element={<VerifyEmail />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password/:token" element={<ResetPassword />} />
                     <Route path="/complete-profile" element={<CompleteProfile />} />
