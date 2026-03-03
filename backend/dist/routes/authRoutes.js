@@ -630,6 +630,25 @@ router.put('/profile', verifyToken, async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur.' });
     }
 });
+/**
+ * GET /test-email
+ * Route temporaire de diagnostic email pour la production
+ */
+router.get('/test-email', async (req, res) => {
+    try {
+        console.log('Test email depuis Render avec : ', process.env.EMAIL_USER);
+        const result = await EmailService_1.default.sendEmail(process.env.EMAIL_USER || 'contact@hopegestion.com', 'Test SMTP Hope Gestion', 'Ceci est un test de la configuration SMTP sur le serveur.');
+        res.json({ success: result, message: result ? 'Email envoyé' : 'Email refusé' });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Erreur SMTP brute',
+            error: error.message,
+            stack: error.stack
+        });
+    }
+});
 // 5. Endpoint CHANGE PASSWORD (POST)
 router.post('/change-password', verifyToken, async (req, res) => {
     const { currentPassword, newPassword } = req.body;

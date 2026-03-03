@@ -1,6 +1,6 @@
 // backend/routes/authRoutes.ts
 
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { protect } from '../middleware/authMiddleware';
 import { Pool } from 'pg'; 
 

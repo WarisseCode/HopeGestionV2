@@ -106,7 +106,7 @@ app.use((0, helmet_1.default)({
     frameguard: { action: 'deny' },
     noSniff: true,
     xssFilter: true,
-    crossOriginOpenerPolicy: false, // Required for Google OAuth popup
+    crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Requis pour les Popups Google OAuth
 }));
 // 2. Rate Limiting - General API
 // Rate limiters removed temporarily for development
