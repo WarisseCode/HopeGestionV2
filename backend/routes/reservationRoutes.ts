@@ -227,18 +227,16 @@ router.post('/:id/transform', async (req: AuthenticatedRequest, res: Response) =
                 date_fin = $2,
                 caution = $3,
                 avance = $4,
-                periodicite = $5,
-                loyer_actuel = $6,
+                loyer_actuel = $5,
                 statut = 'actif',
                 conditions_particulieres = CONCAT(conditions_particulieres, E'\n[Transformé depuis réservation le ', NOW()::date, ']'),
                 updated_at = NOW()
-            WHERE id = $7
+            WHERE id = $6
         `, [
             newReference,
             date_fin || null,
             caution || reservation.loyer_mensuel || 0,
             avance || 1,
-            periodicite,
             reservation.loyer_mensuel || reservation.loyer_actuel || 0,
             id
         ]);
