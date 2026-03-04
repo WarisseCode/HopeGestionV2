@@ -635,17 +635,42 @@ router.put('/profile', verifyToken, async (req, res) => {
  * Route temporaire de diagnostic email pour la production
  */
 router.get('/test-email', async (req, res) => {
+    const config = {
+        EMAIL_HOST: process.env.EMAIL_HOST || '(non défini)',
+        EMAIL_PORT: process.env.EMAIL_PORT || '(non défini)',
+        EMAIL_USER: process.env.EMAIL_USER || '(non défini)',
+        EMAIL_PASSWORD: process.env.EMAIL_PASSWORD ? '***configuré***' : '(non défini)',
+        EMAIL_FROM: process.env.EMAIL_FROM || '(non défini)',
+    };
     try {
-        console.log('Test email depuis Render avec : ', process.env.EMAIL_USER);
-        const result = await EmailService_1.default.sendEmail(process.env.EMAIL_USER || 'contact@hopegestion.com', 'Test SMTP Hope Gestion', 'Ceci est un test de la configuration SMTP sur le serveur.');
-        res.json({ success: result, message: result ? 'Email envoyé' : 'Email refusé' });
+        const nodemailer = require('nodemailer');
+        const transporter = nodemailer.createTransport({
+            host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+            port: parseInt(process.env.EMAIL_PORT || '587'),
+            secure: process.env.EMAIL_PORT === '465',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASSWORD,
+            },
+        });
+        // Vérifier la connexion SMTP d'abord
+        await transporter.verify();
+        // Si verify passe, envoyer un vrai email
+        await transporter.sendMail({
+            from: process.env.EMAIL_FROM || '"Hope Gestion" <noreply@hopegestion.com>',
+            to: process.env.EMAIL_USER,
+            subject: 'Test SMTP Hope Gestion',
+            text: 'Ceci est un test. Si vous lisez ceci, le SMTP fonctionne !',
+        });
+        res.json({ success: true, message: 'Email envoyé avec succès !', config });
     }
     catch (error) {
         res.status(500).json({
             success: false,
-            message: 'Erreur SMTP brute',
+            message: 'Erreur SMTP',
             error: error.message,
-            stack: error.stack
+            code: error.code,
+            config
         });
     }
 });
