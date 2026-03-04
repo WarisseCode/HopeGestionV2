@@ -569,6 +569,25 @@ const MIGRATIONS: Migration[] = [
             ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_otp VARCHAR(6);
             ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP;
         `
+    },
+    {
+        name: '035_password_reset_tokens_table',
+        sql: `
+            -- Table pour stocker les tokens de réinitialisation de mot de passe
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                token_hash VARCHAR(255) NOT NULL UNIQUE,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                used_at TIMESTAMP NULL,
+                ip_address VARCHAR(45),
+                user_agent TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_prt_token_hash ON password_reset_tokens(token_hash);
+            CREATE INDEX IF NOT EXISTS idx_prt_expires_at ON password_reset_tokens(expires_at);
+            CREATE INDEX IF NOT EXISTS idx_prt_user_id ON password_reset_tokens(user_id);
+        `
     }
 ];
 
