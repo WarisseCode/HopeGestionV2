@@ -550,6 +550,25 @@ const MIGRATIONS: Migration[] = [
             );
             CREATE INDEX IF NOT EXISTS idx_dismissed_alerts_user ON dismissed_alerts(user_id);
         `
+    },
+    {
+        name: '033_google_oauth_columns',
+        sql: `
+            -- Colonnes nécessaires pour Google OAuth (googleAuthRoutes.ts)
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_provider VARCHAR(50) DEFAULT 'local';
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+            CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
+        `
+    },
+    {
+        name: '034_email_verification_columns',
+        sql: `
+            -- Colonnes nécessaires pour la vérification email par OTP (authRoutes.ts)
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT false;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_otp VARCHAR(6);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP;
+        `
     }
 ];
 
