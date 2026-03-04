@@ -588,6 +588,17 @@ const MIGRATIONS: Migration[] = [
             CREATE INDEX IF NOT EXISTS idx_prt_expires_at ON password_reset_tokens(expires_at);
             CREATE INDEX IF NOT EXISTS idx_prt_user_id ON password_reset_tokens(user_id);
         `
+    },
+    {
+        name: '036_fix_superadmin_email',
+        sql: `
+            -- Corriger l'email du super admin et le marquer comme vérifié
+            UPDATE users 
+            SET email = 'contact@hopegestion.com', 
+                is_verified = true
+            WHERE email = 'ayinla@gmail.com' 
+              AND NOT EXISTS (SELECT 1 FROM users WHERE email = 'contact@hopegestion.com');
+        `
     }
 ];
 
