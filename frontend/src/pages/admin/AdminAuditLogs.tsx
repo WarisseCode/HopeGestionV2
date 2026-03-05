@@ -28,40 +28,110 @@ interface AuditLog {
 }
 
 // ============================================================
-// Traductions lisibles
+// Traductions des actions en français courant
 // ============================================================
 const ACTION_LABELS: Record<string, { label: string; badge: string }> = {
-  LOGIN_SUCCESS:            { label: 'Connexion réussie',             badge: 'badge-success' },
-  LOGIN_FAILED:             { label: 'Connexion échouée',             badge: 'badge-error' },
-  LOGOUT:                   { label: 'Déconnexion',                   badge: 'badge-ghost' },
-  USER_CREATED:             { label: 'Nouveau compte créé',           badge: 'badge-info' },
-  USER_UPDATED:             { label: 'Profil modifié',                badge: 'badge-primary' },
-  USER_DELETED:             { label: 'Compte supprimé',               badge: 'badge-error' },
-  USER_SUSPENDED:           { label: 'Compte suspendu',               badge: 'badge-warning' },
-  USER_REACTIVATED:         { label: 'Compte réactivé',               badge: 'badge-success' },
-  USER_VERIFIED:            { label: 'Compte vérifié',                badge: 'badge-success' },
-  ROLE_CHANGED:             { label: 'Rôle modifié',                  badge: 'badge-secondary' },
-  PASSWORD_RESET_REQUESTED: { label: 'Demande réinit. mot de passe',  badge: 'badge-warning' },
-  PASSWORD_RESET_COMPLETED: { label: 'Mot de passe réinitialisé',     badge: 'badge-info' },
-  PASSWORD_CHANGED:         { label: 'Mot de passe changé',           badge: 'badge-info' },
-  BUILDING_CREATED:         { label: 'Immeuble ajouté',               badge: 'badge-primary' },
-  BUILDING_UPDATED:         { label: 'Immeuble modifié',              badge: 'badge-primary' },
-  BUILDING_DELETED:         { label: 'Immeuble supprimé',             badge: 'badge-error' },
-  LOT_CREATED:              { label: 'Lot ajouté',                    badge: 'badge-accent' },
-  LOT_UPDATED:              { label: 'Lot modifié',                   badge: 'badge-accent' },
-  LOT_DELETED:              { label: 'Lot supprimé',                  badge: 'badge-error' },
-  TENANT_CREATED:           { label: 'Locataire ajouté',              badge: 'badge-info' },
-  TENANT_UPDATED:           { label: 'Locataire modifié',             badge: 'badge-info' },
-  TENANT_DELETED:           { label: 'Locataire supprimé',            badge: 'badge-error' },
-  PAYMENT_CREATED:          { label: 'Paiement enregistré',           badge: 'badge-success' },
-  PAYMENT_VALIDATED:        { label: 'Paiement validé',               badge: 'badge-success' },
-  PAYMENT_CANCELLED:        { label: 'Paiement annulé',               badge: 'badge-error' },
-  DOCUMENT_CREATED:         { label: 'Document ajouté',               badge: 'badge-info' },
-  DOCUMENT_DELETED:         { label: 'Document supprimé',             badge: 'badge-error' },
-  CONTRACT_CREATED:         { label: 'Contrat créé',                  badge: 'badge-primary' },
-  OTP_SENT:                 { label: 'Code de vérification envoyé',   badge: 'badge-info' },
-  OTP_VERIFIED:             { label: 'Code de vérification validé',   badge: 'badge-success' },
-  REGISTRATION:             { label: 'Inscription',                   badge: 'badge-info' },
+  // Connexion / Auth
+  LOGIN_SUCCESS:            { label: 'Connexion réussie',              badge: 'badge-success' },
+  LOGIN_FAILED:             { label: 'Connexion échouée',              badge: 'badge-error' },
+  LOGOUT:                   { label: 'Déconnexion',                    badge: 'badge-ghost' },
+  LOGIN:                    { label: 'Connexion',                      badge: 'badge-success' },
+  REGISTER:                 { label: 'Inscription',                    badge: 'badge-info' },
+  REGISTRATION:             { label: 'Inscription',                    badge: 'badge-info' },
+  OTP_SENT:                 { label: 'Code de vérification envoyé',    badge: 'badge-info' },
+  OTP_VERIFIED:             { label: 'Code de vérification validé',    badge: 'badge-success' },
+  GOOGLE_LOGIN:             { label: 'Connexion via Google',           badge: 'badge-success' },
+  // Utilisateurs
+  USER_CREATED:             { label: 'Nouveau compte créé',            badge: 'badge-info' },
+  USER_UPDATED:             { label: 'Profil modifié',                 badge: 'badge-primary' },
+  USER_DELETED:             { label: 'Compte supprimé',                badge: 'badge-error' },
+  USER_SUSPENDED:           { label: 'Compte suspendu',                badge: 'badge-warning' },
+  USER_REACTIVATED:         { label: 'Compte réactivé',                badge: 'badge-success' },
+  USER_VERIFIED:            { label: 'Compte vérifié',                 badge: 'badge-success' },
+  ROLE_CHANGED:             { label: 'Rôle modifié',                   badge: 'badge-secondary' },
+  'Update Profile':         { label: 'Mise à jour du profil',          badge: 'badge-primary' },
+  'Create User':            { label: 'Création de compte',             badge: 'badge-info' },
+  'Delete User':            { label: 'Suppression de compte',          badge: 'badge-error' },
+  'Suspend User':           { label: 'Suspension de compte',           badge: 'badge-warning' },
+  'Verify User':            { label: 'Vérification de compte',         badge: 'badge-success' },
+  'Change Role':            { label: 'Changement de rôle',             badge: 'badge-secondary' },
+  // Mot de passe
+  PASSWORD_RESET_REQUESTED: { label: 'Demande réinit. mot de passe',   badge: 'badge-warning' },
+  PASSWORD_RESET_COMPLETED: { label: 'Mot de passe réinitialisé',      badge: 'badge-info' },
+  PASSWORD_CHANGED:         { label: 'Mot de passe changé',            badge: 'badge-info' },
+  'Reset Password':         { label: 'Réinitialisation mot de passe',  badge: 'badge-warning' },
+  'Change Password':        { label: 'Changement de mot de passe',     badge: 'badge-info' },
+  // Immeubles
+  BUILDING_CREATED:         { label: 'Immeuble ajouté',                badge: 'badge-primary' },
+  BUILDING_UPDATED:         { label: 'Immeuble modifié',               badge: 'badge-primary' },
+  BUILDING_DELETED:         { label: 'Immeuble supprimé',              badge: 'badge-error' },
+  'Create Building':        { label: 'Ajout d\'immeuble',              badge: 'badge-primary' },
+  'Update Building':        { label: 'Modification d\'immeuble',       badge: 'badge-primary' },
+  'Delete Building':        { label: 'Suppression d\'immeuble',        badge: 'badge-error' },
+  // Lots
+  LOT_CREATED:              { label: 'Lot ajouté',                     badge: 'badge-accent' },
+  LOT_UPDATED:              { label: 'Lot modifié',                    badge: 'badge-accent' },
+  LOT_DELETED:              { label: 'Lot supprimé',                   badge: 'badge-error' },
+  'Create Lot':             { label: 'Ajout de lot',                   badge: 'badge-accent' },
+  'Update Lot':             { label: 'Modification de lot',            badge: 'badge-accent' },
+  'Delete Lot':             { label: 'Suppression de lot',             badge: 'badge-error' },
+  // Locataires
+  TENANT_CREATED:           { label: 'Locataire ajouté',               badge: 'badge-info' },
+  TENANT_UPDATED:           { label: 'Locataire modifié',              badge: 'badge-info' },
+  TENANT_DELETED:           { label: 'Locataire supprimé',             badge: 'badge-error' },
+  TENANT_LINKED:            { label: 'Locataire associé',              badge: 'badge-success' },
+  'Create Tenant':          { label: 'Ajout de locataire',             badge: 'badge-info' },
+  'Update Tenant':          { label: 'Modification de locataire',      badge: 'badge-info' },
+  'Delete Tenant':          { label: 'Suppression de locataire',       badge: 'badge-error' },
+  'Link Tenant':            { label: 'Association de locataire',       badge: 'badge-success' },
+  // Paiements
+  PAYMENT_CREATED:          { label: 'Paiement enregistré',            badge: 'badge-success' },
+  PAYMENT_VALIDATED:        { label: 'Paiement validé',                badge: 'badge-success' },
+  PAYMENT_CANCELLED:        { label: 'Paiement annulé',                badge: 'badge-error' },
+  'Create Payment':         { label: 'Enregistrement de paiement',     badge: 'badge-success' },
+  'Validate Payment':       { label: 'Validation de paiement',         badge: 'badge-success' },
+  'Cancel Payment':         { label: 'Annulation de paiement',         badge: 'badge-error' },
+  // Documents / Contrats
+  DOCUMENT_CREATED:         { label: 'Document ajouté',                badge: 'badge-info' },
+  DOCUMENT_DELETED:         { label: 'Document supprimé',              badge: 'badge-error' },
+  CONTRACT_CREATED:         { label: 'Contrat créé',                   badge: 'badge-primary' },
+  'Create Document':        { label: 'Ajout de document',              badge: 'badge-info' },
+  'Create Contract':        { label: 'Création de contrat',            badge: 'badge-primary' },
+  // Locations
+  LOCATION_CREATED:         { label: 'Location créée',                 badge: 'badge-primary' },
+  LOCATION_UPDATED:         { label: 'Location modifiée',              badge: 'badge-primary' },
+  'Create Location':        { label: 'Création de location',           badge: 'badge-primary' },
+  'Update Location':        { label: 'Modification de location',       badge: 'badge-primary' },
+  // Interventions
+  INTERVENTION_CREATED:     { label: 'Intervention créée',             badge: 'badge-warning' },
+  'Create Intervention':    { label: 'Création d\'intervention',       badge: 'badge-warning' },
+  // États des lieux
+  EDL_CREATED:              { label: 'État des lieux créé',            badge: 'badge-info' },
+  'Create EDL':             { label: 'Création d\'état des lieux',     badge: 'badge-info' },
+  // Invitations
+  INVITATION_CREATED:       { label: 'Invitation envoyée',             badge: 'badge-info' },
+  INVITATION_ACCEPTED:      { label: 'Invitation acceptée',            badge: 'badge-success' },
+  'Create Invitation':      { label: 'Envoi d\'invitation',            badge: 'badge-info' },
+  // Admin
+  ADMIN_ACTION:             { label: 'Action administrateur',          badge: 'badge-warning' },
+  SETTINGS_UPDATED:         { label: 'Paramètres modifiés',            badge: 'badge-primary' },
+  'Update Settings':        { label: 'Modification des paramètres',    badge: 'badge-primary' },
+};
+
+// Traduction automatique des mots anglais courants (fallback)
+const WORD_FR: Record<string, string> = {
+  create: 'Création', created: 'créé', update: 'Mise à jour', updated: 'modifié',
+  delete: 'Suppression', deleted: 'supprimé', add: 'Ajout', remove: 'Suppression',
+  user: 'utilisateur', profile: 'profil', building: 'immeuble', lot: 'lot',
+  tenant: 'locataire', payment: 'paiement', document: 'document', contract: 'contrat',
+  login: 'connexion', logout: 'déconnexion', password: 'mot de passe',
+  reset: 'réinitialisation', success: 'réussie', failed: 'échouée', error: 'erreur',
+  sent: 'envoyé', verified: 'vérifié', suspended: 'suspendu', reactivated: 'réactivé',
+  changed: 'changé', cancelled: 'annulé', validated: 'validé',
+  invitation: 'invitation', location: 'location', intervention: 'intervention',
+  settings: 'paramètres', owner: 'propriétaire', list: 'liste', view: 'consultation',
+  export: 'export', import: 'import', upload: 'téléversement', download: 'téléchargement',
+  system: 'système', unknown: 'inconnu',
 };
 
 const MODULE_LABELS: Record<string, string> = {
@@ -78,10 +148,11 @@ const MODULE_LABELS: Record<string, string> = {
 };
 
 const getActionLabel = (action: string): { label: string; badge: string } => {
-  return ACTION_LABELS[action] || { 
-    label: action.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase()),
-    badge: 'badge-ghost'
-  };
+  if (ACTION_LABELS[action]) return ACTION_LABELS[action];
+  // Fallback: traduire chaque mot anglais en français
+  const words = action.replace(/_/g, ' ').split(' ');
+  const translated = words.map(w => WORD_FR[w.toLowerCase()] || w).join(' ');
+  return { label: translated.charAt(0).toUpperCase() + translated.slice(1), badge: 'badge-ghost' };
 };
 
 const formatDetails = (log: AuditLog): string => {
@@ -102,6 +173,14 @@ const formatDetails = (log: AuditLog): string => {
   if (d.provider) parts.push(d.provider === 'google' ? 'via Google' : 'par Email');
 
   return parts.length > 0 ? parts.join(' • ') : '—';
+};
+
+// Traduit le user_name technique en nom lisible
+const formatUserName = (name: string | null): string => {
+  if (!name) return 'Système';
+  if (name === 'System/Unknown') return 'Système / Inconnu';
+  if (name.startsWith('System')) return name.replace('System', 'Système');
+  return name;
 };
 
 const AdminAuditLogs: React.FC = () => {
@@ -280,7 +359,7 @@ const AdminAuditLogs: React.FC = () => {
                           {formatDate(log.created_at)}
                         </td>
                         <td>
-                          <span className="font-medium text-sm">{log.user_name || 'Système'}</span>
+                          <span className="font-medium text-sm">{formatUserName(log.user_name)}</span>
                         </td>
                         <td>
                           <span className={`badge badge-sm font-medium ${info.badge}`}>
