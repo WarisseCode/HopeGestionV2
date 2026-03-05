@@ -366,7 +366,7 @@ const AdminAuditLogs: React.FC = () => {
                           <span className="font-medium text-sm">{formatUserName(log.user_name)}</span>
                         </td>
                         <td>
-                          <span className={`badge badge-sm font-medium h-auto min-h-[1.5rem] py-1 text-center whitespace-normal leading-tight ${info.badge}`}>
+                          <span className={`font-semibold text-[13px] whitespace-normal leading-tight ${info.badge.replace('badge-ghost', 'text-base-content/70').replace('badge-', 'text-')}`}>
                             {info.label}
                           </span>
                         </td>
