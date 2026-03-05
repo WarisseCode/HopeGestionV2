@@ -317,6 +317,7 @@ const AdminAuditLogs: React.FC = () => {
           <table className="table w-full">
             <thead>
               <tr className="text-xs uppercase tracking-wider">
+                <th>ID</th>
                 <th>Date</th>
                 <th>Utilisateur</th>
                 <th>Activité</th>
@@ -329,11 +330,11 @@ const AdminAuditLogs: React.FC = () => {
             <tbody>
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
-                  <tr key={i}><td colSpan={7}><div className="h-8 bg-base-200 rounded animate-pulse" /></td></tr>
+                  <tr key={i}><td colSpan={8}><div className="h-8 bg-base-200 rounded animate-pulse" /></td></tr>
                 ))
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-base-content/40">
+                  <td colSpan={8} className="text-center py-12 text-base-content/40">
                     <Activity size={36} className="mx-auto mb-2 opacity-30" />
                     <p className="font-medium">Aucune activité trouvée</p>
                     <p className="text-sm mt-1">Les événements apparaîtront ici au fur et à mesure</p>
@@ -355,6 +356,9 @@ const AdminAuditLogs: React.FC = () => {
                         className={`hover:bg-base-200/30 transition-colors ${hasDetails ? 'cursor-pointer' : ''}`}
                         onClick={() => hasDetails && setExpandedRow(isExpanded ? null : log.id)}
                       >
+                        <td className="text-xs font-mono text-base-content/40">
+                          #{log.id}
+                        </td>
                         <td className="text-xs text-base-content/60 whitespace-nowrap">
                           {formatDate(log.created_at)}
                         </td>
@@ -387,7 +391,7 @@ const AdminAuditLogs: React.FC = () => {
                       {/* Expanded row */}
                       {isExpanded && log.details && (
                         <tr>
-                          <td colSpan={7} className="bg-base-200/30 px-6 py-3">
+                          <td colSpan={8} className="bg-base-200/30 px-6 py-3">
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
                               {Object.entries(
                                 typeof log.details === 'string' ? JSON.parse(log.details) : log.details
