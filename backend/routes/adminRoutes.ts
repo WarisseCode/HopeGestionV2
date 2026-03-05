@@ -583,6 +583,151 @@ router.post('/subscriptions/:id/cancel', async (req: AuthenticatedRequest, res: 
 });
 
 // ==============================================
+// 5b. ADMIN AUDIT LOGS (full list with filters)
+// ==============================================
+router.get('/audit-logs', async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const { search, action, module: mod, page = '1', limit = '50' } = req.query;
+        const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+
+        let query = `
+            SELECT id, user_id, action, module, entity_type, entity_id, 
+                   details, user_name, ip_address, user_agent, created_at
+            FROM audit_logs WHERE 1=1
+        `;
+        const params: any[] = [];
+        let paramIndex = 1;
+
+        if (search) {
+            query += ` AND (user_name ILIKE $${paramIndex} OR action ILIKE $${paramIndex} OR ip_address ILIKE $${paramIndex})`;
+            params.push(`%${search}%`);
+            paramIndex++;
+        }
+        if (action && action !== 'all') {
+            query += ` AND action = $${paramIndex}`;
+            params.push(action);
+            paramIndex++;
+        }
+        if (mod && mod !== 'all') {
+            query += ` AND module = $${paramIndex}`;
+            params.push(mod);
+            paramIndex++;
+        }
+
+        // Get total count
+        const countQuery = query.replace(/SELECT .+ FROM/, 'SELECT COUNT(*) FROM');
+        const countRes = await pool.query(countQuery, params);
+        const total = parseInt(countRes.rows[0].count);
+
+        // Get paginated results
+        query += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+        params.push(parseInt(limit as string), offset);
+
+        const result = await pool.query(query, params);
+
+        // Get distinct actions and modules for filter dropdowns
+        let actions: string[] = [];
+        let modules: string[] = [];
+        try {
+            const actionsRes = await pool.query('SELECT DISTINCT action FROM audit_logs ORDER BY action');
+            const modulesRes = await pool.query('SELECT DISTINCT module FROM audit_logs WHERE module IS NOT NULL ORDER BY module');
+            actions = actionsRes.rows.map(r => r.action);
+            modules = modulesRes.rows.map(r => r.module);
+        } catch (e) {}
+
+        res.json({
+            logs: result.rows,
+            total,
+            page: parseInt(page as string),
+            totalPages: Math.ceil(total / parseInt(limit as string)),
+            filters: { actions, modules }
+        });
+
+    } catch (error: any) {
+        console.error('Error fetching audit logs:', error);
+        res.json({ logs: [], total: 0, page: 1, totalPages: 0, filters: { actions: [], modules: [] } });
+    }
+});
+
+// ==============================================
+// 5c. ADMIN SETTINGS
+// ==============================================
+router.get('/settings', async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        // Check if settings table exists
+        let settings: any = {};
+        try {
+            const result = await pool.query('SELECT key, value FROM admin_settings');
+            result.rows.forEach(row => { settings[row.key] = row.value; });
+        } catch (e) {
+            // Table might not exist yet, return defaults
+        }
+
+        // Return settings with defaults
+        res.json({
+            platform: {
+                name: settings['platform_name'] || 'HopeGestion',
+                description: settings['platform_description'] || 'Plateforme de gestion immobilière',
+                maintenanceMode: settings['maintenance_mode'] === 'true',
+                allowRegistration: settings['allow_registration'] !== 'false',
+                requireEmailVerification: settings['require_email_verification'] !== 'false',
+                maxPropertiesPerUser: parseInt(settings['max_properties_per_user'] || '10'),
+                defaultUserRole: settings['default_user_role'] || 'gestionnaire',
+            },
+            email: {
+                host: process.env.EMAIL_HOST || '',
+                port: process.env.EMAIL_PORT || '',
+                user: process.env.EMAIL_USER ? '***configuré***' : 'Non configuré',
+                from: process.env.EMAIL_FROM || '',
+            },
+            system: {
+                nodeVersion: process.version,
+                environment: process.env.NODE_ENV || 'development',
+                databaseConnected: true,
+                frontendUrl: process.env.FRONTEND_URL || 'Non configuré',
+            }
+        });
+
+    } catch (error: any) {
+        console.error('Error fetching settings:', error);
+        res.status(500).json({ message: 'Erreur lors de la récupération des paramètres.' });
+    }
+});
+
+router.put('/settings', async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const { settings } = req.body;
+        if (!settings || typeof settings !== 'object') {
+            return res.status(400).json({ message: 'Paramètres invalides.' });
+        }
+
+        // Ensure admin_settings table exists
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS admin_settings (
+                key VARCHAR(255) PRIMARY KEY,
+                value TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Upsert each setting
+        for (const [key, value] of Object.entries(settings)) {
+            await pool.query(`
+                INSERT INTO admin_settings (key, value, updated_at) 
+                VALUES ($1, $2, NOW())
+                ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()
+            `, [key, String(value)]);
+        }
+
+        res.json({ message: 'Paramètres sauvegardés avec succès.' });
+
+    } catch (error: any) {
+        console.error('Error saving settings:', error);
+        res.status(500).json({ message: 'Erreur lors de la sauvegarde.' });
+    }
+});
+
+// ==============================================
 // 6. ADMIN INVITATION SYSTEM
 // ==============================================
 import crypto from 'crypto';

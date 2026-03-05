@@ -25,6 +25,8 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminAgencies from './pages/admin/AdminAgencies';
 import AdminFinances from './pages/admin/AdminFinances';
 import AdminSubscriptions from './pages/admin/AdminSubscriptions';
+import AdminAuditLogs from './pages/admin/AdminAuditLogs';
+import AdminSettings from './pages/admin/AdminSettings';
 import { getToken, logoutUser } from './api/authApi'; 
 import CustomThemeProvider from './theme/Theme';
 import { UserProvider } from './contexts/UserContext';
@@ -154,6 +156,8 @@ const App: React.FC = () => {
                                                 <Route path="agencies" element={<AdminAgencies />} />
                                                 <Route path="finances" element={<AdminFinances />} />
                                                 <Route path="subscriptions" element={<AdminSubscriptions />} />
+                                                <Route path="logs" element={<AdminAuditLogs />} />
+                                                <Route path="settings" element={<AdminSettings />} />
                                                 <Route path="*" element={<Navigate to="/admin" replace />} />
                                             </Routes>
                                         </AdminLayout>
