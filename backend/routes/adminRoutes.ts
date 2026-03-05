@@ -23,45 +23,62 @@ router.use(verifyAdmin);
 // ==============================================
 router.get('/stats', async (req: AuthenticatedRequest, res: Response) => {
     try {
-        // Parallel queries for speed
-        const usersCountPromise = pool.query('SELECT COUNT(*) FROM users');
-        const activeUsersPromise = pool.query("SELECT COUNT(*) FROM users WHERE statut = 'actif'");
-        const propertiesCountPromise = pool.query('SELECT COUNT(*) FROM biens'); // Fixed table name assumption to 'biens' based on error context likely favoring French
-        // If table is 'biens', use 'biens'. Let's check schema/index logic. 
-        // Based on existing routes, it might be 'biens' table. Let's try 'biens' first.
-        // Actually, let's query 'users' first as it's safer.
-        
-        // Let's assume table names: users, biens, locations (for leases)
-        // I will use safe queries or try/catch individual counts if unsure.
-        
-        const [usersRes, activeRes] = await Promise.all([
+        // All counts in parallel for speed
+        const [usersRes, activeRes, agenciesRes, propertiesRes, lotsRes, tenantsRes] = await Promise.all([
             pool.query('SELECT COUNT(*) FROM users'),
-            pool.query("SELECT COUNT(*) FROM users WHERE statut = 'actif'")
+            pool.query("SELECT COUNT(*) FROM users WHERE statut = 'actif'"),
+            pool.query('SELECT COUNT(*) FROM owners'),
+            pool.query('SELECT COUNT(*) FROM buildings'),
+            pool.query('SELECT COUNT(*) FROM lots'),
+            pool.query('SELECT COUNT(*) FROM tenants'),
         ]);
 
-        // Revenue mock (since we don't have a payments table fully defined/migrated maybe)
-        // Or query 'paiements' table.
+        // Revenue — safe query with fallback
         let revenue = 0;
+        let paymentsCount = 0;
         try {
-             // Try fetching revenue if paiements table exists
-             const revRes = await pool.query('SELECT SUM(montant) as total FROM paiements WHERE statut = \'paye\'');
-             revenue = revRes.rows[0].total || 0;
+            const revRes = await pool.query("SELECT COALESCE(SUM(montant),0) as total, COUNT(*) as cnt FROM payments");
+            revenue = parseFloat(revRes.rows[0].total) || 0;
+            paymentsCount = parseInt(revRes.rows[0].cnt) || 0;
         } catch (e) {
-            console.log('Info: paiements table query failed or empty, defaulting to 0');
+            // payments table might not exist yet
         }
+
+        // Users created this month vs last month for trend
+        let usersThisMonth = 0;
+        let usersLastMonth = 0;
+        try {
+            const trendRes = await pool.query(`
+                SELECT 
+                    COUNT(*) FILTER (WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE)) as this_month,
+                    COUNT(*) FILTER (WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') 
+                                     AND created_at < DATE_TRUNC('month', CURRENT_DATE)) as last_month
+                FROM users
+            `);
+            usersThisMonth = parseInt(trendRes.rows[0].this_month) || 0;
+            usersLastMonth = parseInt(trendRes.rows[0].last_month) || 0;
+        } catch (e) {}
+
+        const usersTrend = usersLastMonth > 0 
+            ? Math.round(((usersThisMonth - usersLastMonth) / usersLastMonth) * 100) 
+            : usersThisMonth > 0 ? 100 : 0;
 
         res.json({
             users: {
                 total: parseInt(usersRes.rows[0].count),
-                active: parseInt(activeRes.rows[0].count)
+                active: parseInt(activeRes.rows[0].count),
+                thisMonth: usersThisMonth,
+                trend: usersTrend
             },
             revenue: {
-                total: revenue, // Monthly/Yearly logic could be added
-                currency: 'FCFA'
+                total: revenue,
+                currency: 'FCFA',
+                paymentsCount
             },
-            // Mocking other stats for now until table names confirmed
-            agencies: 15,
-            properties: 450
+            agencies: parseInt(agenciesRes.rows[0].count),
+            properties: parseInt(propertiesRes.rows[0].count),
+            lots: parseInt(lotsRes.rows[0].count),
+            tenants: parseInt(tenantsRes.rows[0].count),
         });
 
     } catch (error: any) {
@@ -70,17 +87,140 @@ router.get('/stats', async (req: AuthenticatedRequest, res: Response) => {
     }
 });
 
+// ==============================================
+// 1b. GROWTH DATA (monthly users + payments)
+// ==============================================
+router.get('/stats/growth', async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        // Users created per month (last 12 months)
+        const usersGrowth = await pool.query(`
+            SELECT 
+                TO_CHAR(DATE_TRUNC('month', created_at), 'Mon') as month,
+                EXTRACT(MONTH FROM DATE_TRUNC('month', created_at)) as month_num,
+                COUNT(*) as users
+            FROM users
+            WHERE created_at >= CURRENT_DATE - INTERVAL '12 months'
+            GROUP BY DATE_TRUNC('month', created_at)
+            ORDER BY DATE_TRUNC('month', created_at)
+        `);
+
+        // Payments per month (last 12 months)
+        let paymentsGrowth: any[] = [];
+        try {
+            const payRes = await pool.query(`
+                SELECT 
+                    TO_CHAR(DATE_TRUNC('month', date_paiement), 'Mon') as month,
+                    COALESCE(SUM(montant), 0) as revenue
+                FROM payments
+                WHERE date_paiement >= CURRENT_DATE - INTERVAL '12 months'
+                GROUP BY DATE_TRUNC('month', date_paiement)
+                ORDER BY DATE_TRUNC('month', date_paiement)
+            `);
+            paymentsGrowth = payRes.rows;
+        } catch (e) {}
+
+        // Merge into unified array
+        const months = usersGrowth.rows.map(row => {
+            const pay = paymentsGrowth.find(p => p.month === row.month);
+            return {
+                name: row.month,
+                users: parseInt(row.users),
+                revenue: pay ? parseFloat(pay.revenue) : 0
+            };
+        });
+
+        res.json({ growth: months });
+
+    } catch (error: any) {
+        console.error('Error fetching growth:', error);
+        res.json({ growth: [] });
+    }
+});
+
+// ==============================================
+// 1c. RECENT ACTIVITY (from audit_logs)
+// ==============================================
+router.get('/stats/activity', async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                al.id,
+                al.action,
+                al.module,
+                al.entity_type,
+                al.details,
+                al.user_name,
+                al.created_at,
+                al.ip_address
+            FROM audit_logs al
+            ORDER BY al.created_at DESC
+            LIMIT 15
+        `);
+
+        const activity = result.rows.map(row => ({
+            id: row.id,
+            user: row.user_name || 'Système',
+            action: formatAction(row.action, row.module),
+            time: formatTimeAgo(new Date(row.created_at)),
+            type: getActivityType(row.action),
+            details: row.details,
+            ip: row.ip_address
+        }));
+
+        res.json({ activity });
+
+    } catch (error: any) {
+        console.error('Error fetching activity:', error);
+        res.json({ activity: [] });
+    }
+});
+
+// Helper: Format action into readable text
+function formatAction(action: string, module?: string): string {
+    const actions: Record<string, string> = {
+        'LOGIN_SUCCESS': 'Connexion réussie',
+        'LOGIN_FAILED': 'Tentative de connexion échouée',
+        'PASSWORD_RESET_REQUESTED': 'Demande de réinitialisation MDP',
+        'PASSWORD_RESET_COMPLETED': 'Mot de passe réinitialisé',
+        'USER_CREATED': 'Nouveau compte créé',
+        'USER_UPDATED': 'Profil mis à jour',
+        'BUILDING_CREATED': 'Nouvel immeuble ajouté',
+        'TENANT_CREATED': 'Nouveau locataire ajouté',
+        'PAYMENT_CREATED': 'Paiement enregistré',
+        'PAYMENT_VALIDATED': 'Paiement validé',
+    };
+    return actions[action] || action.replace(/_/g, ' ').toLowerCase();
+}
+
+// Helper: Format relative time
+function formatTimeAgo(date: Date): string {
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (seconds < 60) return 'À l\'instant';
+    if (seconds < 3600) return `Il y a ${Math.floor(seconds / 60)} min`;
+    if (seconds < 86400) return `Il y a ${Math.floor(seconds / 3600)}h`;
+    if (seconds < 604800) return `Il y a ${Math.floor(seconds / 86400)}j`;
+    return date.toLocaleDateString('fr-FR');
+}
+
+// Helper: Determine activity type for UI styling
+function getActivityType(action: string): string {
+    if (action.includes('FAIL') || action.includes('ERROR') || action.includes('DELETE')) return 'error';
+    if (action.includes('WARNING') || action.includes('SUSPEND')) return 'warning';
+    if (action.includes('SUCCESS') || action.includes('CREATED') || action.includes('VALIDATED')) return 'success';
+    return 'info';
+}
+
 
 // ==============================================
 // 2. USERS MANAGEMENT
 // ==============================================
 router.get('/users', async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const { search, role, status } = req.query;
+        const { search, role, status, verified, provider } = req.query;
         
         let query = `
-            SELECT id, nom, email, telephone, role, user_type, statut, created_at, 
-                   (SELECT COUNT(*) FROM buildings WHERE owner_id = users.id) as properties_count
+            SELECT id, nom, email, telephone, role, user_type, statut, created_at,
+                   is_verified, auth_provider, google_id, avatar_url, is_guest
             FROM users 
             WHERE 1=1
         `;
@@ -105,11 +245,29 @@ router.get('/users', async (req: AuthenticatedRequest, res: Response) => {
              paramIndex++;
         }
 
-        query += ` ORDER BY created_at DESC LIMIT 100`; // Limit for safety
+        if (verified === 'true') {
+            query += ` AND is_verified = true`;
+        } else if (verified === 'false') {
+            query += ` AND (is_verified = false OR is_verified IS NULL)`;
+        }
+
+        if (provider && provider !== 'all') {
+            query += ` AND auth_provider = $${paramIndex}`;
+            params.push(provider);
+            paramIndex++;
+        }
+
+        query += ` ORDER BY created_at DESC LIMIT 200`;
 
         const result = await pool.query(query, params);
         
-        res.json({ users: result.rows });
+        // Get total count for stats
+        const countRes = await pool.query('SELECT COUNT(*) FROM users');
+        
+        res.json({ 
+            users: result.rows,
+            total: parseInt(countRes.rows[0].count)
+        });
 
     } catch (error: any) {
         console.error('Error fetching admin users:', error);
@@ -117,10 +275,57 @@ router.get('/users', async (req: AuthenticatedRequest, res: Response) => {
     }
 });
 
+// GET user details
+router.get('/users/:id', async (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    try {
+        const userRes = await pool.query(`
+            SELECT id, nom, email, telephone, role, user_type, statut, created_at,
+                   is_verified, auth_provider, google_id, avatar_url, is_guest, preferences
+            FROM users WHERE id = $1
+        `, [id]);
+
+        if (userRes.rows.length === 0) {
+            return res.status(404).json({ message: 'Utilisateur introuvable.' });
+        }
+
+        const user = userRes.rows[0];
+
+        // Get related data
+        let ownerData = null;
+        try {
+            const ownerRes = await pool.query(`
+                SELECT ou.role as owner_role, ou.is_active, o.name as agency_name, o.manager_code
+                FROM owner_user ou
+                JOIN owners o ON ou.owner_id = o.id
+                WHERE ou.user_id = $1
+            `, [id]);
+            if (ownerRes.rows.length > 0) ownerData = ownerRes.rows;
+        } catch (e) {}
+
+        // Recent activity
+        let recentActivity: any[] = [];
+        try {
+            const actRes = await pool.query(`
+                SELECT action, module, created_at 
+                FROM audit_logs WHERE user_id = $1 
+                ORDER BY created_at DESC LIMIT 10
+            `, [id!.toString()]);
+            recentActivity = actRes.rows;
+        } catch (e) {}
+
+        res.json({ user, ownerData, recentActivity });
+
+    } catch (error: any) {
+        console.error('Error fetching user details:', error);
+        res.status(500).json({ message: 'Erreur lors de la récupération des détails.' });
+    }
+});
+
 // Admin Actions on Users
 router.post('/users/:id/action', async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
-    const { action } = req.body; // 'promote', 'suspend', 'reactivate', 'delete', 'reset_password'
+    const { action, value } = req.body;
 
     try {
         if (action === 'promote') {
@@ -139,9 +344,24 @@ router.post('/users/:id/action', async (req: AuthenticatedRequest, res: Response
             await pool.query("DELETE FROM users WHERE id = $1", [id]);
             res.json({ message: 'Utilisateur supprimé définitivement.' });
         }
+        else if (action === 'verify') {
+            await pool.query("UPDATE users SET is_verified = true WHERE id = $1", [id]);
+            res.json({ message: 'Compte vérifié manuellement.' });
+        }
+        else if (action === 'unverify') {
+            await pool.query("UPDATE users SET is_verified = false WHERE id = $1", [id]);
+            res.json({ message: 'Vérification du compte révoquée.' });
+        }
+        else if (action === 'change_role') {
+            if (!value) return res.status(400).json({ message: 'Nouveau rôle requis.' });
+            const allowedRoles = ['admin', 'gestionnaire', 'manager', 'comptable', 'viewer', 'agent_recouvreur'];
+            if (!allowedRoles.includes(value)) {
+                return res.status(400).json({ message: `Rôle invalide. Valeurs acceptées: ${allowedRoles.join(', ')}` });
+            }
+            await pool.query("UPDATE users SET role = $1 WHERE id = $2", [value, id]);
+            res.json({ message: `Rôle changé en "${value}".` });
+        }
         else if (action === 'reset_password') {
-            // In a real app, generate token and send email. 
-            // Here we might verify logic or return success mock.
             res.json({ message: 'Processus de réinitialisation déclenché (email envoyé).' });
         }
         else {
@@ -154,37 +374,58 @@ router.post('/users/:id/action', async (req: AuthenticatedRequest, res: Response
 });
 
 // ==============================================
-// 3. AGENCIES (GESTIONNAIRES)
+// 3. AGENCIES (OWNERS/GESTIONNAIRES)
 // ==============================================
 router.get('/agencies', async (req: AuthenticatedRequest, res: Response) => {
     try {
-        // Fetch users who are gestionnaires
-        // Also fetch stats like count of properties managed if possible
         const query = `
-            SELECT u.id, u.nom as name, u.email, u.telephone as phone, u.statut as status, u.created_at as joined_date,
-                   (SELECT COUNT(b.id) FROM buildings b JOIN owner_user ou ON b.owner_id = ou.owner_id WHERE ou.user_id = u.id) as property_count,
-                   (SELECT COUNT(t.id) FROM tenants t JOIN owner_user ou ON t.owner_id = ou.owner_id WHERE ou.user_id = u.id) as client_count
-            FROM users u
-            WHERE u.user_type = 'gestionnaire' OR u.role = 'gestionnaire'
-            ORDER BY u.created_at DESC
+            SELECT 
+                o.id,
+                o.name as agency_name,
+                o.manager_code,
+                o.created_at as joined_date,
+                u.nom as manager_name,
+                u.email,
+                u.telephone as phone,
+                u.statut as status,
+                u.avatar_url,
+                (SELECT COUNT(*) FROM buildings b WHERE b.owner_id = o.id) as property_count,
+                (SELECT COUNT(*) FROM lots l JOIN buildings b ON l.building_id = b.id WHERE b.owner_id = o.id) as lot_count,
+                (SELECT COUNT(*) FROM tenants t WHERE t.owner_id = o.id) as client_count,
+                (SELECT COALESCE(SUM(p.montant), 0) FROM payments p WHERE p.owner_id = o.id) as total_revenue
+            FROM owners o
+            LEFT JOIN owner_user ou ON ou.owner_id = o.id AND ou.role = 'gestionnaire'
+            LEFT JOIN users u ON u.id = ou.user_id
+            ORDER BY o.created_at DESC
         `;
-        
+
         const result = await pool.query(query);
-        
-        // Map to frontend expected shape
-        const agencies = result.rows.map(row => ({
-            id: row.id,
-            name: row.name, // Usually company name, using nom for now
-            managerName: row.name,
-            email: row.email,
-            phone: row.phone,
-            address: 'Adresse non définie', // Missing in simplified user table
-            propertyCount: parseInt(row.property_count || '0'),
-            clientCount: parseInt(row.client_count || '0'),
-            status: row.status === 'actif' ? 'active' : 'inactive',
-            rating: 4.5, // Mock
-            joinedDate: row.joined_date
-        }));
+
+        const agencies = result.rows.map(row => {
+            // Calculate a simple performance score (0-5) based on data
+            const props = parseInt(row.property_count || '0');
+            const clients = parseInt(row.client_count || '0');
+            const lots = parseInt(row.lot_count || '0');
+            const occupancyRate = lots > 0 ? Math.min(clients / lots, 1) : 0;
+            const score = Math.min(5, Math.round((props * 0.5 + clients * 0.3 + occupancyRate * 5) * 10) / 10);
+
+            return {
+                id: row.id,
+                name: row.agency_name || row.manager_name || 'Agence sans nom',
+                managerName: row.manager_name || 'Non assigné',
+                email: row.email || '',
+                phone: row.phone || '',
+                managerCode: row.manager_code,
+                propertyCount: props,
+                lotCount: lots,
+                clientCount: clients,
+                totalRevenue: parseFloat(row.total_revenue || '0'),
+                status: row.status === 'actif' ? 'active' : 'inactive',
+                rating: score || 0,
+                joinedDate: row.joined_date,
+                avatarUrl: row.avatar_url
+            };
+        });
 
         res.json({ agencies });
 
@@ -250,7 +491,99 @@ router.get('/finances', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // ==============================================
-// 5. ADMIN INVITATION SYSTEM
+// 5. SUBSCRIPTIONS MANAGEMENT
+// ==============================================
+router.get('/subscriptions', async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        // Get all plans
+        const plansRes = await pool.query('SELECT * FROM subscription_plans ORDER BY price ASC');
+
+        // Get active subscriptions with user info
+        const subsRes = await pool.query(`
+            SELECT 
+                us.id, us.user_id, us.plan_id, us.status, us.starts_at, us.expires_at, us.notes,
+                u.nom as user_name, u.email as user_email,
+                sp.name as plan_name, sp.price as plan_price
+            FROM user_subscriptions us
+            JOIN users u ON u.id = us.user_id
+            JOIN subscription_plans sp ON sp.id = us.plan_id
+            ORDER BY us.created_at DESC
+        `);
+
+        // Count per plan
+        const countPerPlan = await pool.query(`
+            SELECT plan_id, COUNT(*) as count 
+            FROM user_subscriptions WHERE status = 'active' 
+            GROUP BY plan_id
+        `);
+
+        res.json({
+            plans: plansRes.rows,
+            subscriptions: subsRes.rows,
+            stats: countPerPlan.rows
+        });
+
+    } catch (error: any) {
+        console.error('Error fetching subscriptions:', error);
+        res.json({ plans: [], subscriptions: [], stats: [] });
+    }
+});
+
+// Assign a plan to a user
+router.post('/subscriptions/assign', async (req: AuthenticatedRequest, res: Response) => {
+    const { userId, planId, durationDays } = req.body;
+
+    try {
+        if (!userId || !planId) {
+            return res.status(400).json({ message: 'userId et planId requis.' });
+        }
+
+        // Get plan details for default duration
+        const planRes = await pool.query('SELECT * FROM subscription_plans WHERE id = $1', [planId]);
+        if (planRes.rows.length === 0) {
+            return res.status(404).json({ message: 'Plan introuvable.' });
+        }
+        const plan = planRes.rows[0];
+        const days = durationDays || plan.duration_days;
+        const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+        // Cancel any existing active subscription
+        await pool.query(
+            "UPDATE user_subscriptions SET status = 'cancelled', cancelled_at = NOW() WHERE user_id = $1 AND status = 'active'",
+            [userId]
+        );
+
+        // Create new subscription
+        await pool.query(
+            `INSERT INTO user_subscriptions (user_id, plan_id, status, starts_at, expires_at) 
+             VALUES ($1, $2, 'active', NOW(), $3)`,
+            [userId, planId, expiresAt]
+        );
+
+        res.json({ message: `Plan "${plan.name}" attribué avec succès. Expire le ${expiresAt.toLocaleDateString('fr-FR')}.` });
+
+    } catch (error: any) {
+        console.error('Error assigning subscription:', error);
+        res.status(500).json({ message: 'Erreur lors de l\'attribution du plan.' });
+    }
+});
+
+// Cancel a subscription
+router.post('/subscriptions/:id/cancel', async (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    try {
+        await pool.query(
+            "UPDATE user_subscriptions SET status = 'cancelled', cancelled_at = NOW() WHERE id = $1",
+            [id]
+        );
+        res.json({ message: 'Abonnement annulé.' });
+    } catch (error: any) {
+        res.status(500).json({ message: 'Erreur lors de l\'annulation.' });
+    }
+});
+
+// ==============================================
+// 6. ADMIN INVITATION SYSTEM
 // ==============================================
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';

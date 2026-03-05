@@ -2,194 +2,228 @@
 import React, { useState, useEffect } from 'react';
 import { 
   DollarSign, 
-  TrendingUp, 
   CreditCard, 
-  Download,
-  Calendar,
-  Filter,
-  ArrowUpRight,
-  ArrowDownRight
+  Wallet,
+  RefreshCw,
+  BarChart3
 } from 'lucide-react';
 import { 
-  AreaChart, 
-  Area, 
+  BarChart,
+  Bar,
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  Legend,
-  Cell
+  Legend
 } from 'recharts';
 import { motion } from 'framer-motion';
-import Card from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-
 import { API_URL } from '../../config';
 import { getToken } from '../../api/authApi';
 
+interface FinanceData {
+  revenue: { total: number; volume: number };
+  history: Array<{ name: string; revenue: number; volume: number }>;
+  transactions: Array<{ id: number; type: string; user: string; amount: number; date: string; status: string }>;
+}
+
 const AdminFinances: React.FC = () => {
-  const [period, setPeriod] = useState('year');
+  const [finances, setFinances] = useState<FinanceData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [finances, setFinances] = useState<any>(null);
 
-  useEffect(() => {
-    const fetchFinances = async () => {
-      try {
-        const token = getToken();
-        // Period filtering could be sent here
-        const response = await fetch(`${API_URL}/admin/finances`, {
-             headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (response.ok) {
-            const data = await response.json();
-            setFinances(data);
-        }
-      } catch (error) {
-        console.error('Error fetching admin finances:', error);
-      } finally {
-        setLoading(false);
+  const fetchFinances = async () => {
+    setLoading(true);
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/admin/finances`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setFinances(data);
       }
-    };
-    fetchFinances();
-  }, [period]);
+    } catch (error) {
+      console.error('Error fetching finances:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const revenueData = finances?.history || [];
+  useEffect(() => { fetchFinances(); }, []);
+
+  const formatCurrency = (value: number): string => {
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+    return value.toLocaleString();
+  };
+
+  const revenue = finances?.revenue?.total || 0;
+  const volume = finances?.revenue?.volume || 0;
   const transactions = finances?.transactions || [];
+  const history = finances?.history || [];
 
-  const totalRevenue = finances?.revenue?.total || 0;
-  const totalVolume = finances?.revenue?.volume || 0;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1,2,3].map(i => <div key={i} className="h-32 bg-base-100 rounded-2xl animate-pulse shadow-sm" />)}
+        </div>
+        <div className="h-80 bg-base-100 rounded-2xl animate-pulse shadow-sm" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-       {/* Header */}
-       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold">Revenus de la Plateforme</h1>
-          <p className="text-base-content/60">Suivi des abonnements et commissions</p>
+          <p className="text-base-content/60">Suivi des paiements et transactions globales</p>
         </div>
-        <div className="flex gap-2">
-          <select className="select select-bordered" value={period} onChange={(e) => setPeriod(e.target.value)}>
-            <option value="month">Ce Mois</option>
-            <option value="quarter">Ce Trimestre</option>
-            <option value="year">Cette Année</option>
-          </select>
-          <Button variant="ghost">
-            <Download size={16} className="mr-2" /> Rapport
-          </Button>
-        </div>
+        <button onClick={fetchFinances} className="btn btn-sm btn-outline gap-1">
+          <RefreshCw size={14} /> Actualiser
+        </button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card className="bg-gradient-to-br from-primary to-primary-focus text-primary-content border-none">
+          <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-content rounded-2xl p-5 shadow-lg">
             <div className="flex justify-between items-start">
               <div>
-                <p className="opacity-80 font-medium">Revenu Total (2026)</p>
-                <h3 className="text-3xl font-bold mt-2">12.5M FCFA</h3>
+                <p className="opacity-80 font-medium text-sm">Revenus Plateforme</p>
+                <h3 className="text-3xl font-bold mt-2">{formatCurrency(revenue)} FCFA</h3>
               </div>
-              <div className="p-3 bg-base-100/20 rounded-xl">
-                <DollarSign size={24} />
+              <div className="p-3 bg-white/15 rounded-xl">
+                <DollarSign size={22} />
               </div>
             </div>
-            <div className="mt-4 flex items-center text-sm font-medium bg-base-100/10 w-fit px-2 py-1 rounded">
-              <ArrowUpRight size={14} className="mr-1" /> +15.2% vs 2025
-            </div>
-          </Card>
+            <div className="mt-3 text-xs opacity-70">Estimation basée sur les paiements</div>
+          </div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card>
+          <div className="bg-base-100 rounded-2xl p-5 shadow-sm border border-base-200">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-base-content/60 font-medium">Abonnements Actifs</p>
-                <h3 className="text-3xl font-bold mt-2">142</h3>
+                <p className="text-base-content/60 font-medium text-sm">Volume Total</p>
+                <h3 className="text-3xl font-bold mt-2">{formatCurrency(volume)} FCFA</h3>
               </div>
               <div className="p-3 bg-secondary/10 text-secondary rounded-xl">
-                <CreditCard size={24} />
+                <Wallet size={22} />
               </div>
             </div>
-            <div className="mt-4 flex items-center text-sm text-green-500 font-medium">
-              <ArrowUpRight size={14} className="mr-1" /> +8 nouveaux cette semaine
-            </div>
-          </Card>
+            <div className="mt-3 text-xs text-base-content/40">Total des paiements enregistrés</div>
+          </div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card>
+          <div className="bg-base-100 rounded-2xl p-5 shadow-sm border border-base-200">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-base-content/60 font-medium">Part Moyen / Utilisateur</p>
-                <h3 className="text-3xl font-bold mt-2">8,500 FCFA</h3>
+                <p className="text-base-content/60 font-medium text-sm">Transactions</p>
+                <h3 className="text-3xl font-bold mt-2">{transactions.length}</h3>
               </div>
               <div className="p-3 bg-accent/10 text-accent rounded-xl">
-                <TrendingUp size={24} />
+                <CreditCard size={22} />
               </div>
             </div>
-            <div className="mt-4 flex items-center text-sm text-base-content/40 font-medium">
-               Moyenne mensuelle
-            </div>
-          </Card>
+            <div className="mt-3 text-xs text-base-content/40">Récentes opérations</div>
+          </div>
         </motion.div>
       </div>
 
-      {/* Main Chart */}
-      <Card title="Évolution des Revenus">
-        <div className="h-80 w-full mt-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={revenueData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} />
-              <YAxis axisLine={false} tickLine={false} />
-              <Tooltip 
-                cursor={{ fill: 'transparent' }}
-                contentStyle={{ backgroundColor: 'var(--b1)', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-              />
-              <Legend verticalAlign="top" height={36}/>
-              <Bar dataKey="saas" name="Abonnements" fill="#570DF8" radius={[4, 4, 0, 0]} barSize={20} />
-              <Bar dataKey="trans" name="Commissions" fill="#F000B8" radius={[4, 4, 0, 0]} barSize={20} />
-            </BarChart>
-          </ResponsiveContainer>
+      {/* Chart */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+        <div className="bg-base-100 rounded-2xl p-6 shadow-sm border border-base-200">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="font-bold text-lg">Évolution des Revenus</h3>
+              <p className="text-xs text-base-content/50 mt-0.5">12 derniers mois</p>
+            </div>
+          </div>
+          <div className="h-72 w-full">
+            {history.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={history}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.08} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                  <Tooltip 
+                    cursor={{ fill: 'transparent' }}
+                    contentStyle={{ 
+                      backgroundColor: 'var(--b1, #1d232a)', 
+                      borderRadius: '12px', 
+                      border: '1px solid var(--b3, #2a323c)',
+                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)',
+                      fontSize: '13px'
+                    }}
+                  />
+                  <Legend verticalAlign="top" height={36}/>
+                  <Bar dataKey="volume" name="Volume (FCFA)" fill="#570DF8" radius={[4, 4, 0, 0]} barSize={20} />
+                  <Bar dataKey="revenue" name="Revenus (FCFA)" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-base-content/30">
+                <div className="text-center">
+                  <BarChart3 size={48} className="mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">Pas encore de données financières</p>
+                  <p className="text-xs mt-1">Les données apparaîtront avec les premiers paiements</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </Card>
+      </motion.div>
 
       {/* Recent Transactions */}
-      <Card title="Dernières Transactions">
-        <div className="overflow-x-auto">
-          <table className="table w-full">
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Utilisateur / Agence</th>
-                <th>Date</th>
-                <th>Montant</th>
-                <th>Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions.map((tx: any) => (
-                <tr key={tx.id} className="hover:bg-base-200/50">
-                  <td className="font-medium">{tx.type}</td>
-                  <td>{tx.user}</td>
-                  <td className="text-base-content/60 text-sm">{tx.date}</td>
-                  <td className="font-bold">{tx.amount > 0 ? `${tx.amount.toLocaleString()} FCFA` : 'Gratuit'}</td>
-                  <td>
-                    <span className={`badge badge-sm ${
-                      tx.status === 'success' ? 'badge-success' : 
-                      tx.status === 'pending' ? 'badge-warning' : 'badge-error'
-                    }`}>
-                      {tx.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+        <div className="bg-base-100 rounded-2xl p-6 shadow-sm border border-base-200">
+          <h3 className="font-bold text-lg mb-4">Dernières Transactions</h3>
+          {transactions.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="table w-full">
+                <thead>
+                  <tr className="text-xs uppercase tracking-wider">
+                    <th>Type</th>
+                    <th>Utilisateur / Agence</th>
+                    <th>Date</th>
+                    <th>Montant</th>
+                    <th>Statut</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map((tx) => (
+                    <tr key={tx.id} className="hover:bg-base-200/30 transition-colors">
+                      <td className="font-medium text-sm">{tx.type}</td>
+                      <td className="text-sm">{tx.user}</td>
+                      <td className="text-xs text-base-content/60">{tx.date}</td>
+                      <td className="font-bold text-sm">
+                        {tx.amount > 0 ? `${tx.amount.toLocaleString()} FCFA` : 'Gratuit'}
+                      </td>
+                      <td>
+                        <span className={`badge badge-sm ${
+                          tx.status === 'success' ? 'badge-success' : 
+                          tx.status === 'pending' ? 'badge-warning' : 'badge-error'
+                        }`}>
+                          {tx.status === 'success' ? 'Payé' : tx.status === 'pending' ? 'En attente' : 'Échoué'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-base-content/40">
+              <CreditCard size={36} className="mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Aucune transaction enregistrée</p>
+            </div>
+          )}
         </div>
-      </Card>
+      </motion.div>
     </div>
   );
 };

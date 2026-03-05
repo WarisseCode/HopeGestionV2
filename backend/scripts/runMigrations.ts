@@ -599,6 +599,49 @@ const MIGRATIONS: Migration[] = [
             WHERE email = 'ayinla@gmail.com' 
               AND NOT EXISTS (SELECT 1 FROM users WHERE email = 'contact@hopegestion.com');
         `
+    },
+    {
+        name: '037_subscription_plans',
+        sql: `
+            CREATE TABLE IF NOT EXISTS subscription_plans (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) NOT NULL UNIQUE,
+                description TEXT,
+                price INTEGER NOT NULL DEFAULT 0,
+                currency VARCHAR(10) DEFAULT 'FCFA',
+                duration_days INTEGER NOT NULL DEFAULT 30,
+                max_properties INTEGER DEFAULT 5,
+                max_lots INTEGER DEFAULT 20,
+                max_users INTEGER DEFAULT 3,
+                features JSONB DEFAULT '[]',
+                is_active BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            -- Insert default plans
+            INSERT INTO subscription_plans (name, description, price, duration_days, max_properties, max_lots, max_users, features) VALUES
+                ('Gratuit', 'Plan de démarrage', 0, 36500, 2, 10, 2, '["Dashboard basique","1 agence","Support email"]'),
+                ('Pro', 'Pour les gestionnaires professionnels', 15000, 30, 10, 50, 5, '["Dashboard avancé","Rapports","Multi-agences","Support prioritaire"]'),
+                ('Enterprise', 'Pour les grandes entreprises', 45000, 30, -1, -1, -1, '["Tout illimité","API accès","Support dédié","Formation incluse"]')
+            ON CONFLICT (name) DO NOTHING;
+        `
+    },
+    {
+        name: '038_user_subscriptions',
+        sql: `
+            CREATE TABLE IF NOT EXISTS user_subscriptions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                plan_id INTEGER NOT NULL REFERENCES subscription_plans(id),
+                status VARCHAR(20) DEFAULT 'active',
+                starts_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                cancelled_at TIMESTAMP NULL,
+                notes TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_usub_user_id ON user_subscriptions(user_id);
+            CREATE INDEX IF NOT EXISTS idx_usub_status ON user_subscriptions(status);
+        `
     }
 ];
 

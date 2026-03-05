@@ -12,7 +12,8 @@ import {
   X,
   ShieldAlert,
   Activity,
-  Bell
+  Bell,
+  CreditCard
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { getProfile } from '../api/authApi';
@@ -46,6 +47,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onLogout }) => {
     { icon: <Users size={20} />, label: 'Utilisateurs', path: '/admin/users' },
     { icon: <Building size={20} />, label: 'Agences', path: '/admin/agencies' },
     { icon: <DollarSign size={20} />, label: 'Finances', path: '/admin/finances' },
+    { icon: <CreditCard size={20} />, label: 'Abonnements', path: '/admin/subscriptions' },
     { icon: <Activity size={20} />, label: 'Audit Logs', path: '/admin/logs' },
     { icon: <Settings size={20} />, label: 'Configuration', path: '/admin/settings' },
   ];
