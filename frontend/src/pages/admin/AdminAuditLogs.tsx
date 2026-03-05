@@ -242,17 +242,19 @@ const AdminAuditLogs: React.FC = () => {
                 <th>Utilisateur</th>
                 <th>Activité</th>
                 <th>Section</th>
+                <th>Adresse IP</th>
+                <th>Navigateur</th>
                 <th>Détails</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
-                  <tr key={i}><td colSpan={5}><div className="h-8 bg-base-200 rounded animate-pulse" /></td></tr>
+                  <tr key={i}><td colSpan={7}><div className="h-8 bg-base-200 rounded animate-pulse" /></td></tr>
                 ))
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-12 text-base-content/40">
+                  <td colSpan={7} className="text-center py-12 text-base-content/40">
                     <Activity size={36} className="mx-auto mb-2 opacity-30" />
                     <p className="font-medium">Aucune activité trouvée</p>
                     <p className="text-sm mt-1">Les événements apparaîtront ici au fur et à mesure</p>
@@ -288,6 +290,12 @@ const AdminAuditLogs: React.FC = () => {
                         <td className="text-sm text-base-content/60">
                           {MODULE_LABELS[log.module] || log.module || '—'}
                         </td>
+                        <td className="text-xs font-mono text-base-content/50">
+                          {log.ip_address || '—'}
+                        </td>
+                        <td className="text-xs text-base-content/50 max-w-[150px]">
+                          <span className="truncate block">{log.user_agent ? log.user_agent.split('(')[0].trim().slice(0, 30) : '—'}</span>
+                        </td>
                         <td className="text-xs text-base-content/50 max-w-[250px]">
                           <div className="flex items-center gap-1">
                             <span className="truncate">{details}</span>
@@ -300,7 +308,7 @@ const AdminAuditLogs: React.FC = () => {
                       {/* Expanded row */}
                       {isExpanded && log.details && (
                         <tr>
-                          <td colSpan={5} className="bg-base-200/30 px-6 py-3">
+                          <td colSpan={7} className="bg-base-200/30 px-6 py-3">
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
                               {Object.entries(
                                 typeof log.details === 'string' ? JSON.parse(log.details) : log.details
