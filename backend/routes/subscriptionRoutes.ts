@@ -269,6 +269,14 @@ router.get('/check-payment/:transactionId', protect, async (req: AuthenticatedRe
         // 1. Check FedaPay Status
         const fedaResult = await fedapayService.getTransactionStatus(transactionId);
         
+        if (fedaResult.status === 'error') {
+            log.error(context, 'FedaPay API error during validation', { transactionId, error: fedaResult.error });
+            return res.status(400).json({ 
+                status: 'error', 
+                message: fedaResult.error || 'Erreur lors de la communication avec FedaPay' 
+            });
+        }
+        
         if (fedaResult.status !== 'approved') {
             return res.json({ 
                 status: fedaResult.status, 

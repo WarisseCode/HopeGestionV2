@@ -238,7 +238,7 @@ class FedaPayService {
     /**
      * Check transaction status by ID
      */
-    async getTransactionStatus(transactionId: string): Promise<{ status: string; transaction?: any }> {
+    async getTransactionStatus(transactionId: string): Promise<{ status: string; transaction?: any; error?: string }> {
         const context = 'CHECK_STATUS';
         
         try {
@@ -263,7 +263,11 @@ class FedaPayService {
             };
         } catch (error: any) {
             log.error(context, 'Failed to retrieve transaction', error);
-            return { status: 'error' };
+            // Retourner l'erreur détaillée pour aider au diagnostic
+            return { 
+                status: 'error', 
+                error: error?.message || 'Erreur API FedaPay inconnue' 
+            };
         }
     }
 
