@@ -62,9 +62,9 @@ export const checkPropertyLimit = async (req: AuthenticatedRequest, res: Respons
             return next();
         }
 
-        // On ne vérifie la limite que lors de la CRÉATION (POST)
-        // Les modifications (PUT/PATCH) d'un bien existant ne doivent pas être bloquées
-        if (req.method !== 'POST') {
+        // On ne vérifie la limite que lors de la CRÉATION
+        // Si req.body.id est présent, c'est une modification d'un bien/lot existant
+        if (req.body && req.body.id) {
             return next();
         }
 
@@ -116,9 +116,9 @@ export const checkTenantLimit = async (req: AuthenticatedRequest, res: Response,
             return next();
         }
 
-        // On ne vérifie la limite que lors de la CRÉATION (POST)
-        // Les modifications (PUT/PATCH) d'un locataire existant ne doivent pas être bloquées
-        if (req.method !== 'POST') {
+        // On ne vérifie la limite que lors de la CRÉATION
+        // Si req.body.id est présent, c'est une modification d'un locataire existant
+        if (req.body && req.body.id) {
             return next();
         }
 
