@@ -16,8 +16,8 @@ export async function getUserSubscriptionDetails(userId: number) {
                 sp.max_tenants,
                 sp.features
              FROM subscriptions s
-             JOIN subscription_plans sp ON s.plan_id = sp.id
-             WHERE s.user_id = $1 AND s.status = 'active' AND s.end_date > CURRENT_TIMESTAMP
+             JOIN plans sp ON s.plan_id = sp.id
+             WHERE s.user_id = $1 AND s.status = 'active'
              ORDER BY s.created_at DESC
              LIMIT 1`,
             [userId]
