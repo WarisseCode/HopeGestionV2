@@ -62,6 +62,12 @@ export const checkPropertyLimit = async (req: AuthenticatedRequest, res: Respons
             return next();
         }
 
+        // On ne vérifie la limite que lors de la CRÉATION (POST)
+        // Les modifications (PUT/PATCH) d'un bien existant ne doivent pas être bloquées
+        if (req.method !== 'POST') {
+            return next();
+        }
+
         // Compter les lots existants (un immeuble vide compte 0 lot mais l'usage est aux lots)
         // Les "biens" dans l'UI désignent souvent le "lot". Si on compte les "buildings", on limitera trop.
         // On va compter tous les "lots" liés aux propriétaires appartenant au "gestionnaire/user"
@@ -107,6 +113,12 @@ export const checkTenantLimit = async (req: AuthenticatedRequest, res: Response,
         
         // Illimité
         if (sub.max_tenants === -1) {
+            return next();
+        }
+
+        // On ne vérifie la limite que lors de la CRÉATION (POST)
+        // Les modifications (PUT/PATCH) d'un locataire existant ne doivent pas être bloquées
+        if (req.method !== 'POST') {
             return next();
         }
 
