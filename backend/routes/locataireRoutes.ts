@@ -150,12 +150,18 @@ router.get('/:id', protect, async (req: any, res) => {
     try {
         const userId = req.user.id;
         const tenantId = req.params.id;
-        const ownerId = await getManagedOwnerId(userId);
+        const userRole = req.user.role || req.userRole;
+        const ownerIds = await getManagedOwnerIds(userId, userRole);
 
-        if (!ownerId) return res.status(403).json({ message: "Non autorisé" });
+        if (ownerIds !== null && ownerIds.length === 0) return res.status(403).json({ message: "Non autorisé" });
 
         // Vérifier appartenance
-        const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
+        let tenantCheck;
+        if (ownerIds !== null) {
+            tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = ANY($2::int[])', [tenantId, ownerIds]);
+        } else {
+            tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1', [tenantId]);
+        }
         if (tenantCheck.rows.length === 0) return res.status(404).json({ message: "Locataire non trouvé" });
 
         // 1. Infos Locataire
@@ -304,15 +310,15 @@ router.put('/:id', protect, async (req: any, res) => {
         const userRole = req.user.role || req.userRole;
         const userType = req.user.user_type;
         
-        let ownerId = await getManagedOwnerId(userId, userRole, userType);
+        let ownerIds = await getManagedOwnerIds(userId, userRole);
 
         // Verification appartenance sauf pour le global admin
-        if (ownerId === null && userRole !== 'admin') {
+        if (ownerIds !== null && ownerIds.length === 0) {
              return res.status(403).json({ message: "Non autorisé" });
         }
 
-        if (ownerId !== -1 && userRole !== 'admin') {
-            const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
+        if (ownerIds !== null) {
+            const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = ANY($2::int[])', [tenantId, ownerIds]);
             if (tenantCheck.rows.length === 0) return res.status(404).json({ message: "Locataire non trouvé ou non autorisé" });
         } else {
              const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1', [tenantId]);
@@ -372,15 +378,15 @@ router.delete('/:id', protect, async (req: any, res) => {
         const userRole = req.user.role || req.userRole;
         const userType = req.user.user_type;
         
-        let ownerId = await getManagedOwnerId(userId, userRole, userType);
+        let ownerIds = await getManagedOwnerIds(userId, userRole);
 
         // Verification appartenance sauf pour le global admin
-        if (ownerId === null && userRole !== 'admin') {
+        if (ownerIds !== null && ownerIds.length === 0) {
              return res.status(403).json({ message: "Non autorisé" });
         }
 
-        if (ownerId !== -1 && userRole !== 'admin') {
-            const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
+        if (ownerIds !== null) {
+            const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = ANY($2::int[])', [tenantId, ownerIds]);
             if (tenantCheck.rows.length === 0) return res.status(404).json({ message: "Locataire non trouvé ou non autorisé" });
         } else {
              const tenantCheck = await pool.query('SELECT id FROM tenants WHERE id = $1', [tenantId]);
@@ -413,14 +419,14 @@ router.post('/:id/approve', protect, async (req: any, res) => {
         const tenantId = req.params.id;
         const userRole = req.user.role || req.userRole;
         const userType = req.user.user_type;
-        const ownerId = await getManagedOwnerId(userId, userRole, userType);
+        const ownerIds = await getManagedOwnerIds(userId, userRole);
 
-        if (ownerId === null) return res.status(403).json({ message: "Non autorisé" });
+        if (ownerIds !== null && ownerIds.length === 0) return res.status(403).json({ message: "Non autorisé" });
 
-        // Vérif appartenance — si admin (ownerId=-1), on vérifie juste l'existence du tenant
-        const tenantCheck = ownerId === -1
+        // Vérif appartenance — si admin (ownerIds=null), on vérifie juste l'existence du tenant
+        const tenantCheck = ownerIds === null
             ? await pool.query('SELECT id FROM tenants WHERE id = $1', [tenantId])
-            : await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
+            : await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = ANY($2::int[])', [tenantId, ownerIds]);
         if (tenantCheck.rows.length === 0) return res.status(404).json({ message: "Locataire non trouvé" });
 
         await pool.query("UPDATE tenants SET statut = 'Actif' WHERE id = $1", [tenantId]);
@@ -455,14 +461,14 @@ router.post('/:id/reject', protect, async (req: any, res) => {
         const tenantId = req.params.id;
         const userRole = req.user.role || req.userRole;
         const userType = req.user.user_type;
-        const ownerId = await getManagedOwnerId(userId, userRole, userType);
+        const ownerIds = await getManagedOwnerIds(userId, userRole);
 
-        if (ownerId === null) return res.status(403).json({ message: "Non autorisé" });
+        if (ownerIds !== null && ownerIds.length === 0) return res.status(403).json({ message: "Non autorisé" });
 
-        // Vérif appartenance — si admin (ownerId=-1), on vérifie juste l'existence du tenant
-        const tenantCheck = ownerId === -1
+        // Vérif appartenance — si admin (ownerIds=null), on vérifie juste l'existence du tenant
+        const tenantCheck = ownerIds === null
             ? await pool.query('SELECT id FROM tenants WHERE id = $1', [tenantId])
-            : await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
+            : await pool.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = ANY($2::int[])', [tenantId, ownerIds]);
         if (tenantCheck.rows.length === 0) return res.status(404).json({ message: "Locataire non trouvé" });
 
         await pool.query("UPDATE tenants SET statut = 'Rejeté' WHERE id = $1", [tenantId]);
