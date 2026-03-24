@@ -357,8 +357,7 @@ router.put('/:id', protect, async (req: any, res) => {
                 telephone_secondaire = $5, nationalite = $6, type_piece = $7, 
                 numero_piece = $8, type = $9, statut = $10, mode_paiement_preferentiel = $11,
                 adresse_actuelle = $12, date_expiration_piece = $13, photo_profil_url = $14, photo_piece_url = $15,
-                caution = $16, avance = $17, paiement_echelonne = $18,
-                updated_at = CURRENT_TIMESTAMP
+                caution = $16, avance = $17, paiement_echelonne = $18
              WHERE id = $19`,
             queryParams
         );
