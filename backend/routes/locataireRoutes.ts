@@ -334,12 +334,22 @@ router.put('/:id', protect, async (req: any, res) => {
         } = req.body;
 
         // Sanitize optional fields (empty string -> null) to avoid DB type errors
-        const cleanEmail = email && email.trim() !== '' ? email : null;
-        const cleanPhone2 = telephone_secondaire && telephone_secondaire.trim() !== '' ? telephone_secondaire : null;
-        const cleanAddress = adresse_actuelle && adresse_actuelle.trim() !== '' ? adresse_actuelle : null;
-        const cleanExpDate = date_expiration_piece && date_expiration_piece.trim() !== '' ? date_expiration_piece : null;
-        const cleanPhotoProfil = photo_profil_url && photo_profil_url.trim() !== '' ? photo_profil_url : null;
-        const cleanPhotoPiece = photo_piece_url && photo_piece_url.trim() !== '' ? photo_piece_url : null;
+        const cleanEmail = email && typeof email === 'string' && email.trim() !== '' ? email : null;
+        const cleanPhone2 = telephone_secondaire && typeof telephone_secondaire === 'string' && telephone_secondaire.trim() !== '' ? telephone_secondaire : null;
+        const cleanAddress = adresse_actuelle && typeof adresse_actuelle === 'string' && adresse_actuelle.trim() !== '' ? adresse_actuelle : null;
+        const cleanExpDate = date_expiration_piece && typeof date_expiration_piece === 'string' && date_expiration_piece.trim() !== '' ? date_expiration_piece : null;
+        const cleanPhotoProfil = photo_profil_url && typeof photo_profil_url === 'string' && photo_profil_url.trim() !== '' ? photo_profil_url : null;
+        const cleanPhotoPiece = photo_piece_url && typeof photo_piece_url === 'string' && photo_piece_url.trim() !== '' ? photo_piece_url : null;
+
+        const queryParams = [
+            nom, prenoms, cleanEmail, telephone_principal, cleanPhone2,
+            nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel,
+            cleanAddress, cleanExpDate, cleanPhotoProfil, cleanPhotoPiece,
+            caution || 0, avance || 0, paiement_echelonne || false,
+            tenantId
+        ];
+
+        console.log(`[PUT /locataires/${tenantId}] params:`, JSON.stringify(queryParams));
 
         await pool.query(
             `UPDATE tenants SET 
@@ -350,13 +360,7 @@ router.put('/:id', protect, async (req: any, res) => {
                 caution = $16, avance = $17, paiement_echelonne = $18,
                 updated_at = CURRENT_TIMESTAMP
              WHERE id = $19`,
-            [
-                nom, prenoms, cleanEmail, telephone_principal, cleanPhone2,
-                nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel,
-                cleanAddress, cleanExpDate, cleanPhotoProfil, cleanPhotoPiece,
-                caution || 0, avance || 0, paiement_echelonne || false,
-                tenantId
-            ]
+            queryParams
         );
 
         const AuditService = require('../services/AuditService').AuditService;
@@ -372,9 +376,9 @@ router.put('/:id', protect, async (req: any, res) => {
 
         res.json({ message: "Locataire mis à jour" });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error updating tenant:', error);
-        res.status(500).json({ message: 'Erreur serveur' });
+        res.status(500).json({ message: error.message || 'Erreur serveur' });
     }
 });
 
