@@ -333,6 +333,14 @@ router.put('/:id', protect, async (req: any, res) => {
             caution, avance, paiement_echelonne
         } = req.body;
 
+        // Sanitize optional fields (empty string -> null) to avoid DB type errors
+        const cleanEmail = email && email.trim() !== '' ? email : null;
+        const cleanPhone2 = telephone_secondaire && telephone_secondaire.trim() !== '' ? telephone_secondaire : null;
+        const cleanAddress = adresse_actuelle && adresse_actuelle.trim() !== '' ? adresse_actuelle : null;
+        const cleanExpDate = date_expiration_piece && date_expiration_piece.trim() !== '' ? date_expiration_piece : null;
+        const cleanPhotoProfil = photo_profil_url && photo_profil_url.trim() !== '' ? photo_profil_url : null;
+        const cleanPhotoPiece = photo_piece_url && photo_piece_url.trim() !== '' ? photo_piece_url : null;
+
         await pool.query(
             `UPDATE tenants SET 
                 nom = $1, prenoms = $2, email = $3, telephone_principal = $4, 
@@ -343,9 +351,9 @@ router.put('/:id', protect, async (req: any, res) => {
                 updated_at = CURRENT_TIMESTAMP
              WHERE id = $19`,
             [
-                nom, prenoms, email, telephone_principal, telephone_secondaire,
+                nom, prenoms, cleanEmail, telephone_principal, cleanPhone2,
                 nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel,
-                adresse_actuelle || null, date_expiration_piece || null, photo_profil_url || null, photo_piece_url || null,
+                cleanAddress, cleanExpDate, cleanPhotoProfil, cleanPhotoPiece,
                 caution || 0, avance || 0, paiement_echelonne || false,
                 tenantId
             ]

@@ -1,0 +1,86 @@
+[
+  {
+    "column_name": "total_lots",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "user_id",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "column_name": "owner_id",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "latitude",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "longitude",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "gestionnaire_id",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "photos",
+    "data_type": "jsonb"
+  },
+  {
+    "column_name": "nombre_etages",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "id",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "video_url",
+    "data_type": "text"
+  },
+  {
+    "column_name": "statut",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "plan_masse_url",
+    "data_type": "text"
+  },
+  {
+    "column_name": "nom",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "type",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "adresse",
+    "data_type": "text"
+  },
+  {
+    "column_name": "ville",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "pays",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "description",
+    "data_type": "text"
+  },
+  {
+    "column_name": "photo_url",
+    "data_type": "text"
+  },
+  {
+    "column_name": "quartier",
+    "data_type": "character varying"
+  }
+]
