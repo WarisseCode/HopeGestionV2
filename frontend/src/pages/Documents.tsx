@@ -19,6 +19,7 @@ import Input from '../components/ui/Input';
 import { documentApi, type Document } from '../api/documentApi';
 import DocumentTemplates from './DocumentTemplates';
 import DocumentGenerator from '../components/documents/DocumentGenerator';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 import { API_BASE } from '../config';
 const API_BASE_URL = API_BASE;
@@ -42,6 +43,21 @@ const Documents: React.FC = () => {
   const [uploadCategory, setUploadCategory] = useState('autre');
   const [uploadDesc, setUploadDesc] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+
+  // Confirm Modal State
+  const [confirmConfig, setConfirmConfig] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      type: 'danger' | 'warning' | 'info';
+      action: () => Promise<void>;
+  }>({
+      isOpen: false,
+      title: '',
+      message: '',
+      type: 'danger',
+      action: async () => {}
+  });
 
   useEffect(() => {
     if (viewMode === 'files') fetchDocuments();
@@ -85,15 +101,22 @@ const Documents: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Supprimer ce document ?")) return;
-    try {
-      await documentApi.deleteDocument(id);
-      toast.success("Document supprimé");
-      setDocuments(documents.filter(d => d.id !== id));
-    } catch (error) {
-      console.error(error);
-      toast.error("Erreur suppression");
-    }
+    setConfirmConfig({
+        isOpen: true,
+        title: 'Supprimer ce document',
+        message: 'Êtes-vous sûr de vouloir supprimer ce document ? Cette action est irréversible.',
+        type: 'danger',
+        action: async () => {
+            try {
+              await documentApi.deleteDocument(id);
+              toast.success("Document supprimé");
+              setDocuments(documents.filter(d => d.id !== id));
+            } catch (error) {
+              console.error(error);
+              toast.error("Erreur suppression");
+            }
+        }
+    });
   };
 
   const getFileUrl = (path: string) => {
@@ -374,6 +397,19 @@ const Documents: React.FC = () => {
                 }} 
             />
         )}
+
+      {/* Dynamic Confirm Modal */}
+      <ConfirmModal
+          isOpen={confirmConfig.isOpen}
+          onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={() => {
+              confirmConfig.action();
+              setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+          }}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          type={confirmConfig.type}
+      />
 
     </div>
   );

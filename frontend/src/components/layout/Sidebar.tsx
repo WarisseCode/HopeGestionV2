@@ -6,7 +6,8 @@ import {
   Building2, Users, FileText, Wallet, Settings, Bell, 
   LayoutDashboard, LogOut, X, ChevronDown, ChevronRight,
   CreditCard, FolderOpen, BarChart3, Wrench, ShieldCheck,
-  Calendar, CalendarCheck, ClipboardList, ClipboardCheck, Briefcase, Crown, Notebook, CheckSquare
+  Calendar, CalendarCheck, ClipboardList, ClipboardCheck, Briefcase, Crown, Notebook, CheckSquare,
+  Home, Activity
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -145,38 +146,41 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
 
     // Groupe Gestion
     const gestionItems: MenuItem[] = [];
-    if (perms.biens_read || role === 'admin' || role === 'gestionnaire') gestionItems.push({ icon: <Building2 size={20} />, label: 'Biens', path: '/biens' });
+    if (perms.biens_read || role === 'admin' || role === 'gestionnaire') gestionItems.push({ icon: <Building2 size={20} />, label: 'Parc Immobilier', path: '/biens' });
     if (perms.locataires_read || role === 'admin' || role === 'gestionnaire') {
         gestionItems.push({ icon: <Users size={20} />, label: 'Locataires', path: '/locataires' });
-        gestionItems.push({ icon: <FileText size={20} />, label: 'Locations', path: '/locations' });
     }
-    if (role === 'admin' || role === 'gestionnaire') gestionItems.push({ icon: <CalendarCheck size={20} />, label: 'Réservations', path: '/reservations' });
-    if (role === 'admin' || role === 'gestionnaire') gestionItems.push({ icon: <ClipboardList size={20} />, label: 'Inventaires', path: '/inventaires' });
-    if (role === 'admin' || role === 'gestionnaire') gestionItems.push({ icon: <ClipboardCheck size={20} />, label: 'États des Lieux', path: '/etats-des-lieux' });
+    // Consolidation of renting activities
+    if (perms.locataires_read || role === 'admin' || role === 'gestionnaire') {
+        gestionItems.push({ icon: <Home size={20} />, label: 'Baux & Locations', path: '/locations' });
+    }
+    if (role === 'admin' || role === 'gestionnaire') {
+        gestionItems.push({ icon: <ClipboardCheck size={20} />, label: 'États des Lieux', path: '/etats-des-lieux' });
+        gestionItems.push({ icon: <CalendarCheck size={20} />, label: 'Réservations', path: '/reservations' });
+    }
     if ((perms.owners_read || role === 'admin' || role === 'gestionnaire') && type !== 'proprietaire') {
-        // Pour un gestionnaire, les proprios sont dans "Clientèle" ou "Gestion"
-        gestionItems.push({ icon: <Users size={20} />, label: 'Propriétaires', path: '/proprietaires' }); 
+        gestionItems.push({ icon: <Crown size={20} />, label: 'Propriétaires', path: '/proprietaires' }); 
     }
 
     // Groupe Finances
     const financeItems: MenuItem[] = [];
     if (perms.finance_read || role === 'admin' || role === 'gestionnaire') {
-        financeItems.push({ icon: <Wallet size={20} />, label: 'Finances', path: '/finances' });
+        financeItems.push({ icon: <Wallet size={20} />, label: 'Transactions', path: '/finances' });
         financeItems.push({ icon: <FileText size={20} />, label: 'Quittances', path: '/quittances' });
     }
     if (perms.finance_validate || role === 'admin' || role === 'gestionnaire') {
-        financeItems.push({ icon: <CreditCard size={20} />, label: 'Mobile Money', path: '/mobile-money' });
+        financeItems.push({ icon: <CreditCard size={20} />, label: 'Comptes MoMo', path: '/mobile-money' });
     }
 
     // Groupe Organisation
     const orgItems: MenuItem[] = [];
-    if (perms.contrats_read || role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <FileText size={20} />, label: 'Contrats', path: '/contrats' });
     if (perms.documents_read || role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <FolderOpen size={20} />, label: 'Documents', path: '/documents' });
-    if (role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <Notebook size={20} />, label: 'Carnet', path: '/carnet' }); // Module XI
-    if (role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <CheckSquare size={20} />, label: 'Tâches', path: '/tasks' }); // Module XIV
-    if (role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <Wrench size={20} />, label: 'Interventions', path: '/interventions' });
-    if (role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <Calendar size={20} />, label: 'Calendrier', path: '/calendrier' });
-    if (role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <BarChart3 size={20} />, label: 'Rapports', path: '/rapports' });
+    if (role === 'admin' || role === 'gestionnaire') {
+        orgItems.push({ icon: <Calendar size={20} />, label: 'Planning', path: '/calendrier' });
+        orgItems.push({ icon: <CheckSquare size={20} />, label: 'Tâches', path: '/tasks' });
+        orgItems.push({ icon: <Wrench size={20} />, label: 'Interventions', path: '/interventions' });
+        orgItems.push({ icon: <BarChart3 size={20} />, label: 'Données & Rapports', path: '/rapports' });
+    }
 
     // Groupe Admin
     const adminItems: MenuItem[] = [];

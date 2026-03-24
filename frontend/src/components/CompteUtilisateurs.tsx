@@ -454,10 +454,9 @@ const CompteUtilisateurs: React.FC = () => {
                                                 </li>
                                             )}
                                             <li>
-                                                <a onClick={() => {
-                                                    if (window.confirm('⚠️ ATTENTION : Cette action est IRRÉVERSIBLE. Supprimer définitivement cet utilisateur ?')) {
-                                                        handleDelete(user.id);
-                                                    }
+                                                <a onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(user.id);
                                                 }} className="text-red-600 hover:bg-red-50">
                                                     <Trash2 size={16} /> Supprimer
                                                 </a>

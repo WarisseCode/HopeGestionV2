@@ -20,6 +20,7 @@ import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
+import ConfirmModal from '../components/ui/ConfirmModal';
 import { getImmeubles, getLots, saveLot, deleteLot } from '../api/bienApi';
 import type { Immeuble, Lot } from '../api/bienApi';
 
@@ -43,6 +44,21 @@ const LotsPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingLot, setEditingLot] = useState<Partial<Lot>>({
     reference: '', type: 'Appartement', building_id: 0, etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: ''
+  });
+
+  // Confirm Modal State
+  const [confirmConfig, setConfirmConfig] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      type: 'danger' | 'warning' | 'info';
+      action: () => Promise<void>;
+  }>({
+      isOpen: false,
+      title: '',
+      message: '',
+      type: 'danger',
+      action: async () => {}
   });
 
   const fetchData = async () => {
@@ -82,14 +98,21 @@ const LotsPage: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Voulez-vous vraiment supprimer ce lot ?')) return;
-    try {
-      await deleteLot(id);
-      setSuccess('Lot supprimé');
-      fetchData();
-    } catch (err: any) {
-      setError(err.message);
-    }
+    setConfirmConfig({
+        isOpen: true,
+        title: 'Supprimer ce lot',
+        message: 'Voulez-vous vraiment supprimer ce lot ?',
+        type: 'danger',
+        action: async () => {
+            try {
+              await deleteLot(id);
+              setSuccess('Lot supprimé');
+              fetchData();
+            } catch (err: any) {
+              setError(err.message);
+            }
+        }
+    });
   };
 
   // Filter lots
@@ -412,6 +435,19 @@ const LotsPage: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Dynamic Confirm Modal */}
+      <ConfirmModal
+          isOpen={confirmConfig.isOpen}
+          onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={() => {
+              confirmConfig.action();
+              setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+          }}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          type={confirmConfig.type}
+      />
     </div>
   );
 };

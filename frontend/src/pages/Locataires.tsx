@@ -42,6 +42,8 @@ import FilterPanel from '../components/ui/FilterPanel';
 import type { FilterConfig, FilterValues } from '../components/ui/FilterPanel';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
 import LocataireForm from '../components/locataires/LocataireForm';
+import ConfirmModal from '../components/ui/ConfirmModal';
+import EmptyState from '../components/ui/EmptyState';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Constants
@@ -112,8 +114,23 @@ const Locataires: React.FC = () => {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Modal states
+  // Modal State
   const [showModal, setShowModal] = useState(false);
+  
+  // Confirm Modal State
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'danger' | 'warning' | 'info';
+    action: () => Promise<void>;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'danger',
+    action: async () => {}
+  });
   const [formType, setFormType] = useState<'creation' | 'affectation'>('creation');
   const [locataireForm, setLocataireForm] = useState({
     typeProfil: 'Locataire', nom: '', prenoms: '', telephonePrincipal: '', telephoneSecondaire: '',
@@ -257,14 +274,21 @@ const Locataires: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Voulez-vous vraiment supprimer ce profil ?')) return;
-    try {
-      await deleteLocataire(id);
-      toast.success('Profil supprimé');
-      fetchData();
-    } catch (err: any) {
-      toast.error(err.message);
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Supprimer ce locataire',
+      message: 'Voulez-vous vraiment supprimer ce profil ? Cette action est irréversible.',
+      type: 'danger',
+      action: async () => {
+        try {
+          await deleteLocataire(id);
+          toast.success('Profil supprimé');
+          fetchData();
+        } catch (err: any) {
+          toast.error(err.message);
+        }
+      }
+    });
   };
 
   const handleWhatsApp = (phone: string, name: string) => {
@@ -507,11 +531,18 @@ const Locataires: React.FC = () => {
         ) : (
           <motion.div key="list" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
             {paginatedList.length === 0 ? (
-              <div className="text-center py-12 text-base-content/40">
-                <Users size={48} className="mx-auto mb-4 opacity-50" />
-                <p className="font-medium">Aucun {activeTab === 'acheteurs' ? 'acheteur' : 'locataire'} trouvé</p>
-                <p className="text-sm mt-1">Modifiez vos critères de recherche</p>
-              </div>
+                <EmptyState
+                    icon={<Users size={40} />}
+                    title={`Aucun ${activeTab === 'acheteurs' ? 'acheteur' : 'locataire'} trouvé`}
+                    description="Il n'y a aucun profil qui correspond à vos critères de recherche. Modifiez vos filtres ou ajoutez un nouveau profil."
+                    actionLabel={`Nouveau ${activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire'}`}
+                    onAction={() => {
+                      setFormType('creation');
+                      setLocataireForm({ ...locataireForm, typeProfil: activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire' });
+                      setShowModal(true);
+                    }}
+                    className="mt-6"
+                />
             ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {paginatedList.map((person) => {
@@ -595,33 +626,47 @@ const Locataires: React.FC = () => {
                       {/* Approval Actions for Pending Requests */}
                       {activeTab === 'requests' && (
                         <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-base-200">
-                           <button 
-                             onClick={async (e) => {
+                            <button 
+                             onClick={(e) => {
                                e.stopPropagation();
-                               if(!window.confirm('Confirmer ce locataire ?')) return;
-                               try {
-                                 await approveLocataire(person.id);
-                                 toast.success("Locataire approuvé !");
-                                 fetchData();
-                               } catch(err: any) {
-                                 toast.error(err.message);
-                               }
+                               setConfirmConfig({
+                                 isOpen: true,
+                                 title: 'Confirmer ce locataire',
+                                 message: 'Voulez-vous vraiment approuver la demande de ce locataire ?',
+                                 type: 'info',
+                                 action: async () => {
+                                   try {
+                                     await approveLocataire(person.id);
+                                     toast.success("Locataire approuvé !");
+                                     fetchData();
+                                   } catch(err: any) {
+                                     toast.error(err.message);
+                                   }
+                                 }
+                               });
                              }}
                              className="btn btn-sm btn-success text-white"
                            >
                              Approuver
                            </button>
                            <button 
-                             onClick={async (e) => {
+                             onClick={(e) => {
                                 e.stopPropagation();
-                                if(!window.confirm('Rejeter cette demande ?')) return;
-                                try {
-                                  await rejectLocataire(person.id);
-                                  toast.success("Demande rejetée.");
-                                  fetchData();
-                                } catch(err: any) {
-                                  toast.error(err.message);
-                                }
+                                setConfirmConfig({
+                                 isOpen: true,
+                                 title: 'Rejeter cette demande',
+                                 message: 'Voulez-vous rejeter cette demande ?',
+                                 type: 'danger',
+                                 action: async () => {
+                                   try {
+                                     await rejectLocataire(person.id);
+                                     toast.success("Demande rejetée.");
+                                     fetchData();
+                                   } catch(err: any) {
+                                     toast.error(err.message);
+                                   }
+                                 }
+                               });
                              }}
                              className="btn btn-sm btn-error text-white"
                            >
@@ -776,6 +821,19 @@ const Locataires: React.FC = () => {
           onCancel={() => setShowModal(false)}
         />
       </Modal>
+
+      {/* Dynamic Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={() => {
+          confirmConfig.action();
+          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+        }}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        type={confirmConfig.type}
+      />
     </motion.div>
   );
 };

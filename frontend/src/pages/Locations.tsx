@@ -14,6 +14,7 @@ import { getLots } from '../api/bienApi';
 import { documentApi } from '../api/documentApi';
 import Alert from '../components/ui/Alert';
 import SignatureModal from '../components/SignatureModal';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 const Locations: React.FC = () => {
     const [locations, setLocations] = useState<Location[]>([]);
@@ -27,6 +28,21 @@ const Locations: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showSignatureModal, setShowSignatureModal] = useState(false);
     const [selectedLeaseId, setSelectedLeaseId] = useState<number | null>(null);
+
+    // Confirm Modal State
+    const [confirmConfig, setConfirmConfig] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        type: 'danger' | 'warning' | 'info';
+        action: () => Promise<void>;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'danger',
+        action: async () => {}
+    });
 
     // Data for dropdowns
     const [locataires, setLocataires] = useState<any[]>([]);
@@ -133,14 +149,21 @@ const Locations: React.FC = () => {
     };
 
     const handleResilier = async (id: number) => {
-        if (!window.confirm("Êtes-vous sûr de vouloir résilier ce bail ?")) return;
-        try {
-            await locationApi.resilierLocation(id);
-            toast.success("Bail résilié");
-            loadData();
-        } catch (err) {
-            setError("Erreur lors de la résiliation");
-        }
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Résilier ce bail',
+            message: 'Êtes-vous sûr de vouloir résilier ce bail ? Cette action est irréversible.',
+            type: 'warning',
+            action: async () => {
+                try {
+                    await locationApi.resilierLocation(id);
+                    toast.success("Bail résilié");
+                    loadData();
+                } catch (err) {
+                    setError("Erreur lors de la résiliation");
+                }
+            }
+        });
     };
 
     const handleGenerateLease = async (locationId: number) => {
@@ -573,6 +596,19 @@ const Locations: React.FC = () => {
                 open={showSignatureModal}
                 onClose={() => setShowSignatureModal(false)}
                 onSave={handleSaveSignature}
+            />
+
+            {/* Dynamic Confirm Modal */}
+            <ConfirmModal
+                isOpen={confirmConfig.isOpen}
+                onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={() => {
+                    confirmConfig.action();
+                    setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+                }}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                type={confirmConfig.type}
             />
         </div>
     );

@@ -14,6 +14,7 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
+import ConfirmModal from '../components/ui/ConfirmModal';
 import { getTeam, addTeamMember, removeTeamMember } from '../api/delegationApi';
 import type { TeamMember, Permissions } from '../api/delegationApi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -35,6 +36,13 @@ const DelegationsPage: React.FC = () => {
   
   const [tempPassword, setTempPassword] = useState('');
   const [createdEmail, setCreatedEmail] = useState('');
+  
+  // State for delete confirmation modal
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; memberId: number | null; memberName: string }>({
+    isOpen: false,
+    memberId: null,
+    memberName: ''
+  });
 
   const fetchTeam = async () => {
     try {
@@ -76,15 +84,22 @@ const DelegationsPage: React.FC = () => {
   };
 
 
-  const handleRemoveMember = async (id: number, name: string) => {
-    if (!window.confirm(`Voulez-vous retirer ${name} de votre équipe ?`)) return;
+  const confirmRemoveMember = (id: number, name: string) => {
+    setDeleteConfirm({ isOpen: true, memberId: id, memberName: name });
+  };
+
+  const handleRemoveMember = async () => {
+    if (deleteConfirm.memberId === null) return;
+    
     try {
       setError('');
-      await removeTeamMember(id);
-      setSuccess(`${name} retiré de l'équipe.`);
+      await removeTeamMember(deleteConfirm.memberId);
+      setSuccess(`${deleteConfirm.memberName} retiré de l'équipe.`);
       fetchTeam();
     } catch (err: any) {
       setError(err.message || "Erreur lors de la suppression");
+    } finally {
+      setDeleteConfirm({ isOpen: false, memberId: null, memberName: '' });
     }
   };
 
@@ -205,7 +220,7 @@ const DelegationsPage: React.FC = () => {
                         variant="ghost" 
                         size="sm" 
                         className="btn-square btn-xs text-gray-400 hover:text-error hover:bg-error/10 transition-colors"
-                        onClick={() => handleRemoveMember(member.id, member.nom)} 
+                        onClick={() => confirmRemoveMember(member.id, member.nom)} 
                       >
                         <Trash2 size={16} />
                       </Button>
@@ -324,6 +339,18 @@ const DelegationsPage: React.FC = () => {
             </div>
         </div>
       </Modal>
+
+      {/* Confirmation Modal for Member Deletion */}
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        title="Retirer le collaborateur"
+        message={`Voulez-vous vraiment retirer "${deleteConfirm.memberName}" de votre équipe ? Cette action révoquera immédiatement tous ses accès.`}
+        confirmText="Retirer"
+        cancelText="Annuler"
+        onConfirm={handleRemoveMember}
+        onCancel={() => setDeleteConfirm({ isOpen: false, memberId: null, memberName: '' })}
+        type="danger"
+      />
     </motion.div>
   );
 };

@@ -11,6 +11,7 @@ import { useMobile } from '../hooks/useMobile';
 import toast from 'react-hot-toast';
 import { getSubscriptionStatus } from '../api/subscriptionApi';
 import type { SubscriptionStatus } from '../api/subscriptionApi';
+import ConfirmModal from './ui/ConfirmModal';
 
 interface Owner {
     id: number;
@@ -60,6 +61,21 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
     
     const [editingProp, setEditingProp] = useState<any>(null);
     const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
+
+    // Confirm Modal State
+    const [confirmConfig, setConfirmConfig] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        type: 'danger' | 'warning' | 'info';
+        action: () => Promise<void>;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'danger',
+        action: async () => {}
+    });
 
     useEffect(() => {
         loadOwners();
@@ -111,15 +127,21 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
     };
 
     const handleDelete = async (id: number) => {
-        if (window.confirm('Êtes-vous sûr de vouloir désactiver ce propriétaire ?')) {
-            try {
-                await accountApi.deleteProprietaire(id);
-                setOwners(owners.filter(o => o.id !== id));
-                toast.success("Propriétaire désactivé avec succès.");
-            } catch (err) {
-                toast.error("Erreur lors de la désactivation.");
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Désactiver ce propriétaire',
+            message: 'Êtes-vous sûr de vouloir désactiver ce propriétaire ? Il n\'aura plus accès à la plateforme.',
+            type: 'warning',
+            action: async () => {
+                try {
+                    await accountApi.deleteProprietaire(id);
+                    setOwners(owners.filter(o => o.id !== id));
+                    toast.success("Propriétaire désactivé avec succès.");
+                } catch (err) {
+                    toast.error("Erreur lors de la désactivation.");
+                }
             }
-        }
+        });
     };
 
     const handleEdit = (owner: Owner) => {
@@ -467,10 +489,23 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                                         </li>
                                                         <div className="divider my-1 opacity-50"></div>
                                                         <li>
-                                                            <a onClick={() => {
-                                                                if (window.confirm('⚠️ ATTENTION : Suppression irréversible. Confirmer ?')) {
-                                                                    handleDelete(owner.id); 
-                                                                }
+                                                            <a onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setConfirmConfig({
+                                                                    isOpen: true,
+                                                                    title: 'Suppression irréversible',
+                                                                    message: '⚠️ ATTENTION : La suppression d\'un propriétaire est irréversible et disssocie tous ses biens. Confirmer ?',
+                                                                    type: 'danger',
+                                                                    action: async () => {
+                                                                        try {
+                                                                            await accountApi.deleteProprietaire(owner.id); // Assuming same endpoint for force delete
+                                                                            setOwners(owners.filter(o => o.id !== owner.id));
+                                                                            toast.success("Propriétaire supprimé.");
+                                                                        } catch(err) {
+                                                                            toast.error("Erreur lors de la suppression.");
+                                                                        }
+                                                                    }
+                                                                });
                                                             }} className="text-error hover:bg-error/5 py-2.5">
                                                                 <Trash2 size={16} /> <span className="font-medium">Supprimer</span>
                                                             </a>
@@ -486,6 +521,19 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                     )}
                 </div>
             )}
+
+            {/* Dynamic Confirm Modal */}
+            <ConfirmModal
+                isOpen={confirmConfig.isOpen}
+                onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={() => {
+                    confirmConfig.action();
+                    setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+                }}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                type={confirmConfig.type}
+            />
         </div>
     );
 };

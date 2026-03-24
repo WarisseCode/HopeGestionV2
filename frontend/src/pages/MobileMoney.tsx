@@ -21,6 +21,7 @@ import {
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import ConfirmModal from '../components/ui/ConfirmModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
@@ -51,6 +52,21 @@ const MobileMoney: React.FC = () => {
   });
   const [configForm, setConfigForm] = useState({
       nom: '', operateur: 'MTN', numero: ''
+  });
+
+  // Confirm Modal State
+  const [confirmConfig, setConfirmConfig] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      type: 'danger' | 'warning' | 'info';
+      action: () => Promise<void>;
+  }>({
+      isOpen: false,
+      title: '',
+      message: '',
+      type: 'danger',
+      action: async () => {}
   });
 
   useEffect(() => {
@@ -139,14 +155,21 @@ const MobileMoney: React.FC = () => {
   };
 
   const handleDeleteConfig = async (id: number) => {
-      if(!window.confirm("Supprimer ce compte ?")) return;
-      try {
-          await deleteConfig(id);
-          toast.success("Compte supprimé");
-          setConfigurations(prev => prev.filter(c => c.id !== id));
-      } catch (e: any) {
-          toast.error("Erreur suppression");
-      }
+      setConfirmConfig({
+          isOpen: true,
+          title: 'Supprimer ce compte',
+          message: 'Voulez-vous vraiment supprimer ce compte Mobile Money ?',
+          type: 'danger',
+          action: async () => {
+              try {
+                  await deleteConfig(id);
+                  toast.success("Compte supprimé");
+                  setConfigurations(prev => prev.filter(c => c.id !== id));
+              } catch (e: any) {
+                  toast.error("Erreur suppression");
+              }
+          }
+      });
   };
 
   const handleToggleConfig = async (id: number) => {
@@ -510,6 +533,19 @@ const MobileMoney: React.FC = () => {
                </motion.div>
            </div>
       )}
+
+      {/* Dynamic Confirm Modal */}
+      <ConfirmModal
+          isOpen={confirmConfig.isOpen}
+          onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={() => {
+              confirmConfig.action();
+              setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+          }}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          type={confirmConfig.type}
+      />
     </motion.div>
   );
 };

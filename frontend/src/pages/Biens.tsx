@@ -26,6 +26,8 @@ import type { FilterConfig, FilterValues } from '../components/ui/FilterPanel';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
 import ImmeubleForm from '../components/biens/ImmeubleForm';
 import LotForm from '../components/biens/LotForm';
+import ConfirmModal from '../components/ui/ConfirmModal';
+import EmptyState from '../components/ui/EmptyState';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getImmeubles, getLots, saveImmeuble, saveLot, deleteImmeuble, deleteLot } from '../api/bienApi';
 import { getSubscriptionStatus } from '../api/subscriptionApi';
@@ -92,9 +94,23 @@ const Biens: React.FC = () => {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [activeAssignmentLot, setActiveAssignmentLot] = useState<Lot | null>(null);
 
-  // Gallery state
   const [gallerySelectedBuilding, setGallerySelectedBuilding] = useState<Immeuble | null>(null);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
+
+  // Confirm Modal State
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'danger' | 'warning' | 'info';
+    action: () => Promise<void>;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'danger',
+    action: async () => {}
+  });
 
   // Filter configurations
   const immeubleFilters: FilterConfig[] = [
@@ -284,25 +300,39 @@ const Biens: React.FC = () => {
 
 
   const handleDeleteImmeuble = async (id: number) => {
-    if (!window.confirm('Voulez-vous vraiment supprimer cet immeuble ?')) return;
-    try {
-      await deleteImmeuble(id);
-      setSuccess('Immeuble supprimé');
-      fetchData();
-    } catch (err: any) {
-      setError(err.message);
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Supprimer cet immeuble',
+      message: 'Voulez-vous vraiment supprimer cet immeuble ? Tous les lots associés pourraient être impactés. Cette action est irréversible.',
+      type: 'danger',
+      action: async () => {
+        try {
+          await deleteImmeuble(id);
+          setSuccess('Immeuble supprimé');
+          fetchData();
+        } catch (err: any) {
+          setError(err.message);
+        }
+      }
+    });
   };
 
   const handleDeleteLot = async (id: number) => {
-    if (!window.confirm('Voulez-vous vraiment supprimer ce lot ?')) return;
-    try {
-      await deleteLot(id);
-      setSuccess('Lot supprimé');
-      fetchData();
-    } catch (err: any) {
-      setError(err.message);
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Supprimer ce lot',
+      message: 'Voulez-vous vraiment supprimer ce lot ? Cette action est irréversible.',
+      type: 'danger',
+      action: async () => {
+        try {
+          await deleteLot(id);
+          setSuccess('Lot supprimé');
+          fetchData();
+        } catch (err: any) {
+          setError(err.message);
+        }
+      }
+    });
   };
 
   const containerVariants = {
@@ -556,11 +586,14 @@ const Biens: React.FC = () => {
               viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {paginatedData.length === 0 ? (
-                    <div className="col-span-full text-center py-12 text-gray-400">
-                      <Building2 size={48} className="mx-auto mb-4 opacity-50" />
-                      <p className="font-medium">Aucun immeuble trouvé</p>
-                      <p className="text-sm mt-1">Modifiez vos critères de recherche</p>
-                    </div>
+                    <EmptyState
+                        icon={<Building2 size={40} />}
+                        title="Aucun immeuble trouvé"
+                        description="Il n'y a aucun immeuble qui correspond à vos critères de recherche. Modifiez vos filtres ou ajoutez un nouvel immeuble."
+                        actionLabel="Ajouter un immeuble"
+                        onAction={() => setShowImmeubleModal(true)}
+                        className="mt-6"
+                    />
                   ) : (
                     (paginatedData as Immeuble[]).map((immeuble) => (
                       <div key={immeuble.id} className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden hover:shadow-xl transition-all group">
@@ -979,6 +1012,19 @@ const Biens: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Dynamic Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={() => {
+          confirmConfig.action();
+          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+        }}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        type={confirmConfig.type}
+      />
     </motion.div>
   );
 };

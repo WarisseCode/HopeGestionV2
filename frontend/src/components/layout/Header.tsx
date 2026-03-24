@@ -6,6 +6,7 @@ import { Search, Home, ChevronRight, Settings, Crown, Sun, Moon, PanelLeftClose,
 import NotificationBell from '../NotificationBell';
 import SubscriptionBadge from '../SubscriptionBadge';
 import { updateProfile } from '../../api/accountApi';
+import SearchPalette from '../ui/SearchPalette';
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -18,6 +19,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle, userProfile, onLogout }) => {
   const location = useLocation();
   const [theme, setTheme] = React.useState<'hopegestion' | 'dark'>('hopegestion');
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
 
   React.useEffect(() => {
     const currentTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'hopegestion';
@@ -90,14 +92,24 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle
         {/* Right: Actions */}
         <div className="flex items-center gap-3 sm:gap-4">
             {/* Search (Desktop only) */}
-            <div className="hidden lg:flex items-center bg-base-200/50 rounded-full px-4 py-2 w-64 border border-transparent focus-within:border-primary/30 focus-within:bg-base-100 transition-all">
-                <Search size={16} className="text-base-content/40 mr-2" />
-                <input 
-                  type="text" 
-                  placeholder="Rechercher..." 
-                  className="bg-transparent border-none outline-none text-sm w-full text-base-content placeholder-base-content/40" 
-                />
-            </div>
+            <button 
+                onClick={() => setIsSearchOpen(true)}
+                className="hidden lg:flex items-center bg-base-200/50 rounded-full px-4 py-2 w-64 border border-transparent hover:border-primary/30 hover:bg-base-200 transition-all text-left text-sm text-base-content/50"
+            >
+                <Search size={16} className="mr-2" />
+                <span>Rechercher...</span>
+                <span className="ml-auto text-xs bg-base-100 px-1.5 py-0.5 rounded border border-base-200 shadow-sm font-mono">
+                  ⌘K
+                </span>
+            </button>
+            
+            {/* Search Icon Mobile */}
+            <button 
+                onClick={() => setIsSearchOpen(true)}
+                className="lg:hidden p-2 rounded-full hover:bg-base-200 text-base-content"
+            >
+                <Search size={20} />
+            </button>
 
             {/* Subscription Badge */}
             <div className="hidden sm:block">
@@ -150,6 +162,12 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle
                 </ul>
             </div>
         </div>
+        
+        {/* Global Search Palette */}
+        <SearchPalette 
+            isOpen={isSearchOpen} 
+            onClose={() => setIsSearchOpen(false)} 
+        />
     </header>
   );
 };
