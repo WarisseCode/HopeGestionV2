@@ -15,6 +15,7 @@ import Card from '../components/ui/Card';
 import Modal from '../components/ui/Modal';
 import LocataireForm from '../components/locataires/LocataireForm';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 const tabs = [
   { id: 'profil', label: 'Profil', icon: User },
@@ -59,8 +60,10 @@ const LocataireDetails: React.FC = () => {
       const details = await getLocataireDetails(parseInt(id));
       setData(details);
       setShowEditModal(false);
+      toast.success('Locataire mis à jour avec succès !');
     } catch (err: any) {
       setError(err.message);
+      toast.error(err.message || 'Erreur lors de la modification');
     } finally {
       setSaving(false);
     }
@@ -196,6 +199,15 @@ const LocataireDetails: React.FC = () => {
                 <div className="flex justify-between"><span className="text-base-content/60">Nom complet</span><span className="font-medium">{locataire.prenoms} {locataire.nom}</span></div>
                 <div className="flex justify-between"><span className="text-base-content/60">Type</span><span className="font-medium">{locataire.type}</span></div>
                 <div className="flex justify-between"><span className="text-base-content/60">Nationalité</span><span className="font-medium">{locataire.nationalite || '-'}</span></div>
+                {locataire.telephone_principal && (
+                  <div className="flex justify-between"><span className="text-base-content/60 flex items-center gap-1"><Phone size={14} /> Téléphone</span><span className="font-medium">{locataire.telephone_principal}</span></div>
+                )}
+                {locataire.telephone_secondaire && (
+                  <div className="flex justify-between"><span className="text-base-content/60 flex items-center gap-1"><Phone size={14} /> Tél. secondaire</span><span className="font-medium">{locataire.telephone_secondaire}</span></div>
+                )}
+                {locataire.email && (
+                  <div className="flex justify-between"><span className="text-base-content/60 flex items-center gap-1"><Mail size={14} /> Email</span><span className="font-medium">{locataire.email}</span></div>
+                )}
                 <div className="flex justify-between"><span className="text-base-content/60">Adresse</span><span className="font-medium">{locataire.adresse_actuelle || '-'}</span></div>
               </div>
             </Card>
