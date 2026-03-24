@@ -345,10 +345,10 @@ const DelegationsPage: React.FC = () => {
         isOpen={deleteConfirm.isOpen}
         title="Retirer le collaborateur"
         message={`Voulez-vous vraiment retirer "${deleteConfirm.memberName}" de votre équipe ? Cette action révoquera immédiatement tous ses accès.`}
-        confirmText="Retirer"
-        cancelText="Annuler"
+        confirmLabel="Retirer"
+        cancelLabel="Annuler"
         onConfirm={handleRemoveMember}
-        onCancel={() => setDeleteConfirm({ isOpen: false, memberId: null, memberName: '' })}
+        onClose={() => setDeleteConfirm({ isOpen: false, memberId: null, memberName: '' })}
         type="danger"
       />
     </motion.div>
