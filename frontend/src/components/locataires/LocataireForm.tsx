@@ -35,29 +35,52 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(0);
-  const [formData, setFormData] = useState({
-    type: 'Locataire',
-    nom: '',
-    prenoms: '',
-    telephone_principal: '',
-    telephone_secondaire: '',
-    email: '',
-    nationalite: 'Béninoise',
-    adresse_actuelle: '',
-    // Documents
-    type_piece: 'CNI',
-    numero_piece: '',
-    date_expiration_piece: '',
-    photo_piece_url: '',
-    photo_profil_url: '',
-    // Finances
-    mode_paiement_preferentiel: 'Mobile Money',
-    caution: 0,
-    avance: 0,
-    paiement_echelonne: false,
-    // Status
-    statut: 'Actif'
+  const LOCAL_STORAGE_KEY = 'hopegestion_locataire_draft';
+
+  const [formData, setFormData] = useState(() => {
+    // Si on est en création (pas d'ID), on tente de récupérer le brouillon
+    if (!locataire?.id) {
+      const draft = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (draft) {
+        try {
+          return JSON.parse(draft);
+        } catch (e) {
+          console.error("Erreur parsing brouillon locataire", e);
+        }
+      }
+    }
+    
+    return {
+      type: 'Locataire',
+      nom: '',
+      prenoms: '',
+      telephone_principal: '',
+      telephone_secondaire: '',
+      email: '',
+      nationalite: 'Béninoise',
+      adresse_actuelle: '',
+      // Documents
+      type_piece: 'CNI',
+      numero_piece: '',
+      date_expiration_piece: '',
+      photo_piece_url: '',
+      photo_profil_url: '',
+      // Finances
+      mode_paiement_preferentiel: 'Mobile Money',
+      caution: 0,
+      avance: 0,
+      paiement_echelonne: false,
+      // Status
+      statut: 'Actif'
+    };
   });
+
+  // Sauvegarde automatique du brouillon en création
+  useEffect(() => {
+    if (!locataire?.id) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [formData, locataire?.id]);
 
   // Only populate form data on initial mount OR when editing (locataire has id)
   // This prevents resetting user input when parent re-renders
@@ -68,7 +91,7 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
     // For creation: don't populate (use defaults)
     if (locataire?.id && !didPopulateRef.current) {
       didPopulateRef.current = true;
-      setFormData(prev => ({
+      setFormData((prev: any) => ({
         ...prev,
         ...locataire,
         date_expiration_piece: locataire.date_expiration_piece 
@@ -89,11 +112,15 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
       formattedValue = value.replace(/\b\w/g, char => char.toUpperCase());
     }
     
-    setFormData(prev => ({ ...prev, [field]: formattedValue }));
+    setFormData((prev: any) => ({ ...prev, [field]: formattedValue }));
   };
 
   const handleSubmit = async () => {
     await onSave(formData as any);
+    // Purge le brouillon après un enregistrement réussi (en création)
+    if (!locataire?.id) {
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    }
   };
 
   const isStepValid = () => {

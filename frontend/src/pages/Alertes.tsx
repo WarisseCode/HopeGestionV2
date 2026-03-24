@@ -352,14 +352,14 @@ const Alertes: React.FC = () => {
                                             <div className="flex justify-end gap-2">
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/alertes/${alerte.id}`); }}
-                                                    className="btn btn-ghost btn-circle btn-sm text-base-content/40 hover:text-primary hover:bg-primary/10 transition-colors tooltip tooltip-left"
+                                                    className="btn btn-ghost btn-circle btn-sm text-base-content/60 hover:text-primary hover:bg-primary/10 transition-colors tooltip tooltip-left"
                                                     data-tip="Voir les détails"
                                                 >
                                                     <Eye size={16} />
                                                 </button>
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); handleDismiss(alerte.id); }}
-                                                    className="btn btn-ghost btn-circle btn-sm text-base-content/40 hover:text-error hover:bg-error/10 transition-colors tooltip tooltip-left"
+                                                    className="btn btn-ghost btn-circle btn-sm text-base-content/60 hover:text-error hover:bg-error/10 transition-colors tooltip tooltip-left"
                                                     data-tip="Ignorer l'alerte"
                                                     disabled={dismissingId === alerte.id}
                                                 >
@@ -418,7 +418,7 @@ const Alertes: React.FC = () => {
                                                  {!notif.is_read && <span className="badge badge-primary badge-sm px-2 py-2 text-[10px] font-bold tracking-wider text-white shadow-sm ring-1 ring-primary/20">NOUVEAU</span>}
                                              </div>
                                              <p className="text-sm text-base-content/60 leading-relaxed max-w-2xl">{notif.message}</p>
-                                             <div className="flex items-center gap-4 mt-3 text-xs font-medium text-base-content/40">
+                                             <div className="flex items-center gap-4 mt-3 text-xs font-medium text-base-content/60">
                                                  <span className="flex items-center gap-1.5 bg-base-200/50 px-2.5 py-1 rounded-md"><Clock size={12}/> {new Date(notif.created_at).toLocaleString()}</span>
                                              </div>
                                          </div>
@@ -430,7 +430,7 @@ const Alertes: React.FC = () => {
                                              </Button>
                                          )}
                                          {!notif.is_read && (
-                                             <button className="btn btn-ghost btn-circle btn-sm text-base-content/40 hover:text-primary hover:bg-primary/10 transition-colors tooltip tooltip-left" data-tip="Marquer comme lu" onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notif.id); }}>
+                                             <button className="btn btn-ghost btn-circle btn-sm text-base-content/60 hover:text-primary hover:bg-primary/10 transition-colors tooltip tooltip-left" data-tip="Marquer comme lu" onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notif.id); }}>
                                                  <CheckCircle size={18} />
                                              </button>
                                          )}

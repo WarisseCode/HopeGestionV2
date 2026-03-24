@@ -88,7 +88,7 @@ const KPICard: React.FC<KPICardProps> = ({ icon: Icon, label, value, color, tren
           <p className="text-sm font-medium text-base-content/60 dark:text-base-content/60 mb-1">{label}</p>
           <h3 className="text-2xl font-bold text-base-content/90 dark:text-base-content tracking-tight">{value}</h3>
           {trend && (
-            <p className="text-xs text-gray-400 dark:text-base-content/40 mt-1">
+            <p className="text-xs text-gray-400 dark:text-base-content/60 mt-1">
               {trend.label}
             </p>
           )}

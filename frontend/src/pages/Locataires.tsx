@@ -520,7 +520,7 @@ const Locataires: React.FC = () => {
             <Card className="border-none shadow-xl bg-base-100 text-center py-12">
               <div className="flex flex-col items-center">
                 <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-4"><Home size={32}/></div>
-                <h3 className="text-xl font-bold text-base-content/90">Gestion des Affectations</h3>
+                <h2 className="text-xl font-bold text-base-content/90">Gestion des Affectations</h2>
                 <p className="text-base-content/60 max-w-md mt-2 mb-6">Gérez ici l'attribution des logements à vos locataires.</p>
                 <Button variant="primary" onClick={() => navigate('/dashboard/locations')}>
                   Voir les Baux
@@ -576,7 +576,7 @@ const Locataires: React.FC = () => {
                         <Phone size={12} /> {person.telephone_principal}
                       </p>
                       {person.email && (
-                        <p className="text-xs text-base-content/40 mb-3 flex items-center gap-1.5 truncate">
+                        <p className="text-xs text-base-content/60 mb-3 flex items-center gap-1.5 truncate">
                           <Mail size={12} /> {person.email}
                         </p>
                       )}

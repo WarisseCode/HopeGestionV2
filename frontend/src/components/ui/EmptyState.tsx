@@ -25,7 +25,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
       animate={{ opacity: 1, scale: 1 }}
       className={`flex flex-col items-center justify-center p-12 text-center bg-base-100 rounded-2xl border border-base-200 border-dashed ${className}`}
     >
-      <div className="w-20 h-20 mb-6 rounded-full bg-base-200/50 flex items-center justify-center text-base-content/40 ring-8 ring-base-100/50">
+      <div className="w-20 h-20 mb-6 rounded-full bg-base-200/50 flex items-center justify-center text-base-content/60 ring-8 ring-base-100/50">
         {icon}
       </div>
       

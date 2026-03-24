@@ -7,7 +7,7 @@ import {
   LayoutDashboard, LogOut, X, ChevronDown, ChevronRight,
   CreditCard, FolderOpen, BarChart3, Wrench, ShieldCheck,
   Calendar, CalendarCheck, ClipboardList, ClipboardCheck, Briefcase, Crown, Notebook, CheckSquare,
-  Home, Activity
+  Home, Activity, UserCog, Receipt, UserCheck
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -75,9 +75,9 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
             { icon: <FileText size={20} />, label: 'Mes Contrats', path: '/contrats' },
             { icon: <CreditCard size={20} />, label: 'Payer en ligne', path: '/paiements-loyer' },
             { icon: <Wallet size={20} />, label: 'Mes Paiements', path: '/finances' },
-            { icon: <FileText size={20} />, label: 'Mes Quittances', path: '/quittances' },
+            { icon: <Receipt size={20} />, label: 'Mes Quittances', path: '/quittances' },
             { icon: <FolderOpen size={20} />, label: 'Documents', path: '/documents' },
-            { icon: <Settings size={20} />, label: 'Mon Compte', path: '/mon-compte' },
+            { icon: <UserCog size={20} />, label: 'Mon Compte', path: '/mon-compte' },
           ]
         }
       ];
@@ -108,7 +108,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
           items: [
             { icon: <Wallet size={20} />, label: 'Finances', path: '/finances' },
             { icon: <CreditCard size={20} />, label: 'Mobile Money', path: '/mobile-money' },
-            { icon: <FileText size={20} />, label: 'Quittances', path: '/quittances' },
+            { icon: <Receipt size={20} />, label: 'Quittances', path: '/quittances' },
           ]
         },
         {
@@ -125,7 +125,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
            title: "Compte",
            items: [
                { icon: <Settings size={20} />, label: 'Paramètres', path: '/parametres' },
-               { icon: <Settings size={20} />, label: 'Mon Profil', path: '/mon-compte' },
+               { icon: <UserCog size={20} />, label: 'Mon Profil', path: '/mon-compte' },
            ]
         }
       ];
@@ -159,14 +159,14 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
         gestionItems.push({ icon: <CalendarCheck size={20} />, label: 'Réservations', path: '/reservations' });
     }
     if ((perms.owners_read || role === 'admin' || role === 'gestionnaire') && type !== 'proprietaire') {
-        gestionItems.push({ icon: <Crown size={20} />, label: 'Propriétaires', path: '/proprietaires' }); 
+        gestionItems.push({ icon: <UserCheck size={20} />, label: 'Propriétaires', path: '/proprietaires' }); 
     }
 
     // Groupe Finances
     const financeItems: MenuItem[] = [];
     if (perms.finance_read || role === 'admin' || role === 'gestionnaire') {
         financeItems.push({ icon: <Wallet size={20} />, label: 'Transactions', path: '/finances' });
-        financeItems.push({ icon: <FileText size={20} />, label: 'Quittances', path: '/quittances' });
+        financeItems.push({ icon: <Receipt size={20} />, label: 'Quittances', path: '/quittances' });
     }
     if (perms.finance_validate || role === 'admin' || role === 'gestionnaire') {
         financeItems.push({ icon: <CreditCard size={20} />, label: 'Comptes MoMo', path: '/mobile-money' });
@@ -186,7 +186,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
     const adminItems: MenuItem[] = [];
      if (role === 'admin' || role === 'gestionnaire') adminItems.push({ icon: <ShieldCheck size={20} />, label: 'Audit & Sécurité', path: '/audit-logs' });
     adminItems.push({ icon: <Settings size={20} />, label: 'Paramètres', path: '/parametres' });
-    adminItems.push({ icon: <Settings size={20} />, label: 'Mon Profil', path: '/mon-compte' });
+    adminItems.push({ icon: <UserCog size={20} />, label: 'Mon Profil', path: '/mon-compte' });
 
     return [
         { title: "Principal", items: mainItems },
@@ -246,7 +246,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                       {/* Group Title */}
                       {(isOpen || isMobile) && (
                           <div 
-                              className="flex items-center justify-between px-3 mb-3 cursor-pointer text-[11px] font-bold text-base-content/40 uppercase tracking-widest hover:text-primary transition-colors"
+                              className="flex items-center justify-between px-3 mb-3 cursor-pointer text-[11px] font-bold text-base-content/60 uppercase tracking-widest hover:text-primary transition-colors"
                               onClick={() => toggleGroup(group.title)}
                           >
                               <span>{group.title}</span>

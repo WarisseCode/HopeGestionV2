@@ -191,7 +191,7 @@ const DocumentTemplates: React.FC = () => {
                                         )}
                                     </button>
                                 )) : (
-                                    <p className="text-base-content/40 italic text-sm text-center py-4">Sélectionnez un type de document pour voir les champs disponibles.</p>
+                                    <p className="text-base-content/60 italic text-sm text-center py-4">Sélectionnez un type de document pour voir les champs disponibles.</p>
                                 )}
                             </div>
                         </Card>
@@ -267,12 +267,12 @@ const DocumentTemplates: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <p className="text-xs text-base-content/40 line-clamp-2 mb-3">
+                                <p className="text-xs text-base-content/60 line-clamp-2 mb-3">
                                     {t.content ? t.content.substring(0, 120) + (t.content.length > 120 ? '...' : '') : 'Aucun contenu'}
                                 </p>
                                 
                                 <div className="flex items-center justify-between pt-3 border-t border-base-200">
-                                    <p className="text-xs text-base-content/40">
+                                    <p className="text-xs text-base-content/60">
                                         Créé le {new Date(t.created_at).toLocaleDateString('fr-FR')}
                                     </p>
                                     <button 

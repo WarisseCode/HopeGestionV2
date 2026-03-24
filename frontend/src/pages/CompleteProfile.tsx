@@ -165,7 +165,7 @@ const CompleteProfile: React.FC = () => {
                                     <span className="label-text font-medium">Numéro de téléphone</span>
                                 </label>
                                 <div className="relative">
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/60">
                                         <Phone size={20} />
                                     </div>
                                     <input

@@ -291,7 +291,7 @@ const Rapports: React.FC = () => {
                              <div>
                                  <p className="text-base-content/60 text-sm font-medium">{stat.label}</p>
                                  <p className="text-2xl font-bold text-base-content">{stat.value}</p>
-                                 <p className="text-xs text-base-content/40 mt-1">{stat.sub}</p>
+                                 <p className="text-xs text-base-content/60 mt-1">{stat.sub}</p>
                              </div>
                          </div>
                     </Card>

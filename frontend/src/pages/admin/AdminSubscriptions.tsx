@@ -243,7 +243,7 @@ const AdminSubscriptions: React.FC = () => {
         <div className="p-4 border-b border-base-200 flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
           <h3 className="font-bold text-lg">Abonnements actifs</h3>
           <div className="relative w-full sm:w-64">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/60" />
             <input 
               type="text"
               placeholder="Rechercher..."
@@ -273,7 +273,7 @@ const AdminSubscriptions: React.FC = () => {
                 ))
               ) : filteredSubs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-base-content/40">
+                  <td colSpan={6} className="text-center py-12 text-base-content/60">
                     <CreditCard size={36} className="mx-auto mb-2 opacity-30" />
                     <p>Aucun abonnement actif</p>
                   </td>

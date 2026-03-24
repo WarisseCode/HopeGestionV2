@@ -275,7 +275,7 @@ const MobileMoney: React.FC = () => {
                       <ArrowDownLeft size={24}/>
                   </div>
               </div>
-              <div className="mt-4 text-sm text-base-content/40">
+              <div className="mt-4 text-sm text-base-content/60">
                   {stats.countIn} transactions reçues
               </div>
           </Card>
@@ -289,7 +289,7 @@ const MobileMoney: React.FC = () => {
                       <ArrowUpRight size={24}/>
                   </div>
               </div>
-              <div className="mt-4 text-sm text-base-content/40">
+              <div className="mt-4 text-sm text-base-content/60">
                   {stats.countOut} transactions envoyées
               </div>
           </Card>
@@ -308,7 +308,7 @@ const MobileMoney: React.FC = () => {
             <Card className="border-none shadow-sm bg-base-100 p-2">
                 <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
                     <div className="relative w-full md:w-96">
-                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-base-content/40" />
+                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-base-content/60" />
                     <input 
                         type="text" 
                         placeholder="Rechercher une transaction..." 
@@ -334,7 +334,7 @@ const MobileMoney: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-base-200">
                         {transactions.length === 0 ? (
-                            <tr><td colSpan={7} className="text-center py-8 text-base-content/40">Aucune transaction</td></tr>
+                            <tr><td colSpan={7} className="text-center py-8 text-base-content/60">Aucune transaction</td></tr>
                         ) : transactions.map(tx => (
                             <tr key={tx.id} className="hover:bg-base-200/50 transition-colors">
                                 <td className="pl-6 font-medium text-base-content">{tx.transaction_id || 'PENDING-' + tx.id}</td>
@@ -346,13 +346,13 @@ const MobileMoney: React.FC = () => {
                                 </td>
                                 <td>
                                     <div className="flex items-center gap-2">
-                                        <Smartphone size={16} className="text-base-content/40"/>
+                                        <Smartphone size={16} className="text-base-content/60"/>
                                         <span className="font-medium text-base-content">{tx.operator}</span>
                                     </div>
                                 </td>
                                 <td>
                                     <div className="font-bold text-base-content">{parseInt(tx.amount as any).toLocaleString()} F</div>
-                                    <div className="text-xs text-base-content/40">{tx.phone_number}</div>
+                                    <div className="text-xs text-base-content/60">{tx.phone_number}</div>
                                 </td>
                                 <td className="max-w-xs truncate text-base-content/60" title={tx.external_reference}>{tx.external_reference}</td>
                                 <td>
@@ -421,7 +421,7 @@ const MobileMoney: React.FC = () => {
             
             {/* Add New Card Placeholder */}
             <div 
-                className="border-2 border-dashed border-base-300 rounded-2xl flex flex-col items-center justify-center p-8 text-base-content/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all cursor-pointer min-h-[250px]"
+                className="border-2 border-dashed border-base-300 rounded-2xl flex flex-col items-center justify-center p-8 text-base-content/60 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all cursor-pointer min-h-[250px]"
                 onClick={() => {
                      setFormType('configuration');
                      setShowForm(true);
@@ -449,7 +449,7 @@ const MobileMoney: React.FC = () => {
                            {formType === 'transaction' ? 'Nouvelle Transaction' : 'Nouveau Compte Mobile'}
                        </h3>
                        <button onClick={() => setShowForm(false)} className="btn btn-ghost btn-circle btn-sm">
-                           <XCircle size={24} className="text-base-content/40" />
+                           <XCircle size={24} className="text-base-content/60" />
                        </button>
                    </div>
                    

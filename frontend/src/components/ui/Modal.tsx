@@ -114,7 +114,7 @@ const Modal: React.FC<ModalProps> = ({
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-base-200 bg-gradient-to-r from-gray-50 to-white">
+                <div className="flex items-center justify-between p-6 border-b border-base-200 bg-gradient-to-r from-base-200/50 to-base-100">
                   <h2 className="text-2xl font-bold text-base-content">{title}</h2>
                   {showCloseButton && (
                     <button

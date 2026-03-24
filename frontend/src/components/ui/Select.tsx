@@ -138,7 +138,7 @@ const Select: React.FC<SelectProps> = ({
           `}
         >
           {startIcon && (
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-base-content/40">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-base-content/60">
               {startIcon}
             </div>
           )}
@@ -171,7 +171,7 @@ const Select: React.FC<SelectProps> = ({
               </option>
             ))}
           </select>
-          <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-base-content/40">
+          <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-base-content/60">
             <ChevronDown size={18} />
           </div>
         </div>
@@ -228,7 +228,7 @@ const Select: React.FC<SelectProps> = ({
       >
         <div className="flex items-center">
           {startIcon && (
-            <div className="pl-3.5 flex items-center text-base-content/40">
+            <div className="pl-3.5 flex items-center text-base-content/60">
               {startIcon}
             </div>
           )}
@@ -237,7 +237,7 @@ const Select: React.FC<SelectProps> = ({
             {selectedOption ? (
               <span className="text-base-content">{selectedOption.label}</span>
             ) : (
-              <span className="text-base-content/40">{placeholder}</span>
+              <span className="text-base-content/60">{placeholder}</span>
             )}
           </div>
 
@@ -248,12 +248,12 @@ const Select: React.FC<SelectProps> = ({
                 onClick={handleClear}
                 className="p-1 hover:bg-base-300 rounded-full transition-colors"
               >
-                <X size={14} className="text-base-content/40 hover:text-base-content/70" />
+                <X size={14} className="text-base-content/60 hover:text-base-content/70" />
               </button>
             )}
             <ChevronDown 
               size={18} 
-              className={`text-base-content/40 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+              className={`text-base-content/60 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
             />
           </div>
         </div>
@@ -272,7 +272,7 @@ const Select: React.FC<SelectProps> = ({
             {/* Search Input */}
             <div className="p-2 border-b border-base-200">
               <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/60" />
                 <input
                   ref={searchInputRef}
                   type="text"
@@ -290,7 +290,7 @@ const Select: React.FC<SelectProps> = ({
               className="max-h-60 overflow-y-auto py-1"
             >
               {filteredOptions.length === 0 ? (
-                <li className="px-4 py-3 text-sm text-base-content/40 text-center">
+                <li className="px-4 py-3 text-sm text-base-content/60 text-center">
                   Aucun résultat
                 </li>
               ) : (

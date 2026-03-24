@@ -208,7 +208,7 @@ const AdminDashboard: React.FC = () => {
                         {kpi.trend > 0 ? '+' : ''}{kpi.trend}%
                       </span>
                     )}
-                    <span className="text-xs text-base-content/40">{kpi.sub}</span>
+                    <span className="text-xs text-base-content/60">{kpi.sub}</span>
                   </div>
                 </div>
                 <div className={`p-3 rounded-xl ${kpi.iconBg} group-hover:scale-110 transition-transform`}>

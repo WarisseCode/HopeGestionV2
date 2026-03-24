@@ -277,7 +277,7 @@ const AdminAuditLogs: React.FC = () => {
       <div className="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="flex-1 min-w-[200px] relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/60" />
             <input 
               type="text"
               placeholder="Rechercher un utilisateur..."
@@ -334,7 +334,7 @@ const AdminAuditLogs: React.FC = () => {
                 ))
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 text-base-content/40">
+                  <td colSpan={8} className="text-center py-12 text-base-content/60">
                     <Activity size={36} className="mx-auto mb-2 opacity-30" />
                     <p className="font-medium">Aucune activité trouvée</p>
                     <p className="text-sm mt-1">Les événements apparaîtront ici au fur et à mesure</p>
@@ -356,7 +356,7 @@ const AdminAuditLogs: React.FC = () => {
                         className={`hover:bg-base-200/30 transition-colors ${hasDetails ? 'cursor-pointer' : ''}`}
                         onClick={() => hasDetails && setExpandedRow(isExpanded ? null : log.id)}
                       >
-                        <td className="text-xs font-mono text-base-content/40">
+                        <td className="text-xs font-mono text-base-content/60">
                           #{log.id}
                         </td>
                         <td className="text-xs text-base-content/60 whitespace-nowrap">
@@ -406,7 +406,7 @@ const AdminAuditLogs: React.FC = () => {
                                 };
                                 return (
                                   <div key={key} className="bg-base-100 rounded-lg p-2">
-                                    <span className="text-base-content/40 block">{friendlyKey[key] || key}</span>
+                                    <span className="text-base-content/60 block">{friendlyKey[key] || key}</span>
                                     <span className="font-medium text-base-content/80">{String(value)}</span>
                                   </div>
                                 );

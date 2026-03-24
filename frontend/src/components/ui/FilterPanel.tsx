@@ -123,7 +123,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                 >
                   {option.label}
                   {option.count !== undefined && (
-                    <span className={`ml-1 ${isSelected ? 'text-white/80' : 'text-base-content/40'}`}>
+                    <span className={`ml-1 ${isSelected ? 'text-white/80' : 'text-base-content/60'}`}>
                       ({option.count})
                     </span>
                   )}
@@ -159,7 +159,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
               onChange={(e) => handleFilterChange(filter.id, { ...rangeValue, min: e.target.value ? Number(e.target.value) : undefined })}
               className="input input-bordered input-sm w-24"
             />
-            <span className="text-base-content/40">—</span>
+            <span className="text-base-content/60">—</span>
             <input
               type="number"
               placeholder="Max"
@@ -182,7 +182,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
               onChange={(e) => handleFilterChange(filter.id, { ...dateValue, start: e.target.value })}
               className="input input-bordered input-sm"
             />
-            <span className="text-base-content/40">—</span>
+            <span className="text-base-content/60">—</span>
             <input
               type="date"
               value={dateValue.end || ''}
@@ -249,9 +249,9 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
           )}
         </div>
         {isExpanded ? (
-          <ChevronUp size={18} className="text-base-content/40" />
+          <ChevronUp size={18} className="text-base-content/60" />
         ) : (
-          <ChevronDown size={18} className="text-base-content/40" />
+          <ChevronDown size={18} className="text-base-content/60" />
         )}
       </button>
 

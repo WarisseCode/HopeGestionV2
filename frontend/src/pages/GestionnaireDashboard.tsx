@@ -511,7 +511,7 @@ const GestionnaireDashboard: React.FC = () => {
                 <Card className="overflow-hidden border-none shadow-xl bg-base-100">
                     <div className="flex justify-between items-center mb-6 px-2">
                         <div>
-                            <h3 className="text-xl font-bold text-base-content/90">Analyse Financière</h3>
+                            <h2 className="text-xl font-bold text-base-content/90">Analyse Financière</h2>
                             <p className="text-sm text-base-content/60">Revenus vs Dépenses ({
                               period === '7d' ? '7 derniers jours' :
                               period === '30d' ? '30 derniers jours' :

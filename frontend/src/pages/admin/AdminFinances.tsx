@@ -114,7 +114,7 @@ const AdminFinances: React.FC = () => {
                 <Wallet size={22} />
               </div>
             </div>
-            <div className="mt-3 text-xs text-base-content/40">Total des paiements enregistrés</div>
+            <div className="mt-3 text-xs text-base-content/60">Total des paiements enregistrés</div>
           </div>
         </motion.div>
 
@@ -129,7 +129,7 @@ const AdminFinances: React.FC = () => {
                 <CreditCard size={22} />
               </div>
             </div>
-            <div className="mt-3 text-xs text-base-content/40">Récentes opérations</div>
+            <div className="mt-3 text-xs text-base-content/60">Récentes opérations</div>
           </div>
         </motion.div>
       </div>
@@ -217,7 +217,7 @@ const AdminFinances: React.FC = () => {
               </table>
             </div>
           ) : (
-            <div className="text-center py-12 text-base-content/40">
+            <div className="text-center py-12 text-base-content/60">
               <CreditCard size={36} className="mx-auto mb-2 opacity-30" />
               <p className="text-sm">Aucune transaction enregistrée</p>
             </div>

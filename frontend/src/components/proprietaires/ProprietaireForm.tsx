@@ -222,7 +222,7 @@ const ProprietaireForm: React.FC<ProprietaireFormProps> = ({
                       {formData.photo_url ? (
                         <img src={formData.photo_url} alt="Propriétaire" className="w-full h-full object-cover" />
                       ) : (
-                        <User size={32} className="text-base-content/40" />
+                        <User size={32} className="text-base-content/60" />
                       )}
                     </div>
                     <label className="absolute bottom-0 right-0 bg-primary text-primary-content p-2 rounded-full cursor-pointer hover:bg-primary-focus transition shadow-sm">

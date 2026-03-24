@@ -132,7 +132,7 @@ const AdminAgencies: React.FC = () => {
       {/* Search */}
       <div className="bg-base-100 rounded-xl p-3 shadow-sm border border-base-200">
         <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/60" />
           <input 
             type="text"
             placeholder="Rechercher par nom d'agence, gestionnaire ou code..."
@@ -150,7 +150,7 @@ const AdminAgencies: React.FC = () => {
             <div key={i} className="h-64 bg-base-100 rounded-2xl animate-pulse shadow-sm border border-base-200" />
           ))
         ) : filteredAgencies.length === 0 ? (
-          <div className="col-span-full text-center py-16 text-base-content/40">
+          <div className="col-span-full text-center py-16 text-base-content/60">
             <Building2 size={48} className="mx-auto mb-3 opacity-30" />
             <p className="font-medium">Aucune agence trouvée</p>
           </div>

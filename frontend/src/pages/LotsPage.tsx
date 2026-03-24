@@ -208,7 +208,7 @@ const LotsPage: React.FC = () => {
           <div className="flex-1 min-w-[200px]">
             <label className="text-sm font-medium mb-1 block">Recherche</label>
             <div className="relative">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/60" />
               <input 
                 type="text"
                 placeholder="Référence ou immeuble..."

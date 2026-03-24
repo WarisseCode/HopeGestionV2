@@ -617,7 +617,7 @@ const Biens: React.FC = () => {
                             <img src={getPlaceholderImage(immeuble.id)} alt={immeuble.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                           )}
                           <div className="absolute bottom-4 left-4 z-20 text-white">
-                            <h3 className="text-xl font-bold">{immeuble.nom}</h3>
+                            <h2 className="text-xl font-bold">{immeuble.nom}</h2>
                             <p className="text-sm opacity-90 flex items-center gap-1"><MapPin size={14}/> {immeuble.ville}</p>
                           </div>
                         </div>

@@ -91,7 +91,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
       {/* Search Icon */}
       <Search 
         size={iconSizes[size]} 
-        className={`absolute ${iconPositions[size]} top-1/2 -translate-y-1/2 text-base-content/40 group-focus-within:text-primary transition-colors pointer-events-none`}
+        className={`absolute ${iconPositions[size]} top-1/2 -translate-y-1/2 text-base-content/60 group-focus-within:text-primary transition-colors pointer-events-none`}
       />
       
       {/* Input */}
@@ -110,7 +110,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
           focus:border-primary focus:ring-2 focus:ring-primary/20
           shadow-sm hover:shadow-md
           transition-all duration-200
-          placeholder:text-base-content/40
+          placeholder:text-base-content/50
           outline-none
         `}
       />
@@ -126,7 +126,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
               onClick={handleClear}
               className="p-1 hover:bg-base-300 rounded-full transition-colors"
             >
-              <X size={iconSizes[size] - 2} className="text-base-content/40 hover:text-base-content/70" />
+              <X size={iconSizes[size] - 2} className="text-base-content/60 hover:text-base-content/70" />
             </button>
           )
         )}

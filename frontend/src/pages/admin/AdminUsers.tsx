@@ -144,7 +144,7 @@ const AdminUsers: React.FC = () => {
 
   const getProviderIcon = (provider?: string) => {
     if (provider === 'google') return <span aria-label="Google"><Globe size={14} className="text-blue-500" /></span>;
-    return <span aria-label="Email"><Mail size={14} className="text-base-content/40" /></span>;
+    return <span aria-label="Email"><Mail size={14} className="text-base-content/60" /></span>;
   };
 
   return (
@@ -167,7 +167,7 @@ const AdminUsers: React.FC = () => {
         <div className="flex flex-wrap gap-3 items-center">
           {/* Search */}
           <div className="flex-1 min-w-[200px] relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/60" />
             <input 
               type="text"
               placeholder="Rechercher par nom, email, téléphone..."
@@ -250,7 +250,7 @@ const AdminUsers: React.FC = () => {
                 ))
               ) : paginatedUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-base-content/40">
+                  <td colSpan={7} className="text-center py-12 text-base-content/60">
                     Aucun utilisateur trouvé
                   </td>
                 </tr>
@@ -268,7 +268,7 @@ const AdminUsers: React.FC = () => {
                       <div className="flex items-center gap-3">
                         <div className="avatar placeholder">
                           <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold
-                            ${user.statut === 'actif' ? 'bg-primary/10 text-primary' : 'bg-base-300 text-base-content/40'}`}>
+                            ${user.statut === 'actif' ? 'bg-primary/10 text-primary' : 'bg-base-300 text-base-content/60'}`}>
                             {user.avatar_url ? (
                               <img src={user.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
                             ) : (

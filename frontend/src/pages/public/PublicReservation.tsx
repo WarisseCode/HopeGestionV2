@@ -160,7 +160,7 @@ const PublicReservation: React.FC = () => {
                                         <div className="relative">
                                             <input required type="text" className="w-full pl-10 pr-4 py-3 bg-base-200 text-base-content placeholder-base-content/50 border-none rounded-xl focus:ring-2 focus:ring-primary" placeholder="Nom"
                                                 value={formData.nom} onChange={e => setFormData({...formData, nom: e.target.value})} />
-                                            <User size={18} className="absolute left-3 top-3.5 text-base-content/40" />
+                                            <User size={18} className="absolute left-3 top-3.5 text-base-content/60" />
                                         </div>
                                     </div>
                                     <div className="space-y-1">
@@ -175,7 +175,7 @@ const PublicReservation: React.FC = () => {
                                     <div className="relative">
                                         <input required type="tel" className="w-full pl-10 pr-4 py-3 bg-base-200 text-base-content placeholder-base-content/50 border-none rounded-xl focus:ring-2 focus:ring-primary" placeholder="+229 01..."
                                             value={formData.telephone} onChange={e => setFormData({...formData, telephone: e.target.value})} />
-                                        <Phone size={18} className="absolute left-3 top-3.5 text-base-content/40" />
+                                        <Phone size={18} className="absolute left-3 top-3.5 text-base-content/60" />
                                     </div>
                                     <p className="text-xs text-primary flex items-center gap-1"><Info size={12}/> Important pour validation rapide</p>
                                 </div>
@@ -185,7 +185,7 @@ const PublicReservation: React.FC = () => {
                                     <div className="relative">
                                         <input type="email" className="w-full pl-10 pr-4 py-3 bg-base-200 text-base-content placeholder-base-content/50 border-none rounded-xl focus:ring-2 focus:ring-primary" placeholder="exemple@email.com"
                                             value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-                                        <Mail size={18} className="absolute left-3 top-3.5 text-base-content/40" />
+                                        <Mail size={18} className="absolute left-3 top-3.5 text-base-content/60" />
                                     </div>
                                 </div>
                                 
@@ -220,7 +220,7 @@ const PublicReservation: React.FC = () => {
                                     <div className="relative">
                                         <input required type="date" className="w-full pl-10 pr-4 py-3 bg-base-200 text-base-content border-none rounded-xl focus:ring-2 focus:ring-primary"
                                             value={formData.date_debut} onChange={e => setFormData({...formData, date_debut: e.target.value})} />
-                                        <Calendar size={18} className="absolute left-3 top-3.5 text-base-content/40" />
+                                        <Calendar size={18} className="absolute left-3 top-3.5 text-base-content/60" />
                                     </div>
                                 </div>
 

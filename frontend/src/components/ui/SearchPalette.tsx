@@ -144,7 +144,7 @@ const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose }) => {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Rechercher une page (Ctrl+K)..."
-              className="flex-1 bg-transparent text-lg outline-none placeholder:text-base-content/40 text-base-content"
+              className="flex-1 bg-transparent text-lg outline-none placeholder:text-base-content/50 text-base-content"
             />
             {query && (
               <button 
@@ -154,7 +154,7 @@ const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose }) => {
                 <X size={18} className="text-base-content/50" />
               </button>
             )}
-            <div className="hidden sm:flex border border-base-200 rounded px-2 py-1 text-xs text-base-content/40 font-mono">
+            <div className="hidden sm:flex border border-base-200 rounded px-2 py-1 text-xs text-base-content/60 font-mono">
               ESC
             </div>
           </div>
@@ -173,7 +173,7 @@ const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose }) => {
             ) : (
               Object.entries(groupedResults).map(([category, items]) => (
                 <div key={category} className="mb-4 last:mb-0">
-                  <div className="px-3 py-2 text-xs font-semibold text-base-content/40 uppercase tracking-wider">
+                  <div className="px-3 py-2 text-xs font-semibold text-base-content/60 uppercase tracking-wider">
                     {category}
                   </div>
                   <div className="space-y-1">

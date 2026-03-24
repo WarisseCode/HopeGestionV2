@@ -47,7 +47,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, maxItems = 5 })
 
   if (displayedActivities.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-base-content/40">
+      <div className="flex flex-col items-center justify-center py-8 text-base-content/60">
         <Clock size={32} className="mb-2 opacity-50" />
         <p>Aucune activité récente</p>
       </div>
@@ -79,7 +79,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, maxItems = 5 })
                   <p className="text-sm font-bold text-base-content truncate pr-4">
                     {activity.title}
                   </p>
-                  <span className="text-xs font-medium text-base-content/40 whitespace-nowrap bg-base-200 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-medium text-base-content/60 whitespace-nowrap bg-base-200 px-2 py-0.5 rounded-full">
                     {activity.time}
                   </span>
                 </div>
