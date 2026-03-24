@@ -117,7 +117,7 @@ const EdlDetails: React.FC = () => {
                 {/* Info Grid */}
                 <div className="grid grid-cols-2 gap-8 mb-8 bg-base-200 p-6 rounded-xl print:bg-base-100 print:border print:border-base-300">
                     <div>
-                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Bien Concerné</h3>
+                        <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider mb-3">Bien Concerné</h3>
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
                                 <Building size={16} className="text-blue-500" />
@@ -131,7 +131,7 @@ const EdlDetails: React.FC = () => {
                         </div>
                     </div>
                     <div>
-                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Parties Présentes</h3>
+                        <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider mb-3">Parties Présentes</h3>
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
                                 <User size={16} className="text-blue-500" />
@@ -207,20 +207,20 @@ const EdlDetails: React.FC = () => {
                 {/* Signatures */}
                 <div className="mt-12 pt-8 border-t border-base-300 grid grid-cols-2 gap-12">
                     <div className="border rounded-xl h-32 p-4 relative">
-                        <span className="text-xs text-gray-400 uppercase font-bold absolute top-3 left-3">Signature Agent</span>
+                        <span className="text-xs text-base-content/50 uppercase font-bold absolute top-3 left-3">Signature Agent</span>
                         {edl.signatures_json?.agent?.signature_url && (
                             <img src={edl.signatures_json.agent.signature_url} className="h-full w-full object-contain" alt="Signature Agent" />
                         )}
                     </div>
                     <div className="border rounded-xl h-32 p-4 relative">
-                        <span className="text-xs text-gray-400 uppercase font-bold absolute top-3 left-3">Signature Locataire</span>
+                        <span className="text-xs text-base-content/50 uppercase font-bold absolute top-3 left-3">Signature Locataire</span>
                         {edl.signatures_json?.locataire?.signature_url && (
                             <img src={edl.signatures_json.locataire.signature_url} className="h-full w-full object-contain" alt="Signature Locataire" />
                         )}
                     </div>
                 </div>
                 
-                <div className="mt-8 text-center text-xs text-gray-400 print:block hidden">
+                <div className="mt-8 text-center text-xs text-base-content/50 print:block hidden">
                     Document généré électroniquement via HopeGestion. Fait foi conformément aux CGU.
                 </div>
             </div>

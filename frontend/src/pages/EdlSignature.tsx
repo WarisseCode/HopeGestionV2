@@ -95,7 +95,7 @@ const EdlSignature: React.FC = () => {
                         <div className="flex items-center gap-2 font-bold text-base-content/80">
                             <Building size={18} /> Signature Agent / Gestionnaire
                         </div>
-                        <div className="border-2 border-dashed border-gray-300 rounded-xl bg-base-200 relative h-64">
+                        <div className="border-2 border-dashed border-base-300 rounded-xl bg-base-200 relative h-64">
                             <SignatureCanvas 
                                 ref={agentSigRef}
                                 canvasProps={{className: 'w-full h-full rounded-xl'}}
@@ -103,7 +103,7 @@ const EdlSignature: React.FC = () => {
                                 backgroundColor="rgba(255,255,255,0)"
                             />
                             {!agentSigned && (
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-gray-400 text-sm">
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-base-content/50 text-sm">
                                     Signer ici
                                 </div>
                             )}
@@ -123,7 +123,7 @@ const EdlSignature: React.FC = () => {
                         <div className="flex items-center gap-2 font-bold text-base-content/80">
                             <User size={18} /> Signature Locataire
                         </div>
-                        <div className="border-2 border-dashed border-gray-300 rounded-xl bg-base-200 relative h-64">
+                        <div className="border-2 border-dashed border-base-300 rounded-xl bg-base-200 relative h-64">
                             <SignatureCanvas 
                                 ref={locataireSigRef}
                                 canvasProps={{className: 'w-full h-full rounded-xl'}}
@@ -131,7 +131,7 @@ const EdlSignature: React.FC = () => {
                                 backgroundColor="rgba(255,255,255,0)"
                             />
                             {!locataireSigned && (
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-gray-400 text-sm">
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-base-content/50 text-sm">
                                     Signer ici
                                 </div>
                             )}

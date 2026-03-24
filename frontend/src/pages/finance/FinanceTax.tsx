@@ -117,7 +117,7 @@ const FinanceTax: React.FC = () => {
                                         </li>
                                     ))}
                                     {owners.length === 0 && (
-                                        <li className="text-gray-400 p-2 text-center">Aucun propriétaire</li>
+                                        <li className="text-base-content/50 p-2 text-center">Aucun propriétaire</li>
                                     )}
                                 </ul>
                             </div>
@@ -169,7 +169,7 @@ const FinanceTax: React.FC = () => {
             {/* Right Col: Report */}
             <div className="lg:col-span-2">
                 {!selectedOwner ? (
-                    <div className="h-full flex flex-col items-center justify-center bg-base-200 rounded-xl border border-dashed border-gray-300 p-12 text-gray-400">
+                    <div className="h-full flex flex-col items-center justify-center bg-base-200 rounded-xl border border-dashed border-base-300 p-12 text-base-content/50">
                         <FileText size={48} className="mb-4" />
                         <p>Sélectionnez un propriétaire pour voir sa situation fiscale</p>
                     </div>

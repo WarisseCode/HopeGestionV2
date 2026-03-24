@@ -354,7 +354,7 @@ const TenantPayments: React.FC = () => {
                                     className={`p-4 border-2 rounded-lg transition-all ${
                                         selectedOperator === 'mtn'
                                             ? 'border-yellow-500 bg-yellow-50'
-                                            : 'border-base-300 hover:border-gray-300'
+                                            : 'border-base-300 hover:border-base-300'
                                     }`}
                                 >
                                     <div className="text-center">
@@ -368,7 +368,7 @@ const TenantPayments: React.FC = () => {
                                     className={`p-4 border-2 rounded-lg transition-all ${
                                         selectedOperator === 'moov'
                                             ? 'border-blue-500 bg-blue-50'
-                                            : 'border-base-300 hover:border-gray-300'
+                                            : 'border-base-300 hover:border-base-300'
                                     }`}
                                 >
                                     <div className="text-center">

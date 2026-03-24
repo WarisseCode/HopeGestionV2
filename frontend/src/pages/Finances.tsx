@@ -244,7 +244,7 @@ const Finances: React.FC = () => {
           onClick={handleNextMonth}
           className={`p-2 rounded-lg transition-colors ${
             selectedMonth === new Date().getMonth() + 1 && selectedYear === new Date().getFullYear()
-              ? 'text-gray-300 cursor-not-allowed'
+              ? 'text-base-content/40 cursor-not-allowed'
               : 'hover:bg-base-300 text-base-content/60'
           }`}
           disabled={selectedMonth === new Date().getMonth() + 1 && selectedYear === new Date().getFullYear()}

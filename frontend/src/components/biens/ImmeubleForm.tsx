@@ -187,13 +187,13 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                         {isCompleted ? <Check size={20} /> : step.icon}
                     </motion.div>
                     <span className={`mt-3 text-sm font-bold ${
-                        isActive ? 'text-blue-600' : isCompleted ? 'text-base-content/90' : 'text-gray-400'
+                        isActive ? 'text-blue-600' : isCompleted ? 'text-base-content/90' : 'text-base-content/50'
                     }`}>
                         {step.title}
                     </span>
                     
                     {idx < STEPS.length - 1 && (
-                        <div className="absolute top-6 left-1/2 w-[calc(100%+4rem)] h-0.5 -z-10 bg-gray-200">
+                        <div className="absolute top-6 left-1/2 w-[calc(100%+4rem)] h-0.5 -z-10 bg-base-300">
                             <motion.div 
                                 className="h-full bg-blue-500 origin-left"
                                 initial={{ scaleX: 0 }}

@@ -153,7 +153,7 @@ const LocataireDashboard: React.FC = () => {
         <div className="flex items-center gap-3">
              <NotificationBell />
              <div className="text-right hidden md:block">
-                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Mon Logement</p>
+                <p className="text-xs text-base-content/50 font-semibold uppercase tracking-wider">Mon Logement</p>
                 <p className="font-bold text-base-content/90">{nomLogement}</p>
              </div>
         </div>
@@ -278,19 +278,19 @@ const LocataireDashboard: React.FC = () => {
                          
                          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-base-200">
                              <div>
-                                 <p className="text-xs text-gray-400 font-semibold uppercase">Bailleur</p>
+                                 <p className="text-xs text-base-content/50 font-semibold uppercase">Bailleur</p>
                                  <p className="font-medium">Hope Immobilier</p>
                              </div>
                               <div>
-                                 <p className="text-xs text-gray-400 font-semibold uppercase">Début du contrat</p>
+                                 <p className="text-xs text-base-content/50 font-semibold uppercase">Début du contrat</p>
                                  <p className="font-medium">{(stats as any)?.dateDebut ? new Date((stats as any).dateDebut).toLocaleDateString() : 'N/A'}</p>
                              </div>
                               <div>
-                                 <p className="text-xs text-gray-400 font-semibold uppercase">Caution Déposée</p>
+                                 <p className="text-xs text-base-content/50 font-semibold uppercase">Caution Déposée</p>
                                  <p className="font-medium">{formatCurrency(loyerMensuel * 3)}</p>
                              </div>
                               <div>
-                                 <p className="text-xs text-gray-400 font-semibold uppercase">Gestionnaire</p>
+                                 <p className="text-xs text-base-content/50 font-semibold uppercase">Gestionnaire</p>
                                  <p className="font-medium">{(stats as any)?.gestionnaire || 'Non assigné'}</p>
                              </div>
                          </div>
@@ -335,7 +335,7 @@ const LocataireDashboard: React.FC = () => {
                                     </div>
                                     <div>
                                         <p className="font-bold text-base-content/90">Loyer {paiement.month}</p>
-                                        <p className="text-xs text-gray-400">{new Date(paiement.date).toLocaleDateString()} • {paiement.method || 'Virement'}</p>
+                                        <p className="text-xs text-base-content/50">{new Date(paiement.date).toLocaleDateString()} • {paiement.method || 'Virement'}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">

@@ -162,7 +162,7 @@ const FinanceOnlinePayments: React.FC<Props> = ({ month, year }) => {
                         <RefreshCw size={24} className="animate-spin text-primary" />
                     </div>
                 ) : transactions.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
+                    <div className="text-center py-12 text-base-content/50">
                         <Wifi size={48} className="mx-auto mb-4 opacity-30" />
                         <p className="font-medium">Aucune transaction en ligne</p>
                         <p className="text-sm mt-1">Les paiements en ligne des locataires apparaîtront ici</p>
@@ -195,17 +195,17 @@ const FinanceOnlinePayments: React.FC<Props> = ({ month, year }) => {
                                             <td className="py-3 px-4">
                                                 <div className="font-semibold text-base-content/90">{t.tenant_prenoms} {t.tenant_nom}</div>
                                                 {t.tenant_telephone && (
-                                                    <div className="text-xs text-gray-400">{t.tenant_telephone}</div>
+                                                    <div className="text-xs text-base-content/50">{t.tenant_telephone}</div>
                                                 )}
                                             </td>
                                             <td className="py-3 px-4">
                                                 <div className="text-base-content/80">{t.building_name || '-'}</div>
-                                                <div className="text-xs text-gray-400">{t.lot_reference || '-'}</div>
+                                                <div className="text-xs text-base-content/50">{t.lot_reference || '-'}</div>
                                             </td>
                                             <td className="py-3 px-4 text-base-content/70 text-xs">
                                                 {t.schedule_description || '-'}
                                                 {t.due_date && (
-                                                    <div className="text-gray-400">Éch. {new Date(t.due_date).toLocaleDateString('fr-FR')}</div>
+                                                    <div className="text-base-content/50">Éch. {new Date(t.due_date).toLocaleDateString('fr-FR')}</div>
                                                 )}
                                             </td>
                                             <td className="py-3 px-4 text-right font-bold text-base-content/90">
@@ -224,7 +224,7 @@ const FinanceOnlinePayments: React.FC<Props> = ({ month, year }) => {
                                             </td>
                                             <td className="py-3 px-4 text-right text-xs text-base-content/60">
                                                 {new Date(t.created_at).toLocaleDateString('fr-FR')}
-                                                <div className="text-gray-400">
+                                                <div className="text-base-content/50">
                                                     {new Date(t.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             </td>

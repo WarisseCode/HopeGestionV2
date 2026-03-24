@@ -45,7 +45,7 @@ const CarnetContacts: React.FC = () => {
         <div className="space-y-6">
              <div className="flex justify-between items-center">
                 <div className="relative w-64">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/50" size={16} />
                     <input 
                         className="pl-9 pr-4 py-2 border rounded-lg w-full text-sm"
                         placeholder="Rechercher..."
@@ -72,9 +72,9 @@ const CarnetContacts: React.FC = () => {
                         </div>
 
                         <div className="mt-4 space-y-2 text-sm text-base-content/70">
-                             {c.phone && <div className="flex items-center gap-2"><Phone size={14} className="text-gray-400"/> {c.phone}</div>}
-                             {c.email && <div className="flex items-center gap-2"><Mail size={14} className="text-gray-400"/> {c.email}</div>}
-                             {c.address && <div className="flex items-center gap-2"><MapPin size={14} className="text-gray-400"/> {c.address}</div>}
+                             {c.phone && <div className="flex items-center gap-2"><Phone size={14} className="text-base-content/50"/> {c.phone}</div>}
+                             {c.email && <div className="flex items-center gap-2"><Mail size={14} className="text-base-content/50"/> {c.email}</div>}
+                             {c.address && <div className="flex items-center gap-2"><MapPin size={14} className="text-base-content/50"/> {c.address}</div>}
                         </div>
 
                         <div className="mt-4 pt-4 border-t flex gap-2">

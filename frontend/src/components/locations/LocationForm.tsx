@@ -181,14 +181,14 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                 {isCompleted ? <Check size={20} /> : step.icon}
                             </motion.div>
                             <span className={`mt-3 text-sm font-bold ${
-                                isActive ? 'text-blue-600' : isCompleted ? 'text-base-content/90' : 'text-gray-400'
+                                isActive ? 'text-blue-600' : isCompleted ? 'text-base-content/90' : 'text-base-content/50'
                             }`}>
                                 {step.title}
                             </span>
                             
                             {/* Connector Line */}
                             {idx < STEPS.length - 1 && (
-                                <div className="absolute top-6 left-1/2 w-[calc(100%+4rem)] h-0.5 -z-10 bg-gray-200">
+                                <div className="absolute top-6 left-1/2 w-[calc(100%+4rem)] h-0.5 -z-10 bg-base-300">
                                     <motion.div 
                                         className="h-full bg-blue-500 origin-left"
                                         initial={{ scaleX: 0 }}
@@ -340,7 +340,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                                     value={formData.loyer_mensuel}
                                                     onChange={e => setFormData({...formData, loyer_mensuel: parseFloat(e.target.value)})}
                                                 />
-                                                <DollarSign size={18} className="absolute left-3 top-4 text-gray-400" />
+                                                <DollarSign size={18} className="absolute left-3 top-4 text-base-content/50" />
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
@@ -450,7 +450,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
                                                     </div>
 
                                                     <div className="bg-base-100 p-4 rounded-xl border border-base-300">
-                                                        <p className="text-xs font-bold text-gray-400 uppercase mb-2">Aperçu Échéancier (Simulation)</p>
+                                                        <p className="text-xs font-bold text-base-content/50 uppercase mb-2">Aperçu Échéancier (Simulation)</p>
                                                         {previewSchedule.slice(0, 3).map((item) => (
                                                             <div key={item.numero} className="flex justify-between text-sm py-1 border-b last:border-0 border-gray-50">
                                                                 <span>Échéance #{item.numero} - {item.date}</span>

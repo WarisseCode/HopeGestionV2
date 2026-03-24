@@ -126,7 +126,7 @@ const PublicReservation: React.FC = () => {
                                 {lot.type}
                             </span>
                             <h1 className="text-3xl font-bold mb-2">{lot.description}</h1>
-                            <div className="flex items-center gap-4 text-gray-300">
+                            <div className="flex items-center gap-4 text-base-content/40">
                                 <span className="flex items-center gap-1"><MapPin size={16}/> {lot.adresse}</span>
                                 <span className="font-bold text-white text-xl">{lot.loyer_actuel.toLocaleString()} FCFA / mois</span>
                             </div>
@@ -146,7 +146,7 @@ const PublicReservation: React.FC = () => {
             <div className="w-full md:w-1/2 lg:w-2/5 md:overflow-y-auto bg-base-100 p-6 md:p-12 shadow-2xl z-10">
                 <div className="max-w-md mx-auto">
                     <div className="mb-8">
-                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">Réservation en ligne</h2>
+                        <h2 className="text-sm font-bold text-base-content/50 uppercase tracking-widest mb-1">Réservation en ligne</h2>
                         <h3 className="text-3xl font-bold text-base-content">Sécurisez ce bien</h3>
                         <div className="h-1 w-20 bg-blue-600 mt-4 rounded-full"></div>
                     </div>
@@ -249,7 +249,7 @@ const PublicReservation: React.FC = () => {
                 </div>
                 
                 {/* Footer safe area */}
-                <div className="mt-8 pt-8 border-t border-base-200 flex items-center justify-between text-xs text-gray-400 font-medium">
+                <div className="mt-8 pt-8 border-t border-base-200 flex items-center justify-between text-xs text-base-content/50 font-medium">
                     <span>🔒 Sécurisé par HopeGestion</span>
                     <span>v2.0</span>
                 </div>

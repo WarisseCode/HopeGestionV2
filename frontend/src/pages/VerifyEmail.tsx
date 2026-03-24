@@ -66,24 +66,24 @@ const VerifyEmail: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-base-200 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center">
             <MailOpen className="w-8 h-8 text-blue-600" />
           </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-base-content">
           Vérifiez votre E-mail
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-sm text-base-content/70">
           Nous avons envoyé un code à 6 chiffres à <br />
           <span className="font-bold">{email}</span>
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="bg-base-100 py-8 px-4 shadow sm:rounded-lg sm:px-10">
           {error && (
             <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4">
               <p className="text-sm text-red-700">{error}</p>
@@ -98,7 +98,7 @@ const VerifyEmail: React.FC = () => {
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="otp" className="block text-sm font-medium text-gray-700 text-center">
+              <label htmlFor="otp" className="block text-sm font-medium text-base-content/80 text-center">
                 Code de vérification
               </label>
               <div className="mt-2 flex justify-center">
@@ -108,7 +108,7 @@ const VerifyEmail: React.FC = () => {
                   type="text"
                   maxLength={6}
                   required
-                  className="appearance-none block w-3/4 px-3 py-3 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-xl text-center font-mono tracking-widest"
+                  className="appearance-none block w-3/4 px-3 py-3 border border-base-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-xl text-center font-mono tracking-widest"
                   placeholder="------"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))} // Que des chiffres
@@ -130,10 +130,10 @@ const VerifyEmail: React.FC = () => {
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
+                <div className="w-full border-t border-base-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
+                <span className="px-2 bg-base-100 text-base-content/60">
                   Vous n'avez rien reçu ?
                 </span>
               </div>
@@ -155,7 +155,7 @@ const VerifyEmail: React.FC = () => {
                <button
                 type="button"
                 onClick={() => navigate('/login')}
-                className="text-sm text-gray-500 hover:text-gray-900 flex items-center justify-center w-full"
+                className="text-sm text-base-content/60 hover:text-base-content flex items-center justify-center w-full"
               >
                 <ArrowLeft className="mr-2" /> Retour à la connexion
               </button>

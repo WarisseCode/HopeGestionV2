@@ -192,7 +192,7 @@ const AdminSubscriptions: React.FC = () => {
                       </div>
                       <p className="text-white/70 text-xs">{plan.description}</p>
                     </div>
-                    <div className="bg-white/20 rounded-xl px-3 py-1.5 text-center">
+                    <div className="bg-base-100/20 rounded-xl px-3 py-1.5 text-center">
                       <p className="text-xl font-bold">{count}</p>
                       <p className="text-[10px] opacity-80">abonnés</p>
                     </div>

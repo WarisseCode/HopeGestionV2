@@ -424,7 +424,7 @@ const CompteUtilisateurs: React.FC = () => {
                                         </button>
                                     )}
                                     {user.role === 'admin' && (
-                                        <span className="text-xs text-gray-400 italic">Accès total</span>
+                                        <span className="text-xs text-base-content/50 italic">Accès total</span>
                                     )}
                                 </td>
                                 <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
@@ -604,7 +604,7 @@ const CompteUtilisateurs: React.FC = () => {
                                                 value={invitationLink} 
                                                 className="flex-1 p-2 text-sm border rounded bg-base-100 text-base-content/70"
                                             />
-                                            <button onClick={copyLink} className="p-2 bg-gray-200 rounded hover:bg-gray-300">
+                                            <button onClick={copyLink} className="p-2 bg-base-300 rounded hover:bg-gray-300">
                                                 <Link2 size={16}/>
                                             </button>
                                         </div>
@@ -642,7 +642,7 @@ const CompteUtilisateurs: React.FC = () => {
                                     {selectedUser.prenom ? `${selectedUser.prenom} ${selectedUser.nom}` : selectedUser.nom} ({selectedUser.role})
                                 </p>
                             </div>
-                            <button onClick={() => setShowAssignModal(false)} className="text-gray-400 hover:text-base-content/70">
+                            <button onClick={() => setShowAssignModal(false)} className="text-base-content/50 hover:text-base-content/70">
                                 <X size={24} />
                             </button>
                         </div>
@@ -673,7 +673,7 @@ const CompteUtilisateurs: React.FC = () => {
                                             />
                                             <div className="flex-1">
                                                 <div className="font-medium text-base-content/90">{owner.nom}</div>
-                                                <div className="text-xs text-gray-400 capitalize">{owner.type_proprietaire}</div>
+                                                <div className="text-xs text-base-content/50 capitalize">{owner.type_proprietaire}</div>
                                             </div>
                                             
                                             {isAssigned && assignment && (
@@ -691,7 +691,7 @@ const CompteUtilisateurs: React.FC = () => {
                                                     </select>
                                                     <button 
                                                         onClick={() => setExpandedOwnerId(isExpanded ? null : owner.id)}
-                                                        className={`p-1 rounded-md hover:bg-base-300 ${isExpanded ? 'text-blue-600 bg-blue-50' : 'text-gray-400'}`}
+                                                        className={`p-1 rounded-md hover:bg-base-300 ${isExpanded ? 'text-blue-600 bg-blue-50' : 'text-base-content/50'}`}
                                                         title="Paramètres avancés"
                                                     >
                                                         <Settings size={16} />
@@ -768,7 +768,7 @@ const CompteUtilisateurs: React.FC = () => {
                             <h3 className="text-xl font-bold flex items-center gap-2">
                                 <Key className="text-emerald-500" /> Générer Accès Invité
                             </h3>
-                            <button onClick={() => setShowGuestModal(false)} className="text-gray-400 hover:text-base-content/70"><X size={24}/></button>
+                            <button onClick={() => setShowGuestModal(false)} className="text-base-content/50 hover:text-base-content/70"><X size={24}/></button>
                         </div>
 
                         {!generatedKey ? (
@@ -815,7 +815,7 @@ const CompteUtilisateurs: React.FC = () => {
                                         <option value="agent_recouvreur">Agent Recouvreur</option>
                                         <option value="viewer">Lecteur (Consultation)</option>
                                     </select>
-                                    <p className="text-xs text-gray-400 mt-1">
+                                    <p className="text-xs text-base-content/50 mt-1">
                                         Les permissions seront appliquées automatiquement selon le rôle.
                                     </p>
                                 </div>
@@ -878,7 +878,7 @@ const CompteUtilisateurs: React.FC = () => {
                                 
                                 <button 
                                     onClick={() => { setShowGuestModal(false); setGeneratedKey(null); }}
-                                    className="text-gray-400 hover:text-base-content/70 text-sm mt-2"
+                                    className="text-base-content/50 hover:text-base-content/70 text-sm mt-2"
                                 >
                                     Fermer
                                 </button>

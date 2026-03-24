@@ -113,12 +113,12 @@ const TasksPage: React.FC = () => {
                             <div className="flex items-start gap-3">
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); handleStatusChange(task.id, task.status === 'done' ? 'todo' : 'done'); }}
-                                    className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${task.status === 'done' ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 hover:border-primary'}`}
+                                    className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${task.status === 'done' ? 'bg-green-500 border-green-500 text-white' : 'border-base-300 hover:border-primary'}`}
                                 >
                                     {task.status === 'done' && <CheckCircle size={12}/>}
                                 </button>
                                 <div>
-                                    <h3 className={`font-semibold ${task.status === 'done' ? 'line-through text-gray-400' : 'text-base-content'}`}>{task.title}</h3>
+                                    <h3 className={`font-semibold ${task.status === 'done' ? 'line-through text-base-content/50' : 'text-base-content'}`}>{task.title}</h3>
                                     <p className="text-sm text-base-content/60 line-clamp-1">{task.description}</p>
                                 </div>
                             </div>
@@ -127,7 +127,7 @@ const TasksPage: React.FC = () => {
                             </span>
                         </div>
                         
-                        <div className="flex items-center justify-between mt-3 pl-8 text-xs text-gray-400">
+                        <div className="flex items-center justify-between mt-3 pl-8 text-xs text-base-content/50">
                              <div className="flex items-center gap-4">
                                 <span className="flex items-center gap-1">
                                     <User size={12}/> {task.assigned_name || 'Non assigné'}
@@ -157,7 +157,7 @@ const TasksPage: React.FC = () => {
                     onClose={() => setActiveChatTask(null)}
                 />
             ) : (
-                <div className="h-full bg-base-200 rounded-2xl border border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 p-8 text-center">
+                <div className="h-full bg-base-200 rounded-2xl border border-dashed border-base-300 flex flex-col items-center justify-center text-base-content/50 p-8 text-center">
                     <MessageSquare size={48} className="mb-4 opacity-50"/>
                     <p className="font-medium">Sélectionnez une tâche pour voir les détails et discuter avec l'équipe.</p>
                 </div>

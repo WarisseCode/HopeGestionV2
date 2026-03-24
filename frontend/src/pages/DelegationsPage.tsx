@@ -178,7 +178,7 @@ const DelegationsPage: React.FC = () => {
             {loading ? (
               <tr><td colSpan={5} className="text-center py-8"><span className="loading loading-spinner text-primary"></span></td></tr>
             ) : team.length === 0 ? (
-              <tr><td colSpan={5} className="text-center py-8 text-gray-400">Aucun membre dans votre équipe pour le moment.</td></tr>
+              <tr><td colSpan={5} className="text-center py-8 text-base-content/50">Aucun membre dans votre équipe pour le moment.</td></tr>
             ) : (
               team.map(member => (
                 <tr key={member.id} className="hover:bg-base-200/50 transition-colors">
@@ -191,7 +191,7 @@ const DelegationsPage: React.FC = () => {
                       </div>
                       <div>
                         <div className="font-bold text-base-content/90">{member.nom}</div>
-                        <div className="text-xs text-gray-400 font-medium">{member.email}</div>
+                        <div className="text-xs text-base-content/50 font-medium">{member.email}</div>
                       </div>
                     </div>
                   </td>
@@ -219,7 +219,7 @@ const DelegationsPage: React.FC = () => {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="btn-square btn-xs text-gray-400 hover:text-error hover:bg-error/10 transition-colors"
+                        className="btn-square btn-xs text-base-content/50 hover:text-error hover:bg-error/10 transition-colors"
                         onClick={() => confirmRemoveMember(member.id, member.nom)} 
                       >
                         <Trash2 size={16} />

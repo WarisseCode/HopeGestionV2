@@ -38,7 +38,7 @@ const PeriodFilter: React.FC<PeriodFilterProps> = ({
   return (
     <div className={`flex items-center gap-1.5 ${className}`}>
       {showIcon && (
-        <Calendar size={16} className="text-gray-400 mr-1 hidden sm:block" />
+        <Calendar size={16} className="text-base-content/50 mr-1 hidden sm:block" />
       )}
       <div className="flex bg-base-300 rounded-full p-1 gap-0.5">
         {periods.map((period) => {
@@ -52,7 +52,7 @@ const PeriodFilter: React.FC<PeriodFilterProps> = ({
                 transition-all duration-200 whitespace-nowrap
                 ${isActive 
                   ? 'text-white' 
-                  : 'text-base-content/60 hover:text-base-content/80 hover:bg-gray-200'
+                  : 'text-base-content/60 hover:text-base-content/80 hover:bg-base-300'
                 }
               `}
             >

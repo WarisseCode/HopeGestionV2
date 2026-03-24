@@ -181,7 +181,7 @@ const CalendrierPage: React.FC = () => {
                     const dayEvents = events.filter(e => isSameDay(parseISO(e.date), day));
                     return (
                         <div key={day.toString()} className={`min-h-[120px] p-2 border-r border-b border-base-200 ${!isCurrentMonth ? 'bg-base-200/50' : 'bg-base-100'}`}>
-                            <div className="text-right text-sm font-medium mb-1 text-gray-400">{format(day, 'd')}</div>
+                            <div className="text-right text-sm font-medium mb-1 text-base-content/50">{format(day, 'd')}</div>
                             <div className="space-y-1">
                                 {dayEvents.slice(0, 3).map(e => (
                                     <div key={e.id} className={`text-[10px] p-1 rounded border truncate flex items-center gap-1 ${getEventColor(e.type)}`}>
@@ -189,7 +189,7 @@ const CalendrierPage: React.FC = () => {
                                         {e.title}
                                     </div>
                                 ))}
-                                {dayEvents.length > 3 && <div className="text-[10px] text-center text-gray-400">+{dayEvents.length - 3} autres</div>}
+                                {dayEvents.length > 3 && <div className="text-[10px] text-center text-base-content/50">+{dayEvents.length - 3} autres</div>}
                             </div>
                         </div>
                     );
@@ -207,7 +207,7 @@ const CalendrierPage: React.FC = () => {
       return (
           <div className="bg-base-100 rounded-xl shadow border overflow-auto">
               <div className="grid grid-cols-8 border-b">
-                  <div className="p-4 border-r text-xs text-gray-400">Heure</div>
+                  <div className="p-4 border-r text-xs text-base-content/50">Heure</div>
                   {weekDays.map(day => (
                       <div key={day.toString()} className={`p-4 border-r text-center ${isSameDay(day, new Date()) ? 'bg-blue-50' : ''}`}>
                           <div className="font-bold text-base-content/90">{format(day, 'EEEE', { locale: fr })}</div>
@@ -218,7 +218,7 @@ const CalendrierPage: React.FC = () => {
               <div>
                   {hours.map(hour => (
                       <div key={hour} className="grid grid-cols-8 border-b min-h-[60px]">
-                          <div className="p-2 border-r text-xs text-center text-gray-400">{hour}:00</div>
+                          <div className="p-2 border-r text-xs text-center text-base-content/50">{hour}:00</div>
                           {weekDays.map(day => {
                             const hourEvents = events.filter(e => {
                                 const d = parseISO(e.date);
@@ -299,7 +299,7 @@ const CalendrierPage: React.FC = () => {
           <div className="bg-base-100 rounded-xl shadow p-6">
               <h3 className="font-bold mb-4 border-b pb-2">Événements du jour</h3>
               <div className="space-y-2">
-                  {events.length === 0 ? <p className="text-gray-400">Aucun événement</p> : events.map(e => (
+                  {events.length === 0 ? <p className="text-base-content/50">Aucun événement</p> : events.map(e => (
                       <div key={e.id} className={`p-3 rounded-lg border flex justify-between items-center ${getEventColor(e.type)}`}>
                           <div className="flex items-center gap-3">
                               <div className={`w-2 h-2 rounded-full ${getEventDot(e.type)}`}></div>

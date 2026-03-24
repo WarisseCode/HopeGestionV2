@@ -117,7 +117,7 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
     if (schedules.length === 0) {
         return (
             <Card className="border-none shadow-lg bg-base-100 text-center py-16">
-                <Clock size={48} className="mx-auto text-gray-300 mb-4" />
+                <Clock size={48} className="mx-auto text-base-content/40 mb-4" />
                 <h3 className="text-lg font-bold text-base-content/80">Aucune échéance pour cette période</h3>
                 <p className="text-base-content/60 mt-2">
                     Cliquez sur <strong>"📅 Générer Loyers"</strong> pour créer les échéances du mois.
@@ -180,7 +180,7 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
                         {totalExpected > 0 ? Math.round((totalPaid / totalExpected) * 100) : 0}%
                     </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
+                <div className="w-full bg-base-300 rounded-full h-3">
                     <motion.div
                         className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full"
                         initial={{ width: 0 }}
@@ -271,7 +271,7 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
                                                 {schedule.quittance_url && (
                                                     <Button
                                                         variant="ghost"
-                                                        className="rounded-xl px-3 shadow-sm bg-base-300 hover:bg-gray-200 text-base-content/80 border-none h-10 w-10 p-0 flex items-center justify-center"
+                                                        className="rounded-xl px-3 shadow-sm bg-base-300 hover:bg-base-300 text-base-content/80 border-none h-10 w-10 p-0 flex items-center justify-center"
                                                         title="Télécharger la quittance"
                                                         onClick={() => window.open(`${import.meta.env.VITE_API_URL}${schedule.quittance_url}`, '_blank')}
                                                     >

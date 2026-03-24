@@ -127,7 +127,7 @@ const Permissions: React.FC = () => {
                         className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize whitespace-nowrap transition-all ${
                             activeRole === role 
                             ? 'bg-base-100 text-primary shadow-sm ring-1 ring-gray-200' 
-                            : 'text-base-content/60 hover:text-base-content/80 hover:bg-gray-200/50'
+                            : 'text-base-content/60 hover:text-base-content/80 hover:bg-base-300/50'
                         }`}
                     >
                         {role.replace('_', ' ')}
@@ -150,7 +150,7 @@ const Permissions: React.FC = () => {
                                 className="bg-base-100 p-5 rounded-xl border border-base-200 shadow-sm hover:shadow-md transition-shadow"
                             >
                                 <div className="flex items-center gap-3 mb-4 border-b border-gray-50 pb-3">
-                                    <div className={`p-2 rounded-lg ${perm.can_read ? 'bg-primary/10 text-primary' : 'bg-base-300 text-gray-400'}`}>
+                                    <div className={`p-2 rounded-lg ${perm.can_read ? 'bg-primary/10 text-primary' : 'bg-base-300 text-base-content/50'}`}>
                                         <LayoutGrid size={18} />
                                     </div>
                                     <h3 className="font-semibold text-base-content/90">{getModuleLabel(module)}</h3>
@@ -194,7 +194,7 @@ const Permissions: React.FC = () => {
             </div>
             
             <div className="mt-6 text-center">
-                 <p className="text-xs text-gray-400">
+                 <p className="text-xs text-base-content/50">
                     * Les modifications sont enregistrées automatiquement.
                 </p>
             </div>
@@ -209,7 +209,7 @@ const PermissionToggle = ({ label, desc, checked, onChange, disabled, danger }: 
         }`}>
             <div>
                 <div className={`text-sm font-medium ${danger ? 'text-red-600' : 'text-base-content/80'}`}>{label}</div>
-                <div className="text-[10px] text-gray-400">{desc}</div>
+                <div className="text-[10px] text-base-content/50">{desc}</div>
             </div>
             <div className="relative">
                 <input 
@@ -222,9 +222,9 @@ const PermissionToggle = ({ label, desc, checked, onChange, disabled, danger }: 
                 <div className={`w-9 h-5 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 transition-colors ${
                     checked 
                         ? (danger ? 'bg-red-500' : 'bg-green-500') 
-                        : 'bg-gray-200'
+                        : 'bg-base-300'
                 }`}></div>
-                <div className={`absolute top-[2px] left-[2px] bg-base-100 border border-gray-300 rounded-full h-4 w-4 transition-all ${
+                <div className={`absolute top-[2px] left-[2px] bg-base-100 border border-base-300 rounded-full h-4 w-4 transition-all ${
                     checked ? 'translate-x-full border-white' : ''
                 }`}></div>
             </div>

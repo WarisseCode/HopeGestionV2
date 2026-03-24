@@ -348,7 +348,7 @@ const GestionnaireDashboard: React.FC = () => {
                         ) : (
                             <span className="font-bold text-primary font-mono tracking-wider">{managedOwners.length} codes</span>
                         )}
-                        <ChevronDown size={14} className={`text-gray-400 transition-transform ${showCodeDropdown ? 'rotate-180' : ''}`} />
+                        <ChevronDown size={14} className={`text-base-content/50 transition-transform ${showCodeDropdown ? 'rotate-180' : ''}`} />
                     </div>
 
                     {showCodeDropdown && (
@@ -363,7 +363,7 @@ const GestionnaireDashboard: React.FC = () => {
                                         <p className="font-mono text-primary font-bold text-sm tracking-wider">{o.manager_code}</p>
                                     </div>
                                     <button
-                                        className="p-2 rounded-full hover:bg-primary/10 text-gray-400 hover:text-primary transition-colors"
+                                        className="p-2 rounded-full hover:bg-primary/10 text-base-content/50 hover:text-primary transition-colors"
                                         title="Copier le code"
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -447,11 +447,11 @@ const GestionnaireDashboard: React.FC = () => {
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="bg-base-100 rounded-2xl p-6 border border-base-200 animate-pulse">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 bg-gray-200 rounded-full" />
-                    <div className="w-16 h-6 bg-gray-200 rounded" />
+                    <div className="w-12 h-12 bg-base-300 rounded-full" />
+                    <div className="w-16 h-6 bg-base-300 rounded" />
                   </div>
-                  <div className="w-24 h-4 bg-gray-200 rounded mb-2" />
-                  <div className="w-32 h-8 bg-gray-200 rounded" />
+                  <div className="w-24 h-4 bg-base-300 rounded mb-2" />
+                  <div className="w-32 h-8 bg-base-300 rounded" />
                 </div>
               ))}
             </div>
@@ -573,11 +573,11 @@ const GestionnaireDashboard: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {featuredProperties.map(property => (
                             <div key={property.id} className="bg-base-100 rounded-2xl p-4 shadow-lg border border-base-200 flex gap-4 hover:shadow-xl transition-all cursor-pointer group" onClick={() => navigate(`/dashboard/biens?id=${property.id}`)}>
-                                <div className="w-24 h-24 rounded-xl bg-gray-200 overflow-hidden relative shrink-0">
+                                <div className="w-24 h-24 rounded-xl bg-base-300 overflow-hidden relative shrink-0">
                                     {property.image ? (
                                         <img src={property.image} alt={property.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-base-300 text-gray-400">
+                                        <div className="w-full h-full flex items-center justify-center bg-base-300 text-base-content/50">
                                             <Building2 size={32} />
                                         </div>
                                     )}
@@ -637,7 +637,7 @@ const GestionnaireDashboard: React.FC = () => {
                         {/* Center Text */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                             <span className="text-3xl font-extrabold text-base-content/90">{stats?.tauxOccupation || 0}%</span>
-                            <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Occupé</span>
+                            <span className="text-xs text-base-content/50 font-medium uppercase tracking-wide">Occupé</span>
                         </div>
                     </div>
                 </div>
@@ -648,7 +648,7 @@ const GestionnaireDashboard: React.FC = () => {
                 <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="font-bold text-base-content/90">Fil d'actualité</h3>
-                        <Button variant="ghost" className="btn-xs text-gray-400">
+                        <Button variant="ghost" className="btn-xs text-base-content/50">
                             <MoreVertical size={16} />
                         </Button>
                     </div>

@@ -250,7 +250,7 @@ const Parametres: React.FC = () => {
                                         </div>
                                         <div>
                                             <h4 className="font-bold text-lg text-base-content/90">{item.name}</h4>
-                                            <p className={`text-sm font-medium ${item.connected ? 'text-success' : 'text-gray-400'}`}>{item.status}</p>
+                                            <p className={`text-sm font-medium ${item.connected ? 'text-success' : 'text-base-content/50'}`}>{item.status}</p>
                                         </div>
                                     </div>
                                     <Button 

@@ -141,7 +141,7 @@ const NotificationBell: React.FC = () => {
 
             <div className="max-h-[400px] overflow-y-auto">
               {notifications.length === 0 ? (
-                <div className="p-8 text-center text-gray-400">
+                <div className="p-8 text-center text-base-content/50">
                   <Bell size={32} className="mx-auto mb-2 opacity-20" />
                   <p className="text-sm">Aucune notification</p>
                 </div>
@@ -163,14 +163,14 @@ const NotificationBell: React.FC = () => {
                           <p className="text-xs text-base-content/60 mt-0.5 break-words">
                             {notification.message}
                           </p>
-                          <p className="text-[10px] text-gray-400 mt-2">
+                          <p className="text-[10px] text-base-content/50 mt-2">
                             {new Date(notification.created_at).toLocaleString('fr-FR')}
                           </p>
                         </div>
                         {!notification.is_read && (
                           <button 
                             onClick={() => markAsRead(notification.id)}
-                            className="flex-shrink-0 text-gray-300 hover:text-primary transition-colors"
+                            className="flex-shrink-0 text-base-content/40 hover:text-primary transition-colors"
                             title="Marquer comme lu"
                           >
                             <div className="w-2 h-2 rounded-full bg-blue-500"></div>

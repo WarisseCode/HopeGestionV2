@@ -136,7 +136,7 @@ const FinanceLoans: React.FC = () => {
                                 style={{ width: `${loan.duration_months > 0 ? ((Number(loan.paid_installments) || 0) / loan.duration_months) * 100 : 0}%` }}
                             ></div>
                         </div>
-                        <p className="text-xs text-gray-400 mb-4">
+                        <p className="text-xs text-base-content/50 mb-4">
                             {loan.paid_installments || 0} / {loan.duration_months} échéances payées
                         </p>
 

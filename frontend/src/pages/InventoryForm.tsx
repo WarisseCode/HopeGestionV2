@@ -274,7 +274,7 @@ const InventoryForm: React.FC = () => {
                         </div>
 
                         {items.length === 0 ? (
-                            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-base-200 rounded-xl p-8">
+                            <div className="flex-1 flex flex-col items-center justify-center text-base-content/50 border-2 border-dashed border-base-200 rounded-xl p-8">
                                 <ClipboardList size={48} className="mb-4 opacity-20" />
                                 <p>Aucun élément ajouté</p>
                                 <p className="text-sm">Commencez par ajouter une pièce ou un équipement</p>
@@ -286,13 +286,13 @@ const InventoryForm: React.FC = () => {
                                     if (catItems.length === 0) return null;
                                     return (
                                         <div key={cat} className="space-y-2">
-                                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-2">{cat}</h4>
+                                            <h4 className="text-xs font-bold text-base-content/50 uppercase tracking-wider ml-2">{cat}</h4>
                                             {catItems.map((item, idx) => (
                                                 <div key={idx} className="bg-base-200 p-3 rounded-xl flex items-start gap-3 group hover:bg-base-300 transition">
                                                     {item.photos.length > 0 ? (
                                                         <img src={item.photos[0]} className="w-16 h-16 rounded-lg object-cover bg-base-100" alt="Item" />
                                                     ) : (
-                                                        <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400">
+                                                        <div className="w-16 h-16 rounded-lg bg-base-300 flex items-center justify-center text-base-content/50">
                                                             <Camera size={20} />
                                                         </div>
                                                     )}
@@ -316,7 +316,7 @@ const InventoryForm: React.FC = () => {
 
                                                     <button 
                                                         onClick={() => setItems(items.filter((_, i) => i !== idx))} // Quick delete for demo
-                                                        className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition"
+                                                        className="text-base-content/50 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition"
                                                     >
                                                         <Trash2 size={16} />
                                                     </button>
@@ -343,7 +343,7 @@ const InventoryForm: React.FC = () => {
                         >
                             <div className="p-6 border-b border-base-200 flex justify-between items-center bg-base-200 rounded-t-2xl">
                                 <h3 className="font-bold text-base-content">Ajouter un élément</h3>
-                                <button onClick={() => setShowItemModal(false)} className="text-gray-400 hover:text-base-content/70">Fermer</button>
+                                <button onClick={() => setShowItemModal(false)} className="text-base-content/50 hover:text-base-content/70">Fermer</button>
                             </div>
                             
                             <div className="p-6 space-y-4">
@@ -425,8 +425,8 @@ const InventoryForm: React.FC = () => {
                                                 <img src={src} className="w-full h-full object-cover" />
                                             </div>
                                         ))}
-                                        <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition">
-                                            <Plus className="text-gray-400" />
+                                        <label className="aspect-square rounded-lg border-2 border-dashed border-base-300 flex items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition">
+                                            <Plus className="text-base-content/50" />
                                             <input type="file" multiple accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                                         </label>
                                     </div>

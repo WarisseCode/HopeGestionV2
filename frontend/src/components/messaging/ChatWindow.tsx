@@ -71,12 +71,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ contextType, contextId, recipie
                 <div>
                     <h3 className="font-bold">{title}</h3>
                     <div className="flex gap-2 text-xs mt-1">
-                        <button onClick={() => setChannel('internal')} className={`px-2 py-0.5 rounded ${channel === 'internal' ? 'bg-primary text-white' : 'bg-gray-200'}`}>Interne</button>
-                        <button onClick={() => setChannel('whatsapp')} className={`px-2 py-0.5 rounded ${channel === 'whatsapp' ? 'bg-green-500 text-white' : 'bg-gray-200'}`}>WhatsApp</button>
-                        <button onClick={() => setChannel('email')} className={`px-2 py-0.5 rounded ${channel === 'email' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>Email</button>
+                        <button onClick={() => setChannel('internal')} className={`px-2 py-0.5 rounded ${channel === 'internal' ? 'bg-primary text-white' : 'bg-base-300'}`}>Interne</button>
+                        <button onClick={() => setChannel('whatsapp')} className={`px-2 py-0.5 rounded ${channel === 'whatsapp' ? 'bg-green-500 text-white' : 'bg-base-300'}`}>WhatsApp</button>
+                        <button onClick={() => setChannel('email')} className={`px-2 py-0.5 rounded ${channel === 'email' ? 'bg-blue-500 text-white' : 'bg-base-300'}`}>Email</button>
                     </div>
                 </div>
-                <button onClick={onClose} className="text-gray-400 hover:text-base-content/70"><X size={20}/></button>
+                <button onClick={onClose} className="text-base-content/50 hover:text-base-content/70"><X size={20}/></button>
             </div>
 
             {/* Messages Area */}
@@ -89,7 +89,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ contextType, contextId, recipie
                             <div className={`max-w-[80%] rounded-lg p-3 ${msg.channel === 'internal' ? 'bg-base-100 border' : 'bg-blue-100'}`}>
                                 <div className="text-xs font-bold mb-1 text-base-content/60">{msg.sender_name} <span className="font-normal opacity-70">via {msg.channel}</span></div>
                                 <p className="text-sm">{msg.content}</p>
-                                <div className="text-right text-[10px] text-gray-400 mt-1">{format(new Date(msg.created_at), 'dd/MM HH:mm')}</div>
+                                <div className="text-right text-[10px] text-base-content/50 mt-1">{format(new Date(msg.created_at), 'dd/MM HH:mm')}</div>
                             </div>
                         </div>
                     );
@@ -99,7 +99,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ contextType, contextId, recipie
 
             {/* Input Area */}
             <div className="p-3 border-t bg-base-100 flex gap-2 items-center">
-                <button className="text-gray-400 hover:text-base-content/70"><Paperclip size={20}/></button>
+                <button className="text-base-content/50 hover:text-base-content/70"><Paperclip size={20}/></button>
                 <input 
                     className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-primary"
                     placeholder={`Message (${channel})...`}

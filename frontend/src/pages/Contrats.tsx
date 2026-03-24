@@ -72,7 +72,7 @@ const Contrats: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
              <div className="relative group hidden md:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50 group-focus-within:text-primary transition-colors" size={18} />
                 <input type="text" placeholder="Rechercher..." className="input input-sm h-10 pl-10 bg-base-100 border-base-300 focus:border-primary w-64 rounded-full shadow-sm transition-all focus:w-72" />
             </div>
            <Button 
@@ -139,7 +139,7 @@ const Contrats: React.FC = () => {
                              'Contrat d\'Intervention'}
                          </h2>
                          <Button variant="ghost" onClick={() => setShowForm(false)} className="btn-circle btn-sm">
-                            <XCircle size={24} className="text-gray-400" />
+                            <XCircle size={24} className="text-base-content/50" />
                         </Button>
                      </div>
 
@@ -167,7 +167,7 @@ const Contrats: React.FC = () => {
 
                              <div className="md:col-span-2">
                                 <label className="block text-sm font-bold text-base-content/80 mb-2">Document numérisé (PDF)</label>
-                                <div className="h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-gray-400 cursor-pointer hover:bg-base-200 hover:border-primary transition-all">
+                                <div className="h-32 border-2 border-dashed border-base-300 rounded-xl flex items-center justify-center text-base-content/50 cursor-pointer hover:bg-base-200 hover:border-primary transition-all">
                                     <div className="text-center">
                                         <Upload className="mx-auto mb-2" size={24}/>
                                         <p className="text-sm">Glisser-déposer le contrat signé</p>
@@ -232,7 +232,7 @@ const Contrats: React.FC = () => {
                                         <td className="pl-6 font-medium text-base-content">{item.reference}</td>
                                         <td>
                                             <div className="font-bold text-base-content/90">{item.locataire}</div>
-                                            <div className="text-xs text-gray-400 flex items-center gap-1"><Home size={10}/> {item.lot}</div>
+                                            <div className="text-xs text-base-content/50 flex items-center gap-1"><Home size={10}/> {item.lot}</div>
                                         </td>
                                         <td className="text-sm text-base-content/70">
                                             {new Date(item.dateDebut).toLocaleDateString()} - {new Date(item.dateFin).toLocaleDateString()}
@@ -252,7 +252,7 @@ const Contrats: React.FC = () => {
                                         <td className="pl-6 font-medium text-base-content">{item.reference}</td>
                                         <td>
                                             <div className="font-bold text-base-content/90">{item.acheteur}</div>
-                                            <div className="text-xs text-gray-400 flex items-center gap-1"><Home size={10}/> {item.lot}</div>
+                                            <div className="text-xs text-base-content/50 flex items-center gap-1"><Home size={10}/> {item.lot}</div>
                                         </td>
                                         <td className="text-sm text-base-content/70">
                                             Signé le {new Date(item.dateSignature).toLocaleDateString()}
@@ -272,7 +272,7 @@ const Contrats: React.FC = () => {
                                         <td className="pl-6 font-medium text-base-content">{item.reference}</td>
                                         <td>
                                             <div className="font-bold text-base-content/90">{item.description}</div>
-                                            <div className="text-xs text-gray-400 flex items-center gap-1"><Home size={10}/> {item.bien}</div>
+                                            <div className="text-xs text-base-content/50 flex items-center gap-1"><Home size={10}/> {item.bien}</div>
                                         </td>
                                         <td className="text-sm text-base-content/70">
                                             {new Date(item.dateDebut).toLocaleDateString()}

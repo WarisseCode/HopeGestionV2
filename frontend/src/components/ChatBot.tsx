@@ -351,7 +351,7 @@ const ChatBot: React.FC = () => {
                       <p className="whitespace-pre-line">{message.text}</p>
                       
                       {/* 3. Timestamps */}
-                      <span className={`text-[10px] absolute -bottom-5 min-w-[40px] ${message.sender === 'user' ? 'right-0 text-right' : 'left-0 text-left'} text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity`}>
+                      <span className={`text-[10px] absolute -bottom-5 min-w-[40px] ${message.sender === 'user' ? 'right-0 text-right' : 'left-0 text-left'} text-base-content/50 opacity-0 group-hover:opacity-100 transition-opacity`}>
                         {formatTime(message.timestamp)}
                       </span>
                     </div>
@@ -367,7 +367,7 @@ const ChatBot: React.FC = () => {
                             <div key={prop.id} className="min-w-[200px] w-[200px] bg-base-100 rounded-xl overflow-hidden shadow-sm border border-base-200 snap-center flex-shrink-0 hover:shadow-md transition-all cursor-pointer group"
                                  onClick={() => handleNavigate(`/biens`)}> 
                                  {/* Note: In real app, /biens/${prop.id} */}
-                              <div className="h-28 bg-gray-200 relative overflow-hidden">
+                              <div className="h-28 bg-base-300 relative overflow-hidden">
                                 <img src={prop.image} alt={prop.titre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
                                 <span className="absolute bottom-2 right-2 bg-primary/90 text-white text-xs font-bold px-2 py-1 rounded backdrop-blur-sm shadow-sm">
@@ -477,7 +477,7 @@ const ChatBot: React.FC = () => {
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Écrivez votre message..."
-                  className="flex-1 px-4 py-3 bg-base-200 border-transparent focus:bg-base-100 border rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/20 transition-all text-sm placeholder:text-gray-400"
+                  className="flex-1 px-4 py-3 bg-base-200 border-transparent focus:bg-base-100 border rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/20 transition-all text-sm placeholder:text-base-content/50"
                 />
                 <motion.button
                   onClick={() => handleSendMessage()}
@@ -491,7 +491,7 @@ const ChatBot: React.FC = () => {
               </div>
               
               <div className="flex justify-center mt-3">
-                 <p className="text-[10px] text-gray-300 flex items-center gap-1 font-medium">
+                 <p className="text-[10px] text-base-content/40 flex items-center gap-1 font-medium">
                     ⚡ Propulsé par Hope AI
                  </p>
               </div>

@@ -265,7 +265,7 @@ const Locations: React.FC = () => {
             {/* Filters */}
             <div className="flex flex-col md:flex-row gap-4">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50" size={18} />
                     <input
                         type="text"
                         placeholder="Rechercher par locataire, référence, immeuble..."
@@ -482,7 +482,7 @@ const Locations: React.FC = () => {
                         >
                             <div className="p-6 border-b sticky top-0 bg-base-100 z-10 flex justify-between items-center">
                                 <h3 className="text-xl font-bold">{isEditing ? 'Modifier le Bail' : 'Nouveau Bail'}</h3>
-                                <button onClick={() => { setShowAddModal(false); setIsEditing(false); }} className="text-gray-400 hover:text-base-content/70 transition">
+                                <button onClick={() => { setShowAddModal(false); setIsEditing(false); }} className="text-base-content/50 hover:text-base-content/70 transition">
                                     <XCircle size={24} />
                                 </button>
                             </div>
@@ -526,7 +526,7 @@ const Locations: React.FC = () => {
                                             {selectedLocation.statut}
                                         </span>
                                     </div>
-                                    <button onClick={() => setShowDetailModal(false)} className="text-gray-400 hover:text-base-content/70">
+                                    <button onClick={() => setShowDetailModal(false)} className="text-base-content/50 hover:text-base-content/70">
                                         <X size={24} />
                                     </button>
                                 </div>
@@ -541,7 +541,7 @@ const Locations: React.FC = () => {
                                     <div>
                                         <p className="text-xs text-base-content/60">Lot</p>
                                         <p className="font-medium">{selectedLocation.ref_lot}</p>
-                                        <p className="text-xs text-gray-400">{selectedLocation.immeuble_nom}</p>
+                                        <p className="text-xs text-base-content/50">{selectedLocation.immeuble_nom}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-base-content/60">Loyer mensuel</p>

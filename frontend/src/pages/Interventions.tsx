@@ -76,7 +76,7 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: any }> = 
   'En cours': { color: 'text-orange-700', bg: 'bg-orange-100', icon: Clock },
   'En attente': { color: 'text-yellow-700', bg: 'bg-yellow-100', icon: PauseCircle },
   'Résolu': { color: 'text-green-700', bg: 'bg-green-100', icon: CheckCheck },
-  'Clos': { color: 'text-base-content/70', bg: 'bg-gray-200', icon: Archive },
+  'Clos': { color: 'text-base-content/70', bg: 'bg-base-300', icon: Archive },
 };
 
 const PRIORITY_CONFIG: Record<string, string> = {
@@ -412,7 +412,7 @@ const Interventions: React.FC = () => {
           >
             <tab.icon size={18} />
             {tab.label}
-            <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === tab.key ? 'bg-base-100/20' : 'bg-gray-200'}`}>
+            <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === tab.key ? 'bg-base-100/20' : 'bg-base-300'}`}>
               {tab.count}
             </span>
           </button>
@@ -423,7 +423,7 @@ const Interventions: React.FC = () => {
       {(activeTab === 'demandes' || activeTab === 'interventions') && (
         <div className="flex flex-wrap gap-3 items-center">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50" size={16} />
             <input
               type="text"
               placeholder="Rechercher..."
@@ -498,7 +498,7 @@ const Interventions: React.FC = () => {
                   <td className="p-4"><span className="badge badge-ghost">{t.category}</span></td>
                   <td className="p-4"><span className={`badge ${PRIORITY_CONFIG[t.priorite] || ''}`}>{t.priorite}</span></td>
                   <td className="p-4">{renderStatusBadge(t.statut)}</td>
-                  <td className="p-4 text-gray-400">-</td>
+                  <td className="p-4 text-base-content/50">-</td>
                   <td className="p-4 text-sm">{format(new Date(t.date_creation), 'dd MMM yyyy', { locale: fr })}</td>
                   <td className="p-4 text-right">
                     <Button size="sm" onClick={() => { setSelectedTicket(t); setShowAssignModal(true); }}>Assigner</Button>
@@ -557,7 +557,7 @@ const Interventions: React.FC = () => {
             </tbody>
           </table>
           {((activeTab === 'demandes' && demandes.length === 0) || (activeTab === 'interventions' && interventions.length === 0)) && (
-            <div className="p-12 text-center text-gray-400">Aucune donnée</div>
+            <div className="p-12 text-center text-base-content/50">Aucune donnée</div>
           )}
         </div>
       </Card>
@@ -655,7 +655,7 @@ const Interventions: React.FC = () => {
                   ))}
                   <button 
                     onClick={() => photoInputRef.current?.click()}
-                    className="w-20 h-20 border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-primary hover:text-primary transition-all"
+                    className="w-20 h-20 border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-base-content/50 hover:border-primary hover:text-primary transition-all"
                   >
                     <Camera size={20} />
                     <span className="text-xs">Photo</span>
@@ -716,7 +716,7 @@ const Interventions: React.FC = () => {
                       <img src={p} alt="" className="w-full h-full object-cover rounded-lg" />
                     </div>
                   ))}
-                  <button onClick={() => photoAfterInputRef.current?.click()} className="w-20 h-20 border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-primary">
+                  <button onClick={() => photoAfterInputRef.current?.click()} className="w-20 h-20 border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-base-content/50 hover:border-primary">
                     <Camera size={20} /><span className="text-xs">Photo</span>
                   </button>
                   <input ref={photoAfterInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handlePhotoUpload(e, 'after')} />

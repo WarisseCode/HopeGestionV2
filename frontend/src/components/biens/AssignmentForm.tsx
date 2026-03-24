@@ -163,7 +163,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
             {!selectedClient ? (
               <div className="relative">
                 <div className="relative">
-                  <Search size={16} className="absolute left-3 top-3 text-gray-400" />
+                  <Search size={16} className="absolute left-3 top-3 text-base-content/50" />
                   <input
                     type="text"
                     className="input input-bordered w-full pl-9"
@@ -225,7 +225,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                 </div>
                 <button 
                   onClick={() => setSelectedClient(null)}
-                  className="btn btn-ghost btn-xs text-gray-400 hover:text-red-500"
+                  className="btn btn-ghost btn-xs text-base-content/50 hover:text-red-500"
                 >
                   Change
                 </button>
@@ -241,7 +241,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                 className={`btn justify-start gap-3 ${type === 'location' ? 'btn-primary' : 'btn-ghost bg-base-100'}`}
                 onClick={() => setType('location')}
               >
-                <div className={`p-1 rounded ${type === 'location' ? 'bg-primary-content/20' : 'bg-gray-200'}`}>
+                <div className={`p-1 rounded ${type === 'location' ? 'bg-primary-content/20' : 'bg-base-300'}`}>
                    <FileText size={16} /> 
                 </div>
                 Location (Bail)
@@ -250,7 +250,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                 className={`btn justify-start gap-3 ${type === 'vente' ? 'btn-success text-white' : 'btn-ghost bg-base-100'}`}
                 onClick={() => setType('vente')}
               >
-                <div className={`p-1 rounded ${type === 'vente' ? 'bg-base-100/20' : 'bg-gray-200'}`}>
+                <div className={`p-1 rounded ${type === 'vente' ? 'bg-base-100/20' : 'bg-base-300'}`}>
                    <DollarSign size={16} /> 
                 </div>
                 Vente Directe
@@ -259,7 +259,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                 className={`btn justify-start gap-3 ${type === 'reservation' ? 'btn-warning text-white' : 'btn-ghost bg-base-100'}`}
                 onClick={() => setType('reservation')}
               >
-                <div className={`p-1 rounded ${type === 'reservation' ? 'bg-base-100/20' : 'bg-gray-200'}`}>
+                <div className={`p-1 rounded ${type === 'reservation' ? 'bg-base-100/20' : 'bg-base-300'}`}>
                    <Calendar size={16} /> 
                 </div>
                 Réservation

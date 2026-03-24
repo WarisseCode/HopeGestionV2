@@ -29,7 +29,7 @@ const SubscriptionBadge: React.FC = () => {
         switch (status.plan?.name) {
             case 'pro': return <Crown className="text-amber-500" size={14} />;
             case 'enterprise': return <Star className="text-purple-500" size={14} />;
-            default: return <Zap className="text-gray-400" size={14} />;
+            default: return <Zap className="text-base-content/50" size={14} />;
         }
     };
 

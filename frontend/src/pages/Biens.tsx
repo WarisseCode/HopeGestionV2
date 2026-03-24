@@ -371,7 +371,7 @@ const Biens: React.FC = () => {
           <thead className="bg-base-200/50">
             <tr>
               {['Référence', 'Type', 'Immeuble', 'Loyer', 'Statut', 'Actions'].map(h => (
-                <th key={h} className="py-4 text-xs uppercase font-bold text-gray-400">
+                <th key={h} className="py-4 text-xs uppercase font-bold text-base-content/50">
                   <SkeletonLoader variant="text" width={80} />
                 </th>
               ))}
@@ -483,7 +483,7 @@ const Biens: React.FC = () => {
           >
             <Building2 size={18} />
             Immeubles
-            <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-200 text-xs">{immeubles.length}</span>
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-base-300 text-xs">{immeubles.length}</span>
           </button>
           <button
             onClick={() => { setActiveTab('lots'); setFilterValues({}); }}
@@ -495,7 +495,7 @@ const Biens: React.FC = () => {
           >
             <Home size={18} />
             Lots
-            <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-200 text-xs">{lots.length}</span>
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-base-300 text-xs">{lots.length}</span>
           </button>
         </div>
         
@@ -505,14 +505,14 @@ const Biens: React.FC = () => {
           <div className="flex bg-base-300 rounded-lg p-1">
             <button 
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-base-100 shadow-sm text-primary' : 'text-gray-400 hover:text-base-content/70'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-base-100 shadow-sm text-primary' : 'text-base-content/50 hover:text-base-content/70'}`}
               title="Vue Grille"
             >
               <LayoutGrid size={18} />
             </button>
             <button 
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-base-100 shadow-sm text-primary' : 'text-gray-400 hover:text-base-content/70'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-base-100 shadow-sm text-primary' : 'text-base-content/50 hover:text-base-content/70'}`}
               title="Vue Liste"
             >
               <List size={18} />
@@ -535,7 +535,7 @@ const Biens: React.FC = () => {
             )}
           </Button>
 
-          <div className="h-6 w-px bg-gray-200"></div>
+          <div className="h-6 w-px bg-base-300"></div>
           
           <span className="text-sm font-semibold text-base-content/60">
             {currentData.length} résultats
@@ -597,7 +597,7 @@ const Biens: React.FC = () => {
                   ) : (
                     (paginatedData as Immeuble[]).map((immeuble) => (
                       <div key={immeuble.id} className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden hover:shadow-xl transition-all group">
-                        <div className="h-48 bg-gray-200 relative overflow-hidden">
+                        <div className="h-48 bg-base-300 relative overflow-hidden">
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
                           <span className={`absolute top-4 right-4 z-20 badge border-none text-white font-bold ${immeuble.statut === 'Actif' ? 'bg-green-500' : 'bg-orange-500'}`}>
                             {immeuble.statut || 'Actif'}
@@ -624,13 +624,13 @@ const Biens: React.FC = () => {
                         <div className="p-5">
                           <div className="grid grid-cols-2 gap-4 mb-4">
                             <div className="p-3 bg-base-200 rounded-xl">
-                              <p className="text-xs text-gray-400 font-bold uppercase">Lots</p>
+                              <p className="text-xs text-base-content/50 font-bold uppercase">Lots</p>
                               <p className="font-bold text-base-content/90 text-lg">
                                 {immeuble.nbLots || 0}
                               </p>
                             </div>
                             <div className="p-3 bg-base-200 rounded-xl">
-                              <p className="text-xs text-gray-400 font-bold uppercase">Propriétaire</p>
+                              <p className="text-xs text-base-content/50 font-bold uppercase">Propriétaire</p>
                               <p className="font-medium text-base-content/80 text-sm truncate">
                                 {immeuble.proprietaire || 'Non assigné'}
                               </p>
@@ -721,7 +721,7 @@ const Biens: React.FC = () => {
               viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                   {(paginatedData as Lot[]).length === 0 ? (
-                    <div className="col-span-full text-center py-12 text-gray-400">
+                    <div className="col-span-full text-center py-12 text-base-content/50">
                       <Home size={48} className="mx-auto mb-4 opacity-50" />
                       <p className="font-medium">Aucun lot trouvé</p>
                     </div>
@@ -732,7 +732,7 @@ const Biens: React.FC = () => {
                         className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden hover:shadow-xl transition-all group flex flex-col"
                         onClick={() => { setEditingLot(lot); setShowLotModal(true); }}
                       >
-                        <div className="h-40 bg-gray-200 relative overflow-hidden shrink-0">
+                        <div className="h-40 bg-base-300 relative overflow-hidden shrink-0">
                           <img 
                             src={lot.photos && lot.photos.length > 0 ? lot.photos[0] : getPlaceholderImage(lot.id)} 
                             alt={lot.reference} 
@@ -782,7 +782,7 @@ const Biens: React.FC = () => {
                       <tbody className="divide-y divide-gray-100">
                         {(paginatedData as Lot[]).length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="text-center py-12 text-gray-400">
+                            <td colSpan={6} className="text-center py-12 text-base-content/50">
                               Aucun lot trouvé
                             </td>
                           </tr>
@@ -1002,7 +1002,7 @@ const Biens: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="col-span-full py-12 text-center text-gray-400">
+              <div className="col-span-full py-12 text-center text-base-content/50">
                 <p>Aucune photo disponible pour cet immeuble.</p>
               </div>
             )}

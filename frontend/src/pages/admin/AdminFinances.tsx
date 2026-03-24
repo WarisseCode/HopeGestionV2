@@ -95,7 +95,7 @@ const AdminFinances: React.FC = () => {
                 <p className="opacity-80 font-medium text-sm">Revenus Plateforme</p>
                 <h3 className="text-3xl font-bold mt-2">{formatCurrency(revenue)} FCFA</h3>
               </div>
-              <div className="p-3 bg-white/15 rounded-xl">
+              <div className="p-3 bg-base-100/15 rounded-xl">
                 <DollarSign size={22} />
               </div>
             </div>

@@ -223,13 +223,13 @@ const Documents: React.FC = () => {
                     </div>
 
                     <div className="relative w-full md:w-64">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/50" size={18} />
                         <input
                         type="text"
                         placeholder="Rechercher..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
+                        className="pl-10 pr-4 py-2 w-full border border-base-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
                         />
                     </div>
                     </div>
@@ -277,7 +277,7 @@ const Documents: React.FC = () => {
                                     href={getFileUrl(doc.url)} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="text-gray-400 hover:text-brand-600 transition-colors"
+                                    className="text-base-content/50 hover:text-brand-600 transition-colors"
                                     title="Voir"
                                     >
                                     <Eye size={18} />
@@ -285,14 +285,14 @@ const Documents: React.FC = () => {
                                     <a 
                                     href={getFileUrl(doc.url)} 
                                     download
-                                    className="text-gray-400 hover:text-brand-600 transition-colors"
+                                    className="text-base-content/50 hover:text-brand-600 transition-colors"
                                     title="Télécharger"
                                     >
                                         <Download size={18} />
                                     </a>
                                     <button 
                                     onClick={() => handleDelete(doc.id)}
-                                    className="text-gray-400 hover:text-red-600 transition-colors"
+                                    className="text-base-content/50 hover:text-red-600 transition-colors"
                                     title="Supprimer"
                                     >
                                     <Trash2 size={18} />
@@ -335,9 +335,9 @@ const Documents: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-base-content/80 mb-1">Fichier</label>
                 <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-base-200 hover:bg-base-300">
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-base-300 border-dashed rounded-lg cursor-pointer bg-base-200 hover:bg-base-300">
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <Upload className="w-8 h-8 mb-3 text-gray-400" />
+                            <Upload className="w-8 h-8 mb-3 text-base-content/50" />
                             <p className="text-sm text-base-content/60">
                                 {uploadFile ? uploadFile.name : "Cliquez pour upload"}
                             </p>
@@ -358,7 +358,7 @@ const Documents: React.FC = () => {
                 <select 
                   value={uploadCategory}
                   onChange={(e) => setUploadCategory(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-brand-500 outline-none"
+                  className="w-full border border-base-300 rounded-lg p-2 focus:ring-2 focus:ring-brand-500 outline-none"
                 >
                   <option value="autre">Autre</option>
                   <option value="baux">Bail</option>

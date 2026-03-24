@@ -177,7 +177,7 @@ const CarnetField: React.FC = () => {
                             
                             {/* Photo placeholder */}
                             {action.photo_url && (
-                                <div className="mt-2 text-xs text-gray-400 flex items-center gap-1">
+                                <div className="mt-2 text-xs text-base-content/50 flex items-center gap-1">
                                     <Camera size={12}/> Photo jointe
                                 </div>
                             )}

@@ -238,7 +238,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                 {!showForm && (
                     <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                         <div className="relative flex-1 md:w-64">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50" size={18} />
                             <input 
                                 type="text"
                                 placeholder="Rechercher..."
@@ -274,7 +274,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                 
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] uppercase font-bold text-gray-400">Type de propriétaire</label>
+                                        <label className="text-[10px] uppercase font-bold text-base-content/50">Type de propriétaire</label>
                                         <div className="flex bg-base-300 p-1 rounded-lg">
                                             <button 
                                                 onClick={() => setFilterType('all')}
@@ -298,7 +298,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-[10px] uppercase font-bold text-gray-400">Mode de gestion</label>
+                                        <label className="text-[10px] uppercase font-bold text-base-content/50">Mode de gestion</label>
                                         <div className="flex bg-base-300 p-1 rounded-lg">
                                             <button 
                                                 onClick={() => setFilterMode('all')}
@@ -381,7 +381,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
             ) : (
                 <div className="bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden">
                     {filteredOwners.length === 0 ? (
-                        <div className="p-12 text-center text-gray-400">
+                        <div className="p-12 text-center text-base-content/50">
                             <Users size={48} className="mx-auto mb-4 opacity-20" />
                             <p>Aucun propriétaire trouvé.</p>
                             {searchTerm && (
@@ -423,7 +423,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                                                 ? (owner.company_name || owner.name)
                                                                 : `${owner.name} ${owner.first_name || ''}`}
                                                         </div>
-                                                        <div className="text-[10px] text-gray-400 font-medium">
+                                                        <div className="text-[10px] text-base-content/50 font-medium">
                                                             ID: #{owner.id.toString().padStart(4, '0')}
                                                         </div>
                                                     </div>
@@ -442,11 +442,11 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                                 <td className="p-4">
                                                     <div className="flex flex-col gap-1">
                                                         <span className="flex items-center gap-1.5 text-xs text-base-content/80 font-medium">
-                                                            <Phone size={12} className="text-gray-400"/> {owner.phone}
+                                                            <Phone size={12} className="text-base-content/50"/> {owner.phone}
                                                         </span>
                                                         {owner.email && (
-                                                            <span className="flex items-center gap-1.5 text-[11px] text-gray-400 truncate max-w-[150px]">
-                                                                <Mail size={12} className="text-gray-300"/> {owner.email}
+                                                            <span className="flex items-center gap-1.5 text-[11px] text-base-content/50 truncate max-w-[150px]">
+                                                                <Mail size={12} className="text-base-content/40"/> {owner.email}
                                                             </span>
                                                         )}
                                                     </div>
@@ -455,7 +455,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                             {visibleColumns.adresse && (
                                                 <td className="p-4 hidden lg:table-cell">
                                                     <div className="flex items-start gap-1.5 text-xs text-base-content/70 max-w-[200px]">
-                                                        <MapPin size={12} className="text-gray-400 mt-0.5 shrink-0"/>
+                                                        <MapPin size={12} className="text-base-content/50 mt-0.5 shrink-0"/>
                                                         <span className="line-clamp-2">{owner.address || owner.city || '-'}</span>
                                                     </div>
                                                 </td>

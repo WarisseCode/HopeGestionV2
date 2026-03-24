@@ -134,7 +134,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ userType }) => {
               <Icon className={action.iconColor} size={20} />
             </div>
             <div className="text-center">
-              <span className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">{action.description}</span>
+              <span className="block text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-0.5">{action.description}</span>
               <span className="block font-bold text-base-content/80">{action.label}</span>
             </div>
           </button>

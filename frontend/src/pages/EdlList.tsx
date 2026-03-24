@@ -114,7 +114,7 @@ const EdlList: React.FC = () => {
             {/* Filters */}
             <div className="flex flex-col lg:flex-row gap-4 bg-base-100 p-4 rounded-2xl shadow-sm border border-base-200">
                 <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50" size={20} />
                     <input 
                         type="text" 
                         placeholder="Rechercher (Réf, Lot, Locataire...)" 
@@ -124,7 +124,7 @@ const EdlList: React.FC = () => {
                     />
                 </div>
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0">
-                    <Filter size={18} className="text-gray-400 hidden lg:block" />
+                    <Filter size={18} className="text-base-content/50 hidden lg:block" />
                     <select 
                         className="px-4 py-2 rounded-xl text-sm font-medium bg-base-200 border border-base-300 focus:ring-2 focus:ring-blue-500"
                         value={filterType}
@@ -152,9 +152,9 @@ const EdlList: React.FC = () => {
             {/* List */}
             <div className="bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden">
                 {loading ? (
-                    <div className="p-12 text-center text-gray-400">Chargement...</div>
+                    <div className="p-12 text-center text-base-content/50">Chargement...</div>
                 ) : filteredEdls.length === 0 ? (
-                    <div className="p-12 text-center text-gray-400">
+                    <div className="p-12 text-center text-base-content/50">
                         <ClipboardCheck className="mx-auto mb-3 opacity-20" size={48} />
                         Aucun état des lieux trouvé
                     </div>
@@ -187,7 +187,7 @@ const EdlList: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Link to={`/dashboard/etats-des-lieux/${edl.id}`} className="p-2 hover:bg-gray-200 rounded-lg text-gray-400 hover:text-base-content/70 transition">
+                                    <Link to={`/dashboard/etats-des-lieux/${edl.id}`} className="p-2 hover:bg-base-300 rounded-lg text-base-content/50 hover:text-base-content/70 transition">
                                         <ChevronRight size={20} />
                                     </Link>
                                 </div>

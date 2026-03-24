@@ -145,22 +145,22 @@ const EdlCreate: React.FC = () => {
 
     const renderStepIndicator = () => (
         <div className="flex items-center justify-center gap-3 mb-8">
-            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-blue-600' : 'text-base-content/50'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-base-300'}`}>
                     {step > 1 ? <Check size={16} /> : '1'}
                 </div>
                 <span className="hidden sm:block font-medium">Contexte</span>
             </div>
             <div className="h-px w-8 bg-gray-300"></div>
-            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-blue-600' : 'text-base-content/50'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-base-300'}`}>
                     {step > 2 ? <Check size={16} /> : '2'}
                 </div>
                 <span className="hidden sm:block font-medium">Inspection</span>
             </div>
             <div className="h-px w-8 bg-gray-300"></div>
-            <div className={`flex items-center gap-2 ${step >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+            <div className={`flex items-center gap-2 ${step >= 3 ? 'text-blue-600' : 'text-base-content/50'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step >= 3 ? 'bg-blue-600 text-white' : 'bg-base-300'}`}>
                     3
                 </div>
                 <span className="hidden sm:block font-medium">Validation</span>
@@ -303,7 +303,7 @@ const EdlCreate: React.FC = () => {
                             </div>
 
                             {items.length === 0 ? (
-                                <div className="border-2 border-dashed border-base-300 rounded-xl p-12 text-center text-gray-400">
+                                <div className="border-2 border-dashed border-base-300 rounded-xl p-12 text-center text-base-content/50">
                                     <ClipboardCheck size={48} className="mx-auto mb-3 opacity-20" />
                                     <p>Aucun élément inspecté</p>
                                     <p className="text-sm">Commencez par ajouter les éléments constatés</p>
@@ -315,7 +315,7 @@ const EdlCreate: React.FC = () => {
                                         if (pieceItems.length === 0) return null;
                                         return (
                                             <div key={piece} className="space-y-2">
-                                                <h4 className="text-xs font-bold text-gray-400 uppercase">{piece}</h4>
+                                                <h4 className="text-xs font-bold text-base-content/50 uppercase">{piece}</h4>
                                                 {pieceItems.map((item, idx) => (
                                                     <div key={idx} className="bg-base-200 p-3 rounded-xl flex items-start gap-3">
                                                         <div className="flex-1">
@@ -327,7 +327,7 @@ const EdlCreate: React.FC = () => {
                                                         </div>
                                                         <button 
                                                             onClick={() => setItems(items.filter((_, i) => i !== items.indexOf(item)))}
-                                                            className="text-gray-400 hover:text-red-500 p-1"
+                                                            className="text-base-content/50 hover:text-red-500 p-1"
                                                         >
                                                             <Trash2 size={16} />
                                                         </button>
@@ -414,7 +414,7 @@ const EdlCreate: React.FC = () => {
                         >
                             <div className="p-6 border-b border-base-200 flex justify-between items-center">
                                 <h3 className="font-bold text-base-content">Ajouter un Élément</h3>
-                                <button onClick={() => setShowItemModal(false)} className="text-gray-400 hover:text-base-content/70">Fermer</button>
+                                <button onClick={() => setShowItemModal(false)} className="text-base-content/50 hover:text-base-content/70">Fermer</button>
                             </div>
                             
                             <div className="p-6 space-y-4">
@@ -480,8 +480,8 @@ const EdlCreate: React.FC = () => {
                                                 <img src={src} className="w-full h-full object-cover" alt="" />
                                             </div>
                                         ))}
-                                        <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition">
-                                            <Plus className="text-gray-400" />
+                                        <label className="aspect-square rounded-lg border-2 border-dashed border-base-300 flex items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition">
+                                            <Plus className="text-base-content/50" />
                                             <input type="file" multiple accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                                         </label>
                                     </div>

@@ -258,7 +258,7 @@ const FinanceExpenses: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {expenses.length === 0 ? (
-                            <tr><td colSpan={6} className="p-8 text-center text-gray-400">Aucune dépense enregistrée</td></tr>
+                            <tr><td colSpan={6} className="p-8 text-center text-base-content/50">Aucune dépense enregistrée</td></tr>
                         ) : (
                             expenses.map(item => (
                                 <tr key={item.id} className="hover:bg-base-200">
@@ -287,11 +287,11 @@ const FinanceExpenses: React.FC = () => {
                                                 <ExternalLink size={16} />
                                             </a>
                                         ) : (
-                                            <span className="text-gray-300">—</span>
+                                            <span className="text-base-content/40">—</span>
                                         )}
                                     </td>
                                     <td className="p-4 text-right">
-                                        <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 p-1">
+                                        <button onClick={() => handleDelete(item.id)} className="text-base-content/50 hover:text-red-500 p-1">
                                             <Trash2 size={16} />
                                         </button>
                                     </td>

@@ -71,14 +71,14 @@ const FinanceChart: React.FC = () => {
     if (loading) {
         return (
             <Card className="h-80 flex items-center justify-center">
-                <div className="animate-pulse text-gray-400">Chargement du graphique...</div>
+                <div className="animate-pulse text-base-content/50">Chargement du graphique...</div>
             </Card>
         );
     }
 
     if (data.length === 0) {
         return (
-            <Card className="h-80 flex items-center justify-center text-gray-400">
+            <Card className="h-80 flex items-center justify-center text-base-content/50">
                 Aucune donnée disponible pour le graphique
             </Card>
         );
@@ -90,7 +90,7 @@ const FinanceChart: React.FC = () => {
                 <h3 className="text-lg font-bold text-base-content/90">
                     📊 Évolution Revenus vs Dépenses
                 </h3>
-                <span className="text-xs text-gray-400">6 derniers mois</span>
+                <span className="text-xs text-base-content/50">6 derniers mois</span>
             </div>
             <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">

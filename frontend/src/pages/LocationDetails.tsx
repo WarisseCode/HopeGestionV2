@@ -230,7 +230,7 @@ const LocationDetails: React.FC = () => {
                 <Card className="overflow-hidden">
                     {echeancier.length === 0 ? (
                         <div className="p-8 text-center text-base-content/60">
-                            <Calendar size={48} className="mx-auto mb-4 text-gray-300" />
+                            <Calendar size={48} className="mx-auto mb-4 text-base-content/40" />
                             <p>Aucun échéancier généré pour ce contrat.</p>
                             <p className="text-sm">L'échéancier est créé automatiquement pour les paiements échelonnés.</p>
                         </div>
@@ -360,7 +360,7 @@ const LocationDetails: React.FC = () => {
                             <div className="p-6 border-b">
                                 <div className="flex justify-between items-center">
                                     <h3 className="text-xl font-bold">Enregistrer un paiement</h3>
-                                    <button onClick={() => setShowPaymentModal(false)} className="text-gray-400 hover:text-base-content/70">
+                                    <button onClick={() => setShowPaymentModal(false)} className="text-base-content/50 hover:text-base-content/70">
                                         <X size={24} />
                                     </button>
                                 </div>

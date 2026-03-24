@@ -84,7 +84,7 @@ const AcceptInvite: React.FC = () => {
                     </div>
                     <h2 className="text-2xl font-bold text-base-content/90 mb-2">Compte activé !</h2>
                     <p className="text-base-content/70 mb-6">{success}</p>
-                    <p className="text-sm text-gray-400">Redirection vers la connexion...</p>
+                    <p className="text-sm text-base-content/50">Redirection vers la connexion...</p>
                 </motion.div>
             </div>
         );
@@ -118,7 +118,7 @@ const AcceptInvite: React.FC = () => {
                                 type="text"
                                 value={nom}
                                 onChange={(e) => setNom(e.target.value)}
-                                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full px-4 py-2 rounded-lg border border-base-300 focus:ring-2 focus:ring-blue-500 outline-none"
                                 placeholder="Votre nom"
                             />
                         </div>
@@ -128,7 +128,7 @@ const AcceptInvite: React.FC = () => {
                                 type="text"
                                 value={prenom}
                                 onChange={(e) => setPrenom(e.target.value)}
-                                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full px-4 py-2 rounded-lg border border-base-300 focus:ring-2 focus:ring-blue-500 outline-none"
                                 placeholder="Votre prénom"
                             />
                         </div>
@@ -137,12 +137,12 @@ const AcceptInvite: React.FC = () => {
                     <div>
                         <label className="block text-sm font-medium text-base-content/80 mb-1">Mot de passe</label>
                         <div className="relative">
-                            <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50" />
                             <input 
                                 type="password" 
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full pl-10 pr-4 py-2 rounded-lg border border-base-300 focus:ring-2 focus:ring-blue-500 outline-none"
                                 placeholder="••••••••"
                                 required
                             />
@@ -152,12 +152,12 @@ const AcceptInvite: React.FC = () => {
                     <div>
                         <label className="block text-sm font-medium text-base-content/80 mb-1">Confirmer mot de passe</label>
                         <div className="relative">
-                            <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50" />
                             <input 
                                 type="password" 
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full pl-10 pr-4 py-2 rounded-lg border border-base-300 focus:ring-2 focus:ring-blue-500 outline-none"
                                 placeholder="••••••••"
                                 required
                             />

@@ -93,7 +93,7 @@ const InventoryDetails: React.FC = () => {
                 {/* Info Grid */}
                 <div className="grid grid-cols-2 gap-8 mb-8 bg-base-200 p-6 rounded-xl print:bg-base-100 print:border print:border-base-300">
                     <div>
-                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Contexte</h3>
+                        <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider mb-3">Contexte</h3>
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
                                 <Building size={16} className="text-blue-500" />
@@ -106,7 +106,7 @@ const InventoryDetails: React.FC = () => {
                         </div>
                     </div>
                     <div>
-                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Réalisé par</h3>
+                        <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider mb-3">Réalisé par</h3>
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
                                 <User size={16} className="text-blue-500" />
@@ -129,7 +129,7 @@ const InventoryDetails: React.FC = () => {
                                 {category}
                             </h3>
                             <div className="grid grid-cols-1 gap-2"> {/* Table-like grid */}
-                                <div className="grid grid-cols-12 text-xs uppercase font-bold text-gray-400 px-4 mb-1">
+                                <div className="grid grid-cols-12 text-xs uppercase font-bold text-base-content/50 px-4 mb-1">
                                     <div className="col-span-1">Qté</div>
                                     <div className="col-span-4">Élément</div>
                                     <div className="col-span-2">État</div>
@@ -140,7 +140,7 @@ const InventoryDetails: React.FC = () => {
                                         <div className="col-span-1 font-mono text-base-content/60">{item.quantite}x</div>
                                         <div className="col-span-4 font-medium text-base-content">
                                             {item.nom}
-                                            {item.description && <div className="text-xs text-gray-400 font-normal">{item.description}</div>}
+                                            {item.description && <div className="text-xs text-base-content/50 font-normal">{item.description}</div>}
                                             
                                             {/* Photos - Only show first 2 for spacing */}
                                             {item.photos && JSON.parse(JSON.stringify(item.photos)).length > 0 && (
@@ -175,15 +175,15 @@ const InventoryDetails: React.FC = () => {
                 {/* Footer / Signatures */}
                 <div className="mt-12 pt-8 border-t border-base-300 grid grid-cols-2 gap-12 page-break-inside-avoid">
                     <div className="border rounded-xl h-32 p-4 relative">
-                        <span className="text-xs text-gray-400 uppercase font-bold absolute top-3 left-3">Signature Gestionnaire</span>
+                        <span className="text-xs text-base-content/50 uppercase font-bold absolute top-3 left-3">Signature Gestionnaire</span>
                         {/* Placeholder for Signature */}
                     </div>
                     <div className="border rounded-xl h-32 p-4 relative">
-                        <span className="text-xs text-gray-400 uppercase font-bold absolute top-3 left-3">Signature Locataire</span>
+                        <span className="text-xs text-base-content/50 uppercase font-bold absolute top-3 left-3">Signature Locataire</span>
                     </div>
                 </div>
                 
-                <div className="mt-8 text-center text-xs text-gray-400 print:block hidden">
+                <div className="mt-8 text-center text-xs text-base-content/50 print:block hidden">
                     Document généré électroniquement via HopeGestion. Fait foi conformément aux CGU.
                 </div>
             </div>

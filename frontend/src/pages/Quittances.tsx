@@ -249,9 +249,9 @@ const Quittances: React.FC = () => {
           <Card title="Historique des paiements & quittances">
             {quittances.length === 0 ? (
               <div className="text-center py-12">
-                <FileText size={48} className="mx-auto text-gray-300 mb-4" />
+                <FileText size={48} className="mx-auto text-base-content/40 mb-4" />
                 <p className="text-base-content/60 mb-4">Aucun paiement enregistré pour générer des quittances.</p>
-                <div className="text-sm text-gray-400">Allez dans Finances pour enregistrer un paiement.</div>
+                <div className="text-sm text-base-content/50">Allez dans Finances pour enregistrer un paiement.</div>
               </div>
             ) : (
               <div className="overflow-x-auto">

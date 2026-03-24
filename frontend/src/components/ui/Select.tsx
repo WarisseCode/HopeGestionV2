@@ -222,7 +222,7 @@ const Select: React.FC<SelectProps> = ({
           ${hasError ? 'border-error' : 'border-base-300'} 
           border-2
           ${isOpen ? (hasError ? 'border-error ring-2 ring-error/20' : 'border-primary ring-2 ring-primary/20') : ''}
-          ${disabled ? 'bg-base-300 cursor-not-allowed opacity-60' : 'bg-base-100 hover:border-gray-300'}
+          ${disabled ? 'bg-base-300 cursor-not-allowed opacity-60' : 'bg-base-100 hover:border-base-300'}
           transition-all duration-200
         `}
       >

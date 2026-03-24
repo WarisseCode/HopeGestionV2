@@ -104,7 +104,7 @@ const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ onClose, onSucces
                                     </div>
                                 ))}
                                 {templates.length === 0 && (
-                                    <div className="col-span-2 text-center text-gray-400 py-8">
+                                    <div className="col-span-2 text-center text-base-content/50 py-8">
                                         Aucun modèle disponible. Créez-en un dans l'onglet "Modèles".
                                     </div>
                                 )}
@@ -133,7 +133,7 @@ const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ onClose, onSucces
                                         {selectedTemplate?.type === 'lease' ? 'Contrat de Bail concerné' : 'Entité concernée'}
                                     </label>
                                     <select 
-                                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-base-100"
+                                        className="w-full border border-base-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-base-100"
                                         value={selectedEntityId}
                                         onChange={(e) => setSelectedEntityId(e.target.value)}
                                     >

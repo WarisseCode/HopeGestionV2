@@ -198,7 +198,7 @@ const ProprietaireDashboard: React.FC = () => {
                 >
                     <span className="text-xs text-base-content/60 font-medium uppercase">Code Agence:</span>
                     <span className="font-bold text-primary font-mono tracking-wider">{managerCode}</span>
-                    <Copy size={14} className="text-gray-400 group-hover:text-primary transition-colors" />
+                    <Copy size={14} className="text-base-content/50 group-hover:text-primary transition-colors" />
                 </div>
             )}
 
@@ -334,11 +334,11 @@ const ProprietaireDashboard: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {featuredProperties.map(property => (
                             <div key={property.id} className="bg-base-100 rounded-2xl p-4 shadow-lg border border-base-200 flex gap-4 hover:shadow-xl transition-all cursor-pointer group" onClick={() => navigate(`/dashboard/biens?id=${property.id}`)}>
-                                <div className="w-24 h-24 rounded-xl bg-gray-200 overflow-hidden relative shrink-0">
+                                <div className="w-24 h-24 rounded-xl bg-base-300 overflow-hidden relative shrink-0">
                                     {property.image ? (
                                         <img src={property.image} alt={property.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-base-300 text-gray-400">
+                                        <div className="w-full h-full flex items-center justify-center bg-base-300 text-base-content/50">
                                             <Building2 size={32} />
                                         </div>
                                     )}
@@ -425,7 +425,7 @@ const ProprietaireDashboard: React.FC = () => {
                         </ResponsiveContainer>
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                             <span className="text-3xl font-extrabold text-base-content/90">{stats?.tauxOccupation || 83}%</span>
-                            <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Loué</span>
+                            <span className="text-xs text-base-content/50 font-medium uppercase tracking-wide">Loué</span>
                         </div>
                     </div>
                 </div>

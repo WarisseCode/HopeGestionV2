@@ -98,7 +98,7 @@ const InventoriesList: React.FC = () => {
             {/* Filters */}
             <div className="flex flex-col md:flex-row gap-4 bg-base-100 p-4 rounded-2xl shadow-sm border border-base-200">
                 <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50" size={20} />
                     <input 
                         type="text" 
                         placeholder="Rechercher..." 
@@ -127,9 +127,9 @@ const InventoriesList: React.FC = () => {
             {/* List */}
             <div className="bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden">
                 {loading ? (
-                    <div className="p-12 text-center text-gray-400">Chargement...</div>
+                    <div className="p-12 text-center text-base-content/50">Chargement...</div>
                 ) : filteredInventories.length === 0 ? (
-                    <div className="p-12 text-center text-gray-400">
+                    <div className="p-12 text-center text-base-content/50">
                         <ClipboardList className="mx-auto mb-3 opacity-20" size={48} />
                         Aucun inventaire trouvé
                     </div>
@@ -158,7 +158,7 @@ const InventoriesList: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Link to={`/dashboard/inventories/${inv.id}`} className="p-2 hover:bg-gray-200 rounded-lg text-gray-400 hover:text-base-content/70 transition">
+                                    <Link to={`/dashboard/inventories/${inv.id}`} className="p-2 hover:bg-base-300 rounded-lg text-base-content/50 hover:text-base-content/70 transition">
                                         <ChevronRight size={20} />
                                     </Link>
                                 </div>

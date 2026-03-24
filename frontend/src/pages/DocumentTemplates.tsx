@@ -22,7 +22,7 @@ const DocumentTemplates: React.FC = () => {
         { id: 'lease', label: 'Contrat de Bail', icon: FileText, color: 'text-blue-600 bg-blue-50 border-blue-200' },
         { id: 'receipt', label: 'Quittance / Reçu', icon: Receipt, color: 'text-green-600 bg-green-50 border-green-200' },
         { id: 'notice', label: 'Avis / Relance', icon: AlertTriangle, color: 'text-orange-600 bg-orange-50 border-orange-200' },
-        { id: 'other', label: 'Autre', icon: File, color: 'text-gray-600 bg-gray-50 border-gray-200' }
+        { id: 'other', label: 'Autre', icon: File, color: 'text-base-content/70 bg-base-200 border-base-200' }
     ];
 
     useEffect(() => {

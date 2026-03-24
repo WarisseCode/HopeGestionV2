@@ -117,7 +117,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                     px-3 py-1.5 text-xs font-medium rounded-full transition-all
                     ${isSelected
                       ? 'bg-primary text-white shadow-md shadow-primary/30'
-                      : 'bg-base-300 text-base-content/70 hover:bg-gray-200'
+                      : 'bg-base-300 text-base-content/70 hover:bg-base-300'
                     }
                   `}
                 >

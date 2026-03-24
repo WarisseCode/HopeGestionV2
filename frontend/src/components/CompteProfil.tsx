@@ -209,7 +209,7 @@ const CompteProfil: React.FC = () => {
                         {profile?.photo_url ? (
                             <img src={profile.photo_url} alt="Profil" className="w-full h-full object-cover" />
                         ) : (
-                            <span className="text-4xl font-bold text-gray-300">
+                            <span className="text-4xl font-bold text-base-content/40">
                                 {formData.prenom.charAt(0)}{formData.nom.charAt(0)}
                             </span>
                         )}
@@ -242,8 +242,8 @@ const CompteProfil: React.FC = () => {
                             <User size={12} className="mr-1.5" />
                             {profile?.role === 'admin' ? 'Administrateur' : profile?.role === 'owner' ? 'Propriétaire' : profile?.role}
                         </span>
-                        <div className="flex items-center gap-2 bg-base-200 dark:bg-slate-900/50 px-3 py-1 rounded-full border border-base-300 dark:border-slate-600 text-sm text-base-content/70 dark:text-gray-300 shadow-sm">
-                            <Mail size={14} className="text-gray-400" />
+                        <div className="flex items-center gap-2 bg-base-200 dark:bg-slate-900/50 px-3 py-1 rounded-full border border-base-300 dark:border-slate-600 text-sm text-base-content/70 dark:text-base-content/40 shadow-sm">
+                            <Mail size={14} className="text-base-content/50" />
                             {formData.email}
                         </div>
                     </div>
@@ -267,7 +267,7 @@ const CompteProfil: React.FC = () => {
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-1.5">
-                                <label className="text-sm font-semibold text-base-content/70 dark:text-gray-300">Prénom</label>
+                                <label className="text-sm font-semibold text-base-content/70 dark:text-base-content/40">Prénom</label>
                                 <input
                                     type="text"
                                     value={formData.prenom}
@@ -276,7 +276,7 @@ const CompteProfil: React.FC = () => {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-sm font-semibold text-base-content/70 dark:text-gray-300">Nom</label>
+                                <label className="text-sm font-semibold text-base-content/70 dark:text-base-content/40">Nom</label>
                                 <input
                                     type="text"
                                     value={formData.nom}
@@ -285,10 +285,10 @@ const CompteProfil: React.FC = () => {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-sm font-semibold text-base-content/70 dark:text-gray-300">Email professionnel</label>
+                                <label className="text-sm font-semibold text-base-content/70 dark:text-base-content/40">Email professionnel</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <Mail size={16} className="text-gray-400" />
+                                        <Mail size={16} className="text-base-content/50" />
                                     </div>
                                     <input
                                         type="email"
@@ -299,10 +299,10 @@ const CompteProfil: React.FC = () => {
                                 </div>
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-sm font-semibold text-base-content/70 dark:text-gray-300">Téléphone de contact</label>
+                                <label className="text-sm font-semibold text-base-content/70 dark:text-base-content/40">Téléphone de contact</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <Phone size={16} className="text-gray-400" />
+                                        <Phone size={16} className="text-base-content/50" />
                                     </div>
                                     <input
                                         type="tel"
@@ -330,17 +330,17 @@ const CompteProfil: React.FC = () => {
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 rounded-2xl border border-base-200 dark:border-slate-700 bg-base-200/50 dark:bg-slate-900/50 hover:bg-base-200 dark:bg-slate-900/50 transition-colors">
                                 <div className="flex items-center gap-4 mb-4 sm:mb-0">
                                     <div className="p-3 bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm border border-base-200 dark:border-slate-700">
-                                        <Lock className="text-base-content/60 dark:text-gray-400" size={20} />
+                                        <Lock className="text-base-content/60 dark:text-base-content/50" size={20} />
                                     </div>
                                     <div>
                                         <h4 className="font-semibold text-base-content/90 dark:text-gray-100">Mot de passe</h4>
-                                        <p className="text-sm text-base-content/60 dark:text-gray-400 mt-0.5">Renforcez la sécurité de votre compte</p>
+                                        <p className="text-sm text-base-content/60 dark:text-base-content/50 mt-0.5">Renforcez la sécurité de votre compte</p>
                                     </div>
                                 </div>
                                 <button 
                                     type="button" 
                                     onClick={() => setShowPasswordModal(true)}
-                                    className="w-full sm:w-auto px-5 py-2.5 bg-base-100 dark:bg-slate-800 text-base-content/80 dark:text-gray-200 rounded-xl text-sm font-semibold shadow-sm border border-base-300 dark:border-slate-600 hover:border-gray-300 hover:bg-base-200 dark:bg-slate-900/50 transition-all"
+                                    className="w-full sm:w-auto px-5 py-2.5 bg-base-100 dark:bg-slate-800 text-base-content/80 dark:text-gray-200 rounded-xl text-sm font-semibold shadow-sm border border-base-300 dark:border-slate-600 hover:border-base-300 hover:bg-base-200 dark:bg-slate-900/50 transition-all"
                                 >
                                     Modifier
                                 </button>
@@ -357,10 +357,10 @@ const CompteProfil: React.FC = () => {
                                             Double Authentification (A2F)
                                             <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wide">Bientôt</span>
                                         </h4>
-                                        <p className="text-sm text-base-content/60 dark:text-gray-400 mt-0.5">Protégez votre compte avec un code SMS/App</p>
+                                        <p className="text-sm text-base-content/60 dark:text-base-content/50 mt-0.5">Protégez votre compte avec un code SMS/App</p>
                                     </div>
                                 </div>
-                                <button type="button" disabled className="w-full sm:w-auto px-5 py-2.5 bg-base-300 dark:bg-slate-700 text-gray-400 rounded-xl text-sm font-semibold border border-transparent cursor-not-allowed">
+                                <button type="button" disabled className="w-full sm:w-auto px-5 py-2.5 bg-base-300 dark:bg-slate-700 text-base-content/50 rounded-xl text-sm font-semibold border border-transparent cursor-not-allowed">
                                     Activer
                                 </button>
                             </div>
@@ -368,7 +368,7 @@ const CompteProfil: React.FC = () => {
                             {/* Sessions Mock */}
                             <div className="mt-8 pt-6 border-t border-base-200 dark:border-slate-700">
                                 <h4 className="font-semibold text-base-content/90 dark:text-gray-100 mb-4 flex items-center gap-2">
-                                    Appareils connectés <span className="text-xs font-normal text-base-content/60 dark:text-gray-400">(1 session active)</span>
+                                    Appareils connectés <span className="text-xs font-normal text-base-content/60 dark:text-base-content/50">(1 session active)</span>
                                 </h4>
                                 <div className="flex items-center justify-between p-4 rounded-xl border border-blue-100 bg-blue-50/30">
                                     <div className="flex items-center gap-4">
@@ -377,7 +377,7 @@ const CompteProfil: React.FC = () => {
                                         </div>
                                         <div>
                                             <p className="font-medium text-base-content/90 dark:text-gray-100 text-sm">Windows • Chrome</p>
-                                            <p className="text-xs text-base-content/60 dark:text-gray-400">Cotonou, Bénin • Actif en ce moment</p>
+                                            <p className="text-xs text-base-content/60 dark:text-base-content/50">Cotonou, Bénin • Actif en ce moment</p>
                                         </div>
                                     </div>
                                     <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-md">Cet appareil</span>
@@ -411,7 +411,7 @@ const CompteProfil: React.FC = () => {
                                     ${formData.theme === 'light' ? 'border-purple-500 bg-purple-50/30 shadow-sm dark:bg-slate-800' : 'border-base-200 dark:border-slate-700 bg-base-100 dark:bg-slate-800 dark:border-slate-700 hover:border-base-300 dark:border-slate-600'}
                                 `}
                             >
-                                <div className="p-3 rounded-full bg-base-300 dark:bg-slate-700 text-base-content/70 dark:text-gray-300">
+                                <div className="p-3 rounded-full bg-base-300 dark:bg-slate-700 text-base-content/70 dark:text-base-content/40">
                                     <Sun size={20} />
                                 </div>
                                 <span className="font-medium text-sm text-base-content/80 dark:text-gray-200">Clair</span>
@@ -427,7 +427,7 @@ const CompteProfil: React.FC = () => {
                                     ${formData.theme === 'dark' ? 'border-purple-500 bg-purple-50/30 shadow-sm dark:bg-slate-700' : 'border-base-200 dark:border-slate-700 bg-base-100 dark:bg-slate-800 dark:border-slate-700 hover:border-base-300 dark:border-slate-600'}
                                 `}
                             >
-                                <div className="p-3 rounded-full bg-gray-800 text-gray-300">
+                                <div className="p-3 rounded-full bg-gray-800 text-base-content/40">
                                     <Moon size={20} />
                                 </div>
                                 <span className="font-medium text-sm text-base-content/80 dark:text-gray-200">Sombre</span>
@@ -446,7 +446,7 @@ const CompteProfil: React.FC = () => {
                         
                         <div className="space-y-5">
                             <div className="space-y-1.5">
-                                <label className="text-sm font-semibold text-base-content/70 dark:text-gray-300 flex items-center gap-2">
+                                <label className="text-sm font-semibold text-base-content/70 dark:text-base-content/40 flex items-center gap-2">
                                     Langue de l'interface
                                 </label>
                                 <select 
@@ -460,7 +460,7 @@ const CompteProfil: React.FC = () => {
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-sm font-semibold text-base-content/70 dark:text-gray-300 flex items-center gap-2">
+                                <label className="text-sm font-semibold text-base-content/70 dark:text-base-content/40 flex items-center gap-2">
                                     Devise par défaut
                                 </label>
                                 <select 
@@ -475,7 +475,7 @@ const CompteProfil: React.FC = () => {
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-sm font-semibold text-base-content/70 dark:text-gray-300 flex items-center gap-2">
+                                <label className="text-sm font-semibold text-base-content/70 dark:text-base-content/40 flex items-center gap-2">
                                     Fuseau Horaire
                                 </label>
                                 <select 
@@ -494,12 +494,12 @@ const CompteProfil: React.FC = () => {
                                 
                                 <label className="flex items-center justify-between cursor-pointer p-4 rounded-xl border border-base-200 dark:border-slate-700 hover:border-base-300 dark:border-slate-600 hover:bg-base-200/50 dark:bg-slate-900/50 transition-all group">
                                     <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-base-300 dark:bg-slate-700 text-base-content/70 dark:text-gray-300 rounded-lg group-hover:bg-base-100 dark:bg-slate-800 group-hover:shadow-sm transition-all">
+                                        <div className="p-2 bg-base-300 dark:bg-slate-700 text-base-content/70 dark:text-base-content/40 rounded-lg group-hover:bg-base-100 dark:bg-slate-800 group-hover:shadow-sm transition-all">
                                             <Mail size={16} />
                                         </div>
                                         <span className="text-sm font-medium text-base-content/80 dark:text-gray-200">Emails système</span>
                                     </div>
-                                    <div className={`w-10 h-5.5 rounded-full relative transition-colors duration-300 ease-in-out ${formData.notifEmail ? 'bg-primary' : 'bg-gray-200'}`}>
+                                    <div className={`w-10 h-5.5 rounded-full relative transition-colors duration-300 ease-in-out ${formData.notifEmail ? 'bg-primary' : 'bg-base-300'}`}>
                                         <div className={`absolute top-0.5 left-0.5 bg-base-100 dark:bg-slate-800 w-4.5 h-4.5 rounded-full shadow-sm transition-transform duration-300 ease-in-out ${formData.notifEmail ? 'transform translate-x-4.5' : ''}`}></div>
                                         <input 
                                             type="checkbox" 
@@ -517,10 +517,10 @@ const CompteProfil: React.FC = () => {
                                         </div>
                                         <div>
                                             <span className="text-sm font-medium text-base-content/80 dark:text-gray-200 block">WhatsApp</span>
-                                            <span className="text-[10px] text-gray-400">Alertes importantes</span>
+                                            <span className="text-[10px] text-base-content/50">Alertes importantes</span>
                                         </div>
                                     </div>
-                                    <div className={`w-10 h-5.5 rounded-full relative transition-colors duration-300 ease-in-out ${formData.notifWhatsApp ? 'bg-green-500' : 'bg-gray-200'}`}>
+                                    <div className={`w-10 h-5.5 rounded-full relative transition-colors duration-300 ease-in-out ${formData.notifWhatsApp ? 'bg-green-500' : 'bg-base-300'}`}>
                                         <div className={`absolute top-0.5 left-0.5 bg-base-100 dark:bg-slate-800 w-4.5 h-4.5 rounded-full shadow-sm transition-transform duration-300 ease-in-out ${formData.notifWhatsApp ? 'transform translate-x-4.5' : ''}`}></div>
                                         <input 
                                             type="checkbox" 
@@ -577,7 +577,7 @@ const CompteProfil: React.FC = () => {
                             </h3>
                             <button 
                                 onClick={() => setShowPasswordModal(false)}
-                                className="p-2 text-gray-400 hover:text-base-content/70 dark:text-gray-300 hover:bg-base-300 dark:bg-slate-700 rounded-full transition-colors"
+                                className="p-2 text-base-content/50 hover:text-base-content/70 dark:text-base-content/40 hover:bg-base-300 dark:bg-slate-700 rounded-full transition-colors"
                             >
                                 <X size={20} />
                             </button>
@@ -601,7 +601,7 @@ const CompteProfil: React.FC = () => {
                                         />
                                         <button
                                             type="button"
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-base-content/70 dark:text-gray-300 rounded-lg transition-colors"
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-base-content/50 hover:text-base-content/70 dark:text-base-content/40 rounded-lg transition-colors"
                                             onClick={() => setShowPassword(!showPassword)}
                                         >
                                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -614,7 +614,7 @@ const CompteProfil: React.FC = () => {
                                 <button 
                                     type="button"
                                     onClick={() => setShowPasswordModal(false)}
-                                    className="flex-1 px-4 py-3 text-base-content/80 dark:text-gray-200 bg-base-300 dark:bg-slate-700 hover:bg-gray-200 font-semibold rounded-xl transition-colors"
+                                    className="flex-1 px-4 py-3 text-base-content/80 dark:text-gray-200 bg-base-300 dark:bg-slate-700 hover:bg-base-300 font-semibold rounded-xl transition-colors"
                                 >
                                     Annuler
                                 </button>

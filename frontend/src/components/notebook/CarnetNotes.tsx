@@ -64,7 +64,7 @@ const CarnetNotes: React.FC = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div className="relative w-64">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/50" size={16} />
                     <input 
                         className="pl-9 pr-4 py-2 border rounded-lg w-full text-sm"
                         placeholder="Rechercher une note..."
@@ -120,7 +120,7 @@ const CarnetNotes: React.FC = () => {
                     <Card key={n.id} className="relative group hover:shadow-md transition-shadow bg-yellow-50">
                         <button 
                             onClick={() => handleDelete(n.id)}
-                            className="absolute top-2 right-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute top-2 right-2 text-base-content/50 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                             <Trash2 size={16} />
                         </button>
@@ -138,7 +138,7 @@ const CarnetNotes: React.FC = () => {
                     </Card>
                 ))}
                 {filteredNotes.length === 0 && !isCreating && (
-                    <div className="col-span-full text-center text-gray-400 py-10">Aucune note trouvée.</div>
+                    <div className="col-span-full text-center text-base-content/50 py-10">Aucune note trouvée.</div>
                 )}
             </div>
         </div>

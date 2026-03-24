@@ -171,13 +171,13 @@ const LotForm: React.FC<LotFormProps> = ({
                             {isCompleted ? <Check size={20} /> : step.icon}
                         </motion.div>
                         <span className={`mt-3 text-sm font-bold ${
-                            isActive ? 'text-blue-600' : isCompleted ? 'text-base-content/90' : 'text-gray-400'
+                            isActive ? 'text-blue-600' : isCompleted ? 'text-base-content/90' : 'text-base-content/50'
                         }`}>
                             {step.title}
                         </span>
                         
                         {idx < STEPS.length - 1 && (
-                            <div className="absolute top-6 left-1/2 w-[calc(100%+4rem)] h-0.5 -z-10 bg-gray-200">
+                            <div className="absolute top-6 left-1/2 w-[calc(100%+4rem)] h-0.5 -z-10 bg-base-300">
                                 <motion.div 
                                     className="h-full bg-blue-500 origin-left"
                                     initial={{ scaleX: 0 }}
@@ -392,7 +392,7 @@ const LotForm: React.FC<LotFormProps> = ({
                              <div className={`card transition-all duration-300 ${showVenteFields ? 'border-green-200 bg-base-100 shadow-md ring-1 ring-green-100' : 'border border-base-300 bg-base-200 opacity-80'}`}>
                                 <div className="px-6 py-4 flex items-center justify-between cursor-pointer" onClick={() => setShowVenteFields(!showVenteFields)}>
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${showVenteFields ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-400'}`}>
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${showVenteFields ? 'bg-green-100 text-green-600' : 'bg-base-300 text-base-content/50'}`}>
                                             <Tag size={18} />
                                         </div>
                                         <div>

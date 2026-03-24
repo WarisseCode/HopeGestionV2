@@ -451,13 +451,13 @@ const Locataires: React.FC = () => {
               <div className="flex bg-base-300 rounded-lg p-1">
                 <button 
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-base-100 shadow-sm text-primary' : 'text-gray-400 hover:text-base-content/70'}`}
+                  className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-base-100 shadow-sm text-primary' : 'text-base-content/50 hover:text-base-content/70'}`}
                 >
                   <LayoutGrid size={18} />
                 </button>
                 <button 
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-base-100 shadow-sm text-primary' : 'text-gray-400 hover:text-base-content/70'}`}
+                  className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-base-100 shadow-sm text-primary' : 'text-base-content/50 hover:text-base-content/70'}`}
                 >
                   <List size={18} />
                 </button>
@@ -592,7 +592,7 @@ const Locataires: React.FC = () => {
                         </div>
                         {(person.loyer_actuel || person.loyer) && (
                           <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-400">Paiement</span>
+                            <span className="text-base-content/50">Paiement</span>
                             <PaymentStatusBadge status={paymentStatus} />
                           </div>
                         )}

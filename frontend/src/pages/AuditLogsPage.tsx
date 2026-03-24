@@ -133,7 +133,7 @@ const AuditLogsPage: React.FC = () => {
                 <Card className="bg-base-100 border-none shadow-lg mb-6">
                     <div className="flex flex-col md:flex-row gap-4 items-center">
                         <div className="relative flex-1 w-full">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-base-content/50" size={18} />
                             <input 
                                 type="text" 
                                 placeholder="Rechercher un utilisateur, une IP..." 
@@ -154,7 +154,7 @@ const AuditLogsPage: React.FC = () => {
                             <option value="UPDATE_TENANT">Modifications Locataire</option>
                             <option value="ARCHIVE_TENANT">Suppressions Locataire</option>
                         </select>
-                         <Button variant="ghost" className="btn-square bg-base-200 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-xl">
+                         <Button variant="ghost" className="btn-square bg-base-200 text-base-content/50 hover:text-primary hover:bg-primary/10 rounded-xl">
                             <Filter size={20} />
                         </Button>
                     </div>
@@ -182,7 +182,7 @@ const AuditLogsPage: React.FC = () => {
                                     </tr>
                                 ) : logs.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="text-center py-12 text-gray-400 flex flex-col items-center gap-2">
+                                        <td colSpan={5} className="text-center py-12 text-base-content/50 flex flex-col items-center gap-2">
                                             <Activity size={32} className="opacity-20"/>
                                             Aucun log trouvé pour cette période.
                                         </td>
@@ -192,7 +192,7 @@ const AuditLogsPage: React.FC = () => {
                                         <tr key={log.id} className="hover:bg-base-200/50 transition-colors group">
                                             <td className="pl-6 font-mono text-xs text-base-content/60">
                                                 <div className="flex items-center gap-2">
-                                                    <Clock size={12} className="text-gray-400" />
+                                                    <Clock size={12} className="text-base-content/50" />
                                                     {formatDate(log.created_at)}
                                                 </div>
                                             </td>
@@ -219,7 +219,7 @@ const AuditLogsPage: React.FC = () => {
                                             <td className="pr-6 text-right">
                                                 <div className="tooltip tooltip-left" data-tip={JSON.stringify(log.details, null, 2)}>
                                                     <Button variant="ghost" size="sm" className="btn-square btn-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <Eye size={16} className="text-gray-400 hover:text-primary transition-colors" />
+                                                        <Eye size={16} className="text-base-content/50 hover:text-primary transition-colors" />
                                                     </Button>
                                                 </div>
                                             </td>
@@ -241,7 +241,7 @@ const AuditLogsPage: React.FC = () => {
                         >
                             <ChevronLeft size={16} className="mr-1" /> Précédent
                         </Button>
-                        <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Page {page + 1}</span>
+                        <span className="text-xs font-medium text-base-content/50 uppercase tracking-wider">Page {page + 1}</span>
                         <Button 
                             variant="ghost"
                             size="sm"

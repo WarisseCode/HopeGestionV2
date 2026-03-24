@@ -213,7 +213,7 @@ const ReservationsList: React.FC = () => {
                                             <div>
                                                 <p className="text-xs text-base-content/60 uppercase font-bold mb-1">Client</p>
                                                 <p className="font-semibold text-base-content flex items-center gap-2">
-                                                    <User size={14} className="text-gray-400" />
+                                                    <User size={14} className="text-base-content/50" />
                                                     {reservation.locataire_nom} {reservation.locataire_prenoms}
                                                 </p>
                                                 <p className="text-sm text-base-content/60 flex items-center gap-2">
@@ -223,7 +223,7 @@ const ReservationsList: React.FC = () => {
                                             <div>
                                                 <p className="text-xs text-base-content/60 uppercase font-bold mb-1">Bien</p>
                                                 <p className="font-semibold text-base-content flex items-center gap-2">
-                                                    <Building size={14} className="text-gray-400" />
+                                                    <Building size={14} className="text-base-content/50" />
                                                     {reservation.ref_lot}
                                                 </p>
                                                 <p className="text-sm text-base-content/60">{reservation.immeuble_nom}</p>
@@ -231,10 +231,10 @@ const ReservationsList: React.FC = () => {
                                             <div>
                                                 <p className="text-xs text-base-content/60 uppercase font-bold mb-1">Date souhaitée</p>
                                                 <p className="font-semibold text-base-content flex items-center gap-2">
-                                                    <Calendar size={14} className="text-gray-400" />
+                                                    <Calendar size={14} className="text-base-content/50" />
                                                     {new Date(reservation.date_debut).toLocaleDateString('fr-FR')}
                                                 </p>
-                                                <p className="text-xs text-gray-400">
+                                                <p className="text-xs text-base-content/50">
                                                     Demande: {new Date(reservation.created_at).toLocaleDateString('fr-FR')}
                                                 </p>
                                             </div>

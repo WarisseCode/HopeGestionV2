@@ -19,7 +19,7 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   animate = true,
   lines = 1,
 }) => {
-  const baseClasses = `bg-gray-200 ${animate ? 'animate-pulse' : ''} ${className}`;
+  const baseClasses = `bg-base-300 ${animate ? 'animate-pulse' : ''} ${className}`;
   
   const getVariantStyles = () => {
     switch (variant) {

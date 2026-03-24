@@ -652,7 +652,7 @@ const BiensPublicsPage: React.FC = () => {
                     <div className="absolute bottom-16 left-0 right-0 flex justify-center gap-1.5">
                       {selectedProperty.photos.map((_: string, i: number) => (
                         <button key={i} onClick={() => setActivePhotoIndex(i)}
-                          className={`w-2 h-2 rounded-full transition-all ${ i === activePhotoIndex ? 'bg-white scale-125' : 'bg-white/50' }`}
+                          className={`w-2 h-2 rounded-full transition-all ${ i === activePhotoIndex ? 'bg-base-100 scale-125' : 'bg-base-100/50' }`}
                         />
                       ))}
                     </div>

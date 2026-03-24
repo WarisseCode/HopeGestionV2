@@ -192,58 +192,68 @@ const LocataireDetails: React.FC = () => {
       <div className="min-h-[400px]">
         {/* Profil Tab */}
         {activeTab === 'profil' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="p-6">
-              <h3 className="font-bold text-base-content/90 mb-4 flex items-center gap-2"><User size={18} /> Identité</h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between"><span className="text-base-content/60">Nom complet</span><span className="font-medium">{locataire.prenoms} {locataire.nom}</span></div>
-                <div className="flex justify-between"><span className="text-base-content/60">Type</span><span className="font-medium">{locataire.type}</span></div>
-                <div className="flex justify-between"><span className="text-base-content/60">Nationalité</span><span className="font-medium">{locataire.nationalite || '-'}</span></div>
-                {locataire.telephone_principal && (
-                  <div className="flex justify-between"><span className="text-base-content/60">Téléphone</span><span className="font-medium">{locataire.telephone_principal}</span></div>
-                )}
-                {locataire.telephone_secondaire && (
-                  <div className="flex justify-between"><span className="text-base-content/60">Tél. secondaire</span><span className="font-medium">{locataire.telephone_secondaire}</span></div>
-                )}
-                {locataire.email && (
-                  <div className="flex justify-between"><span className="text-base-content/60">Email</span><span className="font-medium">{locataire.email}</span></div>
-                )}
-                <div className="flex justify-between"><span className="text-base-content/60">Adresse</span><span className="font-medium">{locataire.adresse_actuelle || '-'}</span></div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <h3 className="font-bold text-base-content/90 mb-4 flex items-center gap-2"><CreditCard size={18} /> Pièce d'identité</h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between"><span className="text-base-content/60">Type</span><span className="font-medium">{locataire.type_piece || '-'}</span></div>
-                <div className="flex justify-between"><span className="text-base-content/60">Numéro</span><span className="font-medium">{locataire.numero_piece || '-'}</span></div>
-                <div className="flex justify-between"><span className="text-base-content/60">Expiration</span><span className="font-medium">{locataire.date_expiration_piece ? new Date(locataire.date_expiration_piece).toLocaleDateString('fr-FR') : '-'}</span></div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <h3 className="font-bold text-base-content/90 mb-4 flex items-center gap-2"><Wallet size={18} /> Finances</h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between"><span className="text-base-content/60">Mode paiement</span><span className="font-medium">{locataire.mode_paiement_preferentiel || '-'}</span></div>
-                <div className="flex justify-between"><span className="text-base-content/60">Caution</span><span className="font-medium">{locataire.caution ? `${locataire.caution.toLocaleString()} F` : '-'}</span></div>
-                <div className="flex justify-between"><span className="text-base-content/60">Avance</span><span className="font-medium">{locataire.avance ? `${locataire.avance.toLocaleString()} F` : '-'}</span></div>
-                <div className="flex justify-between"><span className="text-base-content/60">Échelonné</span><span className="font-medium">{locataire.paiement_echelonne ? 'Oui' : 'Non'}</span></div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <h3 className="font-bold text-base-content/90 mb-4 flex items-center gap-2"><Home size={18} /> Logement Actuel</h3>
-              {activeBail ? (
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between"><span className="text-base-content/60">Lot</span><span className="font-medium">{activeBail.ref_lot}</span></div>
-                  <div className="flex justify-between"><span className="text-base-content/60">Immeuble</span><span className="font-medium">{activeBail.building_name}</span></div>
-                  <div className="flex justify-between"><span className="text-base-content/60">Loyer</span><span className="font-semibold text-primary">{activeBail.loyer_actuel?.toLocaleString()} F/mois</span></div>
-                  <div className="flex justify-between"><span className="text-base-content/60">Depuis</span><span className="font-medium">{new Date(activeBail.date_debut).toLocaleDateString('fr-FR')}</span></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Colonne Principale (Identité & Logement) */}
+            <div className="lg:col-span-2 space-y-6">
+              <Card className="p-6">
+                <h3 className="font-bold text-base-content/90 mb-4 flex items-center gap-2"><User size={18} /> Identité</h3>
+                <div className="space-y-4 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><span className="text-base-content/60 block mb-1">Nom complet</span><span className="font-medium text-base">{locataire.prenoms} {locataire.nom}</span></div>
+                    <div><span className="text-base-content/60 block mb-1">Type</span><span className="font-medium text-base">{locataire.type}</span></div>
+                    <div><span className="text-base-content/60 block mb-1">Nationalité</span><span className="font-medium text-base">{locataire.nationalite || '-'}</span></div>
+                    {locataire.telephone_principal && (
+                      <div><span className="text-base-content/60 block mb-1">Téléphone</span><span className="font-medium text-base">{locataire.telephone_principal}</span></div>
+                    )}
+                    {locataire.telephone_secondaire && (
+                      <div><span className="text-base-content/60 block mb-1">Tél. secondaire</span><span className="font-medium text-base">{locataire.telephone_secondaire}</span></div>
+                    )}
+                    {locataire.email && (
+                      <div><span className="text-base-content/60 block mb-1">Email</span><span className="font-medium text-base">{locataire.email}</span></div>
+                    )}
+                  </div>
+                  <div className="pt-2"><span className="text-base-content/60 block mb-1">Adresse</span><span className="font-medium text-base">{locataire.adresse_actuelle || '-'}</span></div>
                 </div>
-              ) : (
-                <p className="text-gray-400 text-sm">Aucun logement actif</p>
-              )}
-            </Card>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="font-bold text-base-content/90 mb-4 flex items-center gap-2"><Home size={18} /> Logement Actuel</h3>
+                {activeBail ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div><span className="text-base-content/60 block mb-1">Lot</span><span className="font-medium text-base">{activeBail.ref_lot}</span></div>
+                    <div><span className="text-base-content/60 block mb-1">Immeuble</span><span className="font-medium text-base">{activeBail.building_name}</span></div>
+                    <div><span className="text-base-content/60 block mb-1">Loyer</span><span className="font-bold text-primary text-base">{activeBail.loyer_actuel?.toLocaleString()} F/mois</span></div>
+                    <div><span className="text-base-content/60 block mb-1">Depuis</span><span className="font-medium text-base">{new Date(activeBail.date_debut).toLocaleDateString('fr-FR')}</span></div>
+                  </div>
+                ) : (
+                  <p className="text-base-content/40 text-sm">Aucun logement actif</p>
+                )}
+              </Card>
+            </div>
+
+            {/* Colonne Secondaire (Finances & Pièce d'identité) */}
+            <div className="lg:col-span-1 space-y-6">
+              <Card className="p-6">
+                <h3 className="font-bold text-base-content/90 mb-4 flex items-center gap-2"><Wallet size={18} /> Finances</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between items-center"><span className="text-base-content/60">Mode paiement</span><span className="font-medium">{locataire.mode_paiement_preferentiel || '-'}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-base-content/60">Caution</span><span className="font-medium">{locataire.caution ? `${locataire.caution.toLocaleString()} F` : '-'}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-base-content/60">Avance</span><span className="font-medium">{locataire.avance ? `${locataire.avance.toLocaleString()} F` : '-'}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-base-content/60">Échelonné</span><span className="font-medium">{locataire.paiement_echelonne ? 'Oui' : 'Non'}</span></div>
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="font-bold text-base-content/90 mb-4 flex items-center gap-2"><CreditCard size={18} /> Pièce d'identité</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between items-center"><span className="text-base-content/60">Type</span><span className="font-medium">{locataire.type_piece || '-'}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-base-content/60">Numéro</span><span className="font-medium">{locataire.numero_piece || '-'}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-base-content/60">Expiration</span><span className="font-medium">{locataire.date_expiration_piece ? new Date(locataire.date_expiration_piece).toLocaleDateString('fr-FR') : '-'}</span></div>
+                </div>
+              </Card>
+            </div>
+
           </div>
         )}
 
@@ -252,7 +262,7 @@ const LocataireDetails: React.FC = () => {
           <div className="space-y-4">
             <h3 className="font-bold text-base-content/90 text-lg">Historique des Contrats</h3>
             {baux.length === 0 ? (
-              <Card className="p-8 text-center text-gray-400">
+              <Card className="p-8 text-center text-base-content/50">
                 <FileText size={48} className="mx-auto mb-4 opacity-50" />
                 <p>Aucun contrat enregistré</p>
               </Card>
@@ -267,7 +277,7 @@ const LocataireDetails: React.FC = () => {
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-primary">{bail.loyer_actuel?.toLocaleString()} F/mois</p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-base-content/50">
                           {new Date(bail.date_debut).toLocaleDateString('fr-FR')} 
                           {bail.date_fin && ` - ${new Date(bail.date_fin).toLocaleDateString('fr-FR')}`}
                         </p>
@@ -293,7 +303,7 @@ const LocataireDetails: React.FC = () => {
           <div className="space-y-4">
             <h3 className="font-bold text-base-content/90 text-lg">Derniers Paiements</h3>
             {paiements.length === 0 ? (
-              <Card className="p-8 text-center text-gray-400">
+              <Card className="p-8 text-center text-base-content/50">
                 <Wallet size={48} className="mx-auto mb-4 opacity-50" />
                 <p>Aucun paiement enregistré</p>
               </Card>
@@ -342,7 +352,7 @@ const LocataireDetails: React.FC = () => {
                   </div>
                   <div className="flex-1">
                     <p className="font-medium">Pièce d'identité</p>
-                    <p className="text-xs text-gray-400">{locataire.type_piece}</p>
+                    <p className="text-xs text-base-content/50">{locataire.type_piece}</p>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => window.open(locataire.photo_piece_url, '_blank')}>
                     <ExternalLink size={14} />
@@ -356,7 +366,7 @@ const LocataireDetails: React.FC = () => {
                   </div>
                   <div className="flex-1">
                     <p className="font-medium">Photo profil</p>
-                    <p className="text-xs text-gray-400">Portrait</p>
+                    <p className="text-xs text-base-content/50">Portrait</p>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => window.open(locataire.photo_profil_url, '_blank')}>
                     <ExternalLink size={14} />
@@ -364,7 +374,7 @@ const LocataireDetails: React.FC = () => {
                 </Card>
               )}
               {!locataire.photo_piece_url && !locataire.photo_profil_url && (
-                <Card className="p-8 text-center text-gray-400 col-span-full">
+                <Card className="p-8 text-center text-base-content/50 col-span-full">
                   <FileText size={48} className="mx-auto mb-4 opacity-50" />
                   <p>Aucun document téléversé</p>
                 </Card>
