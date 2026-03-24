@@ -686,11 +686,11 @@ const Locataires: React.FC = () => {
                     <thead className="bg-base-200/50">
                       <tr>
                         <th className="py-4 pl-6">Nom</th>
-                        <th className="py-4">Téléphone</th>
-                        <th className="py-4">Email</th>
+                        <th className="py-4 hidden md:table-cell">Téléphone</th>
+                        <th className="py-4 hidden lg:table-cell">Email</th>
                         <th className="py-4">Logement</th>
-                        <th className="py-4">Loyer</th>
-                        <th className="py-4">Paiement</th>
+                        <th className="py-4 hidden sm:table-cell">Loyer</th>
+                        <th className="py-4 hidden md:table-cell">Paiement</th>
                         <th className="py-4">Statut</th>
                         <th className="py-4 pr-6 text-right">Actions</th>
                       </tr>
@@ -714,11 +714,11 @@ const Locataires: React.FC = () => {
                                 </div>
                               </div>
                             </td>
-                            <td className="font-mono text-sm">{person.telephone_principal}</td>
-                            <td className="text-base-content/60 text-sm">{person.email || '-'}</td>
+                            <td className="font-mono text-sm hidden md:table-cell">{person.telephone_principal}</td>
+                            <td className="text-base-content/60 text-sm hidden lg:table-cell">{person.email || '-'}</td>
                             <td className="text-base-content/70">{person.lot_nom || person.lot || '-'}</td>
-                            <td className="font-semibold">{(person.loyer_actuel || person.loyer) ? `${(person.loyer_actuel || person.loyer)?.toLocaleString()} F` : '-'}</td>
-                            <td><PaymentStatusBadge status={paymentStatus} /></td>
+                            <td className="font-semibold hidden sm:table-cell">{(person.loyer_actuel || person.loyer) ? `${(person.loyer_actuel || person.loyer)?.toLocaleString()} F` : '-'}</td>
+                            <td className="hidden md:table-cell"><PaymentStatusBadge status={paymentStatus} /></td>
                             <td>
                               <div className={`flex items-center gap-1.5 text-sm font-semibold ${person.statut === 'Actif' ? 'text-green-600' : 'text-orange-600'}`}>
                                 <div className={`w-2 h-2 rounded-full ${person.statut === 'Actif' ? 'bg-green-500' : 'bg-orange-500'}`}></div>

@@ -51,6 +51,7 @@ import Button from '../components/ui/Button';
 import SearchInput from '../components/ui/SearchInput';
 import { getToken } from '../api/authApi';
 import { API_URL } from '../config';
+import EmptyState from '../components/ui/EmptyState';
 
 // --- Types for API Data ---
 interface KPIData {
@@ -108,20 +109,6 @@ const GestionnaireDashboard: React.FC = () => {
       const path = kpi.modulePath.startsWith('/') ? kpi.modulePath : `/${kpi.modulePath}`;
       navigate(`/dashboard${path}`);
   };
-
-  // Mock KPIs
-  const mockKpis: KPIData[] = useMemo(() => [
-      { id: 'total_biens', label: 'Total Biens', value: 15, status: 'success', icon: 'Building2', modulePath: '/biens' },
-      { id: 'lots_occupation', label: 'Occupés / Libres', value: "12 / 3", status: 'success', icon: 'Home', modulePath: '/biens' },
-      { id: 'loyers_encaisses', label: 'Encaissés (Mois)', value: 4500000, status: 'success', icon: 'Wallet', modulePath: '/finances' },
-      { id: 'loyers_impayes', label: 'Impayés', value: 150000, status: 'warning', icon: 'AlertTriangle', modulePath: '/finances' },
-      { id: 'taux_occupation', label: "Taux Occupation", value: "85%", status: 'success', icon: 'Percent', modulePath: '/biens' },
-      { id: 'contrats_actifs', label: 'Contrats Actifs', value: 12, status: 'success', icon: 'FileText', modulePath: '/locataires' },
-      { id: 'plaintes_ouvertes', label: 'Plaintes', value: 2, status: 'warning', icon: 'MessageCircle', modulePath: '/alertes' },
-      { id: 'reservations', label: 'Réservations', value: 1, status: 'warning', icon: 'Calendar', modulePath: '/biens' },
-      { id: 'recouvrement', label: 'À Recouvrer', value: 280000, status: 'danger', icon: 'DollarSign', modulePath: '/finances' },
-      { id: 'echelonements_retard', label: 'Retards Échél.', value: 0, status: 'success', icon: 'Clock', modulePath: '/finances' },
-  ], []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -198,7 +185,7 @@ const GestionnaireDashboard: React.FC = () => {
       if (!token) {
         // Simulate loading delay for skeleton demo
         await new Promise(r => setTimeout(r, 500));
-        setKpis(mockKpis);
+        setKpis([]);
         setIsLoadingKpis(false);
         return;
       }
@@ -215,18 +202,18 @@ const GestionnaireDashboard: React.FC = () => {
           const data = await response.json();
           setKpis(data.kpis);
         } else {
-          setKpis(mockKpis);
+          setKpis([]);
         }
       } catch (error) {
         console.error('Error fetching KPIs:', error);
-        setKpis(mockKpis);
+        setKpis([]);
       } finally {
         setIsLoadingKpis(false);
       }
     };
     
     fetchKPIs();
-  }, [stats, period, mockKpis]);
+  }, [stats, period]);
 
 
   // Fetch chart data and other dashboard widgets
@@ -303,7 +290,7 @@ const GestionnaireDashboard: React.FC = () => {
     { name: 'Vacant', value: 100 - (stats?.tauxOccupation || 0), color: '#e2e8f0' },
   ];
 
-  const allKpis = kpis.length > 0 ? kpis : []; // Don't show mock KPIs if empty
+  const allKpis = kpis; 
   const visibleKpis = showAllKpis ? allKpis : allKpis.slice(0, 4);
 
   // Financial Banner Values
@@ -467,6 +454,16 @@ const GestionnaireDashboard: React.FC = () => {
                   <div className="w-32 h-8 bg-gray-200 rounded" />
                 </div>
               ))}
+            </div>
+          ) : visibleKpis.length === 0 ? (
+            <div className="col-span-full py-8">
+              <EmptyState 
+                icon={<AlertTriangle size={48} />}
+                title="Données indisponibles"
+                description="Impossible de charger les indicateurs. Veuillez vérifier votre connexion ou rafraîchir la page."
+                actionLabel="Réessayer"
+                onAction={() => window.location.reload()}
+              />
             </div>
           ) : (
             <motion.div 

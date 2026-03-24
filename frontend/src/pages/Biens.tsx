@@ -669,9 +669,9 @@ const Biens: React.FC = () => {
                         <tr>
                           <th className="py-4 pl-6">Photo</th>
                           <th className="py-4">Nom</th>
-                          <th className="py-4">Ville</th>
-                          <th className="py-4">Nb Lots</th>
-                          <th className="py-4">Occupation</th>
+                          <th className="py-4 hidden md:table-cell">Ville</th>
+                          <th className="py-4 hidden sm:table-cell">Nb Lots</th>
+                          <th className="py-4 hidden lg:table-cell">Occupation</th>
                           <th className="py-4 pr-6 text-right">Actions</th>
                         </tr>
                       </thead>
@@ -695,9 +695,9 @@ const Biens: React.FC = () => {
                                 </div>
                             </td>
                             <td className="font-bold text-base-content/90">{immeuble.nom}</td>
-                            <td className="text-base-content/70">{immeuble.ville}</td>
-                            <td className="font-mono">{immeuble.nbLots || 0}</td>
-                            <td>
+                            <td className="text-base-content/70 hidden md:table-cell">{immeuble.ville}</td>
+                            <td className="font-mono hidden sm:table-cell">{immeuble.nbLots || 0}</td>
+                            <td className="hidden lg:table-cell">
                                 <div className="flex items-center gap-2">
                                     <progress className="progress progress-primary w-20" value={immeuble.occupation || 0} max="100"></progress>
                                     <span className="text-xs font-bold">{immeuble.occupation || 0}%</span>
@@ -773,9 +773,9 @@ const Biens: React.FC = () => {
                         <tr>
                           <th className="py-4 pl-6">Photo</th>
                           <th className="py-4">Référence</th>
-                          <th className="py-4">Immeuble</th>
+                          <th className="py-4 hidden md:table-cell">Immeuble</th>
                           <th className="py-4">Statut</th>
-                          <th className="py-4">Loyer / Prix</th>
+                          <th className="py-4 hidden sm:table-cell">Loyer / Prix</th>
                           <th className="py-4 pr-6 text-right">Actions</th>
                         </tr>
                       </thead>
@@ -799,7 +799,7 @@ const Biens: React.FC = () => {
                                   </div>
                               </td>
                               <td className="font-bold text-base-content/90">{lot.reference}</td>
-                              <td className="text-base-content/70">{lot.immeuble}</td>
+                              <td className="text-base-content/70 hidden md:table-cell">{lot.immeuble}</td>
                               <td>
                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
                                   lot.statut === 'libre' ? 'bg-green-100 text-green-700' :
@@ -816,7 +816,7 @@ const Biens: React.FC = () => {
                                   {lot.statut || 'libre'}
                                 </span>
                               </td>
-                              <td className="font-mono font-medium text-base-content/80">
+                              <td className="font-mono font-medium text-base-content/80 hidden sm:table-cell">
                                   {lot.type === 'Vente' || lot.prix_vente ? (
                                       <span className="text-purple-700">{lot.prix_vente?.toLocaleString()} FCFA (Vente)</span>
                                   ) : (

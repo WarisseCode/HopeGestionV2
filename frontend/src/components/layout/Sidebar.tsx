@@ -10,6 +10,7 @@ import {
   Home, Activity, UserCog, Receipt, UserCheck
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import ConfirmModal from '../ui/ConfirmModal';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ type MenuItem = {
 
 const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggleSidebar, userProfile, onLogout, alertsCount = 0, isMobile }) => {
   const location = useLocation();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     "Principal": true,
     "Gestion": true,
@@ -349,7 +351,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
               {/* Logout Button */}
               <div className={(!isOpen && !isMobile) ? "tooltip tooltip-right w-full flex justify-center" : ""} data-tip="Déconnexion">
                 <button 
-                  onClick={onLogout}
+                  onClick={() => setShowLogoutConfirm(true)}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-error/80 hover:text-error hover:bg-error/10 w-full transition-all duration-300 group relative overflow-hidden
                     ${(!isOpen && !isMobile) ? 'justify-center w-12 h-12 px-0' : ''}
                   `}
@@ -363,6 +365,20 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
               </div>
           </div>
         </aside>
+
+        <ConfirmModal
+          isOpen={showLogoutConfirm}
+          onClose={() => setShowLogoutConfirm(false)}
+          onConfirm={() => {
+            setShowLogoutConfirm(false);
+            onLogout();
+          }}
+          title="Déconnexion"
+          message="Êtes-vous sûr de vouloir vous déconnecter ?"
+          confirmLabel="Se déconnecter"
+          cancelLabel="Annuler"
+          type="danger"
+        />
     </>
   );
 };

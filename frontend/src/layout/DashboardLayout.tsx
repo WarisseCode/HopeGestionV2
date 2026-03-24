@@ -139,10 +139,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
            <AnimatePresence mode="wait">
              <motion.div
                key={location.pathname}
-               initial={{ opacity: 0, y: 15, scale: 0.98 }}
-               animate={{ opacity: 1, y: 0, scale: 1 }}
+               initial={{ opacity: 0, y: 10 }}
+               animate={{ opacity: 1, y: 0 }}
                exit={{ opacity: 0, y: -10 }}
-               transition={{ duration: 0.25, ease: "easeOut" }}
+               transition={{ duration: 0.15, ease: "easeOut" }}
                className="h-full max-w-7xl mx-auto"
              >
                {children}
