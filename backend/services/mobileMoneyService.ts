@@ -1,5 +1,7 @@
 // backend/services/mobileMoneyService.ts
-import pool from '../db/database'; // Fix import path if needed, usually pool is in db/database or index
+// ⚠️ RÈGLE ARCHITECTURE : Ce service reçoit dbClient en paramètre.
+// Ne jamais importer pool directement ici — cela contournerait le RLS.
+import { PoolClient } from 'pg';
 
 export type Operator = 'MTN' | 'MOOV' | 'CELTIPAY' | 'KKIAPAY' | 'FEDAPAY';
 
@@ -39,23 +41,24 @@ class MobileMoneyService {
 
     // --- CONFIGURATION MANAGEMENT ---
 
-    async getConfigs(userId: number): Promise<MobileMoneyConfig[]> {
-        const res = await pool.query(
+    async getConfigs(dbClient: PoolClient, userId: number): Promise<MobileMoneyConfig[]> {
+        const res = await dbClient.query(
             "SELECT * FROM mobile_money_configs WHERE user_id = $1 ORDER BY created_at DESC", 
             [userId]
         );
         return res.rows;
     }
 
-    async addConfig(data: CreateConfigDto): Promise<MobileMoneyConfig> {
-        const res = await pool.query(
-            "INSERT INTO mobile_money_configs (user_id, nom, operateur, numero) VALUES ($1, $2, $3, $4) RETURNING *",
+    async addConfig(dbClient: PoolClient, data: CreateConfigDto): Promise<MobileMoneyConfig> {
+        const res = await dbClient.query(
+            // Injection de la contrainte RLS (owner_id) via le contexte global sans rompre l'API de base
+            "INSERT INTO mobile_money_configs (user_id, nom, operateur, numero, owner_id) VALUES ($1, $2, $3, $4, current_setting('app.current_owner_id', true)::int) RETURNING *",
             [data.userId, data.nom, data.operateur, data.numero]
         );
         return res.rows[0];
     }
 
-    async updateConfig(id: number, userId: number, data: Partial<CreateConfigDto>): Promise<MobileMoneyConfig> {
+    async updateConfig(dbClient: PoolClient, id: number, userId: number, data: Partial<CreateConfigDto>): Promise<MobileMoneyConfig> {
         const fields: string[] = [];
         const values: any[] = [];
         let idx = 1;
@@ -69,28 +72,29 @@ class MobileMoneyService {
         values.push(id);
         values.push(userId);
 
-        const res = await pool.query(
+        const res = await dbClient.query(
             `UPDATE mobile_money_configs SET ${fields.join(', ')} WHERE id = $${idx++} AND user_id = $${idx++} RETURNING *`,
             values
         );
         
-        if (res.rows.length === 0) throw new Error("Configuration introuvable");
+        if (res.rows.length === 0) throw new Error("Configuration introuvable ou accès refusé.");
         return res.rows[0];
     }
 
-    async deleteConfig(id: number, userId: number): Promise<void> {
-        await pool.query("DELETE FROM mobile_money_configs WHERE id = $1 AND user_id = $2", [id, userId]);
+    async deleteConfig(dbClient: PoolClient, id: number, userId: number): Promise<void> {
+        const res = await dbClient.query("DELETE FROM mobile_money_configs WHERE id = $1 AND user_id = $2 RETURNING id", [id, userId]);
+        if (res.rowCount === 0) throw new Error("Configuration introuvable ou accès refusé.");
     }
 
-    async toggleConfigStatus(id: number, userId: number): Promise<MobileMoneyConfig> {
-        const res = await pool.query(
+    async toggleConfigStatus(dbClient: PoolClient, id: number, userId: number): Promise<MobileMoneyConfig> {
+        const res = await dbClient.query(
             `UPDATE mobile_money_configs 
              SET statut = CASE WHEN statut = 'actif' THEN 'inactif' ELSE 'actif' END 
              WHERE id = $1 AND user_id = $2 
              RETURNING *`,
             [id, userId]
         );
-        if (res.rows.length === 0) throw new Error("Configuration introuvable");
+        if (res.rows.length === 0) throw new Error("Configuration introuvable ou accès refusé.");
         return res.rows[0];
     }
     

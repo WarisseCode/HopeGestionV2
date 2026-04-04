@@ -1,35 +1,20 @@
 // backend/routes/documentRoutes.ts
 import { Router, Response } from 'express';
-import { Pool } from 'pg';
+// ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
+// Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
+// L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 import * as dotenv from 'dotenv';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
+import { tenantGuard } from '../middleware/tenantGuard';
 import PDFDocument from 'pdfkit';
 
 dotenv.config();
 
 const router = Router();
-
-// Middleware to log all requests to this router
-import pool from '../db/database';
-
-// Helper function to get owner IDs for current user
-const getManagedOwnerIds = async (userId: number, userRole: string): Promise<number[] | null> => {
-    if (userRole === 'admin') {
-        return null; // Admin sees all
-    }
-    
-    const result = await pool.query(
-        `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
-        [userId]
-    );
-    
-    return result.rows.map(r => r.owner_id);
-};
-
 
 // --- Multer Configuration ---
 const uploadDir = path.join(__dirname, '../../uploads');
@@ -72,30 +57,15 @@ const upload = multer({
 
 // --- Routes ---
 
-// GET /api/documents - List documents (filtered by owner)
-router.get('/', permissions.canRead('documents'), async (req: AuthenticatedRequest, res: Response) => {
+// GET /api/documents - List documents (filtered by owner via RLS)
+router.get('/', permissions.canRead('documents'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     try {
+        const dbClient = (req as any).dbClient;
         const { entity_type, entity_id, categorie } = req.query;
-        const ownerIds = await getManagedOwnerIds(req.userId!, req.userRole!);
-        
-        // Build owner filter based on entity type
-        let ownerFilter = '';
-        if (ownerIds !== null && ownerIds.length > 0) {
-            const ownerIdsList = ownerIds.join(',');
-            ownerFilter = `
-                AND (
-                    (entity_type = 'building' AND entity_id IN (SELECT id FROM buildings WHERE owner_id IN (${ownerIdsList})))
-                    OR (entity_type = 'lot' AND entity_id IN (SELECT l.id FROM lots l JOIN buildings b ON l.building_id = b.id WHERE b.owner_id IN (${ownerIdsList})))
-                    OR (entity_type = 'tenant' AND entity_id IN (SELECT id FROM tenants WHERE owner_id IN (${ownerIdsList})))
-                    OR (entity_type = 'lease' AND entity_id IN (SELECT id FROM leases WHERE owner_id IN (${ownerIdsList})))
-                    OR (entity_type IS NULL OR entity_type NOT IN ('building', 'lot', 'tenant', 'lease'))
-                )
-            `;
-        }
         
         let query = `
             SELECT * FROM documents 
-            WHERE 1=1 ${ownerFilter}
+            WHERE 1=1
         `;
         const params: any[] = [];
         let paramIndex = 1;
@@ -114,7 +84,7 @@ router.get('/', permissions.canRead('documents'), async (req: AuthenticatedReque
 
         query += ` ORDER BY created_at DESC`;
 
-        const result = await pool.query(query, params);
+        const result = await dbClient.query(query, params);
         res.json(result.rows);
     } catch (error) {
         console.error('Error fetching documents:', error);
@@ -123,8 +93,11 @@ router.get('/', permissions.canRead('documents'), async (req: AuthenticatedReque
 });
 
 // POST /api/documents/upload - Upload file
-router.post('/upload', permissions.canWrite('documents'), upload.single('file'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/upload', permissions.canWrite('documents'), tenantGuard, upload.single('file'), async (req: AuthenticatedRequest, res: Response) => {
     try {
+        const dbClient = (req as any).dbClient;
+        const strictOwnerId = (req as any).resolvedOwnerId;
+
         if (!req.file) {
             return res.status(400).json({ message: 'Aucun fichier fourni' });
         }
@@ -134,11 +107,11 @@ router.post('/upload', permissions.canWrite('documents'), upload.single('file'),
         const relativePath = path.relative(path.join(__dirname, '../../'), req.file.path).replace(/\\/g, '/');
         const url = `/${relativePath}`;
 
-        const result = await pool.query(`
+        const result = await dbClient.query(`
             INSERT INTO documents (
                 user_id, nom, type, url, taille, categorie, 
-                entity_type, entity_id, description
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                entity_type, entity_id, description, owner_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
         `, [
             req.userId || 1,
@@ -149,30 +122,39 @@ router.post('/upload', permissions.canWrite('documents'), upload.single('file'),
             categorie || 'autre',
             entity_type,
             entity_id ? parseInt(entity_id) : null,
-            description
+            description,
+            strictOwnerId
         ]);
 
         res.status(201).json(result.rows[0]);
 
     } catch (error) {
         console.error('Error uploading document:', error);
-        res.status(500).json({ message: 'Erreur lors de l\'upload' });
+        
+        // Supression du fichier disque en cas d'erreur de la BDD (ex: RLS violation)
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+
+        res.status(500).json({ message: 'Erreur serveur lors de l\'upload ou accès refusé' });
     }
 });
 
 // DELETE /api/documents/:id - Delete document
-router.delete('/:id', permissions.canWrite('documents'), async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', permissions.canWrite('documents'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     try {
+        const dbClient = (req as any).dbClient;
         const { id } = req.params;
 
-        const result = await pool.query('SELECT url FROM documents WHERE id = $1', [id]);
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Document non trouvé' });
+        // La clause LIMIT 1 avec suppression gère le RLS et renvoie la ligne affectée
+        const result = await dbClient.query('DELETE FROM documents WHERE id = $1 RETURNING url', [id]);
+        
+        if (result.rowCount === 0) {
+            // RLS a bloqué ou document inexistant
+            return res.status(404).json({ message: 'Document non trouvé ou accès refusé' });
         }
 
         const docUrl = result.rows[0].url;
-        await pool.query('DELETE FROM documents WHERE id = $1', [id]);
-
         if (docUrl) {
             const filePath = path.join(__dirname, '../../', docUrl);
             if (fs.existsSync(filePath)) {
@@ -189,12 +171,14 @@ router.delete('/:id', permissions.canWrite('documents'), async (req: Authenticat
 });
 
 // POST /api/documents/generate - Generate PDF from Template
-router.post('/generate', permissions.canWrite('documents'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/generate', permissions.canWrite('documents'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     try {
+        const dbClient = (req as any).dbClient;
+        const strictOwnerId = (req as any).resolvedOwnerId;
         const { templateId, entityId, type } = req.body; // type = 'lease', 'receipt'
 
-        // 1. Fetch Template
-        const templateRes = await pool.query('SELECT * FROM document_templates WHERE id = $1', [templateId]);
+        // 1. Fetch Template (document_templates table should be accessible/read-only usually without tenant logic or configured via RLS natively if any)
+        const templateRes = await dbClient.query('SELECT * FROM document_templates WHERE id = $1', [templateId]);
         if (templateRes.rows.length === 0) return res.status(404).json({ message: 'Modèle introuvable' });
         const template = templateRes.rows[0];
 
@@ -215,8 +199,8 @@ router.post('/generate', permissions.canWrite('documents'), async (req: Authenti
                 LEFT JOIN owners o ON l.owner_id = o.id
                 WHERE l.id = $1
             `;
-            const dbRes = await pool.query(query, [entityId]);
-            if (dbRes.rows.length === 0) return res.status(404).json({ message: 'Bail introuvable' });
+            const dbRes = await dbClient.query(query, [entityId]);
+            if (dbRes.rows.length === 0) return res.status(404).json({ message: 'Bail introuvable ou accès refusé' });
             const row = dbRes.rows[0];
             
             // Map to variables (French labels matching templateRoutes)
@@ -265,13 +249,13 @@ router.post('/generate', permissions.canWrite('documents'), async (req: Authenti
             const relativePath = `uploads/${year}/${month}/${fileName}`;
             const url = `/${relativePath}`;
             
-            const dbResult = await pool.query(`
+            const dbResult = await dbClient.query(`
                 INSERT INTO documents (
                     user_id, nom, type, url, taille, categorie, 
-                    entity_type, entity_id, description
-                ) VALUES ($1, $2, 'application/pdf', $3, $4, 'generated', $5, $6, 'Généré automatiquement')
+                    entity_type, entity_id, description, owner_id
+                ) VALUES ($1, $2, 'application/pdf', $3, $4, 'generated', $5, $6, 'Généré automatiquement', $7)
                 RETURNING *
-            `, [req.userId || 1, fileName, url, resultData.length.toString(), type, entityId]);
+            `, [req.userId || 1, fileName, url, resultData.length.toString(), type, entityId, strictOwnerId]);
 
             res.status(201).json(dbResult.rows[0]);
         });
@@ -286,17 +270,21 @@ router.post('/generate', permissions.canWrite('documents'), async (req: Authenti
 
     } catch (error) {
         console.error('Generation Error:', error);
-        res.status(500).json({ message: 'Erreur génération PDF' });
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Erreur génération PDF' });
+        }
     }
 });
 
 // POST /api/documents/generate/lease/:id - Generate lease PDF
-router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/generate/lease/:id', permissions.canWrite('documents'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     try {
+        const dbClient = (req as any).dbClient;
+        const strictOwnerId = (req as any).resolvedOwnerId;
         const leaseId = req.params.id;
 
         // Check if document already exists for this lease
-        const existingDoc = await pool.query(
+        const existingDoc = await dbClient.query(
             "SELECT id FROM documents WHERE entity_type = 'lease' AND entity_id = $1 AND categorie = 'baux'",
             [leaseId]
         );
@@ -322,10 +310,10 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
             LEFT JOIN owners o ON l.owner_id = o.id
             WHERE l.id = $1
         `;
-        const result = await pool.query(leaseQuery, [leaseId]);
+        const result = await dbClient.query(leaseQuery, [leaseId]);
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Bail non trouvé' });
+            return res.status(404).json({ message: 'Bail non trouvé ou accès refusé' });
         }
 
         const data = result.rows[0];
@@ -363,18 +351,20 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
             const url = `/${relativePath}`;
 
             try {
-                const dbResult = await pool.query(`
+                const dbResult = await dbClient.query(`
                     INSERT INTO documents (
                         user_id, nom, type, url, taille, categorie, 
-                        entity_type, entity_id, description
-                    ) VALUES ($1, $2, 'application/pdf', $3, $4, 'baux', 'lease', $5, 'Contrat de bail généré automatiquement')
+                        entity_type, entity_id, description, owner_id
+                    ) VALUES ($1, $2, 'application/pdf', $3, $4, 'baux', 'lease', $5, 'Contrat de bail généré automatiquement', $6)
                     RETURNING *
-                `, [req.userId || 1, fileName, url, resultData.length.toString(), leaseId]);
+                `, [req.userId || 1, fileName, url, resultData.length.toString(), leaseId, strictOwnerId]);
                 
                 res.status(201).json(dbResult.rows[0]);
             } catch (err) {
                 console.error('Error saving document to DB:', err);
-                res.status(500).json({ message: 'Erreur lors de la sauvegarde du document' });
+                if (!res.headersSent) {
+                    res.status(500).json({ message: 'Erreur lors de la sauvegarde du document' });
+                }
             }
         });
 
@@ -384,22 +374,19 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
 
         // Helper function for section titles
         const drawSectionTitle = (title: string, yPos: number): number => {
-            // Check if we need a new page for the section
             if (yPos > pageHeight - 150) {
                 doc.addPage();
-                yPos = 50; // New Y
+                yPos = 50;
             }
             doc.roundedRect(50, yPos, pageWidth - 100, 25, 4).fillAndStroke('#F3F4F6', '#E5E7EB');
-            // Re-set fill color for text
             doc.fillColor('#1F2937').fontSize(11).font('Helvetica-Bold').text(title, 60, yPos + 7);
-            doc.fillColor('#4B5563'); // Default text color for body
-            return yPos + 35; // Return new Y for body
+            doc.fillColor('#4B5563'); 
+            return yPos + 35; 
         };
 
-        // Header Section (Dark Blue banner)
+        // Header Section
         doc.rect(0, 0, pageWidth, 100).fill('#1E3A8A'); 
 
-        // Logo on a white pill-shaped badge for clean contrast
         const logoPath = path.join(process.cwd(), 'assets', 'logo.png');
         if (fs.existsSync(logoPath)) {
             doc.roundedRect(25, 10, 200, 80, 10).fill('#FFFFFF');
@@ -409,11 +396,10 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
             doc.fillColor('#1E3A8A').fontSize(22).font('Helvetica-Bold').text('HOPE GESTION', 45, 35);
         }
 
-        // Right side: contract info on blue
+        // Right side
         doc.fillColor('#FFFFFF').fontSize(13).font('Helvetica-Bold').text('CONTRAT DE BAIL', pageWidth - 250, 20, { align: 'right', width: 200 });
         doc.fillColor('#CBD5E1').fontSize(10).font('Helvetica').text(`Réf: ${data.reference_bail || 'Auto-généré'}`, pageWidth - 250, 42, { align: 'right', width: 200 });
         doc.fillColor('#CBD5E1').fontSize(10).text(`Date d'édition: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth - 250, 58, { align: 'right', width: 200 });
-        // Subtle tagline
         doc.fillColor('#93C5FD').fontSize(8).font('Helvetica-Oblique').text('Votre partenaire immobilier de confiance', pageWidth - 250, 76, { align: 'right', width: 200 });
 
         doc.fillColor('#1E3A8A');
@@ -426,7 +412,6 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
         // Content
         doc.fillColor('#4B5563');
         
-        // 1. Parties au contrat
         let currentY = drawSectionTitle('1. LES PARTIES AU CONTRAT', doc.y);
         doc.y = currentY;
         
@@ -442,7 +427,6 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
         doc.text(`Email : ${data.t_email || 'Non communiqué'}`);
         doc.moveDown(1);
         
-        // 2. Désignation
         currentY = drawSectionTitle('2. DÉSIGNATION DES LIEUX LOUÉS', doc.y);
         doc.y = currentY;
         
@@ -454,7 +438,6 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
         doc.font('Helvetica').text(`${data.etage || 'Standard'}`);
         doc.moveDown(1);
 
-        // 3. Durée et Loyer
         currentY = drawSectionTitle('3. DURÉE ET LLOYER DU BAIL', doc.y);
         doc.y = currentY;
         
@@ -473,17 +456,14 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
         doc.font('Helvetica').text(`${Number(data.loyer_actuel).toLocaleString('fr-FR')} FCFA / mois`);
         doc.moveDown(1);
 
-        // 4. Conditions optionnelles
         currentY = drawSectionTitle('4. CLAUSES ET CONDITIONS PARTICULIÈRES', doc.y);
         doc.y = currentY;
         
         doc.font('Helvetica-Oblique').text(data.conditions_particulieres || 'Le bail se déroule de plein droit sous les autres conditions d\'usage et de loi relatives aux baux d\'habitation de la législation en vigueur dans le pays. Aucune condition spécifique supplémentaire n\'a d\'autre part été expressément demandée par les deux parties contractantes.');
         doc.moveDown(2);
         
-        // Signatures Page logic
         doc.addPage();
         
-        // Header mini for Page 2
         doc.rect(0, 0, pageWidth, 40).fill('#1E3A8A'); 
         doc.fillColor('#FFFFFF').fontSize(12).font('Helvetica-Bold').text('HOPE GESTION', 50, 15);
         doc.fontSize(9).font('Helvetica').text(`Vérification des signatures - Réf: ${data.reference_bail || 'N/A'}`, pageWidth - 300, 16, { align: 'right', width: 250 });
@@ -518,12 +498,11 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
                 if (!fs.existsSync(signaturePath)) signaturePath = path.join(process.cwd(), relativePath);
 
                 if (fs.existsSync(signaturePath)) {
-                    // Preneur signature block
                     doc.image(signaturePath, 50 + (pageWidth - 100) / 2 + 50, sigY + 30, { width: 140 });
                     
                     if (data.date_signature_electronique) {
                         doc.fontSize(8).font('Helvetica-Bold')
-                           .fillColor('#10B981') // Success Green
+                           .fillColor('#10B981') 
                            .text(`DOCUMENT SIGNÉ ÉLECTRONIQUEMENT\nDate : ${new Date(data.date_signature_electronique).toLocaleString('fr-FR')}\nCertifié par la plateforme HopeGestion\n(Intégrité numérique garantie)`, 50 + (pageWidth - 100) / 2, sigY + 110, { width: (pageWidth - 100) / 2, align: 'right' });
                     }
                 }
@@ -532,20 +511,34 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), async (req
             }
         }
         
-        // Footer Numbering
         const pages = doc.bufferedPageRange();
         for (let i = 0; i < pages.count; i++) {
             doc.switchToPage(i);
             doc.fillColor('#9CA3AF').fontSize(8).text(`— Page ${i + 1} sur ${pages.count} — \nPropulsé avec confiance et transparence par le système ERP HopeGestion`, 50, pageHeight - 50, { align: 'center' });
         }
 
-        // Finalize doc
         doc.end();
 
     } catch (error) {
         console.error('Error generating lease:', error);
-        res.status(500).json({ message: 'Erreur lors de la génération du bail' });
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Erreur lors de la génération du bail' });
+        }
     }
 });
+
+/*
+ * ═══════════════════════════════════════════════════
+ * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — documentRoutes.ts
+ * ═══════════════════════════════════════════════════
+ * ✅ Import pool supprimé et remplacé par l'avertissement réglementaire.
+ * ✅ tenantGuard ajouté post-authMiddleware sur toutes les méthodes.
+ * ✅ Suppression du helper 'getManagedOwnerIds' très verbeux. RLS fait le travail invisiblement dans le GET.
+ * ✅ Remplacement de tous les pool.query par req.dbClient.query.
+ * ✅ 'DELETE /' complété par vérifier rowCount = 0 (RLS refus).
+ * ✅ Routes PDF modifiées pour incorporer la variable dbClient ET user_id, mais la création PDF ne subit pas d'interruption.
+ * ✅ 'strictOwnerId' systématiquement injecté dans les requêtes de créations de documents en BDD via 'INSERT INTO documents'.
+ * ═══════════════════════════════════════════════════
+ */
 
 export default router;

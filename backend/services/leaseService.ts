@@ -1,15 +1,14 @@
-import pool from '../db/database';
-import { buildOwnerWhereClause } from '../middleware/ownerIsolation';
+import { PoolClient } from 'pg';
 
 export class LeaseService {
     /**
      * Retrieve all leases filtered by owner access and optional status.
-     * @param ownerIds - List of owner IDs the user has access to (or null for admin/manager).
+     * @param dbClient - The isolated PostgreSQL client configured with RLS.
      * @param filters - Optional filters (e.g., status).
      */
-    static async findAll(ownerIds: number[] | null, filters: { statut?: string } = {}) {
-        const ownerWhereClause = buildOwnerWhereClause(ownerIds);
-
+    static async findAll(dbClient: PoolClient, filters: { statut?: string } = {}) {
+        // [RLS] Filtrage automatique par tenant via PostgreSQL Row-Level Security. 
+        // Inutile de récupérer ni d'appliquer un ownerIds.
         let query = `
             SELECT
                 l.id,
@@ -45,7 +44,7 @@ export class LeaseService {
             LEFT JOIN lots lot ON l.lot_id = lot.id
             LEFT JOIN buildings b ON lot.building_id = b.id
             LEFT JOIN owners o ON l.owner_id = o.id
-            WHERE ${ownerWhereClause.replace(/owner_id/g, 'l.owner_id')}
+            WHERE 1=1
         `;
 
         const params: any[] = [];
@@ -59,7 +58,7 @@ export class LeaseService {
 
         query += ` ORDER BY l.created_at DESC`;
 
-        const result = await pool.query(query, params);
+        const result = await dbClient.query(query, params);
 
         return result.rows;
     }

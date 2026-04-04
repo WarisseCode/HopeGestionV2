@@ -1,21 +1,26 @@
 import { Router, Response } from 'express';
-import pool from '../db/database';
+import fs from 'fs';
+// ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
+// Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
+// L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
-import { filterByOwner, buildOwnerWhereClause } from '../middleware/ownerIsolation';
+import { tenantGuard } from '../middleware/tenantGuard';
+import { upload } from '../middleware/uploadMiddleware';
 
 const router = Router();
 
-// Protect all routes
+// Protect all routes with auth check and RLS context
 router.use(protect);
+router.use(tenantGuard);
 
-// GET /api/expenses - List expenses (filtered by owner)
-router.get('/', permissions.canRead('finances'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
+// GET /api/expenses - List expenses
+router.get('/', permissions.canRead('finances'), async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const { building_id, owner_id, category, start_date, end_date } = req.query;
-        const ownerIds = (req as any).ownerIds;
-        const ownerWhereClause = buildOwnerWhereClause(ownerIds);
+        const dbClient = (req as any).dbClient;
+        const { building_id, category, start_date, end_date } = req.query;
         
+        // RLS s'occupe de l'isolation owner_id
         let query = `
             SELECT e.*, 
                    b.nom as building_name,
@@ -25,7 +30,7 @@ router.get('/', permissions.canRead('finances'), filterByOwner, async (req: Auth
             LEFT JOIN buildings b ON e.building_id = b.id
             LEFT JOIN lots l ON e.lot_id = l.id
             LEFT JOIN expense_categories ep ON e.category = ep.name
-            WHERE ${ownerWhereClause.replace(/owner_id/g, 'e.owner_id')}
+            WHERE 1=1
         `;
         
         const params: any[] = [];
@@ -34,10 +39,6 @@ router.get('/', permissions.canRead('finances'), filterByOwner, async (req: Auth
         if (building_id) {
             query += ` AND e.building_id = $${pIdx++}`;
             params.push(building_id);
-        }
-        if (owner_id) {
-            query += ` AND e.owner_id = $${pIdx++}`;
-            params.push(owner_id);
         }
         if (category) {
             query += ` AND e.category = $${pIdx++}`;
@@ -54,7 +55,7 @@ router.get('/', permissions.canRead('finances'), filterByOwner, async (req: Auth
         
         query += ` ORDER BY e.date_expense DESC, e.created_at DESC`;
         
-        const result = await pool.query(query, params);
+        const result = await dbClient.query(query, params);
         res.json(result.rows);
     } catch (error) {
         console.error('Error fetching expenses:', error);
@@ -65,7 +66,8 @@ router.get('/', permissions.canRead('finances'), filterByOwner, async (req: Auth
 // GET /api/expenses/categories - List categories
 router.get('/categories', async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const result = await pool.query('SELECT * FROM expense_categories ORDER BY name');
+        const dbClient = (req as any).dbClient;
+        const result = await dbClient.query('SELECT * FROM expense_categories ORDER BY name');
         res.json(result.rows);
     } catch (error) {
         console.error('Error fetching expense categories:', error);
@@ -73,15 +75,15 @@ router.get('/categories', async (req: AuthenticatedRequest, res: Response) => {
     }
 });
 
-import { upload } from '../middleware/uploadMiddleware';
-
 // POST /api/expenses - Create expense (with optional proof upload)
 router.post('/', permissions.canWrite('finances'), upload.single('proof'), async (req: AuthenticatedRequest, res: Response) => {
     try {
+        const dbClient = (req as any).dbClient;
+        const resolvedOwnerId = (req as any).resolvedOwnerId;
+
         const {
             building_id,
             lot_id,
-            owner_id,
             category,
             description,
             amount,
@@ -91,26 +93,10 @@ router.post('/', permissions.canWrite('finances'), upload.single('proof'), async
 
         // Validation simple
         if (!amount || !date_expense || !category) {
-            return res.status(400).json({ message: 'Champs obligatoires manquants' });
-        }
-
-
-        // Determine owner_id
-        let finalOwnerId = owner_id;
-
-        if (building_id) {
-            // Auto-fetch owner from building to ensure consistency
-            const buildingResult = await pool.query('SELECT owner_id FROM buildings WHERE id = $1', [building_id]);
-            if (buildingResult.rows.length > 0) {
-                finalOwnerId = buildingResult.rows[0].owner_id;
+            if (req.file && fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
             }
-        }
-
-        // If still no owner_id, this is an issue for strict isolation
-        if (!finalOwnerId) {
-             console.warn('⚠️ Creating expense without owner_id - will be invisible to strict isolation filters');
-             // Optionally return 400 here if we want to enforce it strictly
-             // return res.status(400).json({ message: 'Propriétaire ou Immeuble requis' });
+            return res.status(400).json({ message: 'Champs obligatoires manquants' });
         }
 
         // Handle uploaded proof file
@@ -120,7 +106,7 @@ router.post('/', permissions.canWrite('finances'), upload.single('proof'), async
             proofUrl = `/uploads/expenses/${req.file.filename}`;
         }
 
-        const result = await pool.query(`
+        const result = await dbClient.query(`
             INSERT INTO expenses (
                 building_id, lot_id, owner_id, category, description,
                 amount, date_expense, supplier_name, status, proof_url
@@ -129,7 +115,7 @@ router.post('/', permissions.canWrite('finances'), upload.single('proof'), async
         `, [
             building_id || null,
             lot_id || null,
-            finalOwnerId || null,
+            resolvedOwnerId,
             category,
             description || '',
             amount,
@@ -140,6 +126,11 @@ router.post('/', permissions.canWrite('finances'), upload.single('proof'), async
 
         res.status(201).json(result.rows[0]);
     } catch (error) {
+        // En cas d'erreur DB, on s'assure de supprimer le fichier uploadé (s'il existe)
+        // pour ne pas créer de fuite mémoire ou orphelins sur le disque.
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
         console.error('Error creating expense:', error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
@@ -148,13 +139,32 @@ router.post('/', permissions.canWrite('finances'), upload.single('proof'), async
 // DELETE /api/expenses/:id
 router.delete('/:id', permissions.canWrite('finances'), async (req: AuthenticatedRequest, res: Response) => {
     try {
+        const dbClient = (req as any).dbClient;
         const { id } = req.params;
-        await pool.query('DELETE FROM expenses WHERE id = $1', [id]);
+        
+        const result = await dbClient.query('DELETE FROM expenses WHERE id = $1 RETURNING id', [id]);
+        if (result.rowCount === 0) {
+             return res.status(404).json({ message: 'Dépense introuvable ou accès refusé' });
+        }
         res.json({ message: 'Dépense supprimée' });
     } catch (error) {
         console.error('Error deleting expense:', error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
+
+/*
+ * ═══════════════════════════════════════════════════
+ * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — expenseRoutes.ts
+ * ═══════════════════════════════════════════════════
+ * ✅ Application globale de protect et tenantGuard en haut de fichier via router.use().
+ * ✅ L'ordre global positionne automatiquement tenantGuard AVANT multer (upload.single),
+ *    empêchant ainsi l'écriture de fichier en cas d'accès rejeté ou d'absence de JWT valide.
+ * ✅ Suppression totale de 'filterByOwner' et autres anciens helpers manuels désormais caduques.
+ * ✅ Injection sécurisée de resolvedOwnerId sur l'INSERT de dépense.
+ * ✅ Ajout d'un fs.unlinkSync() dans le catch pour nettoyer le fichier uploadé si l'insertion DB plante.
+ * ✅ Blocage IDOR (404) sur le DELETE.
+ * ═══════════════════════════════════════════════════
+ */
 
 export default router;

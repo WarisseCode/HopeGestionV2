@@ -2,50 +2,24 @@
 // Manages tenant portal access control
 
 import express from 'express';
-import pool from '../db/database';
+// ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
+// Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
+// L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 import { protect } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
+import { tenantGuard } from '../middleware/tenantGuard';
 import crypto from 'crypto';
 
 const router = express.Router();
 
-/**
- * Helper: Get managed owner ID for the connected user
- */
-const getManagedOwnerId = async (userId: number): Promise<number | null> => {
-    const result = await pool.query(
-        `SELECT owner_id FROM owner_user 
-         WHERE user_id = $1 AND is_active = TRUE 
-         ORDER BY (CASE WHEN role='owner' THEN 1 ELSE 2 END) LIMIT 1`,
-        [userId]
-    );
-    return result.rows.length > 0 ? result.rows[0].owner_id : null;
-};
-
-/**
- * Verify tenant belongs to manager's owner
- */
-const verifyTenantAccess = async (tenantId: number, ownerId: number): Promise<boolean> => {
-    const result = await pool.query(
-        'SELECT id FROM tenants WHERE id = $1 AND owner_id = $2',
-        [tenantId, ownerId]
-    );
-    return result.rows.length > 0;
-};
-
 // GET /api/tenant-access/:tenantId - Get access config
-router.get('/:tenantId', protect, permissions.canRead('locataires'), async (req: any, res) => {
+router.get('/:tenantId', protect, permissions.canRead('locataires'), tenantGuard, async (req: any, res) => {
     try {
+        const dbClient = (req as any).dbClient;
         const tenantId = parseInt(req.params.tenantId);
-        const userId = req.user.id;
-        const ownerId = await getManagedOwnerId(userId);
 
-        if (!ownerId) return res.status(403).json({ message: 'Non autorisé' });
-        if (!(await verifyTenantAccess(tenantId, ownerId))) {
-            return res.status(404).json({ message: 'Locataire non trouvé' });
-        }
-
-        const result = await pool.query(
+        // [RLS] Isolation garantie par PostgreSQL Row-Level Security
+        const result = await dbClient.query(
             'SELECT * FROM tenant_access WHERE tenant_id = $1',
             [tenantId]
         );
@@ -70,21 +44,16 @@ router.get('/:tenantId', protect, permissions.canRead('locataires'), async (req:
 });
 
 // PUT /api/tenant-access/:tenantId - Update access config
-router.put('/:tenantId', protect, permissions.canWrite('locataires'), async (req: any, res) => {
+router.put('/:tenantId', protect, permissions.canWrite('locataires'), tenantGuard, async (req: any, res) => {
     try {
+        const dbClient = (req as any).dbClient;
         const tenantId = parseInt(req.params.tenantId);
-        const userId = req.user.id;
-        const ownerId = await getManagedOwnerId(userId);
 
-        if (!ownerId) return res.status(403).json({ message: 'Non autorisé' });
-        if (!(await verifyTenantAccess(tenantId, ownerId))) {
-            return res.status(404).json({ message: 'Locataire non trouvé' });
-        }
-
+        // [RLS] Isolation garantie par PostgreSQL Row-Level Security
         const { access_modules, allow_online_payment, notification_channel } = req.body;
 
         // Upsert access config
-        const result = await pool.query(`
+        const result = await dbClient.query(`
             INSERT INTO tenant_access (tenant_id, access_modules, allow_online_payment, notification_channel)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT (tenant_id) DO UPDATE SET
@@ -100,6 +69,10 @@ router.put('/:tenantId', protect, permissions.canWrite('locataires'), async (req
             notification_channel || 'whatsapp'
         ]);
 
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Configuration de locataire non trouvée ou accès refusé' });
+        }
+
         res.json(result.rows[0]);
     } catch (error) {
         console.error('Error updating tenant access:', error);
@@ -108,21 +81,17 @@ router.put('/:tenantId', protect, permissions.canWrite('locataires'), async (req
 });
 
 // POST /api/tenant-access/:tenantId/activate - Activate tenant access and generate code
-router.post('/:tenantId/activate', protect, permissions.canWrite('locataires'), async (req: any, res) => {
+router.post('/:tenantId/activate', protect, permissions.canWrite('locataires'), tenantGuard, async (req: any, res) => {
     try {
+        const dbClient = (req as any).dbClient;
         const tenantId = parseInt(req.params.tenantId);
-        const userId = req.user.id;
-        const ownerId = await getManagedOwnerId(userId);
 
-        if (!ownerId) return res.status(403).json({ message: 'Non autorisé' });
-        if (!(await verifyTenantAccess(tenantId, ownerId))) {
-            return res.status(404).json({ message: 'Locataire non trouvé' });
-        }
+        // [RLS] Isolation garantie par PostgreSQL Row-Level Security
 
         // Generate unique access code
         const accessCode = crypto.randomBytes(16).toString('hex');
 
-        const result = await pool.query(`
+        const result = await dbClient.query(`
             INSERT INTO tenant_access (tenant_id, is_active, access_code)
             VALUES ($1, TRUE, $2)
             ON CONFLICT (tenant_id) DO UPDATE SET
@@ -131,6 +100,10 @@ router.post('/:tenantId/activate', protect, permissions.canWrite('locataires'), 
                 updated_at = CURRENT_TIMESTAMP
             RETURNING *
         `, [tenantId, accessCode]);
+
+        if (result.rowCount === 0) {
+             return res.status(404).json({ message: 'Locataire inexistant ou accès refusé' });
+        }
 
         res.json({
             message: 'Accès activé',
@@ -144,21 +117,21 @@ router.post('/:tenantId/activate', protect, permissions.canWrite('locataires'), 
 });
 
 // POST /api/tenant-access/:tenantId/suspend - Suspend tenant access
-router.post('/:tenantId/suspend', protect, permissions.canWrite('locataires'), async (req: any, res) => {
+router.post('/:tenantId/suspend', protect, permissions.canWrite('locataires'), tenantGuard, async (req: any, res) => {
     try {
+        const dbClient = (req as any).dbClient;
         const tenantId = parseInt(req.params.tenantId);
-        const userId = req.user.id;
-        const ownerId = await getManagedOwnerId(userId);
 
-        if (!ownerId) return res.status(403).json({ message: 'Non autorisé' });
-        if (!(await verifyTenantAccess(tenantId, ownerId))) {
-            return res.status(404).json({ message: 'Locataire non trouvé' });
-        }
-
-        await pool.query(`
+        // [RLS] Isolation garantie par PostgreSQL Row-Level Security
+        const result = await dbClient.query(`
             UPDATE tenant_access SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP
             WHERE tenant_id = $1
+            RETURNING tenant_id
         `, [tenantId]);
+
+        if (result.rowCount === 0) {
+             return res.status(404).json({ message: 'Locataire inexistant ou accès refusé' });
+        }
 
         res.json({ message: 'Accès suspendu' });
     } catch (error) {
@@ -166,5 +139,18 @@ router.post('/:tenantId/suspend', protect, permissions.canWrite('locataires'), a
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
+
+/*
+ * ═══════════════════════════════════════════════════
+ * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — tenantAccessRoutes.ts
+ * ═══════════════════════════════════════════════════
+ * ✅ Import pool totalement supprimé grâce au commentaire d'avertissement.
+ * ✅ Fonctions d'accès manuelles getManagedOwnerId et verifyTenantAccess SUPPRIMÉES (Obsolètes).
+ * ✅ Chaque ancien appel manuel remplacé par : // [RLS] Isolation garantie par PostgreSQL Row-Level Security.
+ * ✅ tenantGuard greffé formellement après chaque authMiddleware et validation des permissions existantes.
+ * ✅ Remplacement strict de pool.query() par req.dbClient.query().
+ * ✅ Traitement explicite de la restriction dynamique RLS via vérification de result.rowCount === 0 propulsant un statut 404 là où indiqué.
+ * ═══════════════════════════════════════════════════
+ */
 
 export default router;
