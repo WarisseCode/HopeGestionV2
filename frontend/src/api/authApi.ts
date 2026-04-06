@@ -5,9 +5,10 @@ import { apiCall } from '../utils/apiUtils';
 
 interface AuthResponse {
     token: string;
+    refreshToken?: string;
     role: 'gestionnaire' | 'locataire';
     userId: number;
-    message: string; 
+    message: string;
 }
 
 interface RegisterResponse {

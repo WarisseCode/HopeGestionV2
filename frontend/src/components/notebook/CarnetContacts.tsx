@@ -19,8 +19,8 @@ const CarnetContacts: React.FC = () => {
     }, []);
 
     const loadContacts = async () => {
-        const data = await notebookApi.getContacts();
-        setContacts(data);
+        const res = await notebookApi.getContacts();
+        setContacts(res.data);
     };
 
     const handleCreate = async (e: React.FormEvent) => {

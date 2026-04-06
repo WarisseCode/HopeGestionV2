@@ -21,8 +21,8 @@ const CarnetNotes: React.FC = () => {
     }, []);
 
     const loadNotes = async () => {
-        const data = await notebookApi.getNotes();
-        setNotes(data);
+        const res = await notebookApi.getNotes();
+        setNotes(res.data);
     };
 
     const handleCreate = async () => {

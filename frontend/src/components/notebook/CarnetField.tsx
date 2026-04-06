@@ -22,8 +22,8 @@ const CarnetField: React.FC = () => {
     }, []);
 
     const loadActions = async () => {
-        const data = await notebookApi.getFieldActions();
-        setActions(data);
+        const res = await notebookApi.getFieldActions();
+        setActions(res.data);
     };
 
     const handleLocate = () => {

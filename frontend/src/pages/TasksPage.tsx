@@ -34,8 +34,8 @@ const TasksPage: React.FC = () => {
   const fetchTasks = async () => {
       setLoading(true);
       try {
-          const data = await taskApi.getTasks({ filter: filter === 'all' ? '' : filter, status: statusFilter });
-          setTasks(data);
+          const res = await taskApi.getTasks({ filter: filter === 'all' ? '' : filter, status: statusFilter });
+          setTasks(res.data);
       } catch (e) {
           console.error(e);
       } finally {
