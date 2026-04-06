@@ -25,10 +25,13 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
         body: JSON.stringify({ email, password }),
     });
 
-    // Connexion réussie : Stocker le token et le rôle
+    // Connexion réussie : stocker le token, le refresh token et le rôle
     localStorage.setItem('userToken', data.token);
     localStorage.setItem('userRole', data.role);
-    
+    if (data.refreshToken) {
+        localStorage.setItem('refreshToken', data.refreshToken);
+    }
+
     return data;
 }
 
@@ -60,16 +63,62 @@ export async function registerUser(
     return data;
 }
 
-// Fonction pour déconnexion (nettoyer le stockage local)
-export const logoutUser = () => {
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('userRole');
-    window.location.href = '/'; 
+// Fonction pour déconnexion — révoque le refresh token côté serveur
+export const logoutUser = async () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    try {
+        if (refreshToken) {
+            await fetch(`${BASE_URL}/auth/logout`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refreshToken }),
+            });
+        }
+    } catch (_) {
+        // Échec silencieux : la déconnexion locale se fait quoi qu'il arrive
+    } finally {
+        localStorage.removeItem('userToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userRole');
+        window.location.href = '/';
+    }
 };
 
 // Fonctions pour récupérer les infos
-export const getToken = () => localStorage.getItem('userToken');
-export const getRole = () => localStorage.getItem('userRole');
+export const getToken        = () => localStorage.getItem('userToken');
+export const getRefreshToken = () => localStorage.getItem('refreshToken');
+export const getRole         = () => localStorage.getItem('userRole');
+
+// Renouvelle l'access token à partir du refresh token
+export async function refreshAccessToken(): Promise<string | null> {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) return null;
+
+    try {
+        const res = await fetch(`${BASE_URL}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+        });
+
+        if (!res.ok) {
+            // Refresh token invalide ou expiré → déconnexion
+            localStorage.removeItem('userToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('userRole');
+            return null;
+        }
+
+        const data = await res.json();
+        localStorage.setItem('userToken', data.token);
+        if (data.refreshToken) {
+            localStorage.setItem('refreshToken', data.refreshToken);
+        }
+        return data.token;
+    } catch {
+        return null;
+    }
+}
 
 // Interface pour le profil utilisateur
 interface UserProfile {
@@ -126,6 +175,9 @@ export async function verifyEmail(email: string, otp: string): Promise<AuthRespo
         method: 'POST',
         body: JSON.stringify({ email, otp }),
     });
+    if (data.token) localStorage.setItem('userToken', data.token);
+    if ((data as any).refreshToken) localStorage.setItem('refreshToken', (data as any).refreshToken);
+    if (data.role) localStorage.setItem('userRole', data.role);
     return data;
 }
 

@@ -20,7 +20,33 @@ const router = Router();
 
 // Pour que les routes aient accès à la DB (Méthode simple pour le MVP)
 import pool from '../db/database';
-import { JWT_SECRET } from '../config/config';
+import { JWT_SECRET, REFRESH_TOKEN_SECRET, ACCESS_TOKEN_EXPIRES_IN, REFRESH_TOKEN_EXPIRES_IN } from '../config/config';
+
+// Durée du refresh token en ms (pour l'expiration en DB)
+const REFRESH_TOKEN_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours
+
+/**
+ * Génère un access token + refresh token pour un utilisateur.
+ * Stocke le refresh token (hashé) en base de données.
+ */
+async function issueTokenPair(userId: number, role: string, userType: string): Promise<{ accessToken: string; refreshToken: string }> {
+    const accessToken = jwt.sign(
+        { id: userId, role, userType },
+        JWT_SECRET,
+        { expiresIn: ACCESS_TOKEN_EXPIRES_IN } as any
+    );
+
+    const rawRefresh = crypto.randomBytes(40).toString('hex');
+    const tokenHash  = crypto.createHash('sha256').update(rawRefresh).digest('hex');
+    const expiresAt  = new Date(Date.now() + REFRESH_TOKEN_MS);
+
+    await pool.query(
+        `INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
+        [userId, tokenHash, expiresAt]
+    );
+
+    return { accessToken, refreshToken: rawRefresh };
+}
 
 const SALT_ROUNDS = 10; // Niveau de complexité pour bcrypt
 
@@ -247,6 +273,32 @@ router.post('/register', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Connexion utilisateur
+ *     description: Authentifie un utilisateur et retourne un access token (15 min) + refresh token (7 jours).
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/LoginRequest'
+ *     responses:
+ *       200:
+ *         description: Connexion réussie
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       401:
+ *         description: Email ou mot de passe incorrect
+ *       429:
+ *         description: Trop de tentatives — rate limit atteint
+ */
 // 2. Endpoint de CONNEXION (Login)
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
@@ -331,16 +383,11 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // 3. Generate JWT token
-        const expiresIn = process.env.JWT_EXPIRES_IN || '24h';
-        const token = jwt.sign(
-            { 
-                id: utilisateur.id, 
-                role: utilisateur.role,
-                userType: utilisateur.user_type || 'gestionnaire'
-            },
-            JWT_SECRET,
-            { expiresIn } as any  // Configurable expiration - cast needed for strict typing
+        // 3. Generate access token + refresh token
+        const { accessToken, refreshToken } = await issueTokenPair(
+            utilisateur.id,
+            utilisateur.role,
+            utilisateur.user_type || 'gestionnaire'
         );
 
         // 🔒 SECURITY: Log successful login
@@ -356,12 +403,13 @@ router.post('/login', async (req, res) => {
 
         console.log(`✅ Successful login for ${email} from IP: ${req.ip}`);
 
-        res.json({ 
+        res.json({
             message: 'Connexion réussie.',
-            token, 
+            token: accessToken,
+            refreshToken,
             role: utilisateur.role,
             userId: utilisateur.id
-        });       
+        });
 
     } catch (error: any) {
         console.error('Erreur connexion:', error);
@@ -410,17 +458,17 @@ router.post('/verify-email', async (req, res) => {
             [user.id]
         );
 
-        // Connexion automatique après vérification : on génère un token JWT
-        const expiresIn = process.env.JWT_EXPIRES_IN || '24h';
-        const token = jwt.sign(
-            { id: user.id, role: user.role, userType: user.user_type || 'gestionnaire' },
-            JWT_SECRET,
-            { expiresIn } as any
+        // Connexion automatique après vérification
+        const { accessToken, refreshToken } = await issueTokenPair(
+            user.id,
+            user.role,
+            user.user_type || 'gestionnaire'
         );
 
         res.status(200).json({
             message: 'Email vérifié avec succès.',
-            token,
+            token: accessToken,
+            refreshToken,
             role: user.role,
             userId: user.id
         });
@@ -487,6 +535,127 @@ router.post('/resend-otp', async (req, res) => {
         console.error('Erreur resend-otp:', error);
         res.status(500).json({ message: 'Erreur lors du renvoi de l\'email.' });
     }
+});
+
+/**
+ * @swagger
+ * /auth/refresh:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Renouveler l'access token
+ *     description: Échange un refresh token valide contre un nouvel access token. Le refresh token est tourné (l'ancien est révoqué).
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [refreshToken]
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: Refresh token reçu lors du login
+ *     responses:
+ *       200:
+ *         description: Nouveau token émis
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:        { type: string }
+ *                 refreshToken: { type: string }
+ *       401:
+ *         description: Refresh token invalide ou expiré
+ */
+// ─── POST /api/auth/refresh ───────────────────────────────────────────────────
+// Échange un refresh token valide contre un nouvel access token (+ rotation du refresh token).
+router.post('/refresh', async (req, res) => {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+        return res.status(400).json({ message: 'Refresh token manquant.' });
+    }
+
+    try {
+        const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+        const result = await pool.query(
+            `SELECT rt.*, u.role, u.user_type
+             FROM refresh_tokens rt
+             JOIN users u ON rt.user_id = u.id
+             WHERE rt.token_hash = $1
+               AND rt.revoked_at IS NULL
+               AND rt.expires_at > NOW()`,
+            [tokenHash]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(401).json({ message: 'Refresh token invalide ou expiré.' });
+        }
+
+        const stored = result.rows[0];
+
+        // Révoquer l'ancien refresh token (rotation)
+        await pool.query(
+            `UPDATE refresh_tokens SET revoked_at = NOW() WHERE id = $1`,
+            [stored.id]
+        );
+
+        // Émettre une nouvelle paire de tokens
+        const { accessToken, refreshToken: newRefreshToken } = await issueTokenPair(
+            stored.user_id,
+            stored.role,
+            stored.user_type || 'gestionnaire'
+        );
+
+        res.json({ token: accessToken, refreshToken: newRefreshToken });
+
+    } catch (error) {
+        console.error('Erreur refresh token:', error);
+        res.status(500).json({ message: 'Erreur serveur lors du rafraîchissement.' });
+    }
+});
+
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Déconnexion
+ *     description: Révoque le refresh token en base. L'access token reste valide jusqu'à expiration (15 min max).
+ *     security: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken: { type: string }
+ *     responses:
+ *       200:
+ *         description: Déconnexion réussie
+ */
+// ─── POST /api/auth/logout ────────────────────────────────────────────────────
+// Révoque le refresh token en base (invalide la session côté serveur).
+router.post('/logout', async (req, res) => {
+    const { refreshToken } = req.body;
+
+    if (refreshToken) {
+        try {
+            const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+            await pool.query(
+                `UPDATE refresh_tokens SET revoked_at = NOW() WHERE token_hash = $1`,
+                [tokenHash]
+            );
+        } catch (err) {
+            console.error('Erreur révocation refresh token:', err);
+        }
+    }
+
+    // Réponse toujours 200 : même si le token était inconnu, la déconnexion est réussie côté client
+    res.json({ message: 'Déconnexion réussie.' });
 });
 
 // Middleware de vérification de token (simplifié pour ce fichier)

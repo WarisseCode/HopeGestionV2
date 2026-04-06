@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
-import fs from 'fs';
+import path from 'path';
+import fs from 'fs-extra';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
@@ -7,6 +8,14 @@ import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import { upload } from '../middleware/uploadMiddleware';
+import { uploadToSpaces } from '../services/spacesUploadService';
+
+const spacesConfigured = !!(
+    process.env.SPACES_KEY &&
+    process.env.SPACES_SECRET &&
+    process.env.SPACES_ENDPOINT &&
+    process.env.SPACES_BUCKET
+);
 
 const router = Router();
 
@@ -93,17 +102,22 @@ router.post('/', permissions.canWrite('finances'), upload.single('proof'), async
 
         // Validation simple
         if (!amount || !date_expense || !category) {
-            if (req.file && fs.existsSync(req.file.path)) {
-                fs.unlinkSync(req.file.path);
-            }
             return res.status(400).json({ message: 'Champs obligatoires manquants' });
         }
 
         // Handle uploaded proof file
-        let proofUrl = req.body.proof_url || null;
+        let proofUrl: string | null = req.body.proof_url || null;
         if (req.file) {
-            // Build relative URL path for static serving
-            proofUrl = `/uploads/expenses/${req.file.filename}`;
+            if (spacesConfigured) {
+                proofUrl = await uploadToSpaces(req.file, 'expenses');
+            } else {
+                // Fallback local (dev uniquement)
+                const localDir = path.join(__dirname, '../../uploads/expenses');
+                await fs.ensureDir(localDir);
+                const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}${path.extname(req.file.originalname)}`;
+                await fs.writeFile(path.join(localDir, uniqueName), req.file.buffer);
+                proofUrl = `/uploads/expenses/${uniqueName}`;
+            }
         }
 
         const result = await dbClient.query(`
@@ -126,11 +140,6 @@ router.post('/', permissions.canWrite('finances'), upload.single('proof'), async
 
         res.status(201).json(result.rows[0]);
     } catch (error) {
-        // En cas d'erreur DB, on s'assure de supprimer le fichier uploadé (s'il existe)
-        // pour ne pas créer de fuite mémoire ou orphelins sur le disque.
-        if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
-        }
         console.error('Error creating expense:', error);
         res.status(500).json({ message: 'Erreur serveur' });
     }

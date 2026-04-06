@@ -22,7 +22,7 @@ const getManagedOwnerId = async (userId: number): Promise<number | null> => {
 // Query: start (YYYY-MM-DD), end (YYYY-MM-DD)
 router.get('/', protect, async (req: any, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.userId;
         const ownerId = await getManagedOwnerId(userId);
 
         if (!ownerId) return res.status(200).json({ events: [] });
@@ -168,7 +168,7 @@ router.post('/events', protect, async (req: any, res) => {
         const result = await pool.query(
             `INSERT INTO calendar_events (user_id, title, description, start_date, end_date, type, is_all_day)
              VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-            [req.user.id, title, description, start_date, end_date, type, is_all_day || false]
+            [req.userId, title, description, start_date, end_date, type, is_all_day || false]
         );
         res.status(201).json(result.rows[0]);
     } catch (error) {
@@ -180,7 +180,7 @@ router.post('/events', protect, async (req: any, res) => {
 // DELETE /api/calendar/events/:id
 router.delete('/events/:id', protect, async (req: any, res) => {
     try {
-        await pool.query('DELETE FROM calendar_events WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+        await pool.query('DELETE FROM calendar_events WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]);
         res.json({ message: 'Événement supprimé' });
     } catch (error) {
         res.status(500).json({ message: 'Erreur suppression' });
@@ -190,7 +190,7 @@ router.delete('/events/:id', protect, async (req: any, res) => {
 // GET /api/calendar/settings
 router.get('/settings', protect, async (req: any, res) => {
     try {
-        const result = await pool.query('SELECT * FROM reminder_settings WHERE user_id = $1', [req.user.id]);
+        const result = await pool.query('SELECT * FROM reminder_settings WHERE user_id = $1', [req.userId]);
         res.json(result.rows);
     } catch (error) {
         res.status(500).json({ message: 'Erreur chargement réglages' });
@@ -204,19 +204,19 @@ router.post('/settings', protect, async (req: any, res) => {
         // Check if exists
         const existing = await pool.query(
             'SELECT * FROM reminder_settings WHERE user_id = $1 AND event_type = $2',
-            [req.user.id, event_type]
+            [req.userId, event_type]
         );
 
         if (existing.rows.length > 0) {
             const result = await pool.query(
                 'UPDATE reminder_settings SET delay_days = $1, channel = $2, active = $3 WHERE user_id = $4 AND event_type = $5 RETURNING *',
-                [delay_days, channel, active, req.user.id, event_type]
+                [delay_days, channel, active, req.userId, event_type]
             );
             res.json(result.rows[0]);
         } else {
             const result = await pool.query(
                 'INSERT INTO reminder_settings (user_id, event_type, delay_days, channel, active) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-                [req.user.id, event_type, delay_days, channel, active]
+                [req.userId, event_type, delay_days, channel, active]
             );
             res.json(result.rows[0]);
         }

@@ -87,9 +87,23 @@ app.use(helmet({
     crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Requis pour les Popups Google OAuth
 }));
 
-// 2. Rate Limiting - General API
-// Rate limiters removed temporarily for development
+// 2. Rate Limiting
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Trop de requêtes, réessayez dans 15 minutes.' },
+});
 
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Trop de tentatives de connexion, réessayez dans 15 minutes.' },
+    skipSuccessfulRequests: true,
+});
 
 // 4. Body Parsing with size limits (prevent DoS)
 app.use(express.json({ limit: '10mb' })); 
@@ -106,7 +120,6 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // 8. CORS - Strict Origin Control
 const allowedOrigins = [
     process.env.FRONTEND_URL || 'http://localhost:5173',
-    'https://hope-gestion-frontend.onrender.com',
     'https://hopegestion.com',
     'https://www.hopegestion.com'
 ];
@@ -148,15 +161,15 @@ app.use('/uploads', (req, res, next) => {
 // --- 2. Routes de l'API ---
 
 // Apply general rate limiting to all API routes
-// app.use('/api', apiLimiter); // Removed for dev
+app.use('/api', apiLimiter);
 
 // Routes d'upload
 import uploadRoutes from './routes/uploadRoutes';
 app.use('/api/upload', uploadRoutes);
 
 // Routes d'authentification (Publiques) - WITH STRICT RATE LIMITING
-app.use('/api/auth', authRoutes); // Removed authLimiter
-app.use('/api/auth', googleAuthRoutes);  // Google OAuth routes
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', authLimiter, googleAuthRoutes);  // Google OAuth routes
 
 // Routes Réservations (Public + Protected mix inside)
 import reservationRoutes from './routes/reservationRoutes';
@@ -298,6 +311,24 @@ app.use('/api/admin', protect, adminRoutes);
 app.get('/api/admin-invite/check', checkAdminInvite);
 app.post('/api/admin-invite/accept', acceptAdminInvite);
 
+
+// ========================================
+// 📄 DOCUMENTATION API (Swagger UI)
+// ========================================
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
+
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'HopeGestion API Docs',
+    customCss: '.swagger-ui .topbar { display: none }',
+    swaggerOptions: { persistAuthorization: true },
+}));
+
+// Endpoint JSON brut (utile pour import Postman / Insomnia)
+app.get('/api/docs.json', (_req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+});
 
 // --- 3. Test de communication (Endpoint de Ping) ---
 app.get('/api/ping', (req: Request, res: Response) => {

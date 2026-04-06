@@ -4,56 +4,25 @@ import { Router, Response } from 'express';
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 import * as dotenv from 'dotenv';
-import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
+import fs from 'fs-extra';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import PDFDocument from 'pdfkit';
+import { upload } from '../middleware/uploadMiddleware';
+import { uploadToSpaces, deleteFromSpaces } from '../services/spacesUploadService';
 
 dotenv.config();
 
 const router = Router();
 
-// --- Multer Configuration ---
-const uploadDir = path.join(__dirname, '../../uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const date = new Date();
-        const year = date.getFullYear();
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const finalPath = path.join(uploadDir, `${year}/${month}`);
-        
-        if (!fs.existsSync(finalPath)) {
-            fs.mkdirSync(finalPath, { recursive: true });
-        }
-        cb(null, finalPath);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
-const upload = multer({ 
-    storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|pdf|doc|docx/;
-        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
-        if (extname && mimetype) {
-            return cb(null, true);
-        } else {
-            cb(new Error('Format de fichier non supporté (Images, PDF, Word uniquement)'));
-        }
-    }
-});
+const spacesConfigured = !!(
+    process.env.SPACES_KEY &&
+    process.env.SPACES_SECRET &&
+    process.env.SPACES_ENDPOINT &&
+    process.env.SPACES_BUCKET
+);
 
 // --- Routes ---
 
@@ -103,13 +72,25 @@ router.post('/upload', permissions.canWrite('documents'), tenantGuard, upload.si
         }
 
         const { entity_type, entity_id, categorie, description, nom } = req.body;
-        
-        const relativePath = path.relative(path.join(__dirname, '../../'), req.file.path).replace(/\\/g, '/');
-        const url = `/${relativePath}`;
+
+        let url: string;
+        if (spacesConfigured) {
+            // Prod : upload vers Digital Ocean Spaces
+            url = await uploadToSpaces(req.file, 'documents');
+        } else {
+            // Dev : fallback disque local
+            const date = new Date();
+            const folder = `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            const localDir = path.join(__dirname, '../../uploads', folder);
+            await fs.ensureDir(localDir);
+            const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(req.file.originalname)}`;
+            await fs.writeFile(path.join(localDir, uniqueName), req.file.buffer);
+            url = `/uploads/${folder}/${uniqueName}`;
+        }
 
         const result = await dbClient.query(`
             INSERT INTO documents (
-                user_id, nom, type, url, taille, categorie, 
+                user_id, nom, type, url, taille, categorie,
                 entity_type, entity_id, description, owner_id
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
@@ -130,12 +111,6 @@ router.post('/upload', permissions.canWrite('documents'), tenantGuard, upload.si
 
     } catch (error) {
         console.error('Error uploading document:', error);
-        
-        // Supression du fichier disque en cas d'erreur de la BDD (ex: RLS violation)
-        if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
-        }
-
         res.status(500).json({ message: 'Erreur serveur lors de l\'upload ou accès refusé' });
     }
 });
@@ -156,9 +131,17 @@ router.delete('/:id', permissions.canWrite('documents'), tenantGuard, async (req
 
         const docUrl = result.rows[0].url;
         if (docUrl) {
-            const filePath = path.join(__dirname, '../../', docUrl);
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
+            if (spacesConfigured && docUrl.startsWith('http')) {
+                // Suppression depuis Spaces (best-effort, ne bloque pas la réponse)
+                deleteFromSpaces(docUrl).catch(err =>
+                    console.warn('[UPLOAD] Impossible de supprimer le fichier Spaces:', err)
+                );
+            } else {
+                // Fallback : suppression disque local (dev)
+                const filePath = path.join(__dirname, '../../', docUrl);
+                if (await fs.pathExists(filePath)) {
+                    await fs.remove(filePath);
+                }
             }
         }
 
@@ -238,16 +221,18 @@ router.post('/generate', permissions.canWrite('documents'), tenantGuard, async (
             const date = new Date();
             const year = date.getFullYear();
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const dir = path.join(uploadDir, `${year}/${month}`);
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
             const fileName = `${template.name.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
-            const filePath = path.join(dir, fileName);
-            fs.writeFileSync(filePath, resultData);
 
-            // DB Insert
-            const relativePath = `uploads/${year}/${month}/${fileName}`;
-            const url = `/${relativePath}`;
+            let url: string;
+            if (spacesConfigured) {
+                const fakeFile = { buffer: resultData, originalname: fileName, mimetype: 'application/pdf' } as Express.Multer.File;
+                url = await uploadToSpaces(fakeFile, 'documents');
+            } else {
+                const dir = path.join(__dirname, '../../uploads', `${year}/${month}`);
+                if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+                fs.writeFileSync(path.join(dir, fileName), resultData);
+                url = `/uploads/${year}/${month}/${fileName}`;
+            }
             
             const dbResult = await dbClient.query(`
                 INSERT INTO documents (
@@ -334,21 +319,22 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), tenantGuar
         doc.on('end', async () => {
             const resultData = Buffer.concat(chunks);
             
-            // Save to disk
+            // Save to disk or Spaces
             const date = new Date();
             const year = date.getFullYear();
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const dir = path.join(uploadDir, `${year}/${month}`);
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
             const fileName = `Bail_${leaseId}_${Date.now()}.pdf`;
-            const filePath = path.join(dir, fileName);
-            
-            fs.writeFileSync(filePath, resultData);
 
-            // Save to DB
-            const relativePath = `uploads/${year}/${month}/${fileName}`;
-            const url = `/${relativePath}`;
+            let url: string;
+            if (spacesConfigured) {
+                const fakeFile = { buffer: resultData, originalname: fileName, mimetype: 'application/pdf' } as Express.Multer.File;
+                url = await uploadToSpaces(fakeFile, 'documents');
+            } else {
+                const dir = path.join(__dirname, '../../uploads', `${year}/${month}`);
+                if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+                fs.writeFileSync(path.join(dir, fileName), resultData);
+                url = `/uploads/${year}/${month}/${fileName}`;
+            }
 
             try {
                 const dbResult = await dbClient.query(`

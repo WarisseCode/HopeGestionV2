@@ -1,0 +1,14 @@
+# railway.toml — Configuration déploiement Railway
+# Service : Backend Node.js/Express (TypeScript)
+# Important : Dans Railway Dashboard > Service Settings > Source, définir Root Directory = "backend"
+
+[build]
+builder = "nixpacks"
+buildCommand = "cd backend && npm install && npm run build"
+
+[deploy]
+startCommand = "cd backend && npm run migrate-prod && npm start"
+healthcheckPath = "/api/ping"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

@@ -1,5 +1,6 @@
 // backend/middleware/tenantGuard.ts
 import { Response, NextFunction } from 'express';
+import { PoolClient } from 'pg';
 import { AuthenticatedRequest } from './authMiddleware';
 import pool from '../db/database';
 
@@ -10,7 +11,6 @@ export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next
     }
 
     const requestedOwnerId = req.headers['x-owner-id'] || req.query.owner_id || req.body.owner_id;
-    import { PoolClient } from 'pg';
     let client: PoolClient | undefined;
 
     try {

@@ -1,63 +1,53 @@
 import express from 'express';
-// Exception documentée — pool autorisé UNIQUEMENT pour les 
+// Exception documentée — pool autorisé UNIQUEMENT pour les
 // routes locataires sans owner_id ou routes mixtes résolvant en aval le owner_id.
 // Pour le reste, (routes gestionnaires), utiliser absolument req.dbClient
 import pool from '../db/database';
 import { protect } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import { parsePagination, paginate } from '../utils/pagination';
 
 const router = express.Router();
 
-// GET /api/tickets (Gestionnaire)
+// GET /api/tickets?page=1&limit=20&statut=&priorite=&category=
 router.get('/', protect, tenantGuard, async (req: any, res) => {
     try {
         const dbClient = (req as any).dbClient;
-        
-        // Query filters
         const { statut, priorite, category } = req.query;
+        const pg = parsePagination(req.query);
 
-        let query = `
-            SELECT t.*, 
-                   l.ref_lot, b.nom as building_name, 
-                   p.name as provider_name,
-                   tn.nom as tenant_name, tn.prenoms as tenant_surname
+        const joins = `
             FROM tickets t
             LEFT JOIN lots l ON t.lot_id = l.id
             LEFT JOIN buildings b ON l.building_id = b.id
             LEFT JOIN providers p ON t.provider_id = p.id
             LEFT JOIN leases le ON l.id = le.lot_id AND le.statut = 'actif'
             LEFT JOIN tenants tn ON le.tenant_id = tn.id
-            WHERE 1=1
         `;
-        
-        let params: any[] = [];
-        let paramIndex = 1;
-        
-        // Plus de verification manuelle propriétaire (le RLS DB filtre silencieusement b.owner_id / owner_id via les jointures si activé,
-        // et plus particulièrement la sélection brute depuis ticket est limitée à owner_id)
-        
-        if (statut) {
-            query += ` AND t.statut = $${paramIndex}`;
-            params.push(statut);
-            paramIndex++;
-        }
-        
-        if (priorite) {
-            query += ` AND t.priorite = $${paramIndex}`;
-            params.push(priorite);
-            paramIndex++;
-        }
-        
-        if (category) {
-            query += ` AND t.category = $${paramIndex}`;
-            params.push(category);
-            paramIndex++;
-        }
-        
-        query += ` ORDER BY t.date_creation DESC`;
 
-        const result = await dbClient.query(query, params);
-        res.json(result.rows);
+        let where = 'WHERE 1=1';
+        const params: any[] = [];
+        let paramIndex = 1;
+
+        if (statut)   { where += ` AND t.statut = $${paramIndex++}`;    params.push(statut); }
+        if (priorite) { where += ` AND t.priorite = $${paramIndex++}`;  params.push(priorite); }
+        if (category) { where += ` AND t.category = $${paramIndex++}`;  params.push(category); }
+
+        const countResult = await dbClient.query(`SELECT COUNT(*) ${joins} ${where}`, params);
+        const total = parseInt(countResult.rows[0].count, 10);
+
+        const dataResult = await dbClient.query(
+            `SELECT t.*,
+                    l.ref_lot, b.nom as building_name,
+                    p.name as provider_name,
+                    tn.nom as tenant_name, tn.prenoms as tenant_surname
+             ${joins} ${where}
+             ORDER BY t.date_creation DESC
+             LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
+            [...params, pg.limit, pg.offset]
+        );
+
+        res.json(paginate(dataResult.rows, total, pg));
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Erreur chargement tickets' });
@@ -66,12 +56,12 @@ router.get('/', protect, tenantGuard, async (req: any, res) => {
 
 // [LOCATAIRE] Route appelée par le locataire connecté.
 // tenantGuard non applicable : le locataire n'a pas d'owner_id.
-// Isolation garantie par filtrage strict sur req.user.id (JWT).
+// Isolation garantie par filtrage strict sur req.userId (JWT).
 // pool.query autorisé ici par exception documentée.
 // GET /api/tickets/tenant - Tickets for current tenant
 router.get('/tenant', protect, async (req: any, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.userId;
         
         // Find tenant linked to this user (filtered solely by JWT user_id)
         const tenantResult = await pool.query(
@@ -232,7 +222,7 @@ router.post('/:id/close', protect, tenantGuard, async (req: any, res) => {
  * ═══════════════════════════════════════════════════
  * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — ticketRoutes.ts
  * ═══════════════════════════════════════════════════
- * ✅ Exception Locataire (GET /tenant) documentée et gérée de manière isolée via req.user.id.
+ * ✅ Exception Locataire (GET /tenant) documentée et gérée de manière isolée via req.userId.
  * ✅ Exception Mixte (POST /) documentée et sécurisée par la déduction intra-base du owner_id via le lot_id.
  * ✅ tenantGuard assigné strictement aux routes 100% Gestionnaires (GET /, PUT, POST close/reschedule).
  * ✅ L'helper getManagedOwnerId supprimé et remplacé par l'automatisation RLS.

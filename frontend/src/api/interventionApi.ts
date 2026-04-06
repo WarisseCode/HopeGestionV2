@@ -12,8 +12,9 @@ const getHeaders = () => {
 
 export const interventionApi = {
     // Tickets
-    getTickets: async () => {
-        const res = await fetch(`${API_URL}/tickets`, { headers: getHeaders() });
+    getTickets: async (filters: Record<string, any> = {}): Promise<{ data: any[]; total: number; page: number; limit: number; totalPages: number }> => {
+        const query = new URLSearchParams(filters as any).toString();
+        const res = await fetch(`${API_URL}/tickets?${query}`, { headers: getHeaders() });
         if (!res.ok) throw new Error('Erreur chargement tickets');
         return res.json();
     },
@@ -46,8 +47,9 @@ export const interventionApi = {
     },
 
     // Providers
-    getProviders: async () => {
-        const res = await fetch(`${API_URL}/providers`, { headers: getHeaders() });
+    getProviders: async (filters: Record<string, any> = {}): Promise<{ data: any[]; total: number; page: number; limit: number; totalPages: number }> => {
+        const query = new URLSearchParams(filters as any).toString();
+        const res = await fetch(`${API_URL}/providers?${query}`, { headers: getHeaders() });
         if (!res.ok) throw new Error('Erreur chargement prestataires');
         return res.json();
     },

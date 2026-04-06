@@ -39,13 +39,13 @@ export interface FieldAction {
 
 export const notebookApi = {
     // NOTES
-    getNotes: async (): Promise<Note[]> => {
+    getNotes: async (page = 1, limit = 20): Promise<{ data: Note[]; total: number; page: number; totalPages: number }> => {
         const token = getToken();
-        if (!token) return [];
-        const res = await fetch(`${API_URL}/carnet/notes`, {
+        if (!token) return { data: [], total: 0, page: 1, totalPages: 0 };
+        const res = await fetch(`${API_URL}/carnet/notes?page=${page}&limit=${limit}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
-        return res.ok ? await res.json() : [];
+        return res.ok ? await res.json() : { data: [], total: 0, page: 1, totalPages: 0 };
     },
 
     createNote: async (data: Partial<Note>): Promise<Note> => {
@@ -70,11 +70,11 @@ export const notebookApi = {
     },
 
     // CONTACTS
-    getContacts: async (): Promise<Contact[]> => {
-        const res = await fetch(`${API_URL}/carnet/contacts`, {
+    getContacts: async (page = 1, limit = 20): Promise<{ data: Contact[]; total: number; page: number; totalPages: number }> => {
+        const res = await fetch(`${API_URL}/carnet/contacts?page=${page}&limit=${limit}`, {
              headers: { Authorization: `Bearer ${getToken()}` }
         });
-        return res.ok ? await res.json() : [];
+        return res.ok ? await res.json() : { data: [], total: 0, page: 1, totalPages: 0 };
     },
 
     createContact: async (data: Partial<Contact>): Promise<Contact> => {
@@ -90,11 +90,11 @@ export const notebookApi = {
     },
 
     // FIELD ACTIONS
-    getFieldActions: async (): Promise<FieldAction[]> => {
-        const res = await fetch(`${API_URL}/carnet/field-actions`, {
+    getFieldActions: async (page = 1, limit = 20): Promise<{ data: FieldAction[]; total: number; page: number; totalPages: number }> => {
+        const res = await fetch(`${API_URL}/carnet/field-actions?page=${page}&limit=${limit}`, {
             headers: { Authorization: `Bearer ${getToken()}` }
         });
-        return res.ok ? await res.json() : [];
+        return res.ok ? await res.json() : { data: [], total: 0, page: 1, totalPages: 0 };
     },
 
     createFieldAction: async (data: Partial<FieldAction>): Promise<FieldAction> => {

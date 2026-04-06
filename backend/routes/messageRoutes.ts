@@ -1,6 +1,8 @@
 import express from 'express';
 import pool from '../db/database';
 import { protect } from '../middleware/authMiddleware';
+import { WhatsAppService } from '../services/WhatsAppService';
+import EmailService from '../services/EmailService';
 
 const router = express.Router();
 
@@ -10,7 +12,7 @@ router.get('/', protect, async (req: any, res) => {
         const { context_type, context_id } = req.query;
 
         if (!context_type || !context_id) {
-            return res.status(400).json({ message: 'Context required' });
+            return res.status(400).json({ message: 'context_type et context_id sont requis.' });
         }
 
         const result = await pool.query(
@@ -28,26 +30,52 @@ router.get('/', protect, async (req: any, res) => {
     }
 });
 
-// POST /api/messages (Send message)
+// POST /api/messages
+// Enregistre le message en DB et l'envoie via le canal choisi (whatsapp, sms, email, internal).
 router.post('/', protect, async (req: any, res) => {
     try {
         const { recipient_id, context_type, context_id, channel, content, attachments } = req.body;
-        const sender_id = req.user.id;
+        const sender_id = req.userId;
 
-        // Save to DB
+        if (!content || !content.trim()) {
+            return res.status(400).json({ message: 'Le contenu du message est requis.' });
+        }
+
+        // 1. Sauvegarder en DB
         const result = await pool.query(
             `INSERT INTO messages (sender_id, recipient_id, context_type, context_id, channel, content, attachments)
              VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
             [sender_id, recipient_id, context_type, context_id, channel || 'internal', content, JSON.stringify(attachments || [])]
         );
 
-        // Simulation of external sending
-        if (channel === 'whatsapp') {
-            console.log(`[WHATSAPP] Sending to user ${recipient_id}: ${content}`);
-        } else if (channel === 'sms') {
-            console.log(`[SMS] Sending to user ${recipient_id}: ${content}`);
-        } else if (channel === 'email') {
-             console.log(`[EMAIL] Sending to user ${recipient_id}: ${content}`);
+        // 2. Envoi externe selon le canal (best-effort — n'échoue pas la requête)
+        if (recipient_id && channel && channel !== 'internal') {
+            try {
+                const recipientRes = await pool.query(
+                    'SELECT email, telephone FROM users WHERE id = $1',
+                    [recipient_id]
+                );
+                const recipient = recipientRes.rows[0];
+
+                if (recipient) {
+                    if (channel === 'whatsapp' && recipient.telephone) {
+                        await WhatsAppService.send(recipient.telephone, content);
+                    } else if (channel === 'email' && recipient.email) {
+                        await EmailService.sendEmail(
+                            recipient.email,
+                            'Nouveau message — Hope Gestion',
+                            content,
+                            `<p>${content.replace(/\n/g, '<br/>')}</p>`
+                        );
+                    } else if (channel === 'sms') {
+                        // SMS via Twilio REST (à implémenter si besoin — placeholder)
+                        console.log(`[SMS] → ${recipient.telephone}: ${content}`);
+                    }
+                }
+            } catch (sendError) {
+                // On logue l'erreur d'envoi mais on ne fait pas échouer la réponse API
+                console.error(`[MESSAGE] Erreur envoi ${channel}:`, sendError);
+            }
         }
 
         res.status(201).json(result.rows[0]);

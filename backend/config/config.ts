@@ -16,3 +16,11 @@ if (!secret || secret.length < 32) {
 }
 
 export const JWT_SECRET = secret;
+
+// 🔒 SECURITY: Refresh token secret (distinct du JWT_SECRET)
+// Si absent, on dérive un secret différent du JWT_SECRET pour éviter la réutilisation inter-tokens.
+export const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || (secret + '_refresh');
+
+// Durées des tokens
+export const ACCESS_TOKEN_EXPIRES_IN  = process.env.JWT_EXPIRES_IN        || '15m';
+export const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d';

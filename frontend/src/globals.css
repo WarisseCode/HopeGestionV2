@@ -1,18 +1,18 @@
-/* src/globals.css - Styles globaux pour harmoniser DaisyUI et MUI */
+/* src/globals.css - Styles globaux (Tailwind + DaisyUI) */
 
 /* ============================
    Variables CSS - Thème Light
    ============================ */
 :root {
-  /* Couleurs primaires */
-  --primary: #3f51b5;
-  --primary-focus: #303f9f;
+  /* Couleurs primaires — Indigo 600 (design system HopeGestion) */
+  --primary: #4f46e5;
+  --primary-focus: #3730a3;
   --primary-content: #ffffff;
-  --primary-light: rgba(63, 81, 181, 0.1);
-  
-  /* Couleurs secondaires */
-  --secondary: #f50057;
-  --secondary-focus: #c51162;
+  --primary-light: rgba(79, 70, 229, 0.1);
+
+  /* Couleurs secondaires — Sky 500 */
+  --secondary: #0ea5e9;
+  --secondary-focus: #0284c7;
   --secondary-content: #ffffff;
   
   /* Accent */

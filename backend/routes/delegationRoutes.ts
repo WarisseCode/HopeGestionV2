@@ -21,7 +21,7 @@ const getManagedOwnerId = async (userId: number): Promise<number | null> => {
 // GET /api/delegations - Lister mon équipe
 router.get('/', protect, async (req: any, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.userId;
     const ownerId = await getManagedOwnerId(userId);
 
     if (!ownerId) {
@@ -49,7 +49,7 @@ router.get('/', protect, async (req: any, res) => {
 // POST /api/delegations - Ajouter un membre par email
 router.post('/', protect, async (req: any, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.userId;
     const { email, role, permissions } = req.body;
     
     // 1. Vérifier droits
@@ -126,7 +126,7 @@ router.post('/', protect, async (req: any, res) => {
 // DELETE /api/delegations/:userId - Retirer un membre
 router.delete('/:targetId', protect, async (req: any, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.userId;
     const targetId = parseInt(req.params.targetId);
     
     const ownerId = await getManagedOwnerId(userId);

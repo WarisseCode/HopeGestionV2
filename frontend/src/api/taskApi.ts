@@ -10,7 +10,7 @@ const getHeaders = () => {
 };
 
 export const taskApi = {
-    getTasks: async (filters: any = {}) => {
+    getTasks: async (filters: any = {}): Promise<{ data: any[]; total: number; page: number; limit: number; totalPages: number }> => {
         const query = new URLSearchParams(filters).toString();
         const res = await fetch(`${API_URL}/tasks?${query}`, { headers: getHeaders() });
         if (!res.ok) throw new Error('Erreur chargement tâches');
