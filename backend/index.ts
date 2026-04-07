@@ -120,6 +120,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // 8. CORS - Strict Origin Control
 const allowedOrigins = [
     process.env.FRONTEND_URL || 'http://localhost:5173',
+    'https://hope-gestion-frontend.vercel.app',
     'https://hopegestion.com',
     'https://www.hopegestion.com'
 ];
