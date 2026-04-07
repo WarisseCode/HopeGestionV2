@@ -34,7 +34,10 @@ import sharedPool from './db/database';
 export const pool = sharedPool;
 
 const app = express();
-const PORT = process.env.PORT || 5000; 
+const PORT = process.env.PORT || 5000;
+
+// Railway / Render / Heroku : derrière un reverse proxy
+app.set('trust proxy', 1);
 
 console.log('✅ JWT_SECRET validation passed');
 
