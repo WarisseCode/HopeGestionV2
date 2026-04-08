@@ -53,10 +53,13 @@ jobs:
 
             echo "==> Installation dépendances backend..."
             cd /var/www/hopegestion/backend
-            npm ci --omit=dev
+            npm ci
 
             echo "==> Build backend..."
             npm run build
+
+            echo "==> Suppression devDependencies..."
+            npm prune --omit=dev
 
             echo "==> Migrations base de données..."
             npm run migrate-prod
