@@ -81,7 +81,7 @@ export class CronService {
                  FROM tickets t
                  LEFT JOIN lots l ON t.lot_id = l.id
                  LEFT JOIN buildings b ON l.building_id = b.id
-                 LEFT JOIN owner_user ou ON b.owner_id = ou.owner_id AND ou.is_active = TRUE
+                 LEFT JOIN owner_user ou ON l.owner_id = ou.owner_id AND ou.is_active = TRUE
                  WHERE t.priorite = 'Urgente'
                    AND t.statut = 'Ouvert'
                    AND t.date_creation < NOW() - INTERVAL '24 hours'`
@@ -109,7 +109,7 @@ export class CronService {
                  LEFT JOIN providers p ON t.provider_id = p.id
                  LEFT JOIN lots l ON t.lot_id = l.id
                  LEFT JOIN buildings b ON l.building_id = b.id
-                 LEFT JOIN owner_user ou ON b.owner_id = ou.owner_id AND ou.is_active = TRUE
+                 LEFT JOIN owner_user ou ON l.owner_id = ou.owner_id AND ou.is_active = TRUE
                  WHERE t.scheduled_date < NOW()
                    AND t.statut NOT IN ('Clos', 'Résolu')`
             );
