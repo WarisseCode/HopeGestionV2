@@ -40,7 +40,7 @@ router.get('/status', protect, async (req: AuthenticatedRequest, res) => {
             // Default to Free plan
             const freePlan = await pool.query(`SELECT * FROM plans WHERE name = 'free' LIMIT 1`);
             
-            let countPropertiesRes = await pool.query(`SELECT COUNT(l.id) as total_lots FROM lots l JOIN buildings b ON l.building_id = b.id JOIN owner_user ou ON b.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
+            let countPropertiesRes = await pool.query(`SELECT COUNT(l.id) as total_lots FROM lots l JOIN owner_user ou ON l.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
             let countTenantsRes = await pool.query(`SELECT COUNT(t.id) as total_tenants FROM tenants t JOIN owner_user ou ON t.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
 
             return res.json({
@@ -61,7 +61,7 @@ router.get('/status', protect, async (req: AuthenticatedRequest, res) => {
 
         // Récupération de l'usage actuel
         let countPropertiesRes = await pool.query(
-            `SELECT COUNT(l.id) as total_lots FROM lots l JOIN buildings b ON l.building_id = b.id JOIN owner_user ou ON b.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`,
+            `SELECT COUNT(l.id) as total_lots FROM lots l JOIN owner_user ou ON l.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`,
             [userId]
         );
         let countTenantsRes = await pool.query(
