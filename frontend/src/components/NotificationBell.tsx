@@ -1,7 +1,7 @@
 // frontend/src/components/NotificationBell.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, Trash2, X } from 'lucide-react';
-import { getToken } from '../api/authApi';
+import { apiCall } from '../utils/apiUtils';
 import { API_URL as BASE_URL } from '../config';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -24,20 +24,13 @@ const NotificationBell: React.FC = () => {
 
   const fetchNotifications = async () => {
     try {
-      const token = getToken();
-      if (!token) return;
-
-      const response = await fetch(`${BASE_URL}/notifications`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data.notifications);
-        setUnreadCount(data.unreadCount);
-      }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
+      const data = await apiCall<{ notifications: Notification[]; unreadCount: number }>(
+        `${BASE_URL}/notifications`
+      );
+      setNotifications(data.notifications);
+      setUnreadCount(data.unreadCount);
+    } catch {
+      // Erreur silencieuse — le token expiré est géré par apiCall (refresh + redirect)
     }
   };
 
