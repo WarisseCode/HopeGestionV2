@@ -21,10 +21,17 @@ interface RegisterResponse {
  * Stocke le token et le rôle en cas de succès.
  */
 export async function loginUser(email: string, password: string): Promise<AuthResponse> {
-    const data = await apiCall<AuthResponse>(`${BASE_URL}/auth/login`, {
+    const response = await fetch(`${BASE_URL}/auth/login`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
     });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || 'Échec de la connexion. Veuillez vérifier vos identifiants.');
+    }
 
     // Connexion réussie : stocker le token, le refresh token et le rôle
     localStorage.setItem('userToken', data.token);
