@@ -54,16 +54,8 @@ const NotificationBell: React.FC = () => {
 
   const markAsRead = async (id: number) => {
     try {
-      const token = getToken();
-      await fetch(`${BASE_URL}/notifications/${id}/read`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      // Update local state
-      setNotifications(prev => prev.map(n => 
-        n.id === id ? { ...n, is_read: true } : n
-      ));
+      await apiCall(`${BASE_URL}/notifications/${id}/read`, { method: 'PUT' });
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Error marking as read:', error);
@@ -73,12 +65,7 @@ const NotificationBell: React.FC = () => {
   const markAllRead = async () => {
     try {
       setLoading(true);
-      const token = getToken();
-      await fetch(`${BASE_URL}/notifications/read-all`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
+      await apiCall(`${BASE_URL}/notifications/read-all`, { method: 'PUT' });
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch (error) {
