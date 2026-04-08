@@ -16,6 +16,140 @@ interface Migration {
 // ============================================================
 const MIGRATIONS: Migration[] = [
     {
+        name: '000_create_missing_base_tables',
+        sql: `
+            -- Table OWNERS (propriétaires) — nécessaire avant les migrations 001-003
+            CREATE TABLE IF NOT EXISTS owners (
+                id SERIAL PRIMARY KEY,
+                type VARCHAR(20) NOT NULL DEFAULT 'individual',
+                name VARCHAR(255) NOT NULL,
+                first_name VARCHAR(255),
+                phone VARCHAR(20) NOT NULL,
+                phone_secondary VARCHAR(20),
+                email VARCHAR(255),
+                address TEXT,
+                city VARCHAR(100),
+                country VARCHAR(100) DEFAULT 'Bénin',
+                id_number VARCHAR(100),
+                photo VARCHAR(255),
+                mobile_money_number VARCHAR(20),
+                management_mode VARCHAR(20) DEFAULT 'direct',
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_owners_phone ON owners(phone);
+            CREATE INDEX IF NOT EXISTS idx_owners_is_active ON owners(is_active);
+
+            -- Table TASKS — module Tâches
+            CREATE TABLE IF NOT EXISTS tasks (
+                id SERIAL PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                entity_type VARCHAR(50),
+                entity_id INT,
+                assigned_to INT,
+                created_by INT,
+                priority VARCHAR(50) DEFAULT 'medium',
+                status VARCHAR(50) DEFAULT 'todo',
+                due_date TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                completed_at TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to);
+            CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+
+            -- Table MESSAGES — communication interne
+            CREATE TABLE IF NOT EXISTS messages (
+                id SERIAL PRIMARY KEY,
+                sender_id INT NOT NULL,
+                recipient_id INT,
+                context_type VARCHAR(50),
+                context_id INT,
+                channel VARCHAR(50) DEFAULT 'internal',
+                content TEXT,
+                attachments JSONB DEFAULT '[]'::jsonb,
+                read_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
+            CREATE INDEX IF NOT EXISTS idx_messages_context ON messages(context_type, context_id);
+
+            -- Table NOTIFICATION_PREFERENCES
+            CREATE TABLE IF NOT EXISTS notification_preferences (
+                user_id INT PRIMARY KEY,
+                preferred_channels JSONB DEFAULT '["email", "internal"]'::jsonb,
+                quiet_hours_start TIME,
+                quiet_hours_end TIME,
+                alert_types JSONB DEFAULT '{"task_assigned": true, "task_overdue": true, "new_message": true}'::jsonb,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            -- Table PAYMENT_SCHEDULES — échéanciers de loyer
+            -- Référencée par la migration 028_rent_payment_transactions
+            CREATE TABLE IF NOT EXISTS payment_schedules (
+                id SERIAL PRIMARY KEY,
+                lease_id INTEGER REFERENCES leases(id) ON DELETE CASCADE,
+                total_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
+                amount_paid DECIMAL(12, 2) DEFAULT 0,
+                due_date DATE,
+                status VARCHAR(50) DEFAULT 'pending',
+                statut VARCHAR(50) DEFAULT 'en_attente',
+                description TEXT,
+                date_reglement_final TIMESTAMP,
+                numero_echeance INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_payment_schedules_lease_id ON payment_schedules(lease_id);
+            CREATE INDEX IF NOT EXISTS idx_payment_schedules_status ON payment_schedules(status);
+            CREATE INDEX IF NOT EXISTS idx_payment_schedules_due_date ON payment_schedules(due_date);
+
+            -- Tables CARNET (notes, contacts, actions terrain)
+            CREATE TABLE IF NOT EXISTS notebook_notes (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                title VARCHAR(255),
+                content TEXT,
+                type VARCHAR(50) DEFAULT 'general',
+                entity_type VARCHAR(50),
+                entity_id INTEGER,
+                visibility VARCHAR(20) DEFAULT 'private',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_notebook_notes_user_id ON notebook_notes(user_id);
+
+            CREATE TABLE IF NOT EXISTS notebook_contacts (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                name VARCHAR(255) NOT NULL,
+                role VARCHAR(100),
+                phone VARCHAR(50),
+                email VARCHAR(255),
+                address TEXT,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_notebook_contacts_user_id ON notebook_contacts(user_id);
+
+            CREATE TABLE IF NOT EXISTS notebook_field_actions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                type VARCHAR(50) DEFAULT 'visite',
+                description TEXT,
+                photo_url TEXT,
+                location_lat DECIMAL(10, 7),
+                location_lng DECIMAL(10, 7),
+                location_address VARCHAR(500),
+                status VARCHAR(50) DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_notebook_field_actions_user_id ON notebook_field_actions(user_id);
+        `
+    },
+    {
         name: '001_manager_code_column',
         sql: `
             ALTER TABLE owners ADD COLUMN IF NOT EXISTS manager_code VARCHAR(20);
