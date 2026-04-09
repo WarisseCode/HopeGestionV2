@@ -24,8 +24,26 @@ $$ LANGUAGE plpgsql;
 -- ==============================================================================
 -- Les tables métiers principales (buildings, lots, tenants, leases, payments) 
 -- ont déjà owner_id. On s'assure que les autres l'ont aussi.
-DO $$ 
+DO $$
 BEGIN
+    -- Table buildings — production peut avoir user_id sans owner_id (schema legacy)
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='buildings') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='buildings' AND column_name='owner_id') THEN
+            ALTER TABLE buildings ADD COLUMN owner_id INTEGER REFERENCES owners(id) ON DELETE SET NULL;
+            CREATE INDEX IF NOT EXISTS idx_buildings_owner_id ON buildings(owner_id);
+            -- Backfill : buildings.user_id → owner_user.user_id → owner_user.owner_id
+            UPDATE buildings b
+            SET owner_id = ou.owner_id
+            FROM (
+                SELECT DISTINCT ON (user_id) user_id, owner_id
+                FROM owner_user
+                WHERE is_active = TRUE
+                ORDER BY user_id, owner_id ASC
+            ) ou
+            WHERE b.user_id = ou.user_id AND b.owner_id IS NULL;
+        END IF;
+    END IF;
+
     -- Table tickets (Plaintes/Interventions)
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='tickets') THEN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tickets' AND column_name='owner_id') THEN
