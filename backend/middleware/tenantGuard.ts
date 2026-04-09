@@ -54,8 +54,10 @@ export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next
         // 3. Ouvrir un client PostgreSQL dédié depuis le pool
         client = await pool.connect();
 
-        // 4. Exécuter SET LOCAL pour l'activer sur cette session précise
-        await client.query(`SET LOCAL app.current_owner_id = $1`, [activeOwnerId.toString()]);
+        // 4. Exécuter set_config() pour l'activer sur cette session précise
+        // NOTE: SET LOCAL ne supporte pas les paramètres $1 — set_config() est l'alternative correcte
+        // Le 3ème argument (true) = local = équivalent SET LOCAL (transaction-scoped)
+        await client.query(`SELECT set_config('app.current_owner_id', $1, true)`, [activeOwnerId.toString()]);
 
         // 5. Attacher le client sécurisé à la requête pour être utilisé par les routes
         (req as any).dbClient = client;
