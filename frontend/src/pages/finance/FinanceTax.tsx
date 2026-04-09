@@ -41,7 +41,8 @@ const FinanceTax: React.FC = () => {
         if (id) {
             try {
                 setLoading(true);
-                const data = await financeApi.getTaxSettings(id);
+                // [SÉCURITÉ] ownerId retiré — le backend résout le tenant via JWT
+                const data = await financeApi.getTaxSettings();
                 setSettings({ ...data, owner_id: id });
             } catch (error) {
                 // Ignore if not found, use default
@@ -66,7 +67,8 @@ const FinanceTax: React.FC = () => {
         try {
             setLoading(true);
             const currentYear = new Date().getFullYear();
-            const data = await financeApi.getTaxReport(parseInt(selectedOwner), currentYear);
+            // [SÉCURITÉ] ownerId retiré — le backend résout le tenant via JWT
+            const data = await financeApi.getTaxReport(currentYear);
             setReport(data);
         } catch (error) {
             toast.error("Erreur génération rapport");

@@ -249,13 +249,14 @@ export const financeApi = {
     },
 
     // --- TAX ---
-    getTaxSettings: async (ownerId: number): Promise<TaxSettings> => {
+    // [SÉCURITÉ] ownerId retiré de l'URL — le backend résout le tenant via JWT+tenantGuard
+    getTaxSettings: async (): Promise<TaxSettings> => {
         const token = getToken();
-        const res = await fetch(`${API_URL}/tax/settings/${ownerId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/tax/settings`, { headers: { 'Authorization': `Bearer ${token}` } });
         return await res.json();
     },
 
-    saveTaxSettings: async (data: TaxSettings): Promise<TaxSettings> => {
+    saveTaxSettings: async (data: Omit<TaxSettings, 'owner_id'>): Promise<TaxSettings> => {
         const token = getToken();
         const res = await fetch(`${API_URL}/tax/settings`, {
             method: 'POST',
@@ -265,9 +266,10 @@ export const financeApi = {
         return await res.json();
     },
 
-    getTaxReport: async (ownerId: number, year: number): Promise<any> => {
+    // [SÉCURITÉ] ownerId retiré de l'URL — le backend résout le tenant via JWT+tenantGuard
+    getTaxReport: async (year: number): Promise<any> => {
         const token = getToken();
-        const res = await fetch(`${API_URL}/tax/report/${ownerId}/${year}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/tax/report/${year}`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error('Erreur rapport fiscal');
         return await res.json();
     },
