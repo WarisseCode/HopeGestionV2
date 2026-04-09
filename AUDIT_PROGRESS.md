@@ -174,8 +174,21 @@ Nouvelles vulnérabilités découvertes :
 
 **Commit :** `fix(security): financeRoutes - tenantGuard+RLS sur 8 routes, IDOR building/schedule/payment (P-4)`
 
-### ⏳ ACTION P-5 — loanRoutes.ts (pas d'isolation tenant)
-**Statut :** EN ATTENTE
+### ✅ ACTION P-5 — loanRoutes.ts (pas d'isolation tenant)
+**Fichier :** `backend/routes/loanRoutes.ts`
+**Statut :** TERMINÉ
+**Date :** 9 avril 2026
+
+**Ce qui a été corrigé (5 routes) :**
+- `GET /` : `?owner_id` query param supprimé → resolvedOwnerId + dbClient + `WHERE l.owner_id = $1`
+- `GET /:id` : aucune vérif ownership → `WHERE id=$1 AND owner_id=$2` (404 si IDOR)
+- `POST /` : `owner_id` depuis req.body → resolvedOwnerId, pool.connect() → dbClient BEGIN/COMMIT
+- `PUT /:id/close` : pool.connect() sans vérif → dbClient + check `loans.owner_id = resolvedOwnerId`
+- `PUT /:id/installment/:paymentId/pay` : pool.connect() sans vérif → dbClient + check ownership prêt avant toute action
+
+**Éliminations :** import `pool`, import `format` (inutilisé), `client.release()` (géré par tenantGuard)
+
+**Commit :** `fix(security): loanRoutes - tenantGuard+RLS sur 5 routes, IDOR owner_id/loan/installment (P-5)`
 
 ### ⏳ ACTION P-6 — messageRoutes.ts
 **Statut :** EN ATTENTE
