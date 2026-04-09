@@ -6,6 +6,7 @@ import { Router, Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { rentPaymentService } from '../services/RentPaymentService';
 import type { CreateRentPaymentRequest } from '../services/RentPaymentService';
+import { fedapayService } from '../services/fedapayService';
 import type { WebhookPayload } from '../services/fedapayService';
 import permissions from '../middleware/permissionMiddleware';
 import { filterByOwner, buildOwnerWhereClause } from '../middleware/ownerIsolation';
@@ -154,6 +155,28 @@ router.post('/webhook', async (req, res: Response) => {
         if (metadata.plan_type !== 'rent') {
             console.log('[RentPaymentWebhook] Not a rent payment, ignoring');
             return res.status(200).json({ received: true, ignored: true });
+        }
+
+        // [SÉCURITÉ] Re-vérifier le statut réel auprès de l'API FedaPay avant tout traitement.
+        // Protège contre les requêtes forgées : un attaquant connaissant l'URL du webhook
+        // pourrait envoyer un faux payload "transaction.approved" sans avoir réellement payé.
+        // La vérification via sk_live garantit que FedaPay confirme bien le statut.
+        const verifiedTx = await fedapayService.getTransactionStatus(fedapayTransactionId);
+        if (!verifiedTx || verifiedTx.error) {
+            console.warn(`[RentPaymentWebhook] Impossible de vérifier la transaction ${fedapayTransactionId} auprès de FedaPay. Ignoré.`);
+            return res.status(200).json({ received: true, ignored: true, reason: 'unverifiable' });
+        }
+
+        // Mapping statuts FedaPay → statuts internes
+        const fedapayStatusMap: Record<string, string> = {
+            'approved': 'transaction.approved',
+            'declined': 'transaction.declined',
+            'canceled': 'transaction.canceled',
+        };
+        const expectedEvent = fedapayStatusMap[verifiedTx.status];
+        if (expectedEvent && expectedEvent !== eventName) {
+            console.warn(`[RentPaymentWebhook] Discordance statut: webhook="${eventName}" vs FedaPay="${verifiedTx.status}". Ignoré.`);
+            return res.status(200).json({ received: true, ignored: true, reason: 'status_mismatch' });
         }
 
         // Process based on event type
