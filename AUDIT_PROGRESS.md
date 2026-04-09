@@ -122,8 +122,72 @@ Les clés sk_sandbox/sk_live suffisent — pas besoin de Webhook Secret séparé
 
 ---
 
-### ⏳ ACTION D-6 — Audit des 34 routes restantes
-**Statut :** EN ATTENTE (après les 5 corrections critiques)
+### ✅ ACTION D-6 — Audit des 34 routes restantes
+**Statut :** TERMINÉ (inventaire)
+**Date :** 9 avril 2026
+
+Nouvelles vulnérabilités découvertes :
+- C-5 : taxRoutes.ts — IDOR via req.params.ownerId (URGENT)
+- P-4 : financeRoutes.ts — buildOwnerWhereClause + pool.query (Haute)
+- P-5 : loanRoutes.ts — pas d'isolation tenant (Haute)
+- P-6 : messageRoutes.ts — pas de tenant check (Moyen)
+- P-7 : bauxRoutes.ts — filterByOwner legacy (Moyen)
+- P-8 : delegationRoutes.ts — isolation à vérifier (Moyen)
+- P-9 : userAssignmentRoutes.ts — UPDATE sans vérification owner (Moyen)
+
+### ✅ ACTION C-5 — taxRoutes.ts (IDOR req.params.ownerId)
+**Fichier :** `backend/routes/taxRoutes.ts` + `frontend/src/api/financeApi.ts` + `frontend/src/pages/finance/FinanceTax.tsx`
+**Statut :** TERMINÉ
+**Date :** 9 avril 2026
+
+**Ce qui a été corrigé :**
+- 3 routes IDOR corrigées : GET /settings/:ownerId, POST /settings, GET /report/:ownerId/:year
+- ownerId retiré des params/body — résolu via tenantGuard+resolvedOwnerId
+- pool.query() → dbClient.query() sur toutes les routes
+- URLs backend modifiées : /settings (sans :ownerId), /report/:year (sans :ownerId)
+- Frontend mis à jour : getTaxSettings(), getTaxReport(year) — ownerId retiré des appels
+- FinanceTax.tsx : call sites corrigés
+
+**Commit :** `fix(security): taxRoutes - IDOR ownerId params remplacé par tenantGuard+resolvedOwnerId (C-5)`
+
+---
+
+### ✅ ACTION P-4 — financeRoutes.ts (buildOwnerWhereClause + pool.query + IDOR)
+**Fichier :** `backend/routes/financeRoutes.ts`
+**Statut :** TERMINÉ
+**Date :** 9 avril 2026
+
+**Ce qui a été corrigé (9 routes) :**
+- `GET /` : filterByOwner + buildOwnerWhereClause + pool.query → tenantGuard + dbClient + `WHERE p.owner_id = $1`
+- `POST /` : pool.connect() transaction → dbClient.query BEGIN/COMMIT + vérif `leases.owner_id = resolvedOwnerId` avant INSERT
+- `GET /stats` : aucun filtre owner → tenantGuard + `owner_id = $1` sur payments, expenses, payment_schedules
+- `GET /stats/monthly` : buildOwnerWhereClause + pool.query → tenantGuard + dbClient + `owner_id = $1`
+- `GET /stats/building/:id` : aucune vérif ownership → tenantGuard + check `buildings.owner_id = resolvedOwnerId` (404 si IDOR)
+- `GET /export/excel` : buildOwnerWhereClause interpolée + pool.query → tenantGuard + dbClient + `p.owner_id = $1`
+- `POST /generate-schedules` : inchangé (FinanceService utilise pool en interne — audit service séparé)
+- `GET /schedules` : `ownerIds.join(',')` interpolé en SQL → tenantGuard + dbClient + `l.owner_id = $1` paramétré
+- `PUT /schedules/:id/pay` : pool.connect() sans vérif ownership → dbClient BEGIN/COMMIT + `l.owner_id = $2` sur schedule lookup
+
+**Éliminations :**
+- Imports `filterByOwner`, `buildOwnerWhereClause`, `pool`, `dotenv` retirés
+- receiptService.generateReceipt() déplacé APRÈS COMMIT (corrige bug: pool externe ne verrait pas les données non-committées)
+
+**Commit :** `fix(security): financeRoutes - tenantGuard+RLS sur 8 routes, IDOR building/schedule/payment (P-4)`
+
+### ⏳ ACTION P-5 — loanRoutes.ts (pas d'isolation tenant)
+**Statut :** EN ATTENTE
+
+### ⏳ ACTION P-6 — messageRoutes.ts
+**Statut :** EN ATTENTE
+
+### ⏳ ACTION P-7 — bauxRoutes.ts (filterByOwner legacy)
+**Statut :** EN ATTENTE
+
+### ⏳ ACTION P-8 — delegationRoutes.ts
+**Statut :** EN ATTENTE
+
+### ⏳ ACTION P-9 — userAssignmentRoutes.ts
+**Statut :** EN ATTENTE
 
 ---
 

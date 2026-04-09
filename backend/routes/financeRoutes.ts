@@ -1,18 +1,17 @@
 // backend/routes/financeRoutes.ts
+// ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
+// Toutes les requêtes passent par req.dbClient fourni par tenantGuard (RLS actif).
+// owner_id vient UNIQUEMENT de resolvedOwnerId — jamais depuis req.params, req.query, ou req.body.
+
 import { Router, Response } from 'express';
-import { Pool } from 'pg';
-import * as dotenv from 'dotenv';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
+import { tenantGuard } from '../middleware/tenantGuard';
 import * as ExcelJS from 'exceljs';
-import path from 'path';
-import fs from 'fs';
-
-dotenv.config();
+import { receiptService } from '../services/ReceiptService';
+import { FinanceService } from '../services/FinanceService';
 
 const router = Router();
-import pool from '../db/database';
-import { receiptService } from '../services/ReceiptService';
 
 // Helper to select payments with correct aliases
 const SELECT_PAYMENTS_FIELDS = `
@@ -30,18 +29,19 @@ const SELECT_PAYMENTS_FIELDS = `
     p.owner_id
 `;
 
-import { filterByOwner, buildOwnerWhereClause } from '../middleware/ownerIsolation';
-
 // GET /api/finances - Liste des paiements
-router.get('/', permissions.canRead('finances'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
+// [SÉCURITÉ] owner_id = resolvedOwnerId — buildOwnerWhereClause + pool.query supprimés (C-4)
+router.get('/', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+    const dbClient = (req as any).dbClient;
+    const ownerId = (req as any).resolvedOwnerId;
     try {
-        const ownerIds = (req as any).ownerIds;
-        const whereClause = buildOwnerWhereClause(ownerIds);
-        
         const { lease_id, start_date, end_date, statut, type } = req.query;
 
+        const params: any[] = [ownerId];
+        let paramIndex = 2;
+
         let query = `
-            SELECT 
+            SELECT
                 ${SELECT_PAYMENTS_FIELDS},
                 l.reference_bail,
                 l.loyer_actuel as loyer_mensuel,
@@ -52,36 +52,29 @@ router.get('/', permissions.canRead('finances'), filterByOwner, async (req: Auth
             JOIN leases l ON p.lease_id = l.id
             JOIN tenants t ON l.tenant_id = t.id
             JOIN owners o ON l.owner_id = o.id
-            WHERE ${whereClause.replace(/owner_id/g, 'p.owner_id')}
+            WHERE p.owner_id = $1
         `;
-        
-        const params: any[] = [];
-        let paramIndex = 1;
 
         if (lease_id) {
             query += ` AND p.lease_id = $${paramIndex}`;
             params.push(lease_id);
             paramIndex++;
         }
-
         if (start_date) {
             query += ` AND p.date_paiement >= $${paramIndex}`;
             params.push(start_date);
             paramIndex++;
         }
-
         if (end_date) {
             query += ` AND p.date_paiement <= $${paramIndex}`;
             params.push(end_date);
             paramIndex++;
         }
-
         if (statut) {
             query += ` AND p.statut = $${paramIndex}`;
             params.push(statut);
             paramIndex++;
         }
-
         if (type) {
             query += ` AND p.type = $${paramIndex}`;
             params.push(type);
@@ -90,7 +83,7 @@ router.get('/', permissions.canRead('finances'), filterByOwner, async (req: Auth
 
         query += ` ORDER BY p.date_paiement DESC, p.created_at DESC`;
 
-        const result = await pool.query(query, params);
+        const result = await dbClient.query(query, params);
         res.json({ payments: result.rows });
     } catch (error) {
         console.error('Error fetching payments:', error);
@@ -99,10 +92,12 @@ router.get('/', permissions.canRead('finances'), filterByOwner, async (req: Auth
 });
 
 // POST /api/finances - Enregistrer un paiement
-router.post('/', permissions.canWrite('finances'), async (req: AuthenticatedRequest, res: Response) => {
-    const client = await pool.connect();
+// [SÉCURITÉ] Vérification que le bail appartient à resolvedOwnerId avant INSERT
+router.post('/', permissions.canWrite('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+    const dbClient = (req as any).dbClient;
+    const ownerId = (req as any).resolvedOwnerId;
     try {
-        await client.query('BEGIN');
+        await dbClient.query('BEGIN');
         const {
             lease_id,
             schedule_id,
@@ -114,97 +109,102 @@ router.post('/', permissions.canWrite('finances'), async (req: AuthenticatedRequ
             description
         } = req.body;
 
-        // Validation
         if (!lease_id || !amount || parseFloat(amount) <= 0) {
+            await dbClient.query('ROLLBACK');
             return res.status(400).json({ message: 'Données invalides' });
         }
 
+        // [SÉCURITÉ] Vérifie que le bail appartient à cet owner — empêche l'insertion cross-tenant
+        const leaseCheck = await dbClient.query(
+            'SELECT id FROM leases WHERE id = $1 AND owner_id = $2',
+            [lease_id, ownerId]
+        );
+        if (leaseCheck.rows.length === 0) {
+            await dbClient.query('ROLLBACK');
+            return res.status(404).json({ message: 'Bail introuvable pour ce propriétaire' });
+        }
+
         // IMPORTANT: Map API fields (English) to DB fields (French)
-        const insertRes = await client.query(`
+        const insertRes = await dbClient.query(`
             INSERT INTO payments (
-                lease_id, schedule_id, montant, date_paiement, 
+                lease_id, schedule_id, montant, date_paiement,
                 mode_paiement, reference_transaction, type, description, created_by, owner_id
-            ) 
-            SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, l.owner_id
-            FROM leases l WHERE l.id = $1
-            RETURNING id, lease_id, schedule_id, montant as amount, date_paiement as payment_date, 
-                      mode_paiement as payment_method, reference_transaction as reference, 
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING id, lease_id, schedule_id, montant as amount, date_paiement as payment_date,
+                      mode_paiement as payment_method, reference_transaction as reference,
                       type, statut, description, created_at
         `, [
             lease_id, schedule_id, amount, payment_date || new Date(),
-            payment_method || 'especes', reference, type || 'loyer', 
-            description, req.userId
+            payment_method || 'especes', reference, type || 'loyer',
+            description, req.userId, ownerId
         ]);
 
         const payment = insertRes.rows[0];
 
-        // Update schedule if linked
         if (schedule_id) {
-            // Get current schedule status
-            const schedRes = await client.query('SELECT * FROM payment_schedules WHERE id = $1', [schedule_id]);
+            const schedRes = await dbClient.query('SELECT * FROM payment_schedules WHERE id = $1', [schedule_id]);
             const schedule = schedRes.rows[0];
-
             if (schedule) {
                 // payment_schedules uses English columns: total_amount, amount_paid, status, due_date
                 const newPaidAmount = parseFloat(schedule.amount_paid || 0) + parseFloat(amount);
                 let newStatus = schedule.status;
-
                 if (newPaidAmount >= parseFloat(schedule.total_amount)) {
                     newStatus = 'paid';
                 } else if (newPaidAmount > 0) {
                     newStatus = 'partial';
                 }
-
-                await client.query(`
-                    UPDATE payment_schedules 
-                    SET amount_paid = $1, status = $2
-                    WHERE id = $3
-                `, [newPaidAmount, newStatus, schedule_id]);
+                await dbClient.query(
+                    `UPDATE payment_schedules SET amount_paid = $1, status = $2 WHERE id = $3`,
+                    [newPaidAmount, newStatus, schedule_id]
+                );
             }
         }
 
-        await client.query('COMMIT');
+        await dbClient.query('COMMIT');
         res.status(201).json(payment);
     } catch (error) {
-        await client.query('ROLLBACK');
+        await dbClient.query('ROLLBACK');
         console.error('Error recording payment:', error);
         res.status(500).json({ message: 'Erreur enregistrement paiement' });
-    } finally {
-        client.release();
     }
 });
 
 // GET /api/finances/stats - Statistiques (accepte ?month=X&year=Y, défaut: mois courant)
-router.get('/stats', permissions.canRead('finances'), async (req: AuthenticatedRequest, res: Response) => {
+// [SÉCURITÉ] Filtre owner_id = resolvedOwnerId sur toutes les requêtes — pool.query supprimé
+router.get('/stats', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+    const dbClient = (req as any).dbClient;
+    const ownerId = (req as any).resolvedOwnerId;
     try {
         const targetMonth = req.query.month ? parseInt(req.query.month as string) : new Date().getMonth() + 1;
         const targetYear = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear();
 
-        // 1. Total encashed for target month
-        const encashedRes = await pool.query(`
-            SELECT SUM(montant) as total 
-            FROM payments 
-            WHERE EXTRACT(MONTH FROM date_paiement) = $1 
-            AND EXTRACT(YEAR FROM date_paiement) = $2
+        const encashedRes = await dbClient.query(`
+            SELECT SUM(montant) as total
+            FROM payments
+            WHERE owner_id = $1
+            AND EXTRACT(MONTH FROM date_paiement) = $2
+            AND EXTRACT(YEAR FROM date_paiement) = $3
             AND statut = 'valide'
-        `, [targetMonth, targetYear]);
+        `, [ownerId, targetMonth, targetYear]);
 
-        // 2. Total expenses for target month
-        const expensesRes = await pool.query(`
+        const expensesRes = await dbClient.query(`
             SELECT SUM(amount) as total
             FROM expenses
-            WHERE EXTRACT(MONTH FROM date_expense) = $1
-            AND EXTRACT(YEAR FROM date_expense) = $2
-        `, [targetMonth, targetYear]);
+            WHERE owner_id = $1
+            AND EXTRACT(MONTH FROM date_expense) = $2
+            AND EXTRACT(YEAR FROM date_expense) = $3
+        `, [ownerId, targetMonth, targetYear]);
 
-        // 3. Pending (always current)
-        const pendingRes = await pool.query(`
-            SELECT SUM(total_amount - amount_paid) as total
-            FROM payment_schedules
-            WHERE status IN ('pending', 'partial', 'overdue')
-            AND due_date <= CURRENT_DATE
-        `);
-        
+        const pendingRes = await dbClient.query(`
+            SELECT SUM(ps.total_amount - ps.amount_paid) as total
+            FROM payment_schedules ps
+            JOIN leases l ON ps.lease_id = l.id
+            WHERE l.owner_id = $1
+            AND ps.status IN ('pending', 'partial', 'overdue')
+            AND ps.due_date <= CURRENT_DATE
+        `, [ownerId]);
+
         const income = parseFloat(encashedRes.rows[0].total || '0');
         const expenses = parseFloat(expensesRes.rows[0].total || '0');
 
@@ -221,40 +221,38 @@ router.get('/stats', permissions.canRead('finances'), async (req: AuthenticatedR
 });
 
 // GET /api/finances/stats/monthly - Revenus/Dépenses par mois (pour graphiques)
-router.get('/stats/monthly', permissions.canRead('finances'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
+// [SÉCURITÉ] owner_id = resolvedOwnerId — buildOwnerWhereClause + pool.query supprimés
+router.get('/stats/monthly', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+    const dbClient = (req as any).dbClient;
+    const ownerId = (req as any).resolvedOwnerId;
     try {
         const months = parseInt(req.query.months as string) || 6;
-        const ownerIds = (req as any).ownerIds;
-        const ownerFilter = buildOwnerWhereClause(ownerIds);
 
-        // Revenue per month (filtered by owner)
-        const revenueRes = await pool.query(`
-            SELECT 
+        const revenueRes = await dbClient.query(`
+            SELECT
                 EXTRACT(MONTH FROM date_paiement)::int as month,
                 EXTRACT(YEAR FROM date_paiement)::int as year,
                 SUM(montant) as total
             FROM payments
-            WHERE date_paiement >= (CURRENT_DATE - INTERVAL '1 month' * $1)
+            WHERE owner_id = $1
+            AND date_paiement >= (CURRENT_DATE - INTERVAL '1 month' * $2)
             AND statut = 'valide'
-            AND ${ownerFilter.replace(/owner_id/g, 'owner_id')}
             GROUP BY year, month
             ORDER BY year, month
-        `, [months]);
+        `, [ownerId, months]);
 
-        // Expenses per month (filtered by owner)
-        const expenseRes = await pool.query(`
-            SELECT 
+        const expenseRes = await dbClient.query(`
+            SELECT
                 EXTRACT(MONTH FROM date_expense)::int as month,
                 EXTRACT(YEAR FROM date_expense)::int as year,
                 SUM(amount) as total
             FROM expenses
-            WHERE date_expense >= (CURRENT_DATE - INTERVAL '1 month' * $1)
-            AND ${ownerFilter.replace(/owner_id/g, 'owner_id')}
+            WHERE owner_id = $1
+            AND date_expense >= (CURRENT_DATE - INTERVAL '1 month' * $2)
             GROUP BY year, month
             ORDER BY year, month
-        `, [months]);
+        `, [ownerId, months]);
 
-        // Build month labels for last N months
         const data = [];
         const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
         const now = new Date();
@@ -263,10 +261,8 @@ router.get('/stats/monthly', permissions.canRead('finances'), filterByOwner, asy
             const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const m = d.getMonth() + 1;
             const y = d.getFullYear();
-
             const rev = revenueRes.rows.find((r: any) => r.month === m && r.year === y);
             const exp = expenseRes.rows.find((r: any) => r.month === m && r.year === y);
-
             data.push({
                 label: `${monthNames[m - 1]} ${y}`,
                 month: m,
@@ -285,28 +281,38 @@ router.get('/stats/monthly', permissions.canRead('finances'), filterByOwner, asy
 });
 
 // GET /api/finances/stats/building/:id - Statistiques détaillées par immeuble
-router.get('/stats/building/:id', permissions.canRead('finances'), async (req: AuthenticatedRequest, res: Response) => {
+// [SÉCURITÉ] Vérifie que l'immeuble appartient à resolvedOwnerId avant toute requête (IDOR)
+router.get('/stats/building/:id', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+    const dbClient = (req as any).dbClient;
+    const ownerId = (req as any).resolvedOwnerId;
     try {
         const { id } = req.params;
-        
-        // 1. Taux d'occupation
-        const occupancyRes = await pool.query(`
-            SELECT 
+
+        // [SÉCURITÉ] Vérifie que l'immeuble appartient à cet owner — empêche l'IDOR cross-tenant
+        const buildingCheck = await dbClient.query(
+            'SELECT id FROM buildings WHERE id = $1 AND owner_id = $2',
+            [id, ownerId]
+        );
+        if (buildingCheck.rows.length === 0) {
+            return res.status(404).json({ message: 'Immeuble introuvable' });
+        }
+
+        const occupancyRes = await dbClient.query(`
+            SELECT
                 COUNT(*) as total_lots,
                 COUNT(CASE WHEN statut = 'occupe' THEN 1 END) as occupied_lots
-            FROM lots 
+            FROM lots
             WHERE building_id = $1
         `, [id]);
-        
+
         const { total_lots, occupied_lots } = occupancyRes.rows[0];
         const occupancy_rate = total_lots > 0 ? (occupied_lots / total_lots) * 100 : 0;
 
-        // 2. Performance financière (Ce mois)
         const currentMonth = new Date().getMonth() + 1;
         const currentYear = new Date().getFullYear();
 
-        const financeRes = await pool.query(`
-            SELECT 
+        const financeRes = await dbClient.query(`
+            SELECT
                 COALESCE(SUM(ps.total_amount), 0) as total_due,
                 COALESCE(SUM(ps.amount_paid), 0) as total_paid
             FROM payment_schedules ps
@@ -342,14 +348,16 @@ router.get('/stats/building/:id', permissions.canRead('finances'), async (req: A
 });
 
 // GET /api/finances/export/excel - Exportation Excel des paiements
-router.get('/export/excel', permissions.canRead('finances'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
+// [SÉCURITÉ] owner_id = resolvedOwnerId — buildOwnerWhereClause + pool.query supprimés
+router.get('/export/excel', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+    const dbClient = (req as any).dbClient;
+    const ownerId = (req as any).resolvedOwnerId;
     try {
         const { start_date, end_date } = req.query;
-        const ownerIds = (req as any).ownerIds;
-        const ownerFilter = buildOwnerWhereClause(ownerIds);
-        
+
+        const params: any[] = [ownerId];
         let query = `
-            SELECT 
+            SELECT
                 p.date_paiement, p.montant, p.mode_paiement, p.reference_transaction, p.type, p.statut,
                 l.reference_bail,
                 t.nom as locataire_nom, t.prenoms as locataire_prenoms,
@@ -362,14 +370,13 @@ router.get('/export/excel', permissions.canRead('finances'), filterByOwner, asyn
             JOIN owners o ON l.owner_id = o.id
             JOIN lots lo ON l.lot_id = lo.id
             JOIN buildings b ON lo.building_id = b.id
-            WHERE ${ownerFilter.replace(/owner_id/g, 'p.owner_id')}
+            WHERE p.owner_id = $1
         `;
-        const params: any[] = [];
         if (start_date) { params.push(start_date); query += ` AND p.date_paiement >= $${params.length}`; }
         if (end_date) { params.push(end_date); query += ` AND p.date_paiement <= $${params.length}`; }
-        
         query += ` ORDER BY p.date_paiement DESC`;
-        const result = await pool.query(query, params);
+
+        const result = await dbClient.query(query, params);
 
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Paiements');
@@ -386,7 +393,6 @@ router.get('/export/excel', permissions.canRead('finances'), filterByOwner, asyn
             { header: 'Statut', key: 'statut', width: 12 }
         ];
 
-        // Style header
         worksheet.getRow(1).font = { bold: true };
         worksheet.getRow(1).fill = {
             type: 'pattern',
@@ -408,37 +414,26 @@ router.get('/export/excel', permissions.canRead('finances'), filterByOwner, asyn
             });
         });
 
-        // Set content type and disposition
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', 'attachment; filename=' + `Rapport_Financier_${Date.now()}.xlsx`);
 
         await workbook.xlsx.write(res);
         res.end();
-
     } catch (error) {
         console.error('Error exporting excel:', error);
         res.status(500).json({ message: 'Erreur lors de l\'exportation' });
     }
 });
 
-
-import { FinanceService } from '../services/FinanceService';
-
 // POST /api/finances/generate-schedules - Générer les échéances (Admin/Gest)
+// ⚠️ FinanceService utilise pool en interne — audit du service à faire séparément (hors scope P-4)
 router.post('/generate-schedules', permissions.canWrite('finances'), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { month, year } = req.body;
-        
-        // Par défaut: mois courant
         const targetMonth = month ? parseInt(month) : new Date().getMonth() + 1;
         const targetYear = year ? parseInt(year) : new Date().getFullYear();
-
         const result = await FinanceService.generateMonthlySchedules(targetMonth, targetYear);
-        
-        res.json({ 
-            message: 'Génération terminée', 
-            details: result 
-        });
+        res.json({ message: 'Génération terminée', details: result });
     } catch (error) {
         console.error('Error generating schedules:', error);
         res.status(500).json({ message: 'Erreur lors de la génération des échéances' });
@@ -446,22 +441,19 @@ router.post('/generate-schedules', permissions.canWrite('finances'), async (req:
 });
 
 // GET /api/finances/schedules - Liste des échéances avec infos locataire
-router.get('/schedules', permissions.canRead('finances'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
+// [SÉCURITÉ] l.owner_id = resolvedOwnerId — ownerIds.join(',') interpolé supprimé + pool.query supprimé
+router.get('/schedules', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+    const dbClient = (req as any).dbClient;
+    const ownerId = (req as any).resolvedOwnerId;
     try {
-        const ownerIds = (req as any).ownerIds;
         const { month, year } = req.query;
         const targetMonth = month ? parseInt(month as string) : new Date().getMonth() + 1;
         const targetYear = year ? parseInt(year as string) : new Date().getFullYear();
 
-        let ownerFilter = '1=1';
-        if (ownerIds && ownerIds.length > 0) {
-            ownerFilter = `l.owner_id IN (${ownerIds.join(',')})`;
-        } else if (ownerIds && ownerIds.length === 0) {
-            return res.json([]);
-        }
-
-        const result = await pool.query(`
-            SELECT 
+        // [RLS] dbClient filtre automatiquement via get_current_owner_id()
+        // WHERE l.owner_id = $1 reste en défense en profondeur
+        const result = await dbClient.query(`
+            SELECT
                 ps.id,
                 ps.lease_id,
                 ps.total_amount,
@@ -476,13 +468,12 @@ router.get('/schedules', permissions.canRead('finances'), filterByOwner, async (
                 l.reference_bail,
                 l.loyer_actuel,
                 l.charges_mensuelles,
-                l.charges_mensuelles,
                 lo.ref_lot as lot_reference,
                 (
-                    SELECT p.quittance_url 
-                    FROM payments p 
-                    WHERE p.schedule_id = ps.id 
-                    AND p.statut = 'valide' 
+                    SELECT p.quittance_url
+                    FROM payments p
+                    WHERE p.schedule_id = ps.id
+                    AND p.statut = 'valide'
                     ORDER BY p.date_paiement DESC, p.created_at DESC
                     LIMIT 1
                 ) as quittance_url,
@@ -504,11 +495,11 @@ router.get('/schedules', permissions.canRead('finances'), filterByOwner, async (
             JOIN leases l ON ps.lease_id = l.id
             JOIN tenants t ON l.tenant_id = t.id
             LEFT JOIN lots lo ON l.lot_id = lo.id
-            WHERE EXTRACT(MONTH FROM ps.due_date) = $1
-            AND EXTRACT(YEAR FROM ps.due_date) = $2
-            AND ${ownerFilter}
+            WHERE l.owner_id = $1
+            AND EXTRACT(MONTH FROM ps.due_date) = $2
+            AND EXTRACT(YEAR FROM ps.due_date) = $3
             ORDER BY ps.due_date ASC, t.nom ASC
-        `, [targetMonth, targetYear]);
+        `, [ownerId, targetMonth, targetYear]);
 
         res.json(result.rows);
     } catch (error) {
@@ -518,37 +509,41 @@ router.get('/schedules', permissions.canRead('finances'), filterByOwner, async (
 });
 
 // PUT /api/finances/schedules/:id/pay - Marquer une échéance comme payée
-router.put('/schedules/:id/pay', permissions.canWrite('finances'), async (req: AuthenticatedRequest, res: Response) => {
-    const client = await pool.connect();
+// [SÉCURITÉ] Vérification ownership du schedule + tenantGuard + dbClient pour la transaction
+router.put('/schedules/:id/pay', permissions.canWrite('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+    const dbClient = (req as any).dbClient;
+    const ownerId = (req as any).resolvedOwnerId;
     try {
-        await client.query('BEGIN');
+        await dbClient.query('BEGIN');
         const { id } = req.params;
         const { payment_method, reference } = req.body;
 
-        // Vérifier que l'échéance existe et est pending
-        const scheduleRes = await client.query(
-            'SELECT ps.*, l.tenant_id, l.owner_id FROM payment_schedules ps JOIN leases l ON ps.lease_id = l.id WHERE ps.id = $1',
-            [id]
+        // [SÉCURITÉ] Vérifie que l'échéance appartient à cet owner — empêche l'IDOR cross-tenant
+        const scheduleRes = await dbClient.query(
+            `SELECT ps.*, l.tenant_id, l.owner_id
+             FROM payment_schedules ps
+             JOIN leases l ON ps.lease_id = l.id
+             WHERE ps.id = $1 AND l.owner_id = $2`,
+            [id, ownerId]
         );
         if (scheduleRes.rows.length === 0) {
-            await client.query('ROLLBACK');
+            await dbClient.query('ROLLBACK');
             return res.status(404).json({ message: 'Échéance non trouvée' });
         }
         const schedule = scheduleRes.rows[0];
         if (schedule.status === 'paid') {
-            await client.query('ROLLBACK');
+            await dbClient.query('ROLLBACK');
             return res.status(400).json({ message: 'Échéance déjà payée' });
         }
 
-        // Mettre à jour l'échéance
-        await client.query(
-            `UPDATE payment_schedules 
+        await dbClient.query(
+            `UPDATE payment_schedules
              SET status = 'paid', amount_paid = total_amount, date_reglement_final = NOW()
              WHERE id = $1`,
             [id]
         );
 
-        const paymentRes = await client.query(
+        const paymentRes = await dbClient.query(
             `INSERT INTO payments (lease_id, schedule_id, montant, date_paiement, mode_paiement, reference_transaction, type, statut, owner_id, description)
              VALUES ($1, $2, $3, NOW(), $4, $5, 'loyer', 'paid', $6, $7)
              RETURNING id`,
@@ -564,34 +559,29 @@ router.put('/schedules/:id/pay', permissions.canWrite('finances'), async (req: A
         );
 
         const paymentId = paymentRes.rows[0].id;
+        await dbClient.query('COMMIT');
 
-        // Générer la quittance PDF
+        // Génération quittance PDF après COMMIT (receiptService utilise pool en interne — non bloquant)
         let receiptUrl = null;
         try {
-            // Note: generateReceipt update the payment record with the URL
             receiptUrl = await receiptService.generateReceipt(paymentId);
         } catch (err) {
             console.error('Error generating receipt:', err);
-            // Non-blocking error, user can generate it later optionally
         }
 
-        await client.query('COMMIT');
-        res.json({ 
-            message: 'Échéance marquée comme payée', 
+        res.json({
+            message: 'Échéance marquée comme payée',
             schedule: { ...schedule, status: 'paid', quittance_url: receiptUrl },
             receiptUrl
         });
     } catch (error) {
-        await client.query('ROLLBACK');
+        await dbClient.query('ROLLBACK');
         console.error('Error paying schedule:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             message: error instanceof Error ? error.message : 'Erreur paiement échéance',
             details: String(error)
         });
-    } finally {
-        client.release();
     }
 });
 
 export default router;
-
