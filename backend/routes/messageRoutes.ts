@@ -7,6 +7,7 @@ import EmailService from '../services/EmailService';
 const router = express.Router();
 
 // GET /api/messages?context_type=task&context_id=1
+// [SÉCURITÉ] Filtre sender_id/recipient_id = req.userId — empêche l'IDOR via context_id
 router.get('/', protect, async (req: any, res) => {
     try {
         const { context_type, context_id } = req.query;
@@ -20,8 +21,9 @@ router.get('/', protect, async (req: any, res) => {
              FROM messages m
              LEFT JOIN users u ON m.sender_id = u.id
              WHERE m.context_type = $1 AND m.context_id = $2
+             AND (m.sender_id = $3 OR m.recipient_id = $3)
              ORDER BY m.created_at ASC`,
-            [context_type, context_id]
+            [context_type, context_id, req.userId]
         );
         res.json(result.rows);
     } catch (error) {

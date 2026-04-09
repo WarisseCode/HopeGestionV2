@@ -190,8 +190,20 @@ Nouvelles vulnérabilités découvertes :
 
 **Commit :** `fix(security): loanRoutes - tenantGuard+RLS sur 5 routes, IDOR owner_id/loan/installment (P-5)`
 
-### ⏳ ACTION P-6 — messageRoutes.ts
-**Statut :** EN ATTENTE
+### ✅ ACTION P-6 — messageRoutes.ts (IDOR GET via context_id)
+**Fichier :** `backend/routes/messageRoutes.ts`
+**Statut :** TERMINÉ
+**Date :** 9 avril 2026
+
+**Ce qui a été corrigé :**
+- `GET /` : ajout `AND (m.sender_id = $3 OR m.recipient_id = $3)` avec req.userId
+  → Un utilisateur ne peut plus lire les messages d'un contexte où il n'est ni émetteur ni destinataire
+- `POST /` : inchangé — sender_id = req.userId correct, pas de vecteur d'injection structurel
+
+**Note :** tenantGuard non utilisé — la table `messages` est scopée par sender_id/recipient_id,
+pas par owner_id. Les locataires (sans entrée owner_user) doivent aussi pouvoir accéder à cette route.
+
+**Commit :** `fix(security): messageRoutes - filtre sender/recipient sur GET (IDOR context_id) (P-6)`
 
 ### ⏳ ACTION P-7 — bauxRoutes.ts (filterByOwner legacy)
 **Statut :** EN ATTENTE
