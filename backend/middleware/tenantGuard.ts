@@ -10,7 +10,9 @@ export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next
         return res.status(401).json({ success: false, message: 'Non authentifié. Jeton manquant ou invalide.' });
     }
 
-    const requestedOwnerId = req.headers['x-owner-id'] || req.query.owner_id || req.body.owner_id;
+    // [SÉCURITÉ] owner_id accepté uniquement depuis le header X-Owner-Id.
+    // req.body.owner_id et req.query.owner_id retirés — vecteur d'injection potentiel.
+    const requestedOwnerId = req.headers['x-owner-id'];
     let client: PoolClient | undefined;
 
     try {
