@@ -34,15 +34,27 @@ router.get('/my-pending', async (req: AuthenticatedRequest, res: Response) => {
 /**
  * GET /api/rent-payments/:leaseId/pending
  * Get pending payment schedules for a lease
+ * [LOCATAIRE] Isolation par tenant.user_id = req.userId — tenantGuard non applicable.
  */
 router.get('/:leaseId/pending', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const leaseId = parseInt(req.params.leaseId || '0');
-        const userId = req.userId;
+        const userId = req.userId!;
 
-        // Verify the user is the tenant of this lease
-        // For now, we'll trust the auth middleware
-        // TODO: Add explicit authorization check
+        // [SÉCURITÉ] Vérifie que ce bail appartient bien au locataire connecté
+        const ownershipCheck = await pool.query(
+            `SELECT l.id FROM leases l
+             JOIN tenants t ON l.tenant_id = t.id
+             WHERE l.id = $1 AND t.user_id = $2`,
+            [leaseId, userId]
+        );
+
+        if (ownershipCheck.rows.length === 0) {
+            return res.status(403).json({
+                success: false,
+                message: 'Accès refusé à ce bail.'
+            });
+        }
 
         const schedules = await rentPaymentService.getPendingSchedules(leaseId);
 
@@ -190,13 +202,29 @@ router.post('/webhook', async (req, res: Response) => {
 /**
  * GET /api/rent-payments/verify/:transactionId
  * Manually trigger verification of a transaction (upstream check)
+ * [LOCATAIRE] Isolation par tenant.user_id = req.userId — tenantGuard non applicable.
  */
 router.get('/verify/:transactionId', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const transactionId = parseInt(req.params.transactionId || '0');
-        const userId = req.userId;
+        const userId = req.userId!;
 
-        const result = await rentPaymentService.verifyTransactionStatus(transactionId, userId!);
+        // [SÉCURITÉ] Vérifie que la transaction appartient bien au locataire connecté
+        const ownershipCheck = await pool.query(
+            `SELECT rpt.id FROM rent_payment_transactions rpt
+             JOIN tenants t ON rpt.tenant_id = t.id
+             WHERE rpt.id = $1 AND t.user_id = $2`,
+            [transactionId, userId]
+        );
+
+        if (ownershipCheck.rows.length === 0) {
+            return res.status(403).json({
+                success: false,
+                message: 'Accès refusé à cette transaction.'
+            });
+        }
+
+        const result = await rentPaymentService.verifyTransactionStatus(transactionId, userId);
 
         res.json(result);
 
@@ -245,14 +273,29 @@ router.get('/history', async (req: AuthenticatedRequest, res: Response) => {
 /**
  * GET /api/rent-payments/receipt/:transactionId
  * Get the receipt URL for a completed rent payment transaction
+ * [LOCATAIRE] Isolation par tenant.user_id = req.userId — tenantGuard non applicable.
  */
 router.get('/receipt/:transactionId', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const transactionId = parseInt(req.params.transactionId || '0');
-        const tenantId = req.userId;
+        const userId = req.userId!;
 
-        // Get transaction and associated payment
-        const result = await rentPaymentService.getReceiptUrl(transactionId, tenantId!);
+        // [SÉCURITÉ] Vérifie que la transaction appartient bien au locataire connecté
+        const ownershipCheck = await pool.query(
+            `SELECT rpt.id FROM rent_payment_transactions rpt
+             JOIN tenants t ON rpt.tenant_id = t.id
+             WHERE rpt.id = $1 AND t.user_id = $2`,
+            [transactionId, userId]
+        );
+
+        if (ownershipCheck.rows.length === 0) {
+            return res.status(403).json({
+                success: false,
+                message: 'Accès refusé à cette quittance.'
+            });
+        }
+
+        const result = await rentPaymentService.getReceiptUrl(transactionId, userId);
 
         if (!result.success) {
             return res.status(404).json(result);
