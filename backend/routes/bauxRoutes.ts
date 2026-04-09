@@ -1,18 +1,22 @@
+// backend/routes/bauxRoutes.ts
+// ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser filterByOwner (legacy).
+// LeaseService.findAll utilise req.dbClient (RLS actif via tenantGuard).
+
 import express, { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
-import { filterByOwner } from '../middleware/ownerIsolation';
+import { tenantGuard } from '../middleware/tenantGuard';
 import { LeaseService } from '../services/leaseService';
 
 const router = express.Router();
 
-router.get('/', permissions.canRead('locataires'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
+// GET /api/baux — Liste des baux pour le tenant actif
+// [SÉCURITÉ] filterByOwner + ownerIds supprimés — LeaseService.findAll utilise dbClient (RLS)
+router.get('/', permissions.canRead('locataires'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+    const dbClient = (req as any).dbClient;
     try {
         const { statut } = req.query;
-        const ownerIds = (req as any).ownerIds;
-
-        const leases = await LeaseService.findAll(ownerIds, { statut: statut as string });
-
+        const leases = await LeaseService.findAll(dbClient, { statut: statut as string });
         res.json({ baux: leases });
     } catch (error) {
         console.error('Error fetching leases (baux):', error);

@@ -1,20 +1,27 @@
-import { Router } from 'express';
-import { Pool } from 'pg';
-import * as dotenv from 'dotenv';
+// backend/routes/userAssignmentRoutes.ts
+// ⚠️ RÈGLE ARCHITECTURE : Toutes les routes nécessitent protect (JWT).
+// Les opérations d'écriture sont réservées au rôle super_admin.
 
-dotenv.config();
+import { Router } from 'express';
+import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
+import pool from '../db/database';
+import { Response } from 'express';
 
 const router = Router();
 
-import pool from '../db/database';
+router.use(protect);
 
 // PUT /api/user-assignments/bulk/:userId
 // Bulk update assignments for a user with granular permissions
+// [SÉCURITÉ] Réservé super_admin — opération privilégiée (modifie les droits d'accès)
 // NOTE: This route MUST be defined BEFORE /:userId to avoid path conflicts
-router.put('/bulk/:userId', async (req: any, res) => {
+router.put('/bulk/:userId', async (req: AuthenticatedRequest, res: Response) => {
+    if (req.userRole !== 'super_admin') {
+        return res.status(403).json({ message: 'Accès refusé. Réservé super_admin.' });
+    }
     try {
         const { userId } = req.params;
-        const { assignments } = req.body; // Array of { owner_id, role, permissions }
+        const { assignments } = req.body;
 
         if (!assignments || !Array.isArray(assignments)) {
             return res.status(400).json({ message: 'Assignments array required' });
@@ -29,7 +36,7 @@ router.put('/bulk/:userId', async (req: any, res) => {
         // Reactivate/Insert selected
         for (const assign of assignments) {
             const { owner_id, role, permissions } = assign;
-             await pool.query(`
+            await pool.query(`
                 INSERT INTO owner_user (
                     user_id, owner_id, role, is_active, start_date,
                     can_view_finances, can_edit_properties, can_manage_tenants,
@@ -37,8 +44,8 @@ router.put('/bulk/:userId', async (req: any, res) => {
                     can_delete_data
                 )
                 VALUES ($1, $2, $3, true, CURRENT_DATE, $4, $5, $6, $7, $8, $9, $10)
-                ON CONFLICT (user_id, owner_id) 
-                DO UPDATE SET 
+                ON CONFLICT (user_id, owner_id)
+                DO UPDATE SET
                     is_active = true,
                     role = EXCLUDED.role,
                     can_view_finances = EXCLUDED.can_view_finances,
@@ -69,12 +76,25 @@ router.put('/bulk/:userId', async (req: any, res) => {
 
 // GET /api/user-assignments/by-owner/:ownerId
 // Get all users assigned to a specific owner
-// NOTE: This route MUST be defined BEFORE /:userId 
-router.get('/by-owner/:ownerId', async (req, res) => {
+// [SÉCURITÉ] Accessible uniquement au super_admin ou aux membres de cet owner
+// NOTE: This route MUST be defined BEFORE /:userId
+router.get('/by-owner/:ownerId', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { ownerId } = req.params;
+
+        // [SÉCURITÉ] super_admin voit tout — sinon vérif que l'appelant appartient à cet owner
+        if (req.userRole !== 'super_admin') {
+            const memberCheck = await pool.query(
+                'SELECT 1 FROM owner_user WHERE owner_id = $1 AND user_id = $2 AND is_active = true',
+                [ownerId, req.userId]
+            );
+            if (memberCheck.rows.length === 0) {
+                return res.status(403).json({ message: 'Accès refusé à ce propriétaire.' });
+            }
+        }
+
         const result = await pool.query(`
-            SELECT 
+            SELECT
                 ou.user_id,
                 ou.start_date as assigned_at,
                 u.nom as user_name,
@@ -85,7 +105,7 @@ router.get('/by-owner/:ownerId', async (req, res) => {
             WHERE ou.owner_id = $1 AND ou.is_active = true
             ORDER BY u.nom
         `, [ownerId]);
-        
+
         res.json(result.rows);
     } catch (error) {
         console.error('Error fetching users for owner:', error);
@@ -95,11 +115,18 @@ router.get('/by-owner/:ownerId', async (req, res) => {
 
 // GET /api/user-assignments/:userId
 // Get all owner assignments for a specific user
-router.get('/:userId', async (req, res) => {
+// [SÉCURITÉ] Un utilisateur ne peut voir que ses propres affectations — super_admin voit tout
+router.get('/:userId', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { userId } = req.params;
+
+        // [SÉCURITÉ] Restreint aux données propres à l'utilisateur, sauf super_admin
+        if (req.userRole !== 'super_admin' && req.userId !== parseInt(userId)) {
+            return res.status(403).json({ message: 'Accès refusé.' });
+        }
+
         const result = await pool.query(`
-            SELECT 
+            SELECT
                 ou.user_id,
                 ou.owner_id,
                 ou.role,
@@ -120,7 +147,7 @@ router.get('/:userId', async (req, res) => {
             WHERE ou.user_id = $1 AND ou.is_active = true
             ORDER BY o.name
         `, [userId]);
-        
+
         res.json(result.rows);
     } catch (error) {
         console.error('Error fetching assignments:', error);
@@ -130,12 +157,15 @@ router.get('/:userId', async (req, res) => {
 
 // POST /api/user-assignments
 // Assign a user to an owner with permissions
-router.post('/', async (req: any, res) => {
+// [SÉCURITÉ] Réservé super_admin
+router.post('/', async (req: AuthenticatedRequest, res: Response) => {
+    if (req.userRole !== 'super_admin') {
+        return res.status(403).json({ message: 'Accès refusé. Réservé super_admin.' });
+    }
     try {
         const { user_id, owner_id, role, permissions } = req.body;
-        // permissions = { can_view_finances: true, ... }
 
-        const query = `
+        const result = await pool.query(`
             INSERT INTO owner_user (
                 user_id, owner_id, role, is_active, start_date,
                 can_view_finances, can_edit_properties, can_manage_tenants,
@@ -154,9 +184,7 @@ router.post('/', async (req: any, res) => {
                 can_manage_users = EXCLUDED.can_manage_users,
                 can_delete_data = EXCLUDED.can_delete_data
             RETURNING *
-        `;
-
-        const result = await pool.query(query, [
+        `, [
             user_id, owner_id, role || 'viewer',
             permissions?.can_view_finances || false,
             permissions?.can_edit_properties || false,
@@ -176,7 +204,11 @@ router.post('/', async (req: any, res) => {
 
 // DELETE /api/user-assignments/:userId/:ownerId
 // Remove an assignment (soft delete)
-router.delete('/:userId/:ownerId', async (req, res) => {
+// [SÉCURITÉ] Réservé super_admin
+router.delete('/:userId/:ownerId', async (req: AuthenticatedRequest, res: Response) => {
+    if (req.userRole !== 'super_admin') {
+        return res.status(403).json({ message: 'Accès refusé. Réservé super_admin.' });
+    }
     try {
         const { userId, ownerId } = req.params;
         await pool.query(

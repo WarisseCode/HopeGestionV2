@@ -205,14 +205,47 @@ pas par owner_id. Les locataires (sans entrée owner_user) doivent aussi pouvoir
 
 **Commit :** `fix(security): messageRoutes - filtre sender/recipient sur GET (IDOR context_id) (P-6)`
 
-### ⏳ ACTION P-7 — bauxRoutes.ts (filterByOwner legacy)
-**Statut :** EN ATTENTE
+### ✅ ACTION P-7 — bauxRoutes.ts (filterByOwner legacy)
+**Fichier :** `backend/routes/bauxRoutes.ts`
+**Statut :** TERMINÉ
+**Date :** 9 avril 2026
 
-### ⏳ ACTION P-8 — delegationRoutes.ts
-**Statut :** EN ATTENTE
+**Ce qui a été corrigé :**
+- `filterByOwner` + `ownerIds` supprimés → `tenantGuard` + `dbClient`
+- `LeaseService.findAll(ownerIds, filters)` → `LeaseService.findAll(dbClient, filters)`
+  (LeaseService.findAll avait déjà été mis à jour pour accepter dbClient — la route utilisait encore l'ancienne signature)
 
-### ⏳ ACTION P-9 — userAssignmentRoutes.ts
-**Statut :** EN ATTENTE
+---
+
+### ✅ ACTION P-8 — delegationRoutes.ts
+**Fichier :** `backend/routes/delegationRoutes.ts`
+**Statut :** VÉRIFIÉ — aucune correction nécessaire
+**Date :** 9 avril 2026
+
+**Analyse :**
+- `getManagedOwnerId()` dérive `owner_id` depuis la DB (WHERE user_id=$1 AND role='owner') — jamais depuis la requête
+- Toutes les routes ont `protect` individuellement
+- Tables touchées (`owner_user`, `users`) : pas de RLS → pool.query acceptable
+- Aucun IDOR possible : owner_id toujours scopé au JWT userId
+
+---
+
+### ✅ ACTION P-9 — userAssignmentRoutes.ts (UPDATE sans vérification owner)
+**Fichier :** `backend/routes/userAssignmentRoutes.ts`
+**Statut :** TERMINÉ
+**Date :** 9 avril 2026
+
+**Vulnérabilité critique découverte :** Aucun middleware `protect` sur aucune route — API d'administration des permissions entièrement publique.
+
+**Ce qui a été corrigé :**
+- `router.use(protect)` ajouté — toutes les routes nécessitent désormais un JWT valide
+- `PUT /bulk/:userId` : réservé `super_admin` — modifie l'ensemble des droits d'un utilisateur
+- `POST /` : réservé `super_admin`
+- `DELETE /:userId/:ownerId` : réservé `super_admin`
+- `GET /by-owner/:ownerId` : super_admin voit tout, sinon vérif membership dans cet owner
+- `GET /:userId` : un user ne voit que ses propres affectations (req.userId === userId), super_admin voit tout
+
+**Commit :** `fix(security): P-7 bauxRoutes tenantGuard + P-9 userAssignmentRoutes protect+super_admin`
 
 ---
 
