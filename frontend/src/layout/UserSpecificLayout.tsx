@@ -1,8 +1,9 @@
 // frontend/src/layout/UserSpecificLayout.tsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getToken, getRole } from '../api/authApi';
+import { getToken } from '../api/authApi';
 import DashboardLayout from './DashboardLayout';
+import ProprietaireLayout from './ProprietaireLayout';
 import { getProfile } from '../api/authApi';
 
 interface UserSpecificLayoutProps {
@@ -34,9 +35,8 @@ const UserSpecificLayout: React.FC<UserSpecificLayoutProps> = ({ children, onLog
 
         const profile = await getProfile();
         setUserProfile(profile.user);
-        
-        // Selon le type d'utilisateur, rediriger vers l'espace approprié
-        // mais seulement si on est sur la page principale du dashboard
+
+        // Redirection vers l'espace approprié uniquement depuis la racine /dashboard
         if (window.location.pathname === '/dashboard' || window.location.pathname === '/dashboard/') {
           if (profile.user.userType === 'locataire') {
             navigate('/dashboard/locataire');
@@ -59,13 +59,25 @@ const UserSpecificLayout: React.FC<UserSpecificLayoutProps> = ({ children, onLog
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex justify-center items-center h-screen bg-base-200">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm text-base-content/50 font-medium">Chargement de votre espace...</p>
+        </div>
       </div>
     );
   }
 
-  // Render standard layout for all users, removing specific "Espace ..." headers
+  // Les propriétaires ont un layout dédié — mode observateur lecture seule
+  if (userProfile?.userType === 'proprietaire' || userProfile?.role === 'proprietaire') {
+    return (
+      <ProprietaireLayout onLogout={onLogout}>
+        {children}
+      </ProprietaireLayout>
+    );
+  }
+
+  // Tous les autres rôles (gestionnaire, locataire, admin...) utilisent le layout standard
   return (
     <DashboardLayout onLogout={onLogout}>
       {children}

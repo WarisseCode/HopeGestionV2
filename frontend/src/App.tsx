@@ -186,21 +186,23 @@ const App: React.FC = () => {
                                             <Route path="reservations" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<ReservationsList />} />} />
                                             <Route path="inventories" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoriesList />} />} />
                                             <Route path="inventaires" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoriesList />} />} />
-                                            <Route path="inventories/new" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoryForm />} />} />
-                                            <Route path="inventaires/new" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoryForm />} />} />
-                                            <Route path="inventories/:id/edit" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoryForm />} />} />
+                                            {/* Routes d'écriture — gestionnaire uniquement */}
+                                            <Route path="inventories/new" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<InventoryForm />} />} />
+                                            <Route path="inventaires/new" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<InventoryForm />} />} />
+                                            <Route path="inventories/:id/edit" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<InventoryForm />} />} />
+                                            {/* Routes de consultation — gestionnaire + proprietaire (lecture) */}
                                             <Route path="inventories/:id" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoryDetails />} />} />
                                             <Route path="etats-des-lieux" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<EdlList />} />} />
-                                            <Route path="etats-des-lieux/nouveau" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<EdlCreate />} />} />
+                                            <Route path="etats-des-lieux/nouveau" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<EdlCreate />} />} />
                                             <Route path="etats-des-lieux/:id" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<EdlDetails />} />} />
-                                            <Route path="etats-des-lieux/:id/signer" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<EdlSignature />} />} />
+                                            <Route path="etats-des-lieux/:id/signer" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<EdlSignature />} />} />
                                             <Route path="contrats" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Contrats />} />} />
                                             <Route path="documents" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Documents />} />} />
                                             <Route path="carnet" element={<RouteProtection allowedUserTypes={['gestionnaire', 'admin']} children={<Carnet />} />} />
                                             <Route path="tasks" element={<RouteProtection allowedUserTypes={['gestionnaire', 'admin']} children={<TasksPage />} />} />
                                             <Route path="finances" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Finances />} />} />
                                             <Route path="interventions" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Interventions />} />} />
-                                            <Route path="equipe" element={<RouteProtection allowedUserTypes={['proprietaire']} children={<DelegationsPage />} />} />
+                                            {/* equipe retiré du proprietaire — le gestionnaire gère les délégations */}
                                             <Route path="parametres" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Parametres />} />} />
                                             <Route path="rapports" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Rapports />} />} />
                                             <Route path="audit-logs" element={<RouteProtection allowedUserTypes={['gestionnaire', 'admin']} children={<AuditLogsPage />} />} />
