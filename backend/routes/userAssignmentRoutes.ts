@@ -121,7 +121,7 @@ router.get('/:userId', async (req: AuthenticatedRequest, res: Response) => {
         const { userId } = req.params;
 
         // [SÉCURITÉ] Restreint aux données propres à l'utilisateur, sauf super_admin
-        if (req.userRole !== 'super_admin' && req.userId !== parseInt(userId)) {
+        if (req.userRole !== 'super_admin' && req.userId !== parseInt(userId!)) {
             return res.status(403).json({ message: 'Accès refusé.' });
         }
 

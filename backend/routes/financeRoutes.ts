@@ -400,7 +400,7 @@ router.get('/export/excel', permissions.canRead('finances'), tenantGuard, async 
             fgColor: { argb: 'FFE0E0E0' }
         };
 
-        result.rows.forEach(p => {
+        result.rows.forEach((p: any) => {
             worksheet.addRow({
                 date: new Date(p.date_paiement).toLocaleDateString('fr-FR'),
                 locataire: `${p.locataire_prenoms} ${p.locataire_nom}`,
