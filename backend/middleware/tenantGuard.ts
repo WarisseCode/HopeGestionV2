@@ -55,9 +55,11 @@ export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next
         client = await pool.connect();
 
         // 4. Exécuter set_config() pour l'activer sur cette session précise
-        // NOTE: SET LOCAL ne supporte pas les paramètres $1 — set_config() est l'alternative correcte
-        // Le 3ème argument (true) = local = équivalent SET LOCAL (transaction-scoped)
-        await client.query(`SELECT set_config('app.current_owner_id', $1, true)`, [activeOwnerId.toString()]);
+        // NOTE: false = session-level (persiste pour toute la connexion dédiée)
+        // Sûr car tenantGuard écrase la valeur à chaque nouvelle requête entrante
+        // true (LOCAL/transaction-scoped) ne fonctionnait pas : le paramètre était réinitialisé
+        // entre set_config et les queries suivantes (chaque query = transaction implicite distincte)
+        await client.query(`SELECT set_config('app.current_owner_id', $1, false)`, [activeOwnerId.toString()]);
 
         // 5. Attacher le client sécurisé à la requête pour être utilisé par les routes
         (req as any).dbClient = client;
