@@ -171,15 +171,17 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
         
         const ownerId = newOwner.rows[0].id;
         
-        // Lier à l'utilisateur qui crée (si ce n'est pas un admin pur qui crée pour les autres)
-        try {
-            await db.query(
-                `INSERT INTO owner_user (user_id, owner_id, role, is_active, start_date) VALUES ($1, $2, 'owner', true, CURRENT_DATE)`,
-                [req.userId!, ownerId]
-            );
-        } catch (linkError) {
-            console.error('Erreur liaison owner_user:', linkError);
-            // On continue même si la liaison échoue (non critique pour la création)
+        // Lier uniquement si le créateur est lui-même un propriétaire (pas gestionnaire/admin)
+        // Un gestionnaire crée des propriétaires pour les gérer — il ne doit pas être dans owner_user pour eux
+        if (req.userRole === 'proprietaire') {
+            try {
+                await db.query(
+                    `INSERT INTO owner_user (user_id, owner_id, role, is_active, start_date) VALUES ($1, $2, 'owner', true, CURRENT_DATE)`,
+                    [req.userId!, ownerId]
+                );
+            } catch (linkError) {
+                console.error('Erreur liaison owner_user:', linkError);
+            }
         }
 
         // Log action
