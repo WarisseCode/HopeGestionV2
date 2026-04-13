@@ -29,9 +29,21 @@ router.get('/proprietaires', async (req: AuthenticatedRequest, res: Response) =>
         `;
         const params: any[] = [];
 
-        // Gestionnaire/manager/admin : voient tous les propriétaires actifs
-        // Propriétaire : ne voit que ses propres données (filtre via owner_user)
         if (req.userRole === 'proprietaire' || req.userRole === 'owner') {
+            // Propriétaire : ne voit que ses propres données
+            const linkResult = await db.query(
+                `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
+                [req.userId]
+            );
+            if (linkResult.rows.length > 0) {
+                const ownerIds = linkResult.rows.map(row => row.owner_id);
+                query += ` AND id = ANY($1)`;
+                params.push(ownerIds);
+            } else {
+                return res.json({ proprietaires: [] });
+            }
+        } else if (req.userRole === 'gestionnaire' || req.userRole === 'manager') {
+            // Gestionnaire : ne voit que les propriétaires qu'il gère (via owner_user)
             const linkResult = await db.query(
                 `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
                 [req.userId]
@@ -44,6 +56,7 @@ router.get('/proprietaires', async (req: AuthenticatedRequest, res: Response) =>
                 return res.json({ proprietaires: [] });
             }
         }
+        // admin : voit tous les propriétaires (pas de filtre supplémentaire)
 
         query += ` ORDER BY name ASC`;
         
@@ -168,17 +181,18 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
         
         const ownerId = newOwner.rows[0].id;
         
-        // Lier uniquement si le créateur est lui-même un propriétaire (pas gestionnaire/admin)
-        // Un gestionnaire crée des propriétaires pour les gérer — il ne doit pas être dans owner_user pour eux
-        if (req.userRole === 'proprietaire') {
-            try {
-                await db.query(
-                    `INSERT INTO owner_user (user_id, owner_id, role, is_active, start_date) VALUES ($1, $2, 'owner', true, CURRENT_DATE)`,
-                    [req.userId!, ownerId]
-                );
-            } catch (linkError) {
-                console.error('Erreur liaison owner_user:', linkError);
-            }
+        // Lier le créateur à l'owner via owner_user
+        // - Gestionnaire/manager : role='gestionnaire' (il gère ce propriétaire)
+        // - Propriétaire : role='owner' (c'est son propre compte)
+        try {
+            const linkRole = (req.userRole === 'gestionnaire' || req.userRole === 'manager') ? 'gestionnaire' : 'owner';
+            await db.query(
+                `INSERT INTO owner_user (user_id, owner_id, role, is_active, start_date) VALUES ($1, $2, $3, true, CURRENT_DATE)
+                 ON CONFLICT (user_id, owner_id) DO NOTHING`,
+                [req.userId!, ownerId, linkRole]
+            );
+        } catch (linkError) {
+            console.error('Erreur liaison owner_user:', linkError);
         }
 
         // Log action
