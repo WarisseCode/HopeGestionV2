@@ -66,8 +66,13 @@ export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next
         (req as any).resolvedOwnerId = activeOwnerId;
 
         // Libération différée : après que la réponse soit envoyée
-        res.on('finish', () => { if (client) client.release(); });
-        res.on('close', () => { if (client) client.release(); });
+        // Guard contre le double-release (finish + close émis tous les deux en fin normale)
+        let released = false;
+        const releaseClient = () => {
+            if (!released && client) { released = true; client.release(); }
+        };
+        res.on('finish', releaseClient);
+        res.on('close', releaseClient);
 
         // 6. Appeler next() pour passer à la route (sans await)
         next(); 
