@@ -29,21 +29,18 @@ router.get('/proprietaires', async (req: AuthenticatedRequest, res: Response) =>
         `;
         const params: any[] = [];
 
-        // Si ce n'est pas un admin, on filtre pour ne montrer que les propriétaires liés (via owner_user)
-        if (req.userRole !== 'admin') {
-            // Trouver les IDs owner liés à cet utilisateur
+        // Gestionnaire/manager/admin : voient tous les propriétaires actifs
+        // Propriétaire : ne voit que ses propres données (filtre via owner_user)
+        if (req.userRole === 'proprietaire' || req.userRole === 'owner') {
             const linkResult = await db.query(
                 `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
                 [req.userId]
             );
-            
             if (linkResult.rows.length > 0) {
-                // Filtrer sur les IDs trouvés
                 const ownerIds = linkResult.rows.map(row => row.owner_id);
                 query += ` AND id = ANY($1)`;
                 params.push(ownerIds);
             } else {
-                // Pas de lien owner trouvé -> liste vide
                 return res.json({ proprietaires: [] });
             }
         }
