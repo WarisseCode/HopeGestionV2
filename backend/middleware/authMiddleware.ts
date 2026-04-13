@@ -88,9 +88,13 @@ export const protect = async (req: AuthenticatedRequest, res: Response, next: Ne
         // 4. Continuer vers la prochaine fonction (la route demandée)
         next();
         
-    } catch (error) {
+    } catch (error: any) {
         console.error('[AUTH] Token verification failed:', error);
-        // Si la vérification échoue (jeton expiré, falsifié, etc.)
-        return res.status(403).json({ message: 'Accès refusé : Jeton non valide ou expiré.' });
+        // Token expiré → 401 pour déclencher l'auto-refresh côté frontend
+        // Token falsifié ou invalide → 403
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ message: 'Accès refusé : Jeton expiré.' });
+        }
+        return res.status(403).json({ message: 'Accès refusé : Jeton non valide.' });
     }
 };
