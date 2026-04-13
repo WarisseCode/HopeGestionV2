@@ -26,6 +26,7 @@ export interface Locataire {
     caution?: number;
     avance?: number;
     paiement_echelonne?: boolean;
+    owner_id?: number;
     // Display fields from LATERAL JOIN
     lot_nom?: string;      // Active lot reference
     loyer_actuel?: number; // Active rent amount

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getLocataires, createLocataire, deleteLocataire, approveLocataire, rejectLocataire } from '../api/locataireApi';
+import { getProprietaires } from '../api/accountApi';
 import { getSubscriptionStatus } from '../api/subscriptionApi';
 import type { Locataire } from '../api/locataireApi';
 import type { SubscriptionStatus } from '../api/subscriptionApi';
@@ -106,6 +107,7 @@ const Locataires: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
+  const [proprietaires, setProprietaires] = useState<any[]>([]);
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -165,13 +167,14 @@ const Locataires: React.FC = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [locsAll, achs, subStatus] = await Promise.all([
+      const [locsAll, achs, subStatus, props] = await Promise.all([
         getLocataires('Locataire'),
         getLocataires('Acheteur'),
         getSubscriptionStatus().catch(err => {
             console.error("Erreur chargement abonnement", err);
             return null;
-        })
+        }),
+        getProprietaires().catch(() => [])
       ]);
       
       // Separate Active from Pending
@@ -182,6 +185,7 @@ const Locataires: React.FC = () => {
       setRequests(pendingLocs);
       setAcheteurs(achs);
       if (subStatus) setSubscriptionStatus(subStatus);
+      setProprietaires(props);
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || 'Erreur lors du chargement');
@@ -799,6 +803,7 @@ const Locataires: React.FC = () => {
           locataire={{
             type: locataireForm.typeProfil as any
           }}
+          proprietaires={proprietaires.map(p => ({ id: p.id, nom: p.nom, prenom: p.prenom }))}
           onSave={async (data) => {
             try {
               setError(null);

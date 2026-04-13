@@ -13,11 +13,18 @@ import ImageUpload from '../ui/ImageUpload';
 import PhoneInput from '../ui/PhoneInput';
 import type { Locataire } from '../../api/locataireApi';
 
+interface Proprietaire {
+  id: number;
+  nom: string;
+  prenom?: string;
+}
+
 interface LocataireFormProps {
   locataire?: Partial<Locataire>;
   onSave: (data: Partial<Locataire>) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
+  proprietaires?: Proprietaire[];
 }
 
 const STEPS = [
@@ -31,7 +38,8 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
   locataire,
   onSave,
   onCancel,
-  loading = false
+  loading = false,
+  proprietaires = []
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(0);
@@ -58,6 +66,7 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
       telephone_secondaire: '',
       email: '',
       nationalite: 'Béninoise',
+      owner_id: locataire?.owner_id || (proprietaires.length === 1 ? proprietaires[0].id : undefined),
       adresse_actuelle: '',
       // Documents
       type_piece: 'CNI',
@@ -126,7 +135,8 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
   const isStepValid = () => {
     switch (currentStep) {
       case 0: // Identité
-        return !!formData.nom && !!formData.prenoms && !!formData.telephone_principal;
+        return !!formData.nom && !!formData.prenoms && !!formData.telephone_principal
+          && (proprietaires.length <= 1 || !!formData.owner_id);
       case 1: // Documents
         return true; // Optional
       case 2: // Finances
@@ -232,6 +242,18 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
                    </div>
                    <span className="text-xs text-base-content/60 font-medium">Photo de profil</span>
                 </div>
+
+                {proprietaires.length > 1 && (
+                  <Select
+                    label="Propriétaire *"
+                    value={formData.owner_id ?? ''}
+                    onChange={(e) => handleChange('owner_id', parseInt(e.target.value))}
+                    options={proprietaires.map(p => ({
+                      value: p.id,
+                      label: `${p.nom}${p.prenom ? ' ' + p.prenom : ''}`
+                    }))}
+                  />
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <Select
