@@ -129,10 +129,10 @@ router.get('/', protect, async (req: AuthenticatedRequest, res: Response) => {
 
         // 4. Lots vacants
         const vacantQuery = `
-            SELECT l.id, l.ref_lot, b.nom as building_name
-            FROM lots l
-            JOIN buildings b ON l.building_id = b.id
-            WHERE (l.statut = 'libre' OR l.statut = 'disponible')
+            SELECT lo.id, lo.ref_lot, b.nom as building_name
+            FROM lots lo
+            JOIN buildings b ON lo.building_id = b.id
+            WHERE (lo.statut = 'libre' OR lo.statut = 'disponible')
             ${ownerFilter}
         `;
         const vacantRes = await pool.query(vacantQuery, ownerParams);
@@ -142,7 +142,7 @@ router.get('/', protect, async (req: AuthenticatedRequest, res: Response) => {
                 alerts.push({
                     id, reference: `VAC-${row.id}`,
                     titre: 'Lot vacant',
-                    description: `Le lot ${row.ref_lot} (${row.building_name}) est libre.`,
+                    description: `Le lot ${row.ref_lot ?? ''} (${row.building_name}) est libre.`,
                     destinataire: 'Commercial', type: 'Commercial',
                     priorite: 'Basse', dateCreation: new Date().toISOString(),
                     statut: 'Active', link: '/dashboard/biens?tab=lots'
