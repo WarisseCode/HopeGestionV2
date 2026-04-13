@@ -47,10 +47,23 @@ export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next
             (req as any).resolvedOwnerId = validOwnerIds[0];
 
         } else {
-            // Plusieurs owners sans sélection explicite → mode gestionnaire multi-owner
-            // La politique RLS utilise app.current_user_id pour voir tous les owners gérés
-            await client.query(`SELECT set_config('app.current_owner_id', '', false)`);
-            (req as any).resolvedOwnerId = null;
+            // Plusieurs owners → mode gestionnaire multi-owner
+            // Chercher un owner_id dans le body ou query (pour les opérations de création)
+            const bodyOwnerId = req.body?.owner_id
+                ? parseInt(req.body.owner_id, 10)
+                : req.query?.owner_id
+                    ? parseInt(req.query.owner_id as string, 10)
+                    : null;
+
+            if (bodyOwnerId && validOwnerIds.includes(bodyOwnerId)) {
+                // owner_id fourni et validé → mode ciblé (INSERT dans le bon tenant)
+                await client.query(`SELECT set_config('app.current_owner_id', $1, false)`, [bodyOwnerId.toString()]);
+                (req as any).resolvedOwnerId = bodyOwnerId;
+            } else {
+                // Pas d'owner_id ciblé → mode lecture multi-owner via app.current_user_id
+                await client.query(`SELECT set_config('app.current_owner_id', '', false)`);
+                (req as any).resolvedOwnerId = null;
+            }
         }
 
         (req as any).dbClient = client;
