@@ -6,7 +6,7 @@ import {
   Mail, MapPin, Calendar, CreditCard,
   ArrowLeft, ArrowRight, Save, Check,
   Info, Banknote, Smartphone, HandCoins,
-  Building2, ChevronRight
+  Building2, ChevronRight, Camera, Loader2, X
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -14,6 +14,7 @@ import Select from '../ui/Select';
 import ImageUpload from '../ui/ImageUpload';
 import PhoneInput from '../ui/PhoneInput';
 import type { Locataire } from '../../api/locataireApi';
+import { API_URL as API_ENDPOINT, API_BASE } from '../../config';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -30,6 +31,133 @@ interface LocataireFormProps {
   loading?: boolean;
   proprietaires?: Proprietaire[];
 }
+
+// ─── AvatarUpload ──────────────────────────────────────────────────────────────
+// Composant de sélection de photo de profil avec interface circulaire
+
+interface AvatarUploadProps {
+  value?: string;
+  onChange: (url: string) => void;
+}
+
+const AvatarUpload: React.FC<AvatarUploadProps> = ({ value, onChange }) => {
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview]     = useState<string | null>(value || null);
+  const [error, setError]         = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setPreview(value || null); }, [value]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { setError('Max 5 MB'); return; }
+    if (!file.type.startsWith('image/')) { setError('Image uniquement'); return; }
+
+    setError(null);
+    setUploading(true);
+    setPreview(URL.createObjectURL(file));
+
+    const fd = new FormData();
+    fd.append('type', 'avatar');
+    fd.append('file', file);
+
+    try {
+      const res  = await fetch(`${API_ENDPOINT}/upload`, { method: 'POST', body: fd });
+      const data = await res.json();
+      if (res.ok) {
+        const url = `${API_BASE}${data.files[0].path}`;
+        onChange(url);
+        setPreview(url);
+      } else {
+        throw new Error(data.message || 'Erreur');
+      }
+    } catch {
+      setError("Échec de l'envoi");
+      setPreview(value || null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemove = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChange('');
+    setPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      {/* Cercle cliquable */}
+      <div className="relative group">
+        <div
+          className="w-28 h-28 rounded-full bg-base-200 border-4 border-white shadow-md ring-1 ring-base-300 overflow-hidden cursor-pointer"
+          onClick={() => !uploading && fileInputRef.current?.click()}
+          title="Changer la photo de profil"
+        >
+          {uploading ? (
+            <div className="w-full h-full flex items-center justify-center bg-base-200">
+              <Loader2 size={30} className="animate-spin text-primary" />
+            </div>
+          ) : preview ? (
+            <img src={preview} alt="Photo de profil" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-base-content/25">
+              <User size={44} />
+            </div>
+          )}
+
+          {/* Overlay hover */}
+          {!uploading && (
+            <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+              <Camera size={24} className="text-white" />
+            </div>
+          )}
+        </div>
+
+        {/* Badge caméra */}
+        {!uploading && (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="absolute bottom-0.5 right-0.5 w-8 h-8 rounded-full bg-primary text-primary-content shadow-lg flex items-center justify-center hover:bg-primary/80 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+            title="Modifier la photo"
+          >
+            <Camera size={14} />
+          </button>
+        )}
+
+        {/* Bouton supprimer */}
+        {preview && !uploading && (
+          <button
+            type="button"
+            onClick={handleRemove}
+            className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-error text-white shadow-md flex items-center justify-center hover:bg-error/80 transition-colors"
+            title="Supprimer la photo"
+          >
+            <X size={11} />
+          </button>
+        )}
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
+      <p className="text-xs text-base-content/40 text-center leading-tight">
+        Photo de profil
+        <span className="block text-[10px] mt-0.5">JPG, PNG · max 5 MB</span>
+      </p>
+
+      {error && <p className="text-xs text-error text-center">{error}</p>}
+    </div>
+  );
+};
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -417,59 +545,56 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
             {currentStep === 0 && (
               <div className="space-y-5">
 
-                {/* Proprietaire card-selector */}
+                {/* Sélecteur propriétaire — dropdown */}
                 {proprietaires.length > 1 && (
-                  <div>
-                    <p className="text-sm font-semibold text-base-content mb-2">
-                      Attribuer à un propriétaire
-                      <span className="text-error ml-0.5">*</span>
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {proprietaires.map(p => {
-                        const selected = formData.owner_id === p.id;
-                        return (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => handleChange('owner_id', p.id)}
-                            aria-pressed={selected ? "true" : "false"}
-                            className={[
-                              'flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all',
-                              'focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none',
-                              selected
-                                ? 'border-primary bg-primary/5'
-                                : 'border-base-300 hover:border-primary/50',
-                            ].join(' ')}
-                          >
-                            <div className={[
-                              'w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0',
-                              'text-sm font-bold uppercase',
-                              selected ? 'bg-primary text-primary-content' : 'bg-base-200 text-base-content/50',
-                            ].join(' ')}>
-                              {p.nom.charAt(0)}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className={`text-sm font-semibold truncate ${selected ? 'text-primary' : 'text-base-content'}`}>
-                                {p.nom}
-                              </p>
-                              {p.prenom && (
-                                <p className="text-xs text-base-content/50 truncate">{p.prenom}</p>
-                              )}
-                            </div>
-                            {selected && (
-                              <Check size={16} className="flex-shrink-0 text-primary" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {touched['owner_id'] && !formData.owner_id && (
-                      <p role="alert" className="text-xs text-error mt-1.5 flex items-center gap-1">
-                        Veuillez sélectionner un propriétaire
-                      </p>
-                    )}
-                  </div>
+                  <Select
+                    label="Attribuer à un propriétaire"
+                    required
+                    value={formData.owner_id ?? ''}
+                    onChange={e => handleChange('owner_id', parseInt(e.target.value, 10))}
+                    placeholder="Sélectionner un propriétaire…"
+                    options={proprietaires.map(p => ({
+                      value: p.id,
+                      label: `${p.nom}${p.prenom ? ' ' + p.prenom : ''}`,
+                    }))}
+                    error={touched['owner_id'] && !formData.owner_id
+                      ? 'Veuillez sélectionner un propriétaire'
+                      : undefined}
+                  />
                 )}
+
+                {/* Photo de profil — centrée */}
+                <div className="flex justify-center pt-1 pb-2">
+                  <AvatarUpload
+                    value={formData.photo_profil_url}
+                    onChange={url => handleChange('photo_profil_url', url)}
+                  />
+                </div>
+
+                {/* Nom + Prénoms — grille 2 colonnes */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Input
+                    label="Nom de famille"
+                    placeholder="Ex : AGOSSOU"
+                    value={formData.nom}
+                    onChange={e => handleChange('nom', e.target.value)}
+                    onBlur={() => handleBlur('nom')}
+                    required
+                    startIcon={<User size={16} />}
+                    error={getError('nom')}
+                    helperText="Affiché en majuscules"
+                  />
+                  <Input
+                    label="Prénoms"
+                    placeholder="Ex : Jean-Baptiste"
+                    value={formData.prenoms}
+                    onChange={e => handleChange('prenoms', e.target.value)}
+                    onBlur={() => handleBlur('prenoms')}
+                    required
+                    startIcon={<User size={16} />}
+                    error={getError('prenoms')}
+                  />
+                </div>
 
                 {/* Type de profil */}
                 <div>
@@ -492,51 +617,6 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
                         {type}
                       </button>
                     ))}
-                  </div>
-                </div>
-
-                {/* Photo + Nom/Prénoms */}
-                <div className="flex gap-4 items-start">
-                  {/* Avatar upload */}
-                  <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-                    <div className="w-[88px] h-[88px] rounded-full overflow-hidden border-4 border-base-200 shadow bg-base-200">
-                      <ImageUpload
-                        value={formData.photo_profil_url}
-                        onChange={url => handleChange('photo_profil_url', url)}
-                        folder="avatar"
-                        label=""
-                        clearOnSuccess={false}
-                        className="w-full h-full [&_div]:border-none [&_div]:rounded-none [&_div]:h-full [&_div]:bg-transparent"
-                      />
-                    </div>
-                    <span className="text-[10px] text-base-content/40 text-center leading-tight">
-                      Photo<br />profil
-                    </span>
-                  </div>
-
-                  {/* Nom + Prénoms */}
-                  <div className="flex-1 space-y-3 min-w-0">
-                    <Input
-                      label="Nom de famille"
-                      placeholder="Ex : AGOSSOU"
-                      value={formData.nom}
-                      onChange={e => handleChange('nom', e.target.value)}
-                      onBlur={() => handleBlur('nom')}
-                      required
-                      startIcon={<User size={16} />}
-                      error={getError('nom')}
-                      helperText="Sera affiché en majuscules"
-                    />
-                    <Input
-                      label="Prénoms"
-                      placeholder="Ex : Jean-Baptiste"
-                      value={formData.prenoms}
-                      onChange={e => handleChange('prenoms', e.target.value)}
-                      onBlur={() => handleBlur('prenoms')}
-                      required
-                      startIcon={<User size={16} />}
-                      error={getError('prenoms')}
-                    />
                   </div>
                 </div>
 
