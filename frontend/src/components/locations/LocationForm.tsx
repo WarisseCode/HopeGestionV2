@@ -537,7 +537,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
                         onChange={e => set('avance', parseFloat(e.target.value) || 0)}
                         helperText={form.loyer_mensuel > 0
                           ? `= ${((form.avance ?? 0) / form.loyer_mensuel).toFixed(1)} mois`
-                          : 'Mois payés à l'avance'}
+                          : "Mois payés à l'avance"}
                       />
                     </div>
 
