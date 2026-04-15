@@ -1,12 +1,20 @@
 // frontend/src/components/proprietaires/ProprietaireForm.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  User, FileText, Settings, Check, ArrowRight, ArrowLeft, 
-  Camera, MessageCircle, Save
+import {
+  User, FileText, Settings, Check,
+  ArrowRight, ArrowLeft, Save,
+  Mail, MapPin, Banknote, Calendar,
+  Building2, Hash, Info, ChevronRight,
+  MessageCircle
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
+import Select from '../ui/Select';
+import PhoneInput from '../ui/PhoneInput';
+import AvatarUpload from '../ui/AvatarUpload';
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface Owner {
   id?: number;
@@ -34,20 +42,70 @@ interface ProprietaireFormProps {
   loading?: boolean;
 }
 
+// ─── Constants ─────────────────────────────────────────────────────────────────
+
 const STEPS = [
-  { id: 0, title: 'Informations Générales', icon: <User size={20} /> },
-  { id: 1, title: 'Documents', icon: <FileText size={20} /> },
-  { id: 2, title: 'Paramètres & Délégation', icon: <Settings size={20} /> }
+  {
+    id: 0,
+    title: 'Identité',
+    subtitle: 'Informations personnelles et contact',
+    icon: User,
+    required: true,
+  },
+  {
+    id: 1,
+    title: 'Documents',
+    subtitle: 'Contrats et pièces légales',
+    icon: FileText,
+    required: false,
+  },
+  {
+    id: 2,
+    title: 'Paramètres',
+    subtitle: 'Mode de gestion et confirmation',
+    icon: Settings,
+    required: false,
+  },
 ];
+
+const COUNTRIES = [
+  'Bénin', 'Togo', 'Côte d\'Ivoire', 'Sénégal', 'Mali',
+  'Burkina Faso', 'Niger', 'Ghana', 'Nigéria', 'Cameroun',
+  'Gabon', 'Congo', 'France', 'Autre',
+];
+
+// ─── Validation ────────────────────────────────────────────────────────────────
+
+const validateField = (field: string, value: any, type: 'individual' | 'company'): string => {
+  switch (field) {
+    case 'name':
+      return type === 'individual' && !value?.trim() ? 'Le nom est requis' : '';
+    case 'company_name':
+      return type === 'company' && !value?.trim() ? 'La raison sociale est requise' : '';
+    case 'phone':
+      return !value ? 'Le téléphone principal est requis' : '';
+    case 'email':
+      if (!value?.trim()) return '';
+      return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? 'Email invalide' : '';
+    default:
+      return '';
+  }
+};
+
+// ─── Component ─────────────────────────────────────────────────────────────────
 
 const ProprietaireForm: React.FC<ProprietaireFormProps> = ({
   owner,
   onSave,
   onCancel,
-  loading = false
+  loading = false,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState<Partial<Owner>>({
+  const [direction, setDirection]     = useState(0);
+  const [touched, setTouched]         = useState<Record<string, boolean>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const buildDefaults = (): Partial<Owner> => ({
     type: 'individual',
     management_mode: 'direct',
     name: '',
@@ -63,46 +121,45 @@ const ProprietaireForm: React.FC<ProprietaireFormProps> = ({
     delegation_start_date: '',
     delegation_end_date: '',
     photo_url: '',
-    ...owner
   });
+
+  const [formData, setFormData] = useState<Partial<Owner>>(() => ({
+    ...buildDefaults(),
+    ...owner,
+    delegation_start_date: owner?.delegation_start_date
+      ? owner.delegation_start_date.split('T')[0] : '',
+    delegation_end_date: owner?.delegation_end_date
+      ? owner.delegation_end_date.split('T')[0] : '',
+  }));
 
   useEffect(() => {
     if (owner) {
       setFormData({
-        type: 'individual',
-        management_mode: 'direct',
-        name: '',
-        prenom: '',
-        phone: '',
-        secondary_phone: '',
-        email: '',
-        address: '',
-        country: 'Bénin',
-        company_name: '',
-        rccm_number: '',
-        mobile_money: '',
-        delegation_start_date: '',
-        delegation_end_date: '',
-        photo_url: '',
-        ...owner
+        ...buildDefaults(),
+        ...owner,
+        delegation_start_date: owner.delegation_start_date
+          ? owner.delegation_start_date.split('T')[0] : '',
+        delegation_end_date: owner.delegation_end_date
+          ? owner.delegation_end_date.split('T')[0] : '',
       });
     }
-  }, [owner]);
+  }, [owner?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleChange = (field: keyof Owner, value: any) => {
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  const handleChange = useCallback(<K extends keyof Owner>(field: K, value: Owner[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
+    setFieldErrors(prev => ({ ...prev, [field]: '' }));
+  }, []);
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        handleChange('photo_url', reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  const handleBlur = useCallback((field: string) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    const error = validateField(field, (formData as any)[field], formData.type!);
+    setFieldErrors(prev => ({ ...prev, [field]: error }));
+  }, [formData]);
+
+  const getError = (field: string): string =>
+    touched[field] ? fieldErrors[field] || '' : '';
 
   const openWhatsApp = (phone: string) => {
     if (!phone) return;
@@ -110,366 +167,580 @@ const ProprietaireForm: React.FC<ProprietaireFormProps> = ({
     window.open(`https://wa.me/${cleaned}`, '_blank');
   };
 
-  const isStepValid = () => {
-    switch (currentStep) {
-      case 0: // Informations Générales
-        if (formData.type === 'individual') {
-          return !!formData.name && !!formData.phone;
-        } else {
-          return !!formData.company_name && !!formData.phone;
-        }
-      case 1: // Documents
-        return true; // No required fields
-      case 2: // Paramètres
-        return true;
-      default:
-        return false;
-    }
+  // ── Step navigation ───────────────────────────────────────────────────────
+
+  const getRequiredFields = () =>
+    formData.type === 'individual' ? ['name', 'phone'] : ['company_name', 'phone'];
+
+  const isStep0Valid = (): boolean => {
+    if (formData.type === 'individual') return !!formData.name?.trim() && !!formData.phone;
+    return !!formData.company_name?.trim() && !!formData.phone;
   };
 
+  const isStepValid = (step = currentStep): boolean =>
+    step === 0 ? isStep0Valid() : true;
+
   const handleNext = () => {
-    if (isStepValid()) {
-      setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
+    if (currentStep === 0) {
+      const newErrors: Record<string, string> = {};
+      const newTouched: Record<string, boolean> = {};
+      getRequiredFields().forEach(f => {
+        const err = validateField(f, (formData as any)[f], formData.type!);
+        if (err) newErrors[f] = err;
+        newTouched[f] = true;
+      });
+      setFieldErrors(prev => ({ ...prev, ...newErrors }));
+      setTouched(prev => ({ ...prev, ...newTouched }));
+      if (Object.keys(newErrors).length > 0) return;
     }
+    setDirection(1);
+    setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
   };
 
   const handlePrev = () => {
+    setDirection(-1);
     setCurrentStep(prev => Math.max(prev - 1, 0));
   };
 
-  const handleSubmit = async () => {
-    if (!isStepValid()) return;
-    
-    // Send all data including photo_url (now supported by backend TEXT column)
-    await onSave(formData);
+  const handleSkip = () => {
+    setDirection(1);
+    setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
   };
-
-  const slideVariants = {
-    enter: (direction: number) => ({ x: direction > 0 ? 100 : -100, opacity: 0 }),
-    center: { x: 0, opacity: 1 },
-    exit: (direction: number) => ({ x: direction < 0 ? 100 : -100, opacity: 0 })
-  };
-
-  const [direction, setDirection] = useState(0);
 
   const goToStep = (step: number) => {
+    const reachable = step < currentStep
+      || step === currentStep
+      || (step === currentStep + 1 && isStepValid());
+    if (!reachable) return;
     setDirection(step > currentStep ? 1 : -1);
     setCurrentStep(step);
   };
 
+  const handleSubmit = async () => {
+    await onSave(formData);
+  };
+
+  // ── Derived values ────────────────────────────────────────────────────────
+
+  const progress     = ((currentStep + 1) / STEPS.length) * 100;
+  const isLastStep   = currentStep === STEPS.length - 1;
+  const isOptional   = currentStep > 0 && !isLastStep;
+  const displayName  = formData.type === 'individual'
+    ? `${formData.name || '—'} ${formData.prenom || ''}`.trim()
+    : formData.company_name || '—';
+
+  const slide = {
+    enter:  (d: number) => ({ x: d > 0 ? 56 : -56, opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit:   (d: number) => ({ x: d < 0 ? 56 : -56, opacity: 0 }),
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
     <div className="bg-base-100 rounded-xl shadow-lg border border-base-200 overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-6 border-b border-base-200">
-        <h2 className="text-xl font-bold text-base-content">
-          {owner?.id ? 'Modifier le propriétaire' : 'Nouveau propriétaire'}
-        </h2>
-        <p className="text-base-content/60 text-sm mt-1">
-          Étape {currentStep + 1} sur {STEPS.length}
-        </p>
+
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <div className="px-6 pt-5 pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-base-content leading-snug">
+              {owner?.id ? 'Modifier le propriétaire' : 'Nouveau propriétaire'}
+            </h2>
+            <p className="text-sm text-base-content/50 mt-0.5">
+              {STEPS[currentStep].subtitle}
+            </p>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div className="mt-4 space-y-1">
+          <div className="flex justify-between text-xs text-base-content/40">
+            <span className="font-medium">{STEPS[currentStep].title}</span>
+            <span>Étape {currentStep + 1} / {STEPS.length}</span>
+          </div>
+          <div className="w-full h-1.5 bg-base-200 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-primary rounded-full"
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Stepper */}
-      <div className="flex justify-between items-center px-6 py-4 bg-base-100 border-b border-base-200">
-        {STEPS.map((step, index) => (
-          <React.Fragment key={step.id}>
+      {/* ── Stepper ─────────────────────────────────────────────────────── */}
+      <div
+        className="flex gap-1.5 px-6 pb-4"
+        role="tablist"
+        aria-label="Étapes du formulaire"
+      >
+        {STEPS.map((step, index) => {
+          const StepIcon  = step.icon;
+          const completed = currentStep > index;
+          const current   = currentStep === index;
+          const reachable = index <= currentStep
+            || (index === currentStep + 1 && isStepValid());
+
+          return (
             <button
+              key={step.id}
               type="button"
+              role="tab"
+              aria-current={current ? "true" : undefined}
+              aria-label={`${step.title}${!step.required ? ' (facultatif)' : ''}${completed ? ' — complété' : ''}`}
               onClick={() => goToStep(step.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                currentStep === step.id
-                  ? 'bg-primary text-primary-content'
-                  : currentStep > step.id
-                  ? 'bg-success/20 text-success'
-                  : 'bg-base-200 text-base-content/60'
-              }`}
+              disabled={!reachable}
+              className={[
+                'flex-1 flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-xs font-medium transition-all',
+                'focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none',
+                current   ? 'bg-primary text-primary-content shadow-sm' : '',
+                completed ? 'bg-success/10 text-success cursor-pointer hover:bg-success/20' : '',
+                !current && !completed ? 'text-base-content/35' : '',
+                !reachable ? 'cursor-default' : '',
+              ].join(' ')}
             >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                currentStep > step.id ? 'bg-success text-white' : ''
-              }`}>
-                {currentStep > step.id ? <Check size={16} /> : step.icon}
+              <div className={[
+                'w-7 h-7 rounded-full flex items-center justify-center',
+                current   ? 'bg-white/20' : '',
+                completed ? 'bg-success text-white' : '',
+              ].join(' ')}>
+                {completed ? <Check size={14} /> : <StepIcon size={15} />}
               </div>
-              <span className="hidden md:inline text-sm font-medium">{step.title}</span>
+              <span className="hidden sm:block leading-none">{step.title}</span>
             </button>
-            {index < STEPS.length - 1 && (
-              <div className={`flex-1 h-1 mx-2 rounded ${
-                currentStep > index ? 'bg-success' : 'bg-base-200'
-              }`} />
-            )}
-          </React.Fragment>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Form Content */}
-      <div className="p-6 min-h-[400px]">
+      <div className="border-t border-base-200" />
+
+      {/* ── Form content ────────────────────────────────────────────────── */}
+      <div className="p-6 min-h-[420px]">
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={currentStep}
             custom={direction}
-            variants={slideVariants}
+            variants={slide}
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
           >
-            {/* Step 0: Informations Générales */}
+
+            {/* ════════════════ STEP 0 — IDENTITÉ ════════════════ */}
             {currentStep === 0 && (
-              <div className="space-y-6">
-                {/* Photo Upload */}
-                <div className="flex justify-center mb-6">
-                  <div className="relative group cursor-pointer">
-                    <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-base-200 shadow-sm bg-base-100 flex items-center justify-center">
-                      {formData.photo_url ? (
-                        <img src={formData.photo_url} alt="Propriétaire" className="w-full h-full object-cover" />
-                      ) : (
-                        <User size={32} className="text-base-content/60" />
-                      )}
-                    </div>
-                    <label className="absolute bottom-0 right-0 bg-primary text-primary-content p-2 rounded-full cursor-pointer hover:bg-primary-focus transition shadow-sm">
-                      <Camera size={14} />
-                      <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
-                    </label>
+              <div className="space-y-5">
+
+                {/* Type de propriétaire */}
+                <div>
+                  <p className="text-sm font-semibold text-base-content mb-2">
+                    Type de propriétaire
+                  </p>
+                  <div className="flex gap-2">
+                    {([
+                      { value: 'individual', label: 'Particulier', icon: User },
+                      { value: 'company',    label: 'Entreprise',  icon: Building2 },
+                    ] as const).map(opt => {
+                      const Icon = opt.icon;
+                      const selected = formData.type === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => handleChange('type', opt.value)}
+                          aria-current={selected ? "true" : undefined}
+                          className={[
+                            'flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border-2',
+                            'text-sm font-medium transition-all',
+                            'focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none',
+                            selected
+                              ? 'border-primary bg-primary/5 text-primary'
+                              : 'border-base-300 hover:border-primary/40 text-base-content/60',
+                          ].join(' ')}
+                        >
+                          <Icon size={15} />
+                          {opt.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Type Selection */}
-                <div className="bg-base-100 p-4 rounded-xl border border-base-200">
-                  <label className="block text-sm font-medium text-base-content mb-3">Type de propriétaire</label>
-                  <div className="flex gap-4">
-                    <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border transition shadow-sm ${
-                      formData.type === 'individual' ? 'bg-primary/10 border-primary' : 'bg-base-100 border-base-200 hover:border-primary/50'
-                    }`}>
-                      <input 
-                        type="radio" 
-                        checked={formData.type === 'individual'}
-                        onChange={() => handleChange('type', 'individual')}
-                        className="radio radio-primary radio-sm"
-                      />
-                      <span className="font-medium">Particulier</span>
-                    </label>
-                    <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border transition shadow-sm ${
-                      formData.type === 'company' ? 'bg-primary/10 border-primary' : 'bg-base-100 border-base-200 hover:border-primary/50'
-                    }`}>
-                      <input 
-                        type="radio" 
-                        checked={formData.type === 'company'}
-                        onChange={() => handleChange('type', 'company')}
-                        className="radio radio-primary radio-sm"
-                      />
-                      <span className="font-medium">Entreprise</span>
-                    </label>
-                  </div>
+                {/* Photo centrée */}
+                <div className="flex justify-center pt-1 pb-1">
+                  <AvatarUpload
+                    value={formData.photo_url}
+                    onChange={url => handleChange('photo_url', url)}
+                  />
                 </div>
 
-                {/* Identity Fields */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Identité selon type */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {formData.type === 'individual' ? (
                     <>
-                      <Input 
-                        label="Nom *" 
+                      <Input
+                        label="Nom"
+                        placeholder="Ex : KOFFI"
                         value={formData.name || ''}
-                        onChange={(e) => handleChange('name', e.target.value)}
+                        onChange={e => handleChange('name', e.target.value.toUpperCase())}
+                        onBlur={() => handleBlur('name')}
                         required
+                        startIcon={<User size={16} />}
+                        error={getError('name')}
+                        helperText="Affiché en majuscules"
                       />
-                      <Input 
-                        label="Prénom" 
+                      <Input
+                        label="Prénom"
+                        placeholder="Ex : Adjoua"
                         value={formData.prenom || ''}
-                        onChange={(e) => handleChange('prenom', e.target.value)}
+                        onChange={e => handleChange('prenom', e.target.value)}
+                        startIcon={<User size={16} />}
                       />
                     </>
                   ) : (
                     <>
-                      <Input 
-                        label="Raison Sociale *" 
+                      <Input
+                        label="Raison sociale"
+                        placeholder="Ex : IMMO SA"
                         value={formData.company_name || ''}
-                        onChange={(e) => handleChange('company_name', e.target.value)}
+                        onChange={e => handleChange('company_name', e.target.value)}
+                        onBlur={() => handleBlur('company_name')}
                         required
+                        startIcon={<Building2 size={16} />}
+                        error={getError('company_name')}
                       />
-                      <Input 
-                        label="Numéro RCCM" 
+                      <Input
+                        label="Numéro RCCM"
+                        placeholder="Ex : RB/COT/2020/A/1234"
                         value={formData.rccm_number || ''}
-                        onChange={(e) => handleChange('rccm_number', e.target.value)}
+                        onChange={e => handleChange('rccm_number', e.target.value)}
+                        startIcon={<Hash size={16} />}
                       />
                     </>
                   )}
+                </div>
 
-                  <Input 
-                    label="Email" 
-                    type="email"
-                    value={formData.email || ''}
-                    onChange={(e) => handleChange('email', e.target.value)}
-                  />
-
-                  <div className="relative">
-                    <Input 
-                      label="Téléphone Principal *" 
-                      type="tel"
+                {/* Contact */}
+                <div className="space-y-3">
+                  {/* Téléphone principal */}
+                  <div>
+                    <PhoneInput
+                      label="Téléphone principal *"
                       value={formData.phone || ''}
-                      onChange={(e) => handleChange('phone', e.target.value)}
+                      onChange={full => handleChange('phone', full)}
                       required
                     />
                     {formData.phone && (
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => openWhatsApp(formData.phone!)}
-                        className="absolute top-0 right-0 text-success text-xs flex items-center gap-1 hover:underline"
+                        className="mt-1 text-xs text-success flex items-center gap-1 hover:underline"
                       >
-                        <MessageCircle size={12}/> WhatsApp
+                        <MessageCircle size={12} /> Ouvrir sur WhatsApp
                       </button>
+                    )}
+                    {getError('phone') && (
+                      <p role="alert" className="text-xs text-error mt-1">{getError('phone')}</p>
                     )}
                   </div>
 
-                  <div className="relative">
-                    <Input 
-                      label="Téléphone Secondaire" 
-                      type="tel"
+                  {/* Téléphone secondaire */}
+                  <div>
+                    <PhoneInput
+                      label="Téléphone secondaire"
                       value={formData.secondary_phone || ''}
-                      onChange={(e) => handleChange('secondary_phone', e.target.value)}
+                      onChange={full => handleChange('secondary_phone', full)}
                     />
                     {formData.secondary_phone && (
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => openWhatsApp(formData.secondary_phone!)}
-                        className="absolute top-0 right-0 text-success text-xs flex items-center gap-1 hover:underline"
+                        className="mt-1 text-xs text-success flex items-center gap-1 hover:underline"
                       >
-                        <MessageCircle size={12}/> WhatsApp
+                        <MessageCircle size={12} /> Ouvrir sur WhatsApp
                       </button>
                     )}
                   </div>
+                </div>
 
-                  <Input 
-                    label="Mobile Money" 
-                    placeholder="+229 01..."
+                {/* Email + Mobile Money */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Input
+                      label="Email"
+                      placeholder="exemple@email.com"
+                      type="email"
+                      value={formData.email || ''}
+                      onChange={e => handleChange('email', e.target.value)}
+                      onBlur={() => handleBlur('email')}
+                      startIcon={<Mail size={16} />}
+                      error={getError('email')}
+                    />
+                  </div>
+                  <Input
+                    label="Mobile Money"
+                    placeholder="+229 01 XX XX XX"
                     value={formData.mobile_money || ''}
-                    onChange={(e) => handleChange('mobile_money', e.target.value)}
-                  />
-
-                  <Input 
-                    label="Adresse" 
-                    value={formData.address || ''}
-                    onChange={(e) => handleChange('address', e.target.value)}
-                  />
-
-                  <Input 
-                    label="Pays" 
-                    value={formData.country || 'Bénin'}
-                    onChange={(e) => handleChange('country', e.target.value)}
+                    onChange={e => handleChange('mobile_money', e.target.value)}
+                    startIcon={<Banknote size={16} />}
+                    helperText="Numéro de réception des paiements"
                   />
                 </div>
+
+                {/* Adresse + Pays */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Input
+                    label="Adresse"
+                    placeholder="Quartier, Ville"
+                    value={formData.address || ''}
+                    onChange={e => handleChange('address', e.target.value)}
+                    startIcon={<MapPin size={16} />}
+                  />
+                  <Select
+                    label="Pays"
+                    value={formData.country || 'Bénin'}
+                    onChange={e => handleChange('country', e.target.value)}
+                    options={COUNTRIES.map(c => ({ value: c, label: c }))}
+                  />
+                </div>
+
+                <p className="text-xs text-base-content/40">
+                  Les champs marqués <span className="text-error">*</span> sont obligatoires.
+                </p>
               </div>
             )}
 
-            {/* Step 1: Documents */}
+            {/* ════════════════ STEP 1 — DOCUMENTS ════════════════ */}
             {currentStep === 1 && (
-              <div className="p-8 text-center border-2 border-dashed border-base-200 rounded-xl bg-base-100 h-[300px] flex flex-col items-center justify-center text-base-content/60">
-                <FileText size={48} className="mb-4 text-base-content/30" />
-                <h3 className="text-lg font-medium mb-2">Documents du Propriétaire</h3>
-                <p className="max-w-xs mb-6">Ajoutez ici les contrats de mandat, pièces d'identité et autres documents légaux.</p>
-                <Button variant="ghost" disabled>À venir bientôt</Button>
-              </div>
-            )}
-
-            {/* Step 2: Paramètres & Délégation */}
-            {currentStep === 2 && (
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-base-content mb-3">Mode de gestion</label>
-                  <div className="flex gap-4">
-                    <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border transition shadow-sm ${
-                      formData.management_mode === 'direct' ? 'bg-success/10 border-success' : 'bg-base-100 border-base-200 hover:border-success/50'
-                    }`}>
-                      <input 
-                        type="radio" 
-                        checked={formData.management_mode === 'direct'}
-                        onChange={() => handleChange('management_mode', 'direct')}
-                        className="radio radio-success radio-sm"
-                      />
-                      <span className={formData.management_mode === 'direct' ? 'text-success font-medium' : 'font-medium'}>Direct</span>
-                    </label>
-                    <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border transition shadow-sm ${
-                      formData.management_mode === 'delegated' ? 'bg-warning/10 border-warning' : 'bg-base-100 border-base-200 hover:border-warning/50'
-                    }`}>
-                      <input 
-                        type="radio" 
-                        checked={formData.management_mode === 'delegated'}
-                        onChange={() => handleChange('management_mode', 'delegated')}
-                        className="radio radio-warning radio-sm"
-                      />
-                      <span className={formData.management_mode === 'delegated' ? 'text-warning font-medium' : 'font-medium'}>Délégué</span>
-                    </label>
-                  </div>
-                  <p className="text-xs text-base-content/60 mt-2">
-                    {formData.management_mode === 'direct' 
-                      ? "Le propriétaire gère lui-même ses biens sur la plateforme." 
-                      : "La gestion des biens est déléguée à l'agence (Mandat de gestion)."}
+              <div className="space-y-5">
+                <div className="flex items-start gap-2.5 p-3.5 bg-base-200 rounded-xl">
+                  <Info size={16} className="text-base-content/50 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-base-content/60 leading-snug">
+                    Ajoutez ici les contrats de mandat, pièces d'identité et autres
+                    documents légaux du propriétaire.
                   </p>
                 </div>
 
-                {/* Delegation Fields */}
-                {formData.management_mode === 'delegated' && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }} 
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="bg-warning/10 p-4 rounded-xl border border-warning/20 grid grid-cols-1 md:grid-cols-2 gap-4"
-                  >
-                    <div>
-                      <label className="block text-sm font-medium text-warning mb-1">Début du mandat</label>
-                      <input 
-                        type="date"
-                        value={formData.delegation_start_date ? formData.delegation_start_date.split('T')[0] : ''}
-                        onChange={(e) => handleChange('delegation_start_date', e.target.value)}
-                        className="w-full px-4 py-2 rounded-lg border border-warning/30 focus:ring-2 focus:ring-warning bg-base-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-warning mb-1">Fin du mandat (Optionnel)</label>
-                      <input 
-                        type="date"
-                        value={formData.delegation_end_date ? formData.delegation_end_date.split('T')[0] : ''}
-                        onChange={(e) => handleChange('delegation_end_date', e.target.value)}
-                        className="w-full px-4 py-2 rounded-lg border border-warning/30 focus:ring-2 focus:ring-warning bg-base-100"
-                      />
-                    </div>
-                  </motion.div>
-                )}
+                <div className="h-52 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-base-300 rounded-xl bg-base-50 text-base-content/40">
+                  <FileText size={40} className="opacity-40" />
+                  <div className="text-center">
+                    <p className="font-medium text-sm">Documents légaux</p>
+                    <p className="text-xs mt-1">Fonctionnalité à venir</p>
+                  </div>
+                </div>
               </div>
             )}
+
+            {/* ════════════════ STEP 2 — PARAMÈTRES ════════════════ */}
+            {currentStep === 2 && (
+              <div className="space-y-5">
+
+                {/* Mode de gestion */}
+                <div>
+                  <p className="text-sm font-semibold text-base-content mb-2">
+                    Mode de gestion
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {([
+                      {
+                        value: 'direct' as const,
+                        label: 'Gestion directe',
+                        description: 'Le propriétaire gère lui-même ses biens sur la plateforme.',
+                        color: 'success',
+                      },
+                      {
+                        value: 'delegated' as const,
+                        label: 'Gestion déléguée',
+                        description: 'La gestion est confiée à l\'agence via un mandat.',
+                        color: 'warning',
+                      },
+                    ]).map(opt => {
+                      const selected = formData.management_mode === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => handleChange('management_mode', opt.value)}
+                          aria-current={selected ? "true" : undefined}
+                          className={[
+                            'flex flex-col items-start gap-1.5 p-4 rounded-xl border-2 text-left transition-all',
+                            'focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none',
+                            selected
+                              ? `border-${opt.color} bg-${opt.color}/5`
+                              : 'border-base-300 hover:border-base-400',
+                          ].join(' ')}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <p className={`text-sm font-semibold ${selected ? `text-${opt.color}` : 'text-base-content'}`}>
+                              {opt.label}
+                            </p>
+                            {selected && (
+                              <Check size={15} className={`text-${opt.color}`} />
+                            )}
+                          </div>
+                          <p className="text-xs text-base-content/50 leading-snug">
+                            {opt.description}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Dates de mandat (si délégué) */}
+                <AnimatePresence>
+                  {formData.management_mode === 'delegated' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-warning/5 border border-warning/20 rounded-xl">
+                        <Input
+                          label="Début du mandat"
+                          type="date"
+                          value={formData.delegation_start_date || ''}
+                          onChange={e => handleChange('delegation_start_date', e.target.value)}
+                          startIcon={<Calendar size={16} />}
+                        />
+                        <Input
+                          label="Fin du mandat (optionnel)"
+                          type="date"
+                          value={formData.delegation_end_date || ''}
+                          onChange={e => handleChange('delegation_end_date', e.target.value)}
+                          startIcon={<Calendar size={16} />}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Récapitulatif */}
+                <div className="bg-base-200 rounded-xl overflow-hidden">
+                  <div className="flex items-center gap-4 p-4 border-b border-base-300">
+                    {formData.photo_url ? (
+                      <img
+                        src={formData.photo_url}
+                        alt="Photo"
+                        className="w-12 h-12 rounded-full object-cover border-2 border-white shadow flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg flex-shrink-0">
+                        {(formData.type === 'individual' ? formData.name : formData.company_name)?.charAt(0) || '?'}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-bold text-base-content truncate">{displayName}</p>
+                      <p className="text-xs text-base-content/50 mt-0.5">
+                        {formData.type === 'individual' ? 'Particulier' : 'Entreprise'}
+                        {' · '}{formData.country}
+                        {' · '}{formData.management_mode === 'direct' ? 'Gestion directe' : 'Gestion déléguée'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-0 divide-x divide-base-300">
+                    {[
+                      { label: 'Téléphone', value: formData.phone || '—' },
+                      { label: 'Email',     value: formData.email || '—' },
+                      { label: 'Adresse',   value: formData.address || '—' },
+                      { label: 'Mobile Money', value: formData.mobile_money || '—' },
+                    ].map((item, i) => (
+                      <div
+                        key={item.label}
+                        className={`px-4 py-3 ${i >= 2 ? 'border-t border-base-300' : ''}`}
+                      >
+                        <p className="text-[11px] text-base-content/50 uppercase tracking-wide">
+                          {item.label}
+                        </p>
+                        <p className="text-sm font-medium text-base-content mt-0.5 truncate">
+                          {item.value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Liens retour */}
+                <div className="flex flex-wrap gap-2">
+                  {[{ label: 'Identité', step: 0 }, { label: 'Documents', step: 1 }].map(({ label, step }) => (
+                    <button
+                      key={step}
+                      type="button"
+                      onClick={() => goToStep(step)}
+                      className="text-xs text-base-content/50 hover:text-primary flex items-center gap-1 transition-colors"
+                    >
+                      <ChevronRight size={12} />
+                      Modifier {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Footer Navigation */}
-      <div className="flex justify-between items-center p-6 bg-base-100 border-t border-base-200">
-        <Button 
-          variant="ghost" 
+      {/* ── Footer navigation ───────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-6 py-4 border-t border-base-200 bg-base-50">
+
+        <Button
+          variant="ghost"
           onClick={currentStep === 0 ? onCancel : handlePrev}
           className="flex items-center gap-2"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={16} />
           {currentStep === 0 ? 'Annuler' : 'Précédent'}
         </Button>
 
-        {currentStep < STEPS.length - 1 ? (
-          <Button 
-            variant="primary"
-            onClick={handleNext}
-            disabled={!isStepValid()}
-            className="flex items-center gap-2"
-          >
-            Suivant
-            <ArrowRight size={18} />
-          </Button>
-        ) : (
-          <Button 
-            variant="primary"
-            onClick={handleSubmit}
-            disabled={!isStepValid() || loading}
-            className="flex items-center gap-2"
-          >
-            <Save size={18} />
-            {loading ? 'Enregistrement...' : (owner?.id ? 'Mettre à jour' : 'Créer le propriétaire')}
-          </Button>
-        )}
+        <div className="flex items-center gap-3">
+          {isOptional && (
+            <button
+              type="button"
+              onClick={handleSkip}
+              className="text-sm text-base-content/40 hover:text-base-content/70 transition-colors focus-visible:outline-none focus-visible:underline"
+            >
+              Passer cette étape
+            </button>
+          )}
+
+          {!isLastStep ? (
+            <Button
+              variant="primary"
+              onClick={handleNext}
+              disabled={currentStep === 0 && !isStepValid()}
+              className="flex items-center gap-2"
+              title={currentStep === 0 && !isStepValid() ? 'Complétez les champs requis' : undefined}
+            >
+              Suivant
+              <ArrowRight size={16} />
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              onClick={handleSubmit}
+              disabled={loading}
+              className="flex items-center gap-2 min-w-[150px] justify-center"
+            >
+              {loading ? (
+                <>
+                  <span className="loading loading-spinner loading-xs" />
+                  Enregistrement…
+                </>
+              ) : (
+                <>
+                  <Save size={16} />
+                  {owner?.id ? 'Mettre à jour' : 'Créer le propriétaire'}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
