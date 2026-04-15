@@ -34,7 +34,7 @@ const MODALITES = [
 
 const slideVariants = (direction: number) => ({
   initial: { x: direction > 0 ? 40 : -40, opacity: 0 },
-  animate: { x: 0, opacity: 1, transition: { duration: 0.25, ease: 'easeOut' } },
+  animate: { x: 0, opacity: 1, transition: { duration: 0.25, ease: 'easeOut' as const } },
   exit:    { x: direction > 0 ? -40 : 40, opacity: 0, transition: { duration: 0.2 } },
 });
 
@@ -242,7 +242,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase text-base-content/50 tracking-wide">Lot à affecter</p>
           <p className="font-bold text-base-content truncate">
-            {lot.reference ?? lot.ref_lot} — {(lot as any).immeuble ?? lot.type}
+            {lot.reference} — {(lot as any).immeuble ?? lot.type}
           </p>
         </div>
         {lot.superficie && (
@@ -565,7 +565,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                     <p className="text-sm font-bold text-base-content uppercase tracking-wide">Récapitulatif</p>
 
                     <div className="space-y-2 text-sm">
-                      <RecapRow label="Lot"    value={`${lot.reference ?? lot.ref_lot} — ${(lot as any).immeuble ?? lot.type}`} onEdit={() => {}} />
+                      <RecapRow label="Lot"    value={`${lot.reference} — ${(lot as any).immeuble ?? lot.type}`} onEdit={() => {}} />
                       <RecapRow label="Client" value={selectedClient ? `${selectedClient.prenoms} ${selectedClient.nom}` : '—'} onEdit={() => goToStep(0)} />
                       <RecapRow
                         label="Type"

@@ -49,8 +49,8 @@ const TYPE_CHARGES = [
 
 const slideVariants = (direction: number) => ({
   initial: { x: direction > 0 ? 40 : -40, opacity: 0 },
-  animate: { x: 0, opacity: 1, transition: { duration: 0.25, ease: 'easeOut' } },
-  exit:    { x: direction > 0 ? -40 : 40, opacity: 0, transition: { duration: 0.2, ease: 'easeIn' } },
+  animate: { x: 0, opacity: 1, transition: { duration: 0.25, ease: 'easeOut' as const } },
+  exit:    { x: direction > 0 ? -40 : 40, opacity: 0, transition: { duration: 0.2, ease: 'easeIn' as const } },
 });
 
 const LocationForm: React.FC<LocationFormProps> = ({
