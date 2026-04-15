@@ -123,7 +123,10 @@ const LotForm: React.FC<LotFormProps> = ({
 
   const [formData, setFormData] = useState<Partial<Lot>>(() => {
     const data = buildDefaults(lot);
-    if (!data.building_id && immeubles.length === 1) data.building_id = immeubles[0].id;
+    if (!data.building_id && immeubles.length === 1) {
+      data.building_id = immeubles[0].id;
+      if (!data.owner_id) data.owner_id = immeubles[0].owner_id;
+    }
     return data;
   });
 
@@ -133,7 +136,10 @@ const LotForm: React.FC<LotFormProps> = ({
 
   useEffect(() => {
     const data = buildDefaults(lot);
-    if (!data.building_id && immeubles.length === 1) data.building_id = immeubles[0].id;
+    if (!data.building_id && immeubles.length === 1) {
+      data.building_id = immeubles[0].id;
+      if (!data.owner_id) data.owner_id = immeubles[0].owner_id;
+    }
     setFormData(data);
     setPhotoPreviews(lot.photos || []);
     setShowVente(!!lot.prix_vente);
@@ -344,8 +350,16 @@ const LotForm: React.FC<LotFormProps> = ({
                       required
                       placeholder="Sélectionner un immeuble…"
                       value={formData.building_id ?? ''}
-                      onChange={e => handleChange('building_id',
-                        e.target.value ? parseInt(e.target.value) : undefined)}
+                      onChange={e => {
+                        const bid = e.target.value ? parseInt(e.target.value) : undefined;
+                        const imm = immeubles.find(b => b.id === bid);
+                        setFormData(prev => ({
+                          ...prev,
+                          building_id: bid,
+                          owner_id: imm?.owner_id ?? prev.owner_id,
+                        }));
+                        setFieldErrors(prev => ({ ...prev, building_id: '' }));
+                      }}
                       options={immeubles.map(b => ({
                         value: b.id,
                         label: `${b.nom}${b.ville ? ' — ' + b.ville : ''}`,

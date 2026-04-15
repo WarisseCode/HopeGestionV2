@@ -28,8 +28,20 @@ export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next
 
         if (validOwnerIds.length === 0) {
             // Aucun owner lié → mode gestionnaire pur (accès via user_id dans RLS)
-            await client.query(`SELECT set_config('app.current_owner_id', '', false)`);
-            (req as any).resolvedOwnerId = null;
+            // Si un owner_id est fourni dans le body/query (ex: création d'un lot), l'utiliser
+            const bodyOwnerId = req.body?.owner_id
+                ? parseInt(req.body.owner_id, 10)
+                : req.query?.owner_id
+                    ? parseInt(req.query.owner_id as string, 10)
+                    : null;
+
+            if (bodyOwnerId && !isNaN(bodyOwnerId)) {
+                await client.query(`SELECT set_config('app.current_owner_id', $1, false)`, [bodyOwnerId.toString()]);
+                (req as any).resolvedOwnerId = bodyOwnerId;
+            } else {
+                await client.query(`SELECT set_config('app.current_owner_id', '', false)`);
+                (req as any).resolvedOwnerId = null;
+            }
 
         } else if (requestedOwnerId) {
             // Owner explicitement demandé via header X-Owner-Id
