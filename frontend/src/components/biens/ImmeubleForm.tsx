@@ -1,10 +1,11 @@
 // frontend/src/components/biens/ImmeubleForm.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Building2, MapPin, Image, Settings, Save, Plus, 
-  Upload, X, Video, FileImage, Trash2, Star, 
-  Check, ArrowRight, ArrowLeft, Users
+import {
+  Building2, MapPin, Users, Image as ImageIcon,
+  Save, Plus, Trash2, Star, Check,
+  ArrowRight, ArrowLeft, Info,
+  Video, FileImage, ChevronRight
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -13,11 +14,7 @@ import ImageUpload from '../ui/ImageUpload';
 import type { Immeuble } from '../../api/bienApi';
 import type { Proprietaire, Utilisateur } from '../../api/accountApi';
 
-interface User {
-  id: number;
-  nom: string;
-  role: string;
-}
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface ImmeubleFormProps {
   immeuble: Partial<Immeuble>;
@@ -29,25 +26,72 @@ interface ImmeubleFormProps {
   loading?: boolean;
 }
 
-const TYPES_IMMEUBLE = [
-  { value: 'Maison', label: 'Maison' },
-  { value: 'Immeuble', label: 'Immeuble collectif' },
-  { value: 'Résidence', label: 'Résidence' },
-  { value: 'Commerce', label: 'Commerce' },
-  { value: 'Villa', label: 'Villa' },
-];
-
-const STATUTS = [
-  { value: 'actif', label: 'Actif' },
-  { value: 'inactif', label: 'Inactif' },
-];
+// ─── Constants ─────────────────────────────────────────────────────────────────
 
 const STEPS = [
-  { id: 0, title: 'Identité', icon: <Building2 size={20} /> },
-  { id: 1, title: 'Localisation', icon: <MapPin size={20} /> },
-  { id: 2, title: 'Gestion', icon: <Users size={20} /> },
-  { id: 3, title: 'Médias & Paramètres', icon: <Image size={20} /> }
+  {
+    id: 0,
+    title: 'Identité',
+    subtitle: 'Informations générales du bien',
+    icon: Building2,
+    required: true,
+  },
+  {
+    id: 1,
+    title: 'Localisation',
+    subtitle: 'Adresse et coordonnées',
+    icon: MapPin,
+    required: true,
+  },
+  {
+    id: 2,
+    title: 'Gestion',
+    subtitle: 'Propriétaire et gestionnaire',
+    icon: Users,
+    required: true,
+  },
+  {
+    id: 3,
+    title: 'Médias',
+    subtitle: 'Photos et paramètres',
+    icon: ImageIcon,
+    required: false,
+  },
 ];
+
+const TYPES_IMMEUBLE = [
+  { value: 'Maison',     label: 'Maison' },
+  { value: 'Immeuble',  label: 'Immeuble collectif' },
+  { value: 'Résidence', label: 'Résidence' },
+  { value: 'Commerce',  label: 'Commerce' },
+  { value: 'Villa',     label: 'Villa' },
+];
+
+const COUNTRIES = [
+  'Bénin', 'Togo', "Côte d'Ivoire", 'Sénégal', 'Mali',
+  'Burkina Faso', 'Niger', 'Ghana', 'Nigéria', 'Cameroun',
+  'Gabon', 'Congo', 'France', 'Autre',
+];
+
+// ─── Validation ────────────────────────────────────────────────────────────────
+
+const validateField = (field: string, value: any): string => {
+  switch (field) {
+    case 'nom':        return !value?.trim() ? "Le nom de l'immeuble est requis" : '';
+    case 'total_lots': return (!value || value < 1) ? 'Le nombre de lots est requis (min. 1)' : '';
+    case 'ville':      return !value?.trim() ? 'La ville est requise' : '';
+    case 'owner_id':   return !value ? 'Le propriétaire est requis' : '';
+    default:           return '';
+  }
+};
+
+const STEP_REQUIRED_FIELDS: Record<number, string[]> = {
+  0: ['nom', 'total_lots'],
+  1: ['ville'],
+  2: ['owner_id'],
+};
+
+// ─── Component ─────────────────────────────────────────────────────────────────
 
 const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
   immeuble,
@@ -56,487 +100,668 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
   onSave,
   onSaveAndAddLots,
   onCancel,
-  loading = false
+  loading = false,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState<Partial<Immeuble>>({
-    type: 'Immeuble',
+  const [direction, setDirection]     = useState(0);
+  const [touched, setTouched]         = useState<Record<string, boolean>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const buildDefaults = (base: Partial<Immeuble> = {}): Partial<Immeuble> => ({
+    type:          'Immeuble',
     nombre_etages: 0,
-    statut: 'actif',
-    pays: 'Bénin',
-    ...immeuble
+    statut:        'actif',
+    pays:          'Bénin',
+    ...base,
   });
+
+  const [formData, setFormData] = useState<Partial<Immeuble>>(buildDefaults(immeuble));
   const [photoPreviews, setPhotoPreviews] = useState<string[]>(immeuble.photos || []);
 
+  // ── Effects ───────────────────────────────────────────────────────────────
+
   useEffect(() => {
-    const updatedData = {
-        type: 'Immeuble',
-        nombre_etages: 0,
-        statut: 'actif',
-        pays: 'Bénin',
-        ...immeuble
-    };
+    const updated = buildDefaults(immeuble);
 
-    // Auto-selection du propriétaire s'il n'y en a qu'un
-    if (!updatedData.owner_id && proprietaires.length === 1) {
-      updatedData.owner_id = proprietaires[0].id;
+    if (!updated.owner_id && proprietaires.length === 1) {
+      updated.owner_id = proprietaires[0].id;
+    }
+    if (!updated.photo && immeuble.photos && immeuble.photos.length > 0) {
+      updated.photo = immeuble.photos[0];
     }
 
-    // Auto-select first photo as main if none selected
-    if (!updatedData.photo && immeuble.photos && immeuble.photos.length > 0) {
-      updatedData.photo = immeuble.photos[0];
-    }
-
-    setFormData(updatedData);
+    setFormData(updated);
     setPhotoPreviews(immeuble.photos || []);
-  }, [immeuble, proprietaires]);
+  }, [immeuble.id, proprietaires.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleChange = (field: keyof Immeuble, value: any) => {
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  const handleChange = useCallback((field: keyof Immeuble, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
+    setFieldErrors(prev => ({ ...prev, [field]: '' }));
+  }, []);
 
+  const handleBlur = useCallback((field: string) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    const error = validateField(field, (formData as any)[field]);
+    setFieldErrors(prev => ({ ...prev, [field]: error }));
+  }, [formData]);
+
+  const getError = (field: string) =>
+    touched[field] ? fieldErrors[field] || '' : '';
+
+  // Photo gallery handlers
   const handlePhotoAdd = (url: string) => {
-    if (photoPreviews.length < 10) {
-      if (photoPreviews.includes(url)) return;
-      
-      const newPhotos = [...photoPreviews, url];
-      setPhotoPreviews(newPhotos);
-      handleChange('photos', newPhotos);
-      
-      if (newPhotos.length === 1 || !formData.photo) {
-        handleChange('photo', url);
-      }
-    }
+    if (photoPreviews.length >= 10 || photoPreviews.includes(url)) return;
+    const newPhotos = [...photoPreviews, url];
+    setPhotoPreviews(newPhotos);
+    handleChange('photos', newPhotos);
+    if (newPhotos.length === 1 || !formData.photo) handleChange('photo', url);
   };
 
   const handlePhotoRemove = (index: number) => {
-    const photoToRemove = photoPreviews[index];
+    const removed   = photoPreviews[index];
     const newPhotos = photoPreviews.filter((_, i) => i !== index);
     setPhotoPreviews(newPhotos);
     handleChange('photos', newPhotos);
-    
-    if (formData.photo === photoToRemove) {
-        handleChange('photo', newPhotos.length > 0 ? newPhotos[0] : '');
+    if (formData.photo === removed) {
+      handleChange('photo', newPhotos.length > 0 ? newPhotos[0] : '');
     }
   };
 
   const handleSetMainPhoto = (url: string) => {
     handleChange('photo', url);
-    const otherPhotos = photoPreviews.filter(p => p !== url);
-    const newPhotos = [url, ...otherPhotos];
+    const newPhotos = [url, ...photoPreviews.filter(p => p !== url)];
     setPhotoPreviews(newPhotos);
     handleChange('photos', newPhotos);
   };
 
-  const isStepValid = () => {
-    switch (currentStep) {
-      case 0: // Identité
-        return !!formData.nom && !!formData.type && !!formData.total_lots;
-      case 1: // Localisation
-        return !!formData.ville;
-      case 2: // Gestion
-        // Owner ID is mandatory
-        return !!formData.owner_id;
-      case 3: // Médias
-        return true;
-      default:
-        return false;
-    }
+  // ── Step navigation ───────────────────────────────────────────────────────
+
+  const isStepValid = (step = currentStep): boolean => {
+    const fields = STEP_REQUIRED_FIELDS[step];
+    if (!fields) return true;
+    return fields.every(f => !validateField(f, (formData as any)[f]));
   };
 
   const handleNext = () => {
-    if (isStepValid()) {
-      setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
-    }
+    const fields = STEP_REQUIRED_FIELDS[currentStep] || [];
+    const newErrors: Record<string, string> = {};
+    const newTouched: Record<string, boolean> = {};
+
+    fields.forEach(f => {
+      const err = validateField(f, (formData as any)[f]);
+      if (err) newErrors[f] = err;
+      newTouched[f] = true;
+    });
+
+    setFieldErrors(prev => ({ ...prev, ...newErrors }));
+    setTouched(prev => ({ ...prev, ...newTouched }));
+    if (Object.keys(newErrors).length > 0) return;
+
+    setDirection(1);
+    setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
   };
 
-  const handleBack = () => {
+  const handlePrev = () => {
+    setDirection(-1);
     setCurrentStep(prev => Math.max(prev - 1, 0));
   };
 
-
-  const handleSubmit = async (addLots: boolean = false) => {
-    if (addLots && onSaveAndAddLots) {
-      await onSaveAndAddLots(formData);
-    } else {
-      await onSave(formData);
-    }
+  const handleSkip = () => {
+    setDirection(1);
+    setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
   };
 
+  const goToStep = (step: number) => {
+    const reachable = step < currentStep
+      || step === currentStep
+      || (step === currentStep + 1 && isStepValid());
+    if (!reachable) return;
+    setDirection(step > currentStep ? 1 : -1);
+    setCurrentStep(step);
+  };
+
+  const handleSubmit = async (addLots = false) => {
+    if (addLots && onSaveAndAddLots) await onSaveAndAddLots(formData);
+    else await onSave(formData);
+  };
+
+  // ── Derived values ────────────────────────────────────────────────────────
+
+  const progress   = ((currentStep + 1) / STEPS.length) * 100;
+  const isLastStep = currentStep === STEPS.length - 1;
+  const isOptional = !STEPS[currentStep].required && !isLastStep;
+
+  const selectedOwner = proprietaires.find(p => p.id === formData.owner_id);
+  const ownerLabel = (p: Proprietaire) =>
+    p.type === 'individual' ? `${p.nom} ${p.prenom || ''}`.trim() : p.nom;
+
+  const slide = {
+    enter:  (d: number) => ({ x: d > 0 ? 56 : -56, opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit:   (d: number) => ({ x: d < 0 ? 56 : -56, opacity: 0 }),
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Render — conserve la structure flex-col full-height pour le scroll interne
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-base-200/50">
-      {/* Wizard Header */}
-      <div className="flex items-center justify-between px-12 py-6 bg-base-100 border-b border-base-300">
-        {STEPS.map((step, idx) => {
-            const isActive = idx === currentStep;
-            const isCompleted = idx < currentStep;
+    <div className="flex flex-col flex-1 min-h-0 bg-base-100">
+
+      {/* ── Header : titre + stepper + progress ─────────────────────────── */}
+      <div className="px-6 pt-5 pb-4 border-b border-base-200 flex-shrink-0">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-base-content leading-snug">
+              {immeuble.id ? "Modifier l'immeuble" : 'Nouvel immeuble'}
+            </h2>
+            <p className="text-sm text-base-content/50 mt-0.5">
+              {STEPS[currentStep].subtitle}
+            </p>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div className="space-y-1 mb-4">
+          <div className="flex justify-between text-xs text-base-content/40">
+            <span className="font-medium">{STEPS[currentStep].title}</span>
+            <span>Étape {currentStep + 1} / {STEPS.length}</span>
+          </div>
+          <div className="w-full h-1.5 bg-base-200 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-primary rounded-full"
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+            />
+          </div>
+        </div>
+
+        {/* Stepper tabs */}
+        <div className="flex gap-1.5" role="tablist" aria-label="Étapes du formulaire">
+          {STEPS.map((step, index) => {
+            const StepIcon  = step.icon;
+            const completed = currentStep > index;
+            const current   = currentStep === index;
+            const reachable = index <= currentStep
+              || (index === currentStep + 1 && isStepValid());
 
             return (
-                <div key={step.id} className="flex flex-col items-center relative z-10">
-                    <motion.div
-                        initial={false}
-                        animate={{
-                            backgroundColor: isActive || isCompleted ? '#3B82F6' : '#F3F4F6',
-                            color: isActive || isCompleted ? '#FFF' : '#9CA3AF',
-                            scale: isActive ? 1.1 : 1
-                        }}
-                        className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors duration-300 ${
-                            isActive ? 'ring-4 ring-blue-100' : ''
-                        }`}
-                    >
-                        {isCompleted ? <Check size={20} /> : step.icon}
-                    </motion.div>
-                    <span className={`mt-3 text-sm font-bold ${
-                        isActive ? 'text-blue-600' : isCompleted ? 'text-base-content/90' : 'text-base-content/50'
-                    }`}>
-                        {step.title}
-                    </span>
-                    
-                    {idx < STEPS.length - 1 && (
-                        <div className="absolute top-6 left-1/2 w-[calc(100%+4rem)] h-0.5 -z-10 bg-base-300">
-                            <motion.div 
-                                className="h-full bg-blue-500 origin-left"
-                                initial={{ scaleX: 0 }}
-                                animate={{ scaleX: isCompleted ? 1 : 0 }}
-                                transition={{ duration: 0.4 }}
-                            />
-                        </div>
-                    )}
+              <button
+                key={step.id}
+                type="button"
+                role="tab"
+                aria-current={current ? "true" : undefined}
+                aria-label={`${step.title}${completed ? ' — complété' : ''}`}
+                onClick={() => goToStep(step.id)}
+                disabled={!reachable}
+                className={[
+                  'flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-xl text-xs font-medium transition-all',
+                  'focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none',
+                  current   ? 'bg-primary text-primary-content shadow-sm' : '',
+                  completed ? 'bg-success/10 text-success cursor-pointer hover:bg-success/20' : '',
+                  !current && !completed ? 'text-base-content/35' : '',
+                  !reachable ? 'cursor-default' : '',
+                ].join(' ')}
+              >
+                <div className={[
+                  'w-6 h-6 rounded-full flex items-center justify-center',
+                  current   ? 'bg-white/20' : '',
+                  completed ? 'bg-success text-white' : '',
+                ].join(' ')}>
+                  {completed ? <Check size={13} /> : <StepIcon size={13} />}
                 </div>
+                <span className="hidden sm:block leading-none">{step.title}</span>
+              </button>
             );
-        })}
-      </div>
-
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-8">
-        <div className="max-w-3xl mx-auto px-2 pb-12">
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={currentStep}
-                    initial={{ x: 20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: -20, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                >
-                    {/* STEP 1: IDENTITE */}
-                    {currentStep === 0 && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                             <div className="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200 space-y-6">
-                                <h3 className="text-lg font-bold text-base-content/90 flex items-center gap-2">
-                                    <Building2 className="text-blue-500" /> Informations générales
-                                </h3>
-                                
-                                <Input
-                                    label="Nom de l'immeuble *"
-                                    value={formData.nom || ''}
-                                    onChange={(e) => handleChange('nom', e.target.value)}
-                                    placeholder="Ex: Résidence Les Palmiers"
-                                    required
-                                    className={`bg-base-200 border-base-300 focus:bg-base-100 ${!formData.nom ? 'border-red-200 focus:border-red-500' : ''}`}
-                                />
-
-                                <div className="grid grid-cols-2 gap-6">
-                                    <Select
-                                        label="Type de bien *"
-                                        value={formData.type || 'Immeuble'}
-                                        onChange={(e) => handleChange('type', e.target.value)}
-                                        options={TYPES_IMMEUBLE}
-                                        className="bg-base-200 border-base-300 focus:bg-base-100"
-                                    />
-                                    <Input
-                                        label="Nbre d'étages"
-                                        type="number"
-                                        min={0}
-                                        value={formData.nombre_etages ?? ''}
-                                        onChange={(e) => handleChange('nombre_etages', e.target.value === '' ? '' : parseInt(e.target.value))}
-                                        className="bg-base-200 border-base-300 focus:bg-base-100"
-                                    />
-                                    <Input
-                                        label="Nbre total de lots *"
-                                        type="number"
-                                        min={1}
-                                        value={formData.total_lots ?? ''}
-                                        onChange={(e) => handleChange('total_lots', e.target.value === '' ? '' : parseInt(e.target.value))}
-                                        placeholder="Ex: 12"
-                                        required
-                                        className={`bg-base-200 border-base-300 focus:bg-base-100 ${!formData.total_lots ? 'border-red-200' : ''}`}
-                                    />
-                                </div>
-                                <div className="form-control">
-                                    <label className="label font-bold text-sm text-base-content/80">Description</label>
-                                    <textarea
-                                        className="textarea textarea-bordered h-32 bg-base-200 border-base-300 focus:bg-base-100 w-full rounded-xl p-4 text-sm"
-                                        value={formData.description || ''}
-                                        onChange={(e) => handleChange('description', e.target.value)}
-                                        placeholder="Description du bien, équipements, atouts..."
-                                    />
-                                </div>
-                             </div>
-                        </div>
-                    )}
-
-                    {/* STEP 2: LOCALISATION */}
-                    {currentStep === 1 && (
-                        <div className="space-y-6">
-                            <div className="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200 space-y-6">
-                                <h3 className="text-lg font-bold text-base-content/90 flex items-center gap-2">
-                                    <MapPin className="text-blue-500" /> Adresse & Coordonnées
-                                </h3>
-                                
-                                <Input
-                                    label="Adresse complète"
-                                    value={formData.adresse || ''}
-                                    onChange={(e) => handleChange('adresse', e.target.value)}
-                                    placeholder="Ex: 123 Rue de la Paix"
-                                    className="bg-base-200 border-base-300 focus:bg-base-100"
-                                />
-
-                                <div className="grid grid-cols-2 gap-6">
-                                    <Input
-                                        label="Quartier"
-                                        value={formData.quartier || ''}
-                                        onChange={(e) => handleChange('quartier', e.target.value)}
-                                        placeholder="Ex: Akpakpa"
-                                        className="bg-base-200 border-base-300 focus:bg-base-100"
-                                    />
-                                    <Input
-                                        label="Ville *"
-                                        value={formData.ville || ''}
-                                        onChange={(e) => handleChange('ville', e.target.value)}
-                                        placeholder="Ex: Cotonou"
-                                        required
-                                        className={`bg-base-200 border-base-300 focus:bg-base-100 ${!formData.ville ? 'border-red-200' : ''}`}
-                                    />
-                                </div>
-                                <Input
-                                    label="Pays"
-                                    value={formData.pays || 'Bénin'}
-                                    onChange={(e) => handleChange('pays', e.target.value)}
-                                    className="bg-base-200 border-base-300 focus:bg-base-100"
-                                />
-                                
-                                {/* GPS Section */}
-                                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                                    <div className="text-xs font-bold text-blue-800 uppercase mb-3">Coordonnées GPS (Optionnel)</div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <Input
-                                            label="Latitude"
-                                            type="number"
-                                            step="any"
-                                            value={formData.latitude || ''}
-                                            onChange={(e) => handleChange('latitude', parseFloat(e.target.value) || null)}
-                                            placeholder="6.3702"
-                                            className="bg-base-100 border-blue-200"
-                                        />
-                                        <Input
-                                            label="Longitude"
-                                            type="number"
-                                            step="any"
-                                            value={formData.longitude || ''}
-                                            onChange={(e) => handleChange('longitude', parseFloat(e.target.value) || null)}
-                                            placeholder="2.3912"
-                                            className="bg-base-100 border-blue-200"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* STEP 3: GESTION */}
-                    {currentStep === 2 && (
-                         <div className="space-y-6">
-                             <div className="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200 space-y-6">
-                                <h3 className="text-lg font-bold text-base-content/90 flex items-center gap-2">
-                                    <Users className="text-blue-500" /> Propriétaire & Gestion
-                                </h3>
-
-                                <div className="space-y-4">
-                                     {proprietaires.length > 1 ? (
-                                        <div className="form-control w-full">
-                                            <label className="label font-bold text-sm text-base-content/80">Propriétaire *</label>
-                                            <select
-                                                className={`select select-bordered w-full bg-base-200 border-base-300 focus:bg-base-100 h-12 ${!formData.owner_id ? 'select-error' : ''}`}
-                                                value={formData.owner_id || ''}
-                                                onChange={(e) => handleChange('owner_id', e.target.value ? parseInt(e.target.value) : 0)}
-                                            >
-                                                <option value="">Sélectionner un propriétaire</option>
-                                                {proprietaires.map(p => (
-                                                    <option key={p.id} value={p.id}>
-                                                        {p.type === 'individual' ? `${p.nom} ${p.prenom || ''}` : p.nom}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                     ) : proprietaires.length === 1 ? (
-                                         <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between">
-                                            <div>
-                                                <span className="text-xs font-bold text-blue-500 uppercase">Propriétaire assigné</span>
-                                                <div className="font-bold text-blue-900 text-lg">
-                                                    {proprietaires[0].type === 'individual' 
-                                                        ? `${proprietaires[0].nom} ${proprietaires[0].prenom || ''}` 
-                                                        : proprietaires[0].nom}
-                                                </div>
-                                            </div>
-                                            <Check className="text-blue-500" />
-                                         </div>
-                                     ) : (
-                                         <div className="alert alert-error">
-                                             <div className="flex flex-col">
-                                                <span className="font-bold">Aucun propriétaire trouvé.</span>
-                                                <span className="text-xs">Vous devez d'abord créer un profil propriétaire.</span>
-                                             </div>
-                                         </div>
-                                     )}
-
-                                     {gestionnaires.length > 0 && (
-                                         <div className="form-control w-full mt-4">
-                                            <label className="label font-bold text-sm text-base-content/80">Gestionnaire (Optionnel)</label>
-                                            <select
-                                                className="select select-bordered w-full bg-base-200 border-base-300 focus:bg-base-100 h-12"
-                                                value={formData.gestionnaire_id || ''}
-                                                onChange={(e) => handleChange('gestionnaire_id', e.target.value ? parseInt(e.target.value) : null)}
-                                            >
-                                                <option value="">Géré par le propriétaire</option>
-                                                {gestionnaires.map(g => (
-                                                    <option key={g.id} value={g.id}>{g.nom}</option>
-                                                ))}
-                                            </select>
-                                         </div>
-                                     )}
-                                </div>
-                             </div>
-                         </div>
-                    )}
-
-                    {/* STEP 4: MEDIAS & PARAMETRES */}
-                    {currentStep === 3 && (
-                        <div className="space-y-6">
-                            <div className="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200 space-y-6">
-                                <h3 className="text-lg font-bold text-base-content/90 flex items-center gap-2">
-                                    <Image className="text-blue-500" /> Photos & Vidéos
-                                </h3>
-
-                                {/* Photos Grid */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {photoPreviews.map((url, index) => {
-                                        const isMain = url === formData.photo || (!formData.photo && index === 0);
-                                        return (
-                                            <div key={index} className={`relative group rounded-xl overflow-hidden border-2 aspect-square ${isMain ? 'border-blue-500 shadow-md transform scale-[1.02]' : 'border-transparent'}`}>
-                                                <img src={url} alt={`Preview ${index}`} className="w-full h-full object-cover" />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                    <button 
-                                                        onClick={() => handleSetMainPhoto(url)} 
-                                                        className="btn btn-circle btn-sm btn-primary text-white"
-                                                        title="Définir comme principale"
-                                                    >
-                                                        <Star size={14} fill="currentColor" />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handlePhotoRemove(index)} 
-                                                        className="btn btn-circle btn-sm btn-error text-white"
-                                                        title="Supprimer"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </div>
-                                                {isMain && (
-                                                    <div className="absolute bottom-0 w-full bg-blue-500 text-white text-[10px] font-bold text-center py-1 uppercase">
-                                                        Principale
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                    {photoPreviews.length < 10 && (
-                                        <ImageUpload 
-                                            onChange={handlePhotoAdd} 
-                                            folder="property" 
-                                            label=""
-                                            clearOnSuccess={true}
-                                            className="aspect-square bg-base-200 border-dashed border-2 border-base-300 hover:border-blue-300 hover:bg-blue-50 transition-colors rounded-xl"
-                                        />
-                                    )}
-                                </div>
-
-                                <div className="divider">Compléments</div>
-
-                                <div className="space-y-4">
-                                    <Input
-                                        label="URL Vidéo (YouTube/Vimeo)"
-                                        value={formData.video_url || ''}
-                                        onChange={(e) => handleChange('video_url', e.target.value)}
-                                        placeholder="https://..."
-                                        className="bg-base-200 border-base-300 focus:bg-base-100"
-                                    />
-                                    <Input
-                                        label="URL Plan de masse"
-                                        value={formData.plan_masse_url || ''}
-                                        onChange={(e) => handleChange('plan_masse_url', e.target.value)}
-                                        placeholder="https://..."
-                                        className="bg-base-200 border-base-300 focus:bg-base-100"
-                                    />
-                                </div>
-                            </div>
-
-                             <div className="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200 space-y-4">
-                                <h3 className="text-lg font-bold text-base-content/90 flex items-center gap-2">
-                                    <Settings className="text-blue-500" /> Statut
-                                </h3>
-                                <Select
-                                    label="État du bien"
-                                    value={formData.statut || 'actif'}
-                                    onChange={(e) => handleChange('statut', e.target.value)}
-                                    options={STATUTS}
-                                    className="bg-base-200 border-base-300 focus:bg-base-100"
-                                />
-                             </div>
-                        </div>
-                    )}
-                </motion.div>
-            </AnimatePresence>
+          })}
         </div>
       </div>
 
-       {/* Footer Buttons */}
-       <div className="p-6 bg-base-100 border-t border-base-300 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative z-20">
-            <button
-                onClick={currentStep === 0 ? onCancel : handleBack}
-                className="px-6 py-3 rounded-xl text-sm font-bold text-base-content/70 hover:bg-base-300 hover:text-base-content/90 transition"
+      {/* ── Scrollable content ───────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="max-w-2xl mx-auto p-6 pb-8">
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={currentStep}
+              custom={direction}
+              variants={slide}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
             >
-                {currentStep === 0 ? 'Annuler' : 'Retour'}
-            </button>
 
-            <div className="flex items-center gap-3">
-                {currentStep < STEPS.length - 1 ? (
-                    <button
-                        onClick={handleNext}
-                        disabled={!isStepValid()}
-                        className="px-8 py-3 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 hover:scale-[1.02] transition disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
-                    >
-                        Suivant <ArrowRight size={18} />
-                    </button>
-                ) : (
-                    <>
-                        {!formData.id && onSaveAndAddLots && (
+              {/* ════════════ STEP 0 — IDENTITÉ ════════════ */}
+              {currentStep === 0 && (
+                <div className="space-y-5">
+
+                  <Input
+                    label="Nom de l'immeuble"
+                    placeholder="Ex : Résidence Les Palmiers"
+                    value={formData.nom || ''}
+                    onChange={e => handleChange('nom', e.target.value)}
+                    onBlur={() => handleBlur('nom')}
+                    required
+                    startIcon={<Building2 size={16} />}
+                    error={getError('nom')}
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Select
+                      label="Type de bien"
+                      value={formData.type || 'Immeuble'}
+                      onChange={e => handleChange('type', e.target.value)}
+                      options={TYPES_IMMEUBLE}
+                      required
+                    />
+                    <Input
+                      label="Nombre d'étages"
+                      type="number"
+                      min={0}
+                      value={formData.nombre_etages ?? 0}
+                      onChange={e => handleChange('nombre_etages',
+                        e.target.value === '' ? 0 : parseInt(e.target.value))}
+                      helperText="0 si plain-pied"
+                    />
+                  </div>
+
+                  <Input
+                    label="Nombre total de lots"
+                    type="number"
+                    min={1}
+                    placeholder="Ex : 12"
+                    value={formData.total_lots ?? ''}
+                    onChange={e => handleChange('total_lots',
+                      e.target.value === '' ? undefined : parseInt(e.target.value))}
+                    onBlur={() => handleBlur('total_lots')}
+                    required
+                    error={getError('total_lots')}
+                    helperText="Nombre total d'appartements / locaux dans ce bien"
+                  />
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-sm font-semibold text-base-content/80 mb-1.5">
+                      Description
+                    </label>
+                    <div className="rounded-xl border-2 border-base-300 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all bg-base-100">
+                      <textarea
+                        className="w-full px-4 py-3 text-sm bg-transparent border-0 focus:ring-0 focus:outline-none resize-none placeholder:text-base-content/50 text-base-content"
+                        rows={4}
+                        value={formData.description || ''}
+                        onChange={e => handleChange('description', e.target.value)}
+                        placeholder="Équipements, atouts, informations complémentaires…"
+                      />
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-base-content/40">
+                    Les champs marqués <span className="text-error">*</span> sont obligatoires.
+                  </p>
+                </div>
+              )}
+
+              {/* ════════════ STEP 1 — LOCALISATION ════════════ */}
+              {currentStep === 1 && (
+                <div className="space-y-5">
+
+                  <Input
+                    label="Adresse complète"
+                    placeholder="Ex : 123 Rue de la Paix"
+                    value={formData.adresse || ''}
+                    onChange={e => handleChange('adresse', e.target.value)}
+                    startIcon={<MapPin size={16} />}
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Input
+                      label="Quartier"
+                      placeholder="Ex : Akpakpa"
+                      value={formData.quartier || ''}
+                      onChange={e => handleChange('quartier', e.target.value)}
+                    />
+                    <Input
+                      label="Ville"
+                      placeholder="Ex : Cotonou"
+                      value={formData.ville || ''}
+                      onChange={e => handleChange('ville', e.target.value)}
+                      onBlur={() => handleBlur('ville')}
+                      required
+                      error={getError('ville')}
+                    />
+                  </div>
+
+                  <Select
+                    label="Pays"
+                    value={formData.pays || 'Bénin'}
+                    onChange={e => handleChange('pays', e.target.value)}
+                    options={COUNTRIES.map(c => ({ value: c, label: c }))}
+                  />
+
+                  {/* GPS optionnel */}
+                  <div>
+                    <div className="flex items-start gap-2.5 p-3.5 bg-base-200 rounded-xl mb-3">
+                      <Info size={15} className="text-base-content/50 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-base-content/60 leading-snug">
+                        Les coordonnées GPS sont <strong>facultatives</strong> et permettront
+                        d'afficher le bien sur une carte.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Input
+                        label="Latitude"
+                        type="number"
+                        step="any"
+                        placeholder="6.3702"
+                        value={formData.latitude ?? ''}
+                        onChange={e => handleChange('latitude',
+                          e.target.value === '' ? null : parseFloat(e.target.value))}
+                      />
+                      <Input
+                        label="Longitude"
+                        type="number"
+                        step="any"
+                        placeholder="2.3912"
+                        value={formData.longitude ?? ''}
+                        onChange={e => handleChange('longitude',
+                          e.target.value === '' ? null : parseFloat(e.target.value))}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ════════════ STEP 2 — GESTION ════════════ */}
+              {currentStep === 2 && (
+                <div className="space-y-5">
+
+                  {/* Propriétaire */}
+                  {proprietaires.length === 0 ? (
+                    <div className="flex items-start gap-3 p-4 bg-error/5 border border-error/20 rounded-xl">
+                      <Info size={16} className="text-error mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-error">Aucun propriétaire trouvé</p>
+                        <p className="text-xs text-error/70 mt-0.5">
+                          Vous devez d'abord créer un profil propriétaire.
+                        </p>
+                      </div>
+                    </div>
+                  ) : proprietaires.length === 1 ? (
+                    <div className="flex items-center justify-between p-4 bg-success/5 border border-success/20 rounded-xl">
+                      <div>
+                        <p className="text-xs font-semibold text-success/80 uppercase tracking-wide">
+                          Propriétaire assigné
+                        </p>
+                        <p className="font-bold text-base-content mt-0.5">
+                          {ownerLabel(proprietaires[0])}
+                        </p>
+                      </div>
+                      <Check size={18} className="text-success" />
+                    </div>
+                  ) : (
+                    <Select
+                      label="Propriétaire"
+                      required
+                      placeholder="Sélectionner un propriétaire…"
+                      value={formData.owner_id ?? ''}
+                      onChange={e => handleChange('owner_id',
+                        e.target.value ? parseInt(e.target.value) : undefined)}
+                      options={proprietaires.map(p => ({
+                        value: p.id,
+                        label: ownerLabel(p),
+                      }))}
+                      error={getError('owner_id')}
+                    />
+                  )}
+
+                  {/* Gestionnaire (optionnel) */}
+                  {gestionnaires.length > 0 && (
+                    <Select
+                      label="Gestionnaire"
+                      placeholder="Géré directement par le propriétaire"
+                      value={formData.gestionnaire_id ?? ''}
+                      onChange={e => handleChange('gestionnaire_id',
+                        e.target.value ? parseInt(e.target.value) : null)}
+                      options={[
+                        { value: '', label: 'Géré directement par le propriétaire' },
+                        ...gestionnaires.map(g => ({ value: g.id, label: g.nom })),
+                      ]}
+                      helperText="Optionnel — laissez vide si le propriétaire gère lui-même"
+                    />
+                  )}
+
+                  {/* Rappel des données saisies */}
+                  {(formData.nom || formData.ville) && (
+                    <div className="p-4 bg-base-200 rounded-xl space-y-2">
+                      <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wide">
+                        Récapitulatif partiel
+                      </p>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <p className="text-[11px] text-base-content/50">Nom</p>
+                          <p className="font-medium truncate">{formData.nom || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-base-content/50">Type</p>
+                          <p className="font-medium">{formData.type}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-base-content/50">Localisation</p>
+                          <p className="font-medium truncate">
+                            {[formData.quartier, formData.ville, formData.pays]
+                              .filter(Boolean).join(', ') || '—'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-base-content/50">Lots</p>
+                          <p className="font-medium">{formData.total_lots ?? '—'}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {[{ label: 'Identité', step: 0 }, { label: 'Localisation', step: 1 }].map(
+                          ({ label, step }) => (
                             <button
-                                onClick={() => handleSubmit(true)}
-                                disabled={loading}
-                                className="px-6 py-3 rounded-xl bg-blue-100 text-blue-700 text-sm font-bold hover:bg-blue-200 transition disabled:opacity-50 flex items-center gap-2"
+                              key={step}
+                              type="button"
+                              onClick={() => goToStep(step)}
+                              className="text-xs text-base-content/50 hover:text-primary flex items-center gap-1 transition-colors"
                             >
-                                <Plus size={16} /> Enregistrer & Ajouter Lots
+                              <ChevronRight size={11} /> Modifier {label}
                             </button>
+                          )
                         )}
-                        <button
-                            onClick={() => handleSubmit(false)}
-                            disabled={loading}
-                            className="px-8 py-3 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 hover:shadow-lg hover:shadow-green-500/30 hover:scale-[1.02] transition disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
-                        >
-                            <Save size={18} /> {formData.id ? 'Modifier' : 'Terminer'}
-                        </button>
-                    </>
-                )}
-            </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ════════════ STEP 3 — MÉDIAS ════════════ */}
+              {currentStep === 3 && (
+                <div className="space-y-6">
+
+                  {/* Galerie photos */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-semibold text-base-content flex items-center gap-2">
+                        <FileImage size={15} /> Photos
+                      </p>
+                      <span className="text-xs text-base-content/40">
+                        {photoPreviews.length} / 10 — cliquez
+                        <Star size={10} className="inline mx-0.5 text-warning" fill="currentColor" />
+                        pour définir la principale
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                      {photoPreviews.map((url, index) => {
+                        const isMain = url === formData.photo || (!formData.photo && index === 0);
+                        return (
+                          <div
+                            key={index}
+                            className={[
+                              'relative group rounded-xl overflow-hidden aspect-square border-2 transition-all',
+                              isMain ? 'border-primary shadow-md' : 'border-transparent hover:border-base-300',
+                            ].join(' ')}
+                          >
+                            <img
+                              src={url}
+                              alt={`Photo ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+
+                            {/* Actions overlay */}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleSetMainPhoto(url)}
+                                className="w-7 h-7 rounded-full bg-primary text-primary-content flex items-center justify-center hover:bg-primary/80 transition"
+                                title="Définir comme principale"
+                              >
+                                <Star size={13} fill="currentColor" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handlePhotoRemove(index)}
+                                className="w-7 h-7 rounded-full bg-error text-white flex items-center justify-center hover:bg-error/80 transition"
+                                title="Supprimer"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+
+                            {isMain && (
+                              <div className="absolute bottom-0 w-full bg-primary text-primary-content text-[9px] font-bold text-center py-0.5 uppercase tracking-wide">
+                                Principale
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* Zone d'ajout */}
+                      {photoPreviews.length < 10 && (
+                        <div className="aspect-square rounded-xl overflow-hidden border-2 border-dashed border-base-300 hover:border-primary/40 transition-colors bg-base-50">
+                          <ImageUpload
+                            onChange={handlePhotoAdd}
+                            folder="property"
+                            label=""
+                            clearOnSuccess
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Compléments */}
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-base-content flex items-center gap-2">
+                      <Video size={15} /> Compléments (optionnel)
+                    </p>
+                    <Input
+                      label="URL Vidéo (YouTube / Vimeo)"
+                      placeholder="https://…"
+                      value={formData.video_url || ''}
+                      onChange={e => handleChange('video_url', e.target.value)}
+                      startIcon={<Video size={16} />}
+                    />
+                    <Input
+                      label="URL Plan de masse"
+                      placeholder="https://…"
+                      value={formData.plan_masse_url || ''}
+                      onChange={e => handleChange('plan_masse_url', e.target.value)}
+                      startIcon={<FileImage size={16} />}
+                    />
+                  </div>
+
+                  {/* Statut */}
+                  <Select
+                    label="État du bien"
+                    value={formData.statut || 'actif'}
+                    onChange={e => handleChange('statut', e.target.value)}
+                    options={[
+                      { value: 'actif',   label: 'Actif — Bien opérationnel' },
+                      { value: 'inactif', label: 'Inactif — Temporairement désactivé' },
+                    ]}
+                  />
+                </div>
+              )}
+
+            </motion.div>
+          </AnimatePresence>
         </div>
+      </div>
+
+      {/* ── Footer navigation ───────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-6 py-4 border-t border-base-200 bg-base-50 flex-shrink-0">
+
+        <Button
+          variant="ghost"
+          onClick={currentStep === 0 ? onCancel : handlePrev}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft size={16} />
+          {currentStep === 0 ? 'Annuler' : 'Précédent'}
+        </Button>
+
+        <div className="flex items-center gap-3">
+          {/* Passer (étapes optionnelles non-dernières) */}
+          {currentStep === 3 && (
+            <span className="text-xs text-base-content/40">
+              Les médias sont facultatifs
+            </span>
+          )}
+
+          {!isLastStep ? (
+            <Button
+              variant="primary"
+              onClick={handleNext}
+              disabled={!isStepValid()}
+              className="flex items-center gap-2"
+              title={!isStepValid() ? 'Complétez les champs requis' : undefined}
+            >
+              Suivant
+              <ArrowRight size={16} />
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2">
+              {/* Bouton Enregistrer & Ajouter Lots (création uniquement) */}
+              {!immeuble.id && onSaveAndAddLots && (
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSubmit(true)}
+                  disabled={loading}
+                  className="flex items-center gap-2 border border-primary text-primary hover:bg-primary/5"
+                >
+                  <Plus size={15} />
+                  Enregistrer & Ajouter lots
+                </Button>
+              )}
+
+              <Button
+                variant="primary"
+                onClick={() => handleSubmit(false)}
+                disabled={loading}
+                className="flex items-center gap-2 min-w-[130px] justify-center"
+              >
+                {loading ? (
+                  <>
+                    <span className="loading loading-spinner loading-xs" />
+                    Enregistrement…
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    {immeuble.id ? 'Modifier' : 'Terminer'}
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
