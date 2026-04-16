@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npx tsc:*)",
+      "Bash(xargs grep:*)",
+      "Bash(find \"d:/Hope GImmo/HopeGestionV2/backend/db\" -name \"*.sql\" -exec grep -l \"POLICY\\\\|rls\\\\|ROW LEVEL\" {} \\\\;)"
     ]
   }
 }

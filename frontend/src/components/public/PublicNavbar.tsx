@@ -32,8 +32,7 @@ const PublicNavbar: React.FC = () => {
         >
             <div className="navbar-start">
                 <Link to="/" className="hover:opacity-80 transition-opacity flex items-center gap-2">
-                    <img src="/logo.png" alt="Hope Gestion" className="h-8 md:h-12 w-auto" />
-                    <span className="font-bold text-xl hidden sm:inline">Hope Gestion</span>
+                    <img src="/logo.svg" alt="Hope Gestion" className="h-8 md:h-10 w-auto" />
                 </Link>
             </div>
 

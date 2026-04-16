@@ -133,7 +133,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
       <div className="card w-full max-w-md bg-base-100 shadow-xl">
         <div className="card-body">
           <div className="text-center mb-6">
-            <img src="/logo.png" alt="Logo" className="w-16 h-auto mx-auto mb-4" />
+            <img src="/logo.svg" alt="Logo" className="w-44 h-auto mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-base-content">Créer un compte</h2>
             <p className="text-base-content/70 mt-2">Rejoignez Hope Gestion pour gérer vos biens immobiliers</p>
           </div>
