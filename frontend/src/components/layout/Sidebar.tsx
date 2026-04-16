@@ -228,7 +228,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
           <div className="h-20 flex items-center justify-center px-4 border-b border-base-200/50 bg-transparent shrink-0">
             {(isOpen || isMobile) ? (
                  <div className="flex items-center justify-between w-full">
-                    <img src="/logo.svg" alt="Logo" className="h-12 w-auto object-contain drop-shadow-sm" />
+                    <img src="/logo.png" alt="Logo" className="h-12 w-auto object-contain drop-shadow-sm" />
                     <button 
                       onClick={toggleSidebar} 
                       className="p-2 rounded-xl hover:bg-base-300/50 text-slate-400 hover:text-base-content/80 transition-colors md:hidden"
@@ -237,7 +237,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                     </button>
                  </div>
             ) : (
-               <img src="/logo-icon.svg" alt="Logo" className="h-10 w-10 mx-auto object-contain drop-shadow-sm transition-transform hover:scale-110 cursor-pointer" onClick={toggleSidebar} />
+               <img src="/logo.png" alt="Logo" className="h-10 w-10 mx-auto object-contain drop-shadow-sm transition-transform hover:scale-110 cursor-pointer" onClick={toggleSidebar} />
             )}
           </div>
 

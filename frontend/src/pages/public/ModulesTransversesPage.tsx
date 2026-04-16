@@ -24,7 +24,7 @@ const ModulesTransversesPage: React.FC = () => {
       <nav className="navbar bg-base-100/90 backdrop-blur-md sticky top-0 z-50 shadow-sm px-4 md:px-8">
         <div className="navbar-start">
           <Link to="/" className="hover:opacity-80 transition-opacity">
-            <img src="/logo.svg" alt="Hope Gestion" className="h-10 md:h-12 w-auto" />
+            <img src="/logo.png" alt="Hope Gestion" className="h-12 md:h-16 w-auto" />
           </Link>
         </div>
         <div className="navbar-center hidden lg:flex">

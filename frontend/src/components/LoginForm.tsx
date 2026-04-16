@@ -95,7 +95,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onGoBackToHome, o
             <div className="w-full max-w-md bg-base-100 rounded-xl shadow-lg border border-base-200 p-8">
                 <div className="flex flex-col items-center mb-8">
                     <div className="mb-4">
-                        <img src="/logo.svg" alt="Logo" className="w-48 h-auto mx-auto" />
+                        <img src="/logo.png" alt="Logo" className="w-20 h-auto mx-auto" />
                     </div>
                     <h2 className="text-2xl font-bold text-base-content">Connexion</h2>
                     <p className="text-base-content/60 mt-1">Heureux de vous revoir !</p>

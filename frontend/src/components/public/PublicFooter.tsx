@@ -25,7 +25,7 @@ const PublicFooter: React.FC = () => {
                     {/* Column 1: Brand & Contact */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-2">
-                            <img src="/logo.svg" alt="Hope Gestion" className="h-10 w-auto brightness-0 invert" />
+                            <img src="/logo.png" alt="Hope Immo" className="h-10 w-auto brightness-0 invert" />
                             {/* <span className="text-2xl font-bold tracking-tight">Hope Gestion</span> */}
                         </div>
                         <p className="opacity-70 text-sm leading-relaxed max-w-xs">
