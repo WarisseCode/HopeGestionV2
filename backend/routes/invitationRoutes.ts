@@ -185,6 +185,12 @@ router.post('/:token/accept', async (req: Request, res: Response) => {
       );
       const tenant_owner_id = ownerRes.rows[0]?.owner_id || null;
 
+      // Définir le contexte RLS requis par les politiques de sécurité
+      await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [inv.gestionnaire_id.toString()]);
+      if (tenant_owner_id) {
+        await client.query(`SELECT set_config('app.current_owner_id', $1, true)`, [tenant_owner_id.toString()]);
+      }
+
       const tenantCode = 'LOC-' + Math.random().toString(36).substring(2, 8).toUpperCase();
       await client.query(
         `INSERT INTO tenants (nom, prenoms, email, telephone_principal, adresse_actuelle, owner_id, user_id, invitation_code, statut, type)
