@@ -9,33 +9,25 @@ interface InvitationLinkModalProps {
   type: 'owner' | 'tenant';
 }
 
-type Step = 'form' | 'submitting' | 'link';
+type Step = 'idle' | 'generating' | 'link' | 'error';
 
 const InvitationLinkModal: React.FC<InvitationLinkModalProps> = ({ isOpen, onClose, type }) => {
-  const [step, setStep] = useState<Step>('form');
-  const [form, setForm] = useState({ nom: '', prenom: '', telephone: '', email: '' });
+  const [step, setStep] = useState<Step>('idle');
   const [link, setLink] = useState('');
-  const [inviteeName, setInviteeName] = useState('');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!isOpen) return;
-    setStep('form');
-    setForm({ nom: '', prenom: '', telephone: '', email: '' });
+    setStep('idle');
     setLink('');
     setError('');
     setCopied(false);
   }, [isOpen]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.nom || !form.telephone) {
-      setError('Nom et téléphone sont requis');
-      return;
-    }
+  const handleGenerate = async () => {
     setError('');
-    setStep('submitting');
+    setStep('generating');
 
     try {
       const token = localStorage.getItem('userToken');
@@ -45,28 +37,21 @@ const InvitationLinkModal: React.FC<InvitationLinkModalProps> = ({ isOpen, onClo
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          type,
-          nom: form.nom,
-          prenom: form.prenom || undefined,
-          telephone: form.telephone,
-          email: form.email || undefined
-        })
+        body: JSON.stringify({ type })
       });
 
       const data = await r.json();
       if (!r.ok) {
         setError(data.error || 'Erreur lors de la création');
-        setStep('form');
+        setStep('error');
         return;
       }
 
       setLink(data.link);
-      setInviteeName(`${form.prenom || ''} ${form.nom}`.trim());
       setStep('link');
     } catch {
       setError('Erreur réseau. Veuillez réessayer.');
-      setStep('form');
+      setStep('error');
     }
   };
 
@@ -79,7 +64,7 @@ const InvitationLinkModal: React.FC<InvitationLinkModalProps> = ({ isOpen, onClo
   const handleWhatsApp = () => {
     const roleLabel = type === 'owner' ? 'propriétaire' : 'locataire';
     const msg = encodeURIComponent(
-      `Bonjour ${inviteeName},\n\nVous êtes invité(e) à accéder à votre espace ${roleLabel} sur Hope Gestion.\n\nCliquez sur ce lien pour créer votre compte :\n${link}\n\nCe lien est valable 7 jours.`
+      `Bonjour,\n\nVous êtes invité(e) à accéder à votre espace ${roleLabel} sur Hope Gestion.\n\nCliquez sur ce lien pour créer votre compte :\n${link}\n\nCe lien est valable 7 jours.`
     );
     window.open(`https://wa.me/?text=${msg}`, '_blank');
   };
@@ -89,6 +74,7 @@ const InvitationLinkModal: React.FC<InvitationLinkModalProps> = ({ isOpen, onClo
   const roleLabel = type === 'owner' ? 'Propriétaire' : 'Locataire';
   const accentColor = type === 'owner' ? 'text-blue-600' : 'text-green-600';
   const accentBg = type === 'owner' ? 'bg-blue-50' : 'bg-green-50';
+  const btnClass = type === 'owner' ? 'btn-primary' : 'btn-success text-white';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -103,7 +89,9 @@ const InvitationLinkModal: React.FC<InvitationLinkModalProps> = ({ isOpen, onClo
             <div>
               <h3 className="font-bold text-base-content">Inviter un {roleLabel.toLowerCase()}</h3>
               <p className="text-xs text-base-content/60">
-                {step === 'link' ? `Lien généré pour ${inviteeName}` : 'Renseignez les informations de la personne'}
+                {step === 'link'
+                  ? 'Lien généré — partagez-le avec la personne'
+                  : `Générez un lien d'invitation pour un nouveau ${roleLabel.toLowerCase()}`}
               </p>
             </div>
           </div>
@@ -112,139 +100,100 @@ const InvitationLinkModal: React.FC<InvitationLinkModalProps> = ({ isOpen, onClo
           </button>
         </div>
 
-        {/* Formulaire */}
-        {(step === 'form' || step === 'submitting') && (
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            {error && <div className="alert alert-error text-sm py-2">{error}</div>}
+        <div className="p-6 space-y-4">
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="form-control">
-                <label className="label pb-1">
-                  <span className="label-text font-medium">Nom <span className="text-error">*</span></span>
-                </label>
-                <input
-                  className="input input-bordered w-full"
-                  value={form.nom}
-                  onChange={e => setForm({ ...form, nom: e.target.value })}
-                  placeholder="Dupont"
-                  required
-                  disabled={step === 'submitting'}
-                />
+          {/* État idle / generating */}
+          {(step === 'idle' || step === 'generating') && (
+            <>
+              <p className="text-sm text-base-content/60">
+                Cliquez sur le bouton ci-dessous pour générer un lien unique.
+                La personne recevra ce lien et devra remplir ses informations pour créer son compte.
+              </p>
+              <p className="text-xs text-base-content/40">Le lien sera valide pendant 7 jours.</p>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={onClose} className="btn btn-ghost flex-1" disabled={step === 'generating'}>
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  className={`btn flex-1 ${btnClass}`}
+                  disabled={step === 'generating'}
+                >
+                  {step === 'generating'
+                    ? <><Loader2 className="animate-spin mr-2" size={16} />Génération...</>
+                    : <><Send size={16} className="mr-2" />Générer le lien</>}
+                </button>
               </div>
-              <div className="form-control">
-                <label className="label pb-1">
-                  <span className="label-text font-medium">Prénom(s)</span>
-                </label>
-                <input
-                  className="input input-bordered w-full"
-                  value={form.prenom}
-                  onChange={e => setForm({ ...form, prenom: e.target.value })}
-                  placeholder="Jean"
-                  disabled={step === 'submitting'}
-                />
+            </>
+          )}
+
+          {/* Erreur */}
+          {step === 'error' && (
+            <>
+              <div className="alert alert-error text-sm py-2">{error}</div>
+              <div className="flex gap-3">
+                <button type="button" onClick={onClose} className="btn btn-ghost flex-1">Fermer</button>
+                <button type="button" onClick={() => setStep('idle')} className={`btn flex-1 ${btnClass}`}>Réessayer</button>
               </div>
-            </div>
+            </>
+          )}
 
-            <div className="form-control">
-              <label className="label pb-1">
-                <span className="label-text font-medium">Téléphone <span className="text-error">*</span></span>
-              </label>
-              <input
-                type="tel"
-                className="input input-bordered w-full"
-                value={form.telephone}
-                onChange={e => setForm({ ...form, telephone: e.target.value })}
-                placeholder="+229 01 00 00 00"
-                required
-                disabled={step === 'submitting'}
-              />
-            </div>
+          {/* Lien généré */}
+          {step === 'link' && (
+            <>
+              <div className={`${accentBg} rounded-xl p-3 flex items-center gap-2`}>
+                <span className={`text-xs font-bold ${accentColor}`}>✓ Lien généré</span>
+                <span className="text-xs text-base-content/60">— à partager avec le/la {roleLabel.toLowerCase()}</span>
+              </div>
 
-            <div className="form-control">
-              <label className="label pb-1">
-                <span className="label-text font-medium">Email</span>
-              </label>
-              <input
-                type="email"
-                className="input input-bordered w-full"
-                value={form.email}
-                onChange={e => setForm({ ...form, email: e.target.value })}
-                placeholder="jean@exemple.com"
-                disabled={step === 'submitting'}
-              />
-            </div>
+              <p className="text-sm text-base-content/60">
+                Partagez ce lien. La personne devra remplir ses informations complètes pour finaliser son inscription.
+              </p>
 
-            <div className="flex gap-3 pt-2">
-              <button type="button" onClick={onClose} className="btn btn-ghost flex-1" disabled={step === 'submitting'}>
-                Annuler
-              </button>
-              <button
-                type="submit"
-                className={`btn flex-1 ${type === 'owner' ? 'btn-primary' : 'btn-success text-white'}`}
-                disabled={step === 'submitting'}
-              >
-                {step === 'submitting'
-                  ? <><Loader2 className="animate-spin mr-2" size={16} />Création...</>
-                  : <><Send size={16} className="mr-2" />Générer le lien</>}
-              </button>
-            </div>
-          </form>
-        )}
+              <div className="bg-base-200 rounded-xl p-3 flex items-center gap-2">
+                <span className="text-xs font-mono text-base-content/70 flex-1 truncate">{link}</span>
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  title="Copier le lien"
+                  className={`btn btn-sm btn-ghost shrink-0 ${copied ? 'text-success' : ''}`}
+                >
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                </button>
+              </div>
 
-        {/* Lien généré */}
-        {step === 'link' && (
-          <div className="p-6 space-y-4">
-            <div className={`${accentBg} rounded-xl p-3 flex items-center gap-2`}>
-              <span className={`text-xs font-bold ${accentColor}`}>✓ {roleLabel} créé(e)</span>
-              <span className="text-xs text-base-content/60">— {inviteeName}</span>
-            </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className={`btn btn-outline btn-sm gap-2 ${copied ? 'btn-success' : ''}`}
+                >
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                  {copied ? 'Copié !' : 'Copier le lien'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleWhatsApp}
+                  className="btn btn-sm gap-2 bg-green-500 hover:bg-green-600 text-white border-none"
+                >
+                  <Share2 size={16} />
+                  WhatsApp
+                </button>
+              </div>
 
-            <p className="text-sm text-base-content/60">
-              Partagez ce lien avec <strong>{inviteeName}</strong> pour qu'il/elle crée son compte et accède à son espace.
-            </p>
+              <p className="text-xs text-base-content/40 text-center">Ce lien expire dans 7 jours</p>
 
-            <div className="bg-base-200 rounded-xl p-3 flex items-center gap-2">
-              <span className="text-xs font-mono text-base-content/70 flex-1 truncate">{link}</span>
               <button
                 type="button"
-                onClick={handleCopy}
-                title="Copier le lien"
-                className={`btn btn-sm btn-ghost shrink-0 ${copied ? 'text-success' : ''}`}
+                onClick={() => { setStep('idle'); setLink(''); }}
+                className="btn btn-ghost btn-sm w-full"
               >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
+                + Générer un autre lien
               </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={handleCopy}
-                className={`btn btn-outline btn-sm gap-2 ${copied ? 'btn-success' : ''}`}
-              >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-                {copied ? 'Copié !' : 'Copier le lien'}
-              </button>
-              <button
-                type="button"
-                onClick={handleWhatsApp}
-                className="btn btn-sm gap-2 bg-green-500 hover:bg-green-600 text-white border-none"
-              >
-                <Share2 size={16} />
-                WhatsApp
-              </button>
-            </div>
-
-            <p className="text-xs text-base-content/40 text-center">Ce lien expire dans 7 jours</p>
-
-            <button
-              type="button"
-              onClick={() => { setStep('form'); setForm({ nom: '', prenom: '', telephone: '', email: '' }); }}
-              className="btn btn-ghost btn-sm w-full"
-            >
-              + Inviter une autre personne
-            </button>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
