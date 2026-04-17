@@ -374,6 +374,7 @@ const Locataires: React.FC = () => {
               (subscriptionStatus.usage?.current_tenants ?? 0) >= subscriptionStatus.plan.max_tenants);
 
             return (
+              <>
               <Button
                 variant="ghost"
                 className="rounded-full px-5 border border-primary text-primary hover:bg-primary/10 font-semibold whitespace-nowrap"
@@ -406,6 +407,7 @@ const Locataires: React.FC = () => {
                   Nouveau {activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire'}
                 </Button>
               </div>
+              </>
             );
           })()}
         </div>
