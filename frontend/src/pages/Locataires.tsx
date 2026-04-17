@@ -133,7 +133,7 @@ const Locataires: React.FC = () => {
     action: async () => {}
   });
   const [formType, setFormType] = useState<'creation' | 'affectation'>('creation');
-  const [inviteTarget, setInviteTarget] = useState<{ id: number; name: string } | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [locataireForm, setLocataireForm] = useState({
     typeProfil: 'Locataire', nom: '', prenoms: '', telephonePrincipal: '', telephoneSecondaire: '',
     email: '', nationalite: 'Béninoise', typePiece: 'CNI', numeroPiece: '', dateExpiration: '',
@@ -374,12 +374,21 @@ const Locataires: React.FC = () => {
               (subscriptionStatus.usage?.current_tenants ?? 0) >= subscriptionStatus.plan.max_tenants);
 
             return (
-              <div 
+              <Button
+                variant="ghost"
+                className="rounded-full px-5 border border-primary text-primary hover:bg-primary/10 font-semibold whitespace-nowrap"
+                onClick={() => setShowInviteModal(true)}
+              >
+                <Send size={18} className="mr-2" />
+                Inviter
+              </Button>
+
+              <div
                 className="relative group"
                 title={isLimitReached ? "Limite d'abonnement atteinte. Passez au plan Pro." : ""}
               >
-                <Button 
-                  variant="primary" 
+                <Button
+                  variant="primary"
                   disabled={isLimitReached}
                   className={`rounded-full px-6 shadow-lg shadow-primary/20 transition-all font-semibold whitespace-nowrap \${isLimitReached ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-primary/40'}`}
                   onClick={() => {
@@ -603,8 +612,9 @@ const Locataires: React.FC = () => {
                       </div>
 
                       {/* Quick Actions */}
-                      <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-base-200">
+                      <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-base-200">
                         <button
+                          type="button"
                           onClick={() => handleWhatsApp(person.telephone_principal, person.prenoms)}
                           className="btn btn-sm btn-ghost bg-green-100/50 hover:bg-green-100 text-green-600"
                           title="WhatsApp"
@@ -612,6 +622,7 @@ const Locataires: React.FC = () => {
                           <MessageCircle size={16} />
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleCall(person.telephone_principal)}
                           className="btn btn-sm btn-ghost bg-blue-100/50 hover:bg-blue-100 text-blue-600"
                           title="Appeler"
@@ -619,18 +630,12 @@ const Locataires: React.FC = () => {
                           <Phone size={16} />
                         </button>
                         <button
+                          type="button"
                           onClick={() => navigate(`/dashboard/locataires/${person.id}`)}
                           className="btn btn-sm btn-ghost bg-purple-100/50 hover:bg-purple-100 text-purple-600"
                           title="Détails"
                         >
                           <Eye size={16} />
-                        </button>
-                        <button
-                          onClick={() => setInviteTarget({ id: person.id, name: `${person.prenoms || ''} ${person.nom}`.trim() })}
-                          className="btn btn-sm btn-ghost bg-orange-100/50 hover:bg-orange-100 text-orange-600"
-                          title="Envoyer lien d'invitation"
-                        >
-                          <Send size={16} />
                         </button>
                       </div>
 
@@ -836,11 +841,10 @@ const Locataires: React.FC = () => {
 
       {/* Invitation Link Modal */}
       <InvitationLinkModal
-        isOpen={!!inviteTarget}
-        onClose={() => setInviteTarget(null)}
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
         type="tenant"
-        entityId={inviteTarget?.id ?? 0}
-        entityName={inviteTarget?.name ?? ''}
+        entities={locataires.map(l => ({ id: l.id, name: `${l.prenoms || ''} ${l.nom}`.trim() }))}
       />
 
       {/* Dynamic Confirm Modal */}

@@ -62,7 +62,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
     
     const [editingProp, setEditingProp] = useState<any>(null);
     const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
-    const [inviteTarget, setInviteTarget] = useState<{ id: number; name: string } | null>(null);
+    const [showInviteModal, setShowInviteModal] = useState(false);
 
     // Confirm Modal State
     const [confirmConfig, setConfirmConfig] = useState<{
@@ -342,8 +342,19 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                             </ul>
                         </div>
 
+                        <button
+                            type="button"
+                            onClick={() => setShowInviteModal(true)}
+                            className="btn btn-sm gap-2 h-10 shadow-sm btn-outline btn-primary"
+                            title="Inviter un propriétaire à créer son compte"
+                        >
+                            <Send size={18} />
+                            <span className="hidden sm:inline">Inviter</span>
+                        </button>
+
                         <div className="tooltip tooltip-left" data-tip={hasReachedAgencyLimit ? "Passez au plan Entreprise pour gérer plusieurs agences" : "Créer une nouvelle agence / propriétaire"}>
-                            <button 
+                            <button
+                                type="button"
                                 onClick={() => {
                                     if(hasReachedAgencyLimit) return;
                                     setEditingProp(null);
@@ -352,7 +363,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                 disabled={hasReachedAgencyLimit}
                                 className={`btn btn-sm gap-2 h-10 shadow-sm ${hasReachedAgencyLimit ? 'btn-disabled opacity-50 bg-base-300' : 'btn-primary'}`}
                             >
-                                <Plus size={18} /> 
+                                <Plus size={18} />
                                 <span className="hidden sm:inline">Nouveau</span>
                             </button>
                         </div>
@@ -485,11 +496,6 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                                             </a>
                                                         </li>
                                                         <li>
-                                                            <a onClick={() => setInviteTarget({ id: owner.id, name: `${owner.first_name || ''} ${owner.name}`.trim() })} className="text-blue-600 hover:bg-blue-50 py-2.5">
-                                                                <Send size={16} /> <span className="font-medium">Inviter</span>
-                                                            </a>
-                                                        </li>
-                                                        <li>
                                                             <a onClick={() => handleDelete(owner.id)} className="text-base-content/80 hover:text-warning py-2.5">
                                                                 <Ban size={16} /> <span className="font-medium">Désactiver</span>
                                                             </a>
@@ -543,11 +549,10 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
             />
 
             <InvitationLinkModal
-                isOpen={!!inviteTarget}
-                onClose={() => setInviteTarget(null)}
+                isOpen={showInviteModal}
+                onClose={() => setShowInviteModal(false)}
                 type="owner"
-                entityId={inviteTarget?.id ?? 0}
-                entityName={inviteTarget?.name ?? ''}
+                entities={owners.map(o => ({ id: o.id, name: `${o.first_name || ''} ${o.name}`.trim() }))}
             />
         </div>
     );
