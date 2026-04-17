@@ -183,6 +183,11 @@ app.use('/api/reservations', reservationRoutes);
 import publicRoutes from './routes/publicRoutes';
 app.use('/api/public', publicRoutes);
 
+// Routes Invitations
+// validate/:token et :token/accept sont publics ; POST / requiert protect (vérifié dans le handler)
+import invitationRoutes from './routes/invitationRoutes';
+app.use('/api/invitations', invitationRoutes);
+
 // --- Routes Protégées ---
 // Routes Locataires (Nécessite le jeton JWT)
 app.use('/api/locataires', protect, locataireRoutes); // <--- NOUVELLE LIGNE

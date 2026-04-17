@@ -8,13 +8,13 @@ import { getSubscriptionStatus } from '../api/subscriptionApi';
 import type { Locataire } from '../api/locataireApi';
 import type { SubscriptionStatus } from '../api/subscriptionApi';
 import { 
-  Users, 
-  UserPlus, 
-  Phone, 
-  Mail, 
-  Edit3, 
-  Eye, 
-  Trash2, 
+  Users,
+  UserPlus,
+  Phone,
+  Mail,
+  Edit3,
+  Eye,
+  Trash2,
   Home,
   Wallet,
   User,
@@ -27,10 +27,8 @@ import {
   ChevronRight,
   LayoutGrid,
   List,
-
   X,
-  Key,
-  Copy
+  Send
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../components/ui/Button';
@@ -45,6 +43,7 @@ import SkeletonLoader from '../components/ui/SkeletonLoader';
 import LocataireForm from '../components/locataires/LocataireForm';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import EmptyState from '../components/ui/EmptyState';
+import InvitationLinkModal from '../components/ui/InvitationLinkModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Constants
@@ -134,6 +133,7 @@ const Locataires: React.FC = () => {
     action: async () => {}
   });
   const [formType, setFormType] = useState<'creation' | 'affectation'>('creation');
+  const [inviteTarget, setInviteTarget] = useState<{ id: number; name: string } | null>(null);
   const [locataireForm, setLocataireForm] = useState({
     typeProfil: 'Locataire', nom: '', prenoms: '', telephonePrincipal: '', telephoneSecondaire: '',
     email: '', nationalite: 'Béninoise', typePiece: 'CNI', numeroPiece: '', dateExpiration: '',
@@ -602,28 +602,35 @@ const Locataires: React.FC = () => {
                         )}
                       </div>
 
-                      {/* Quick Actions - Always visible on mobile, hover on desktop */}
-                      <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-base-200">
-                        <button 
+                      {/* Quick Actions */}
+                      <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-base-200">
+                        <button
                           onClick={() => handleWhatsApp(person.telephone_principal, person.prenoms)}
-                          className="btn btn-sm btn-ghost bg-green-100/50 dark:bg-green-900/20 hover:bg-green-100 text-green-600"
+                          className="btn btn-sm btn-ghost bg-green-100/50 hover:bg-green-100 text-green-600"
                           title="WhatsApp"
                         >
                           <MessageCircle size={16} />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleCall(person.telephone_principal)}
-                          className="btn btn-sm btn-ghost bg-blue-100/50 dark:bg-blue-900/20 hover:bg-blue-100 text-blue-600"
+                          className="btn btn-sm btn-ghost bg-blue-100/50 hover:bg-blue-100 text-blue-600"
                           title="Appeler"
                         >
                           <Phone size={16} />
                         </button>
-                        <button 
+                        <button
                           onClick={() => navigate(`/dashboard/locataires/${person.id}`)}
-                          className="btn btn-sm btn-ghost bg-purple-100/50 dark:bg-purple-900/20 hover:bg-purple-100 text-purple-600"
+                          className="btn btn-sm btn-ghost bg-purple-100/50 hover:bg-purple-100 text-purple-600"
                           title="Détails"
                         >
                           <Eye size={16} />
+                        </button>
+                        <button
+                          onClick={() => setInviteTarget({ id: person.id, name: `${person.prenoms || ''} ${person.nom}`.trim() })}
+                          className="btn btn-sm btn-ghost bg-orange-100/50 hover:bg-orange-100 text-orange-600"
+                          title="Envoyer lien d'invitation"
+                        >
+                          <Send size={16} />
                         </button>
                       </div>
 
@@ -826,6 +833,15 @@ const Locataires: React.FC = () => {
           onCancel={() => setShowModal(false)}
         />
       </Modal>
+
+      {/* Invitation Link Modal */}
+      <InvitationLinkModal
+        isOpen={!!inviteTarget}
+        onClose={() => setInviteTarget(null)}
+        type="tenant"
+        entityId={inviteTarget?.id ?? 0}
+        entityName={inviteTarget?.name ?? ''}
+      />
 
       {/* Dynamic Confirm Modal */}
       <ConfirmModal

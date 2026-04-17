@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { accountApi } from '../api/accountApi';
-import { 
+import {
   User, Plus, Trash2, MoreVertical, Edit3, Ban, Columns, Filter, X,
-  Search, Building2, UserPlus, Users, Phone, Mail, MapPin 
+  Search, Building2, UserPlus, Users, Phone, Mail, MapPin, Send
 } from 'lucide-react';
+import InvitationLinkModal from './ui/InvitationLinkModal';
 import Alert from './ui/Alert';
 import Card from './ui/Card';
 import ProprietaireForm from './proprietaires/ProprietaireForm';
@@ -61,6 +62,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
     
     const [editingProp, setEditingProp] = useState<any>(null);
     const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
+    const [inviteTarget, setInviteTarget] = useState<{ id: number; name: string } | null>(null);
 
     // Confirm Modal State
     const [confirmConfig, setConfirmConfig] = useState<{
@@ -483,6 +485,11 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                                             </a>
                                                         </li>
                                                         <li>
+                                                            <a onClick={() => setInviteTarget({ id: owner.id, name: `${owner.first_name || ''} ${owner.name}`.trim() })} className="text-blue-600 hover:bg-blue-50 py-2.5">
+                                                                <Send size={16} /> <span className="font-medium">Inviter</span>
+                                                            </a>
+                                                        </li>
+                                                        <li>
                                                             <a onClick={() => handleDelete(owner.id)} className="text-base-content/80 hover:text-warning py-2.5">
                                                                 <Ban size={16} /> <span className="font-medium">Désactiver</span>
                                                             </a>
@@ -533,6 +540,14 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                 title={confirmConfig.title}
                 message={confirmConfig.message}
                 type={confirmConfig.type}
+            />
+
+            <InvitationLinkModal
+                isOpen={!!inviteTarget}
+                onClose={() => setInviteTarget(null)}
+                type="owner"
+                entityId={inviteTarget?.id ?? 0}
+                entityName={inviteTarget?.name ?? ''}
             />
         </div>
     );
