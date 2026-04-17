@@ -844,7 +844,6 @@ const Locataires: React.FC = () => {
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
         type="tenant"
-        entities={locataires.map(l => ({ id: l.id, name: `${l.prenoms || ''} ${l.nom}`.trim() }))}
       />
 
       {/* Dynamic Confirm Modal */}

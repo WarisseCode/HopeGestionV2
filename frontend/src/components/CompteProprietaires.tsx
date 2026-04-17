@@ -552,7 +552,6 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                 isOpen={showInviteModal}
                 onClose={() => setShowInviteModal(false)}
                 type="owner"
-                entities={owners.map(o => ({ id: o.id, name: `${o.first_name || ''} ${o.name}`.trim() }))}
             />
         </div>
     );
