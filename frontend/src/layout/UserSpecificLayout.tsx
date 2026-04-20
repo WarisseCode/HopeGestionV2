@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { getToken } from '../api/authApi';
 import DashboardLayout from './DashboardLayout';
 import ProprietaireLayout from './ProprietaireLayout';
+import LocataireLayout from './LocataireLayout';
 import { getProfile } from '../api/authApi';
 
 interface UserSpecificLayoutProps {
@@ -77,7 +78,16 @@ const UserSpecificLayout: React.FC<UserSpecificLayoutProps> = ({ children, onLog
     );
   }
 
-  // Tous les autres rôles (gestionnaire, locataire, admin...) utilisent le layout standard
+  // Les locataires ont leur propre espace personnel
+  if (userProfile?.userType === 'locataire' || userProfile?.role === 'locataire') {
+    return (
+      <LocataireLayout onLogout={onLogout}>
+        {children}
+      </LocataireLayout>
+    );
+  }
+
+  // Gestionnaires et admins utilisent le layout standard
   return (
     <DashboardLayout onLogout={onLogout}>
       {children}
