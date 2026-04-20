@@ -89,21 +89,24 @@ router.post('/public', async (req: Request, res: Response) => {
         const count = parseInt(refResult.rows[0].count) + 1;
         const reference = `RES-WEB-${new Date().getFullYear()}-${String(count).padStart(4, '0')}`;
 
+        const montantDepot = Math.round(loyer * 0.05);
+
         const leaseResult = await pool.query(`
             INSERT INTO leases (
                 tenant_id, lot_id, owner_id, reference_bail, type_contrat,
                 date_debut, statut, conditions_particulieres, loyer_actuel,
-                created_at, gestionnaire_id
-            ) VALUES ($1, $2, $3, $4, 'reservation', $5, 'en_attente', $6, $7, NOW(), NULL)
+                montant_depot, created_at, gestionnaire_id
+            ) VALUES ($1, $2, $3, $4, 'reservation', $5, 'en_attente', $6, $7, $8, NOW(), NULL)
             RETURNING id, reference_bail
         `, [
-            tenantId, 
-            actualLotId, 
-            deducedOwnerId, 
-            reference, 
+            tenantId,
+            actualLotId,
+            deducedOwnerId,
+            reference,
             date_debut || new Date(),
             descriptionReservation,
-            loyer
+            loyer,
+            montantDepot
         ]);
 
         res.status(201).json({ 
@@ -127,9 +130,10 @@ router.get('/', tenantGuard, async (req: AuthenticatedRequest, res: Response) =>
         
         // [RLS] Filtrage automatique par tenant
         const result = await dbClient.query(`
-            SELECT l.*, 
+            SELECT l.id, l.reference_bail, l.statut, l.date_debut, l.created_at,
+                   l.conditions_particulieres, l.loyer_actuel, l.montant_depot,
                    t.nom as locataire_nom, t.prenoms as locataire_prenoms, t.telephone_principal,
-                   COALESCE(lot.ref_lot, 'Immeuble Complet') as ref_lot, 
+                   COALESCE(lot.ref_lot, 'Immeuble Complet') as ref_lot,
                    COALESCE(b.nom, 'Non assigné') as immeuble_nom
             FROM leases l
             JOIN tenants t ON l.tenant_id = t.id

@@ -15,6 +15,8 @@ interface Reservation {
     date_debut: string;
     created_at: string;
     conditions_particulieres?: string;
+    loyer_actuel: number;
+    montant_depot: number;
     locataire_nom: string;
     locataire_prenoms: string;
     telephone_principal: string;
@@ -237,6 +239,11 @@ const ReservationsList: React.FC = () => {
                                                 <p className="text-xs text-base-content/50">
                                                     Demande: {new Date(reservation.created_at).toLocaleDateString('fr-FR')}
                                                 </p>
+                                                {reservation.montant_depot > 0 && (
+                                                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
+                                                        Dépôt 5% : {reservation.montant_depot.toLocaleString()} FCFA
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
 

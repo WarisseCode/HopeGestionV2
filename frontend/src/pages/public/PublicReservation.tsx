@@ -231,11 +231,28 @@ const PublicReservation: React.FC = () => {
                                         value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} />
                                 </div>
 
+                                {/* Dépôt de réservation 5% */}
+                                {lot && lot.loyer_actuel > 0 && (
+                                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                                        <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-2">Dépôt de réservation requis</p>
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-2xl font-extrabold text-blue-900">{Math.round(lot.loyer_actuel * 0.05).toLocaleString()} FCFA</p>
+                                                <p className="text-xs text-blue-600 mt-0.5">5% du loyer mensuel ({lot.loyer_actuel.toLocaleString()} FCFA)</p>
+                                            </div>
+                                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-extrabold text-lg">5%</div>
+                                        </div>
+                                        <p className="text-xs text-blue-500 mt-2 leading-relaxed">
+                                            Ce montant sera à régler lors de la confirmation avec le gestionnaire. Il sécurise votre réservation pendant <span className="font-bold">48h</span>.
+                                        </p>
+                                    </div>
+                                )}
+
                                 <div className="bg-warning/10 p-4 rounded-xl border border-warning/20">
                                     <div className="flex gap-3">
                                         <Clock className="text-warning shrink-0" size={24} />
                                         <p className="text-xs font-medium text-warning-content leading-relaxed">
-                                            Cette réservation est valable <span className="font-bold">24 heures</span> en attente de validation. Un acompte pourra être demandé.
+                                            Cette réservation est valable <span className="font-bold">48 heures</span> en attente de validation.
                                         </p>
                                     </div>
                                 </div>
