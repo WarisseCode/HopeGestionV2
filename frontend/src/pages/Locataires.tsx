@@ -44,6 +44,7 @@ import LocataireForm from '../components/locataires/LocataireForm';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import EmptyState from '../components/ui/EmptyState';
 import InvitationLinkModal from '../components/ui/InvitationLinkModal';
+import { useUser } from '../contexts/UserContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Constants
@@ -90,6 +91,9 @@ const PaymentStatusBadge: React.FC<{ status: PaymentStatus }> = ({ status }) => 
 };
 
 const Locataires: React.FC = () => {
+  const { user } = useUser();
+  const canWrite = user?.userType !== 'proprietaire';
+
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'locataires' | 'acheteurs' | 'affectation' | 'requests'>(
@@ -368,9 +372,9 @@ const Locataires: React.FC = () => {
             className="w-full md:w-72"
           />
           
-          {(() => {
-            const isLimitReached = Boolean(subscriptionStatus && 
-              subscriptionStatus.plan.max_tenants !== -1 && 
+          {canWrite && (() => {
+            const isLimitReached = Boolean(subscriptionStatus &&
+              subscriptionStatus.plan.max_tenants !== -1 &&
               (subscriptionStatus.usage?.current_tenants ?? 0) >= subscriptionStatus.plan.max_tenants);
 
             return (
@@ -550,12 +554,12 @@ const Locataires: React.FC = () => {
                     icon={<Users size={40} />}
                     title={`Aucun ${activeTab === 'acheteurs' ? 'acheteur' : 'locataire'} trouvé`}
                     description="Il n'y a aucun profil qui correspond à vos critères de recherche. Modifiez vos filtres ou ajoutez un nouveau profil."
-                    actionLabel={`Nouveau ${activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire'}`}
-                    onAction={() => {
+                    actionLabel={canWrite ? `Nouveau ${activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire'}` : undefined}
+                    onAction={canWrite ? () => {
                       setFormType('creation');
                       setLocataireForm({ ...locataireForm, typeProfil: activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire' });
                       setShowModal(true);
-                    }}
+                    } : undefined}
                     className="mt-6"
                 />
             ) : viewMode === 'grid' ? (
@@ -642,7 +646,7 @@ const Locataires: React.FC = () => {
                       </div>
 
                       {/* Approval Actions for Pending Requests */}
-                      {activeTab === 'requests' && (
+                      {canWrite && activeTab === 'requests' && (
                         <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-base-200">
                             <button 
                              onClick={(e) => {
@@ -748,7 +752,7 @@ const Locataires: React.FC = () => {
                                 <button onClick={() => handleWhatsApp(person.telephone_principal, person.prenoms)} className="btn btn-ghost btn-xs btn-square text-green-600"><MessageCircle size={14} /></button>
                                 <button onClick={() => handleCall(person.telephone_principal)} className="btn btn-ghost btn-xs btn-square text-blue-600"><Phone size={14} /></button>
                                 <button onClick={() => navigate(`/dashboard/locataires/${person.id}`)} className="btn btn-ghost btn-xs btn-square"><Eye size={14} /></button>
-                                <button onClick={() => handleDelete(person.id)} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>
+                                {canWrite && <button onClick={() => handleDelete(person.id)} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>}
                               </div>
                             </td>
                           </tr>

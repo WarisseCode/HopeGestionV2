@@ -28,6 +28,7 @@ import ImmeubleForm from '../components/biens/ImmeubleForm';
 import LotForm from '../components/biens/LotForm';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import EmptyState from '../components/ui/EmptyState';
+import { useUser } from '../contexts/UserContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getImmeubles, getLots, saveImmeuble, saveLot, deleteImmeuble, deleteLot } from '../api/bienApi';
 import { getSubscriptionStatus } from '../api/subscriptionApi';
@@ -61,6 +62,9 @@ const getPlaceholderImage = (id: number): string => {
 };
 
 const Biens: React.FC = () => {
+  const { user } = useUser();
+  const canWrite = user?.userType !== 'proprietaire';
+
   const [activeTab, setActiveTab] = useState<'immeubles' | 'lots'>('immeubles');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
@@ -427,13 +431,13 @@ const Biens: React.FC = () => {
             onChange={setSearchQuery}
             className="w-64"
           />
-          {(() => {
-            const isLimitReached = Boolean(subscriptionStatus && 
-              subscriptionStatus.plan.max_properties !== -1 && 
+          {canWrite && (() => {
+            const isLimitReached = Boolean(subscriptionStatus &&
+              subscriptionStatus.plan.max_properties !== -1 &&
               (subscriptionStatus.usage?.current_properties ?? 0) >= subscriptionStatus.plan.max_properties);
 
             return (
-              <div 
+              <div
                 className="relative group"
                 title={isLimitReached ? "Limite d'abonnement atteinte. Passez au plan Pro." : ""}
               >
@@ -590,8 +594,8 @@ const Biens: React.FC = () => {
                         icon={<Building2 size={40} />}
                         title="Aucun immeuble trouvé"
                         description="Il n'y a aucun immeuble qui correspond à vos critères de recherche. Modifiez vos filtres ou ajoutez un nouvel immeuble."
-                        actionLabel="Ajouter un immeuble"
-                        onAction={() => setShowImmeubleModal(true)}
+                        actionLabel={canWrite ? "Ajouter un immeuble" : undefined}
+                        onAction={canWrite ? () => setShowImmeubleModal(true) : undefined}
                         className="mt-6"
                     />
                   ) : (
@@ -638,18 +642,18 @@ const Biens: React.FC = () => {
                           </div>
                           <div className="flex justify-between items-center pt-2 border-t border-base-200">
                             <div className="flex gap-1">
-                              <button 
+                              {canWrite && <button
                                 onClick={() => { setEditingImmeuble(immeuble); setShowImmeubleModal(true); }}
                                 className="btn btn-ghost btn-xs btn-square"
                               >
                                 <Edit3 size={14} />
-                              </button>
-                              <button 
+                              </button>}
+                              {canWrite && <button
                                 onClick={() => handleDeleteImmeuble(immeuble.id)}
                                 className="btn btn-ghost btn-xs btn-square text-error"
                               >
                                 <Trash2 size={14} />
-                              </button>
+                              </button>}
                             </div>
                             <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/5">
                               Détails <ArrowRight size={16} className="ml-1" />
@@ -705,8 +709,8 @@ const Biens: React.FC = () => {
                             </td>
                             <td className="pr-6 text-right">
                               <div className="flex justify-end gap-1">
-                                <button onClick={() => { setEditingImmeuble(immeuble); setShowImmeubleModal(true); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>
-                                <button onClick={() => handleDeleteImmeuble(immeuble.id)} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>
+                                {canWrite && <button onClick={() => { setEditingImmeuble(immeuble); setShowImmeubleModal(true); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
+                                {canWrite && <button onClick={() => handleDeleteImmeuble(immeuble.id)} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>}
                               </div>
                             </td>
                           </tr>
@@ -727,10 +731,10 @@ const Biens: React.FC = () => {
                     </div>
                   ) : (
                     (paginatedData as Lot[]).map((lot) => (
-                      <div 
-                        key={lot.id} 
+                      <div
+                        key={lot.id}
                         className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden hover:shadow-xl transition-all group flex flex-col"
-                        onClick={() => { setEditingLot(lot); setShowLotModal(true); }}
+                        onClick={canWrite ? () => { setEditingLot(lot); setShowLotModal(true); } : undefined}
                       >
                         <div className="h-40 bg-base-300 relative overflow-hidden shrink-0">
                           <img 
@@ -755,7 +759,7 @@ const Biens: React.FC = () => {
                                 {lot.loyer?.toLocaleString()} <small>FCFA</small>
                               </span>
                               <div className="flex gap-1">
-                                <button onClick={(e) => { e.stopPropagation(); setEditingLot(lot); setShowLotModal(true); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>
+                                {canWrite && <button onClick={(e) => { e.stopPropagation(); setEditingLot(lot); setShowLotModal(true); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
                               </div>
                             </div>
                           </div>
@@ -788,7 +792,7 @@ const Biens: React.FC = () => {
                           </tr>
                         ) : (
                           (paginatedData as Lot[]).map((lot) => (
-                            <tr key={lot.id} className="hover:bg-base-200/50 transition-colors group cursor-pointer" onClick={() => { setEditingLot(lot); setShowLotModal(true); }}>
+                            <tr key={lot.id} className="hover:bg-base-200/50 transition-colors group cursor-pointer" onClick={canWrite ? () => { setEditingLot(lot); setShowLotModal(true); } : undefined}>
                               <td className="pl-6">
                                   <div className="avatar h-10 w-16 rounded cursor-pointer overflow-hidden relative shadow-sm">
                                       <img 
@@ -825,22 +829,22 @@ const Biens: React.FC = () => {
                               </td>
                               <td className="pr-6 text-right">
                                 <div className="flex justify-end gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                  {(lot.statut === 'libre') && (
-                                    <button 
+                                  {canWrite && (lot.statut === 'libre') && (
+                                    <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setEditingLot(lot);
                                         setActiveAssignmentLot(lot);
                                         setShowAssignmentModal(true);
-                                      }} 
+                                      }}
                                       className="btn btn-ghost btn-xs btn-square text-primary tooltip tooltip-left"
                                       data-tip="Affecter (Louer/Vendre)"
                                     >
                                       <UserPlus size={14} />
                                     </button>
                                   )}
-                                  <button onClick={(e) => { e.stopPropagation(); setEditingLot(lot); setShowLotModal(true); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>
-                                  <button onClick={(e) => { e.stopPropagation(); handleDeleteLot(lot.id); }} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>
+                                  {canWrite && <button onClick={(e) => { e.stopPropagation(); setEditingLot(lot); setShowLotModal(true); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
+                                  {canWrite && <button onClick={(e) => { e.stopPropagation(); handleDeleteLot(lot.id); }} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>}
                                 </div>
                               </td>
                             </tr>

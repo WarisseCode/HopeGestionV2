@@ -16,11 +16,15 @@ import {
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import { useUser } from '../contexts/UserContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { KPICard } from '../components/dashboard';
 import toast from 'react-hot-toast';
 
 const Contrats: React.FC = () => {
+  const { user } = useUser();
+  const canWrite = user?.userType !== 'proprietaire';
+
   const [activeTab, setActiveTab] = useState<'locations' | 'ventes' | 'interventions'>('locations');
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<'location' | 'vente' | 'intervention'>('location');
@@ -75,8 +79,8 @@ const Contrats: React.FC = () => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50 group-focus-within:text-primary transition-colors" size={18} />
                 <input type="text" placeholder="Rechercher..." className="input input-sm h-10 pl-10 bg-base-100 border-base-300 focus:border-primary w-64 rounded-full shadow-sm transition-all focus:w-72" />
             </div>
-           <Button 
-            variant="primary" 
+           {canWrite && <Button
+            variant="primary"
             className="rounded-full px-6 h-10 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all font-semibold"
             onClick={() => {
               setFormType(activeTab === 'locations' ? 'location' : activeTab === 'ventes' ? 'vente' : 'intervention');
@@ -85,7 +89,7 @@ const Contrats: React.FC = () => {
           >
             <Plus size={18} className="mr-2" />
             Nouveau Contrat
-          </Button>
+          </Button>}
         </div>
       </motion.div>
 

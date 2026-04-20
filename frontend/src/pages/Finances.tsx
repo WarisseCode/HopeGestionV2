@@ -16,6 +16,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
+import { useUser } from '../contexts/UserContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { KPICard } from '../components/dashboard';
 import { financeApi } from '../api/financeApi';
@@ -36,6 +37,9 @@ import FinanceOnlinePayments from './finance/FinanceOnlinePayments';
 import FinanceChart from '../components/finance/FinanceChart';
 
 const Finances: React.FC = () => {
+  const { user } = useUser();
+  const canWrite = user?.userType !== 'proprietaire';
+
   const [activeTab, setActiveTab] = useState<'paiements' | 'echeances' | 'en_ligne' | 'depenses' | 'prets' | 'fiscalite'>('echeances');
   const [showForm, setShowForm] = useState(false);
 
@@ -208,18 +212,18 @@ const Finances: React.FC = () => {
             Pilotage financier complet (Revenus, Dépenses, Fiscalité)
           </p>
         </div>
-        {(activeTab === 'paiements' || activeTab === 'echeances') && (
+        {canWrite && (activeTab === 'paiements' || activeTab === 'echeances') && (
              <div className="flex gap-2">
-                 <Button 
-                    variant="ghost" 
+                 <Button
+                    variant="ghost"
                     className="rounded-full px-6 shadow-sm border-primary text-primary hover:bg-primary/5"
                     onClick={() => setShowGenerateModal(true)}
                     disabled={generating}
                  >
                     {generating ? 'Génération...' : '📅 Générer Loyers'}
                  </Button>
-                 <Button 
-                    variant="primary" 
+                 <Button
+                    variant="primary"
                     className="rounded-full px-6 shadow-lg"
                     onClick={() => setShowForm(true)}
                  >
