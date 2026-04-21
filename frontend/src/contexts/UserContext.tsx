@@ -9,6 +9,7 @@ export interface UserProfile {
   id: number;
   nom: string;
   email: string;
+  telephone?: string;
   userType: string;
   role: string;
   photo_url?: string;

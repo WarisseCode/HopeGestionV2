@@ -160,6 +160,32 @@ export async function getProfile(): Promise<UserProfile> {
     return data;
 }
 
+export async function updateProfile(data: {
+  nom: string;
+  prenom: string;
+  email: string;
+  telephone?: string;
+  preferences?: any;
+  photo_url?: string;
+}): Promise<{ message: string }> {
+    const token = getToken();
+    if (!token) throw new Error('Non authentifié');
+    return apiCall<{ message: string }>(`${BASE_URL}/auth/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(data)
+    });
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    const token = getToken();
+    if (!token) throw new Error('Non authentifié');
+    return apiCall<{ message: string }>(`${BASE_URL}/auth/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword, newPassword })
+    });
+}
 
 // Vérifier le code OTP
 export async function verifyEmail(email: string, otp: string): Promise<AuthResponse> {
