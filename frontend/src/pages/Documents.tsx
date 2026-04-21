@@ -27,7 +27,7 @@ const API_BASE_URL = API_BASE;
 
 const Documents: React.FC = () => {
   const { user } = useUser();
-  const canWrite = user?.userType !== 'proprietaire';
+  const canWrite = !['proprietaire', 'locataire'].includes(user?.userType || '');
 
   // Main Tabs
   const [viewMode, setViewMode] = useState<'files' | 'templates'>('files');

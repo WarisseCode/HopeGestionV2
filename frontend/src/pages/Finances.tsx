@@ -38,7 +38,7 @@ import FinanceChart from '../components/finance/FinanceChart';
 
 const Finances: React.FC = () => {
   const { user } = useUser();
-  const canWrite = user?.userType !== 'proprietaire';
+  const canWrite = !['proprietaire', 'locataire'].includes(user?.userType || '');
 
   const [activeTab, setActiveTab] = useState<'paiements' | 'echeances' | 'en_ligne' | 'depenses' | 'prets' | 'fiscalite'>('echeances');
   const [showForm, setShowForm] = useState(false);

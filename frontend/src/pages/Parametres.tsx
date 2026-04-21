@@ -23,7 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const Parametres: React.FC = () => {
   const { user } = useUser();
-  const canWrite = user?.userType !== 'proprietaire';
+  const canWrite = !['proprietaire', 'locataire'].includes(user?.userType || '');
   const [activeTab, setActiveTab] = useState<'profil' | 'notifications' | 'securite' | 'integrations'>('profil');
 
   const containerVariants = {

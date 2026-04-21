@@ -92,7 +92,7 @@ const PaymentStatusBadge: React.FC<{ status: PaymentStatus }> = ({ status }) => 
 
 const Locataires: React.FC = () => {
   const { user } = useUser();
-  const canWrite = user?.userType !== 'proprietaire';
+  const canWrite = !['proprietaire', 'locataire'].includes(user?.userType || '');
 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

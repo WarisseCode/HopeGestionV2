@@ -23,7 +23,7 @@ import toast from 'react-hot-toast';
 
 const Contrats: React.FC = () => {
   const { user } = useUser();
-  const canWrite = user?.userType !== 'proprietaire';
+  const canWrite = !['proprietaire', 'locataire'].includes(user?.userType || '');
 
   const [activeTab, setActiveTab] = useState<'locations' | 'ventes' | 'interventions'>('locations');
   const [showForm, setShowForm] = useState(false);

@@ -63,7 +63,7 @@ const getPlaceholderImage = (id: number): string => {
 
 const Biens: React.FC = () => {
   const { user } = useUser();
-  const canWrite = user?.userType !== 'proprietaire';
+  const canWrite = !['proprietaire', 'locataire'].includes(user?.userType || '');
 
   const [activeTab, setActiveTab] = useState<'immeubles' | 'lots'>('immeubles');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');

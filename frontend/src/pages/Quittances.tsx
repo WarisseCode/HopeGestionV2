@@ -23,7 +23,7 @@ import { useUser } from '../contexts/UserContext';
 
 const Quittances: React.FC = () => {
   const { user } = useUser();
-  const canWrite = user?.userType !== 'proprietaire';
+  const canWrite = !['proprietaire', 'locataire'].includes(user?.userType || '');
 
   const [activeTab, setActiveTab] = useState<'liste' | 'generer'>('liste');
   const [showForm, setShowForm] = useState(false);
