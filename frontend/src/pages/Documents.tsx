@@ -20,11 +20,15 @@ import { documentApi, type Document } from '../api/documentApi';
 import DocumentTemplates from './DocumentTemplates';
 import DocumentGenerator from '../components/documents/DocumentGenerator';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import { useUser } from '../contexts/UserContext';
 
 import { API_BASE } from '../config';
 const API_BASE_URL = API_BASE;
 
 const Documents: React.FC = () => {
+  const { user } = useUser();
+  const canWrite = user?.userType !== 'proprietaire';
+
   // Main Tabs
   const [viewMode, setViewMode] = useState<'files' | 'templates'>('files');
 
@@ -164,18 +168,20 @@ const Documents: React.FC = () => {
           <p className="text-base-content/60">Centralisez, générez et gérez vos documents</p>
         </div>
         
-        <div className="flex gap-2">
-             {viewMode === 'files' ? (
-                 <>
-                    <Button variant="secondary" onClick={() => setShowGenerator(true)}>
-                        <Wand2 size={18} className="mr-2" /> Générer
-                    </Button>
-                    <Button onClick={() => setShowUploadModal(true)}>
-                        <Upload size={18} className="mr-2" /> Importer
-                    </Button>
-                 </>
-             ) : null}
-        </div>
+        {canWrite && (
+          <div className="flex gap-2">
+               {viewMode === 'files' ? (
+                   <>
+                      <Button variant="secondary" onClick={() => setShowGenerator(true)}>
+                          <Wand2 size={18} className="mr-2" /> Générer
+                      </Button>
+                      <Button onClick={() => setShowUploadModal(true)}>
+                          <Upload size={18} className="mr-2" /> Importer
+                      </Button>
+                   </>
+               ) : null}
+          </div>
+        )}
       </div>
 
       {/* Mode Tabs */}
@@ -290,13 +296,13 @@ const Documents: React.FC = () => {
                                     >
                                         <Download size={18} />
                                     </a>
-                                    <button 
+                                    {canWrite && <button
                                     onClick={() => handleDelete(doc.id)}
                                     className="text-base-content/50 hover:text-red-600 transition-colors"
                                     title="Supprimer"
                                     >
                                     <Trash2 size={18} />
-                                    </button>
+                                    </button>}
                                 </div>
                                 </td>
                             </tr>

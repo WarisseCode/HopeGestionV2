@@ -18,9 +18,12 @@ import {
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import { useUser } from '../contexts/UserContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Parametres: React.FC = () => {
+  const { user } = useUser();
+  const canWrite = user?.userType !== 'proprietaire';
   const [activeTab, setActiveTab] = useState<'profil' | 'notifications' | 'securite' | 'integrations'>('profil');
 
   const containerVariants = {
@@ -221,7 +224,7 @@ const Parametres: React.FC = () => {
                                             <p className="text-sm text-error/70">Supprimer définitivement votre compte et toutes ses données</p>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" className="bg-base-100 text-error hover:bg-error hover:text-white border border-error/20">Supprimer</Button>
+                                    {canWrite && <Button variant="ghost" className="bg-base-100 text-error hover:bg-error hover:text-white border border-error/20">Supprimer</Button>}
                                 </div>
                              </div>
                         </div>

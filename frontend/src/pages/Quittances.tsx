@@ -19,8 +19,12 @@ import Input from '../components/ui/Input';
 import { generateQuittancePDF } from '../utils/pdfGenerator';
 import { financeApi } from '../api/financeApi';
 import toast from 'react-hot-toast';
+import { useUser } from '../contexts/UserContext';
 
 const Quittances: React.FC = () => {
+  const { user } = useUser();
+  const canWrite = user?.userType !== 'proprietaire';
+
   const [activeTab, setActiveTab] = useState<'liste' | 'generer'>('liste');
   const [showForm, setShowForm] = useState(false);
 
@@ -78,15 +82,14 @@ const Quittances: React.FC = () => {
             <RefreshCw size={18} />
             Actualiser
           </Button>
-          {/* Le bouton "Nouvelle quittance" ici est un raccourci pour générer un PDF manuellement */}
-          <Button 
-            variant="primary" 
+          {canWrite && <Button
+            variant="primary"
             onClick={() => setShowForm(true)}
             className="flex items-center gap-2"
           >
             <Plus size={18} />
             Nouvelle quittance
-          </Button>
+          </Button>}
         </div>
       </div>
 
@@ -105,7 +108,7 @@ const Quittances: React.FC = () => {
             Liste des quittances
           </div>
         </button>
-        <button
+        {canWrite && <button
           className={`px-4 py-2 font-medium text-sm ${
             activeTab === 'generer'
               ? 'text-primary border-b-2 border-primary'
@@ -117,7 +120,7 @@ const Quittances: React.FC = () => {
             <Plus size={18} />
             Générer manuel
           </div>
-        </button>
+        </button>}
       </div>
 
       {/* Formulaire de génération */}
