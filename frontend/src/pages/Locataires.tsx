@@ -2,7 +2,7 @@
 // Version améliorée avec recherche fonctionnelle, filtres, statut paiement et actions rapides
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { getLocataires, createLocataire, deleteLocataire, approveLocataire, rejectLocataire } from '../api/locataireApi';
+import { getLocataires, createLocataire, deleteLocataire } from '../api/locataireApi';
 import { getProprietaires } from '../api/accountApi';
 import { getSubscriptionStatus } from '../api/subscriptionApi';
 import type { Locataire } from '../api/locataireApi';
@@ -96,8 +96,8 @@ const Locataires: React.FC = () => {
 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'locataires' | 'acheteurs' | 'affectation' | 'requests'>(
-    (searchParams.get('tab') as 'locataires' | 'acheteurs' | 'affectation' | 'requests') || 'locataires'
+  const [activeTab, setActiveTab] = useState<'locataires' | 'acheteurs' | 'affectation'>(
+    (searchParams.get('tab') as 'locataires' | 'acheteurs' | 'affectation') || 'locataires'
   );
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
@@ -105,7 +105,6 @@ const Locataires: React.FC = () => {
   // Data states
   const [locataires, setLocataires] = useState<Locataire[]>([]);
   const [acheteurs, setAcheteurs] = useState<Locataire[]>([]);
-  const [requests, setRequests] = useState<Locataire[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -181,12 +180,7 @@ const Locataires: React.FC = () => {
         getProprietaires().catch(() => [])
       ]);
       
-      // Separate Active from Pending
-      const activeLocs = locsAll.filter(l => l.statut !== 'En attente' && l.statut !== 'Rejeté');
-      const pendingLocs = locsAll.filter(l => l.statut === 'En attente');
-
-      setLocataires(activeLocs);
-      setRequests(pendingLocs);
+      setLocataires(locsAll);
       setAcheteurs(achs);
       if (subStatus) setSubscriptionStatus(subStatus);
       setProprietaires(props);
@@ -208,7 +202,7 @@ const Locataires: React.FC = () => {
   }, [searchQuery, filterValues, activeTab]);
 
   // Filtered data
-  const currentList = activeTab === 'locataires' ? locataires : activeTab === 'acheteurs' ? acheteurs : activeTab === 'requests' ? requests : [];
+  const currentList = activeTab === 'locataires' ? locataires : activeTab === 'acheteurs' ? acheteurs : [];
   
   const filteredList = useMemo(() => {
     return currentList.filter(person => {
@@ -442,16 +436,6 @@ const Locataires: React.FC = () => {
             <span className="ml-1 px-2 py-0.5 rounded-full bg-base-300 text-base-content/60 text-xs">{acheteurs.length}</span>
           </button>
           <button
-            onClick={() => { setActiveTab('requests'); setFilterValues({}); }}
-            className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'requests' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content/80'
-            }`}
-          >
-            <UserPlus size={18} />
-            Demandes
-            {requests.length > 0 && <span className="ml-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-xs">{requests.length}</span>}
-          </button>
-          <button
             onClick={() => setActiveTab('affectation')}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'affectation' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content/80'
@@ -645,57 +629,6 @@ const Locataires: React.FC = () => {
                         </button>
                       </div>
 
-                      {/* Approval Actions for Pending Requests */}
-                      {canWrite && activeTab === 'requests' && (
-                        <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-base-200">
-                            <button 
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               setConfirmConfig({
-                                 isOpen: true,
-                                 title: 'Confirmer ce locataire',
-                                 message: 'Voulez-vous vraiment approuver la demande de ce locataire ?',
-                                 type: 'info',
-                                 action: async () => {
-                                   try {
-                                     await approveLocataire(person.id);
-                                     toast.success("Locataire approuvé !");
-                                     fetchData();
-                                   } catch(err: any) {
-                                     toast.error(err.message);
-                                   }
-                                 }
-                               });
-                             }}
-                             className="btn btn-sm btn-success text-white"
-                           >
-                             Approuver
-                           </button>
-                           <button 
-                             onClick={(e) => {
-                                e.stopPropagation();
-                                setConfirmConfig({
-                                 isOpen: true,
-                                 title: 'Rejeter cette demande',
-                                 message: 'Voulez-vous rejeter cette demande ?',
-                                 type: 'danger',
-                                 action: async () => {
-                                   try {
-                                     await rejectLocataire(person.id);
-                                     toast.success("Demande rejetée.");
-                                     fetchData();
-                                   } catch(err: any) {
-                                     toast.error(err.message);
-                                   }
-                                 }
-                               });
-                             }}
-                             className="btn btn-sm btn-error text-white"
-                           >
-                             Rejeter
-                           </button>
-                        </div>
-                      )}
                     </motion.div>
                   );
                 })}

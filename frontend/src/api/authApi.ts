@@ -160,22 +160,6 @@ export async function getProfile(): Promise<UserProfile> {
     return data;
 }
 
-// Lier un locataire via code d'invitation (post-inscription)
-export async function linkTenant(_userId: number, invitationCode: string): Promise<{ message: string; tenantId: number }> {
-    const token = getToken();
-    if (!token) throw new Error('Non authentifié');
-
-    const data = await apiCall<{ message: string; tenantId: number }>(`${BASE_URL}/auth/link-tenant`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ invitationCode })
-    });
-    
-    return data;
-}
 
 // Vérifier le code OTP
 export async function verifyEmail(email: string, otp: string): Promise<AuthResponse> {

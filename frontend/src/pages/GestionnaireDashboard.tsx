@@ -19,8 +19,6 @@ import {
   ChevronDown,
   ChevronUp,
   RefreshCw,
-  Copy,
-  Key
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -74,31 +72,6 @@ const GestionnaireDashboard: React.FC = () => {
   const [isLoadingKpis, setIsLoadingKpis] = useState(true);
   const [isLoadingChart, setIsLoadingChart] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [managerCode, setManagerCode] = useState<string | null>(null);
-  const [managedOwners, setManagedOwners] = useState<{ owner_id: number; owner_name: string; manager_code: string }[]>([]);
-  const [showCodeDropdown, setShowCodeDropdown] = useState(false);
-
-  // Fetch Manager Code
-  useEffect(() => {
-      const fetchCode = async () => {
-          const token = getToken();
-          if(!token) return;
-          try {
-              const res = await fetch(`${API_URL}/auth/manager-code`, {
-                  method: 'POST',
-                  headers: { 'Authorization': `Bearer ${token}` }
-              });
-              if(res.ok) {
-                  const data = await res.json();
-                  setManagerCode(data.managerCode);
-                  if (data.owners) setManagedOwners(data.owners);
-              }
-          } catch(e) { console.error(e); }
-      };
-      if (user) {
-          fetchCode();
-      }
-  }, [user]);
 
   const handleKpiClick = (kpi: KPIData) => {
       if (kpi.id === 'lots_occupation') {
@@ -333,52 +306,6 @@ const GestionnaireDashboard: React.FC = () => {
               className="w-48 lg:w-64"
             />
             
-            {/* Manager Code Badge - Multi-owners dropdown */}
-            {managerCode && (
-                <div className="relative">
-                    <div 
-                        className="bg-base-100 px-4 py-2 rounded-full shadow-sm border border-base-300 flex items-center gap-2 cursor-pointer hover:bg-base-200 transition-colors group"
-                        onClick={() => setShowCodeDropdown(!showCodeDropdown)}
-                        title="Codes d'accès par propriétaire géré"
-                    >
-                        <Key size={14} className="text-primary" />
-                        <span className="text-xs text-base-content/60 font-medium uppercase">Code{managedOwners.length > 1 ? 's' : ''} Agence</span>
-                        {managedOwners.length <= 1 ? (
-                            <span className="font-bold text-primary font-mono tracking-wider">{managerCode}</span>
-                        ) : (
-                            <span className="font-bold text-primary font-mono tracking-wider">{managedOwners.length} codes</span>
-                        )}
-                        <ChevronDown size={14} className={`text-base-content/50 transition-transform ${showCodeDropdown ? 'rotate-180' : ''}`} />
-                    </div>
-
-                    {showCodeDropdown && (
-                        <div className="absolute right-0 mt-2 w-72 bg-base-100 rounded-2xl shadow-xl border border-base-200 z-50 overflow-hidden">
-                            <div className="px-4 py-3 border-b border-base-200 bg-base-200">
-                                <p className="text-xs font-semibold text-base-content/60 uppercase tracking-wide">Codes d'accès locataires</p>
-                            </div>
-                            {managedOwners.map((o) => (
-                                <div key={o.owner_id} className="flex items-center justify-between px-4 py-3 hover:bg-base-200 transition-colors">
-                                    <div>
-                                        <p className="text-sm font-semibold text-base-content/90 truncate max-w-[140px]">{o.owner_name}</p>
-                                        <p className="font-mono text-primary font-bold text-sm tracking-wider">{o.manager_code}</p>
-                                    </div>
-                                    <button
-                                        className="p-2 rounded-full hover:bg-primary/10 text-base-content/50 hover:text-primary transition-colors"
-                                        title="Copier le code"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigator.clipboard.writeText(o.manager_code);
-                                            setShowCodeDropdown(false);
-                                        }}
-                                    >
-                                        <Copy size={14} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            )}
 
         </div>
       </motion.div>
