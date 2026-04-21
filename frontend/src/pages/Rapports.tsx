@@ -32,7 +32,7 @@ import {
   Cell,
   Legend
 } from 'recharts';
-import { getBuildingStats, exportExcel } from '../api/reportApi';
+import { getBuildingStats, exportExcel, getChartData } from '../api/reportApi';
 import type { BuildingStats } from '../api/reportApi';
 import { getImmeubles } from '../api/bienApi';
 import type { Immeuble } from '../api/bienApi';
@@ -45,20 +45,29 @@ const Rapports: React.FC = () => {
   const [stats, setStats] = useState<BuildingStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
-
-  // Données de démonstration pour le graphique (à remplacer par des données historiques réelles plus tard)
-  const revenuData = [
-    { name: 'Jan', revenus: 4000, depenses: 2400 },
-    { name: 'Fév', revenus: 3000, depenses: 1398 },
-    { name: 'Mar', revenus: 2000, depenses: 9800 },
-    { name: 'Avr', revenus: 2780, depenses: 3908 },
-    { name: 'Mai', revenus: 1890, depenses: 4800 },
-    { name: 'Juin', revenus: 2390, depenses: 3800 },
-  ];
+  const [chartData, setChartData] = useState<{ name: string; revenus: number; depenses: number }[]>([]);
+  const [chartPeriod, setChartPeriod] = useState('6m');
+  const [chartLoading, setChartLoading] = useState(false);
 
   useEffect(() => {
     loadImmeubles();
   }, []);
+
+  useEffect(() => {
+    loadChartData();
+  }, [chartPeriod]);
+
+  const loadChartData = async () => {
+    setChartLoading(true);
+    try {
+      const data = await getChartData(chartPeriod);
+      setChartData(data);
+    } catch {
+      toast.error('Erreur chargement graphique');
+    } finally {
+      setChartLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (selectedBuildingId !== 'all') {
@@ -135,7 +144,8 @@ const Rapports: React.FC = () => {
           <p className="text-base-content/60 font-medium mt-1">Analysez la performance de votre parc immobilier.</p>
         </div>
         <div className="flex gap-3">
-            <select 
+            <select
+                aria-label="Filtrer par immeuble"
                 className="select select-bordered bg-base-100 shadow-sm rounded-full h-10 min-h-0"
                 value={selectedBuildingId}
                 onChange={(e) => setSelectedBuildingId(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
@@ -193,9 +203,29 @@ const Rapports: React.FC = () => {
           >
              {/* Chart 1: Revenue vs Expenses */}
              <div className="lg:col-span-2">
-                 <Card title="Performance Financière (Demo)" className="h-96 border-none shadow-xl bg-base-100">
+                 <Card
+                   title="Performance Financière"
+                   className="h-96 border-none shadow-xl bg-base-100"
+                   headerActions={
+                     <select
+                       aria-label="Période du graphique"
+                       className="select select-bordered select-xs bg-base-100"
+                       value={chartPeriod}
+                       onChange={e => setChartPeriod(e.target.value)}
+                     >
+                       <option value="30d">30 jours</option>
+                       <option value="6m">6 mois</option>
+                       <option value="1y">1 an</option>
+                     </select>
+                   }
+                 >
+                    {chartLoading ? (
+                      <div className="h-full flex items-center justify-center">
+                        <Loader2 className="animate-spin text-primary" size={40} />
+                      </div>
+                    ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={revenuData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                        <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="colorRevenus" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#16a34a" stopOpacity={0.1}/>
@@ -215,6 +245,7 @@ const Rapports: React.FC = () => {
                             <Legend />
                         </AreaChart>
                     </ResponsiveContainer>
+                    )}
                  </Card>
              </div>
 

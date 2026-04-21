@@ -49,6 +49,17 @@ export async function getGlobalStats(): Promise<any> {
     return res.json();
 }
 
+export async function getChartData(period = '6m'): Promise<{ name: string; revenus: number; depenses: number }[]> {
+    const token = getToken();
+    if (!token) throw new Error('Non authentifié');
+    const res = await fetch(`${API_URL}/dashboard/chart-data?period=${period}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Erreur chargement chart');
+    const data = await res.json();
+    return data.chartData || [];
+}
+
 export async function exportExcel(startDate?: string, endDate?: string): Promise<void> {
     const token = getToken();
     if (!token) throw new Error('Non authentifié');

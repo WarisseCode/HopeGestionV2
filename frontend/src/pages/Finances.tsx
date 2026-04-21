@@ -35,6 +35,7 @@ import FinanceLoans from './finance/FinanceLoans';
 import FinanceTax from './finance/FinanceTax';
 import FinanceOnlinePayments from './finance/FinanceOnlinePayments';
 import FinanceChart from '../components/finance/FinanceChart';
+import { generateQuittancePDF } from '../utils/pdfGenerator';
 
 const Finances: React.FC = () => {
   const { user } = useUser();
@@ -133,15 +134,15 @@ const Finances: React.FC = () => {
   const handlePaymentSubmit = async () => {
       try {
           if (!paiementForm.locataireId) {
-              alert("Veuillez sélectionner un locataire");
+              toast.error("Veuillez sélectionner un locataire");
               return;
           }
           const details = await getLocataireDetails(parseInt(paiementForm.locataireId));
-          const activeLease = details.baux.find((b: any) => b.statut === 'actif');
-          const leaseId = activeLease ? activeLease.id : (details.baux.length > 0 ? details.baux[0].id : null);
+          const activeLease = details.baux.find((b: any) => b.statut === 'actif') || details.baux[0];
+          const leaseId = activeLease?.id ?? null;
 
           if (!leaseId) {
-              alert("Ce locataire n'a pas de bail actif");
+              toast.error("Ce locataire n'a pas de bail actif");
               return;
           }
 
@@ -153,13 +154,32 @@ const Finances: React.FC = () => {
               payment_date: paiementForm.date || new Date().toISOString(),
               reference: paiementForm.reference
           });
-          
-          alert("Paiement enregistré avec succès !");
+
+          // Génération automatique de la quittance PDF
+          const loc = locataires.find(l => l.id.toString() === paiementForm.locataireId);
+          const locataireName = `${loc?.prenoms || ''} ${loc?.nom || ''}`.trim() || 'Locataire';
+          const leaseRef = activeLease?.reference_bail || activeLease?.ref_bail || `BAIL-${leaseId}`;
+          const dateObj = new Date(paiementForm.date || new Date());
+          const periode = dateObj.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+          const annee = dateObj.getFullYear();
+          const mois = String(dateObj.getMonth() + 1).padStart(2, '0');
+
+          await generateQuittancePDF({
+              id: `PAY-${Date.now()}`,
+              numero: `QUI-${annee}-${mois}-${loc?.id || '000'}`,
+              locataire: locataireName,
+              bien: leaseRef,
+              periode,
+              montant: paiementForm.montant,
+              datePaiement: paiementForm.date || new Date().toISOString()
+          }, 'download');
+
+          toast.success(`Paiement enregistré — quittance téléchargée pour ${locataireName}`);
           setShowForm(false);
-          fetchData(); 
+          fetchData();
       } catch (error: any) {
           console.error("Erreur:", error);
-          alert(error.message || "Erreur lors de l'enregistrement");
+          toast.error(error.message || "Erreur lors de l'enregistrement");
       }
   };
 
@@ -174,13 +194,13 @@ const Finances: React.FC = () => {
       try {
           setGenerating(true);
           const result = await financeApi.generateSchedules();
-          alert(`Succès ! ${result.details.generated} échéances générées.`);
+          toast.success(`${result.details.generated} échéances générées avec succès`);
           fetchData(); 
           setActiveTab('echeances');
           setShowGenerateModal(false);
       } catch (error: any) {
           console.error("Erreur génération:", error);
-          alert(error.message || "Erreur lors de la génération");
+          toast.error(error.message || "Erreur lors de la génération");
       } finally {
           setGenerating(false);
       }

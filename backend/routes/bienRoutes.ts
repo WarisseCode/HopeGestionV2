@@ -24,14 +24,15 @@ router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: 
         // [PATTERN RLS] - Plus besoin de WHERE owner_id manuellement !
         // PostgreSQL applique automatiquement la politique de lecture.
         const query = `
-            SELECT 
+            SELECT
                 b.id, b.nom, b.type, b.adresse, b.ville, b.pays, b.description,
                 b.photo_url as photo, b.owner_id, b.latitude, b.longitude,
                 b.quartier, b.gestionnaire_id, b.statut, b.photos, b.video_url,
                 b.plan_masse_url, b.nombre_etages, b.total_lots,
                 o.name as owner_name, o.first_name as owner_first_name, o.type as owner_type,
                 g.nom as gestionnaire_name,
-                COUNT(l.id) as nb_lots
+                COUNT(l.id) as nb_lots,
+                COUNT(CASE WHEN l.statut = 'occupe' THEN 1 END) as lots_occupes
              FROM buildings b
              LEFT JOIN lots l ON l.building_id = b.id
              LEFT JOIN owners o ON b.owner_id = o.id
@@ -44,19 +45,25 @@ router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: 
         const result = await dbClient.query(query);
 
         const immeublesAvecOccupation = result.rows.map((immeuble: any) => {
-            const totalLots = parseInt(immeuble.nb_lots);
-            const lotsOccupes = 0; 
-            const occupation = 0;
+            const totalLots = parseInt(immeuble.nb_lots) || 0;
+            const lotsOccupes = parseInt(immeuble.lots_occupes) || 0;
+            const occupation = totalLots > 0 ? Math.round((lotsOccupes / totalLots) * 100) : 0;
 
-            const ownerLabel = immeuble.owner_type === 'individual' 
+            const ownerLabel = immeuble.owner_type === 'individual'
                 ? `${immeuble.owner_name} ${immeuble.owner_first_name || ''}`.trim()
                 : immeuble.owner_name;
+
+            const statut = totalLots === 0 ? 'Vide'
+                : lotsOccupes === totalLots ? 'Complet'
+                : lotsOccupes > 0 ? 'En location'
+                : 'Disponible';
 
             return {
                 ...immeuble,
                 nbLots: totalLots,
+                lotsOccupes,
                 occupation,
-                statut: totalLots === 0 ? 'Vide' : 'Disponible',
+                statut,
                 proprietaire: ownerLabel
             };
         });
