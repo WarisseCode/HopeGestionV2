@@ -132,7 +132,7 @@ async function seed() {
             const all = await client.query(
                 `SELECT email, nom FROM users WHERE user_type IN ('gestionnaire', 'admin') ORDER BY id`
             );
-            all.rows.forEach(r => console.log(`   - ${r.email} (${r.nom})`));
+            all.rows.forEach((r: any) => console.log(`   - ${r.email} (${r.nom})`));
             process.exit(1);
         }
 
