@@ -21,8 +21,16 @@ router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: 
     const dbClient = (req as any).dbClient;
 
     try {
-        // [PATTERN RLS] - Plus besoin de WHERE owner_id manuellement !
-        // PostgreSQL applique automatiquement la politique de lecture.
+        const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+        const isAdmin = (req as any).userRole === 'admin';
+
+        let ownerFilter = '';
+        if (!isAdmin && validOwnerIds.length > 0) {
+            ownerFilter = `WHERE b.owner_id IN (${validOwnerIds.join(',')})`;
+        } else if (!isAdmin) {
+            ownerFilter = 'WHERE 1=0';
+        }
+
         const query = `
             SELECT
                 b.id, b.nom, b.type, b.adresse, b.ville, b.pays, b.description,
@@ -37,11 +45,11 @@ router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: 
              LEFT JOIN lots l ON l.building_id = b.id
              LEFT JOIN owners o ON b.owner_id = o.id
              LEFT JOIN users g ON b.gestionnaire_id = g.id
+             ${ownerFilter}
              GROUP BY b.id, o.id, g.id
              ORDER BY b.created_at DESC
         `;
-        
-        // [PATTERN RLS] - Exécution via dbClient et non pool.query
+
         const result = await dbClient.query(query);
 
         const immeublesAvecOccupation = result.rows.map((immeuble: any) => {
@@ -80,9 +88,18 @@ router.get('/lots', permissions.canRead('biens'), tenantGuard, async (req: Authe
     const dbClient = (req as any).dbClient;
 
     try {
-        // [PATTERN RLS] - Plus de WHERE b.owner_id = ...
+        const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+        const isAdmin = (req as any).userRole === 'admin';
+
+        let ownerFilter = '';
+        if (!isAdmin && validOwnerIds.length > 0) {
+            ownerFilter = `AND l.owner_id IN (${validOwnerIds.join(',')})`;
+        } else if (!isAdmin) {
+            ownerFilter = 'AND 1=0';
+        }
+
         const query = `
-            SELECT 
+            SELECT
                 l.id, l.ref_lot as reference, l.type, l.building_id,
                 b.nom as immeuble, b.owner_id, o.name as owner_name,
                 l.etage, l.bloc, l.surface as superficie, l.nb_pieces as nbPieces,
@@ -92,6 +109,7 @@ router.get('/lots', permissions.canRead('biens'), tenantGuard, async (req: Authe
              FROM lots l
              JOIN buildings b ON l.building_id = b.id
              LEFT JOIN owners o ON b.owner_id = o.id
+             WHERE 1=1 ${ownerFilter}
              ORDER BY l.created_at DESC
         `;
 

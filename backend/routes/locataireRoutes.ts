@@ -19,21 +19,24 @@ router.get('/', protect, permissions.canRead('locataires'), tenantGuard, async (
 
     try {
         const { type, search } = req.query;
+        const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+        const isAdmin = (req as any).userRole === 'admin';
+
         let query = `
-            SELECT t.*, 
+            SELECT t.*,
                    (SELECT COUNT(*) FROM leases l WHERE l.tenant_id = t.id AND l.statut = 'actif') as active_leases,
                    al.ref_lot as lot_nom,
                    al.loyer_mensuel as loyer_actuel,
                    al.lease_id as active_lease_id,
                    al.lease_statut as bail_statut,
-                   CASE 
+                   CASE
                      WHEN al.lease_id IS NULL THEN 'unknown'
                      WHEN lp.last_payment_date IS NULL THEN 'pending'
                      WHEN lp.last_payment_date < CURRENT_DATE - INTERVAL '35 days' THEN 'late'
                      WHEN EXTRACT(MONTH FROM lp.last_payment_date) = EXTRACT(MONTH FROM CURRENT_DATE) THEN 'paid'
                      ELSE 'pending'
                    END as payment_status
-            FROM tenants t 
+            FROM tenants t
             LEFT JOIN LATERAL (
                 SELECT lot.ref_lot, l.loyer_actuel as loyer_mensuel, l.id as lease_id, l.statut as lease_statut
                 FROM leases l
@@ -49,6 +52,13 @@ router.get('/', protect, permissions.canRead('locataires'), tenantGuard, async (
             ) lp ON true
             WHERE t.statut != 'Archivé'
         `;
+
+        // Filtrage explicite par owner — indispensable quand BYPASSRLS est actif
+        if (!isAdmin && validOwnerIds.length > 0) {
+            query += ` AND t.owner_id IN (${validOwnerIds.join(',')})`;
+        } else if (!isAdmin) {
+            query += ` AND 1=0`;
+        }
 
         const params: any[] = [];
         let paramIndex = 1;

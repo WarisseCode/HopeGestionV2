@@ -78,6 +78,9 @@ export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next
             }
         }
 
+        // Exposer validOwnerIds pour que les routes puissent filtrer explicitement
+        // (nécessaire quand BYPASSRLS est actif sur le rôle DB)
+        (req as any).validOwnerIds = validOwnerIds;
         (req as any).dbClient = client;
 
         // Libération unique du client après la réponse
