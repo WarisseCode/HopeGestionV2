@@ -50,9 +50,9 @@ async function seedSuperAdmin() {
         }
         // Create new Super Admin
         const hashedPassword = await bcrypt_1.default.hash(defaultPassword, SALT_ROUNDS);
-        const result = await database_1.default.query(`INSERT INTO users (email, password_hash, nom, role, user_type, statut, created_at)
-             VALUES ($1, $2, $3, 'admin', 'admin', 'actif', NOW())
-             RETURNING id, email`, [defaultEmail, hashedPassword, defaultName]);
+        const result = await database_1.default.query(`INSERT INTO users (email, password_hash, nom, telephone, role, user_type, statut, is_verified, created_at)
+             VALUES ($1, $2, $3, $4, 'admin', 'admin', 'actif', true, NOW())
+             RETURNING id, email`, [defaultEmail, hashedPassword, defaultName, process.env.ADMIN_PHONE || '+22900000000']);
         console.log('╔═══════════════════════════════════════════════════════════════╗');
         console.log('║  🚀 SUPER ADMIN CRÉÉ AUTOMATIQUEMENT                          ║');
         console.log('╠═══════════════════════════════════════════════════════════════╣');

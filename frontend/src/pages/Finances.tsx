@@ -1,8 +1,8 @@
 // frontend/src/pages/Finances.tsx
 import React, { useState, useEffect } from 'react';
 import { 
-  Wallet, 
-  Plus, 
+  Wallet,
+  Plus,
   TrendingUp,
   TrendingDown,
   ArrowUpRight,
@@ -10,12 +10,14 @@ import {
   Building2,
   Calculator,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Lock
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
+import Select from '../components/ui/Select';
 import { useUser } from '../contexts/UserContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { KPICard } from '../components/dashboard';
@@ -337,11 +339,15 @@ const Finances: React.FC = () => {
                 }}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
                 activeTab === 'en_ligne' ? 'bg-cyan-50 text-cyan-700 shadow-sm border border-cyan-100' : 'text-base-content/60 hover:bg-base-200'
-                } \${subscriptionStatus && !subscriptionStatus.is_premium ? 'opacity-50 grayscale' : ''}`}
+                } ${subscriptionStatus && !subscriptionStatus.is_premium ? 'opacity-50 grayscale' : ''}`}
                 title={subscriptionStatus && !subscriptionStatus.is_premium ? "Fonctionnalité Premium" : ""}
             >
                 📱 Paiements en ligne
-                {subscriptionStatus && !subscriptionStatus.is_premium && <span className="ml-1 text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded border border-yellow-200">PRO</span>}
+                {subscriptionStatus && !subscriptionStatus.is_premium && (
+                    <span className="ml-1 flex items-center gap-0.5 text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200 font-bold">
+                        <Lock size={10} /> PRO
+                    </span>
+                )}
             </button>
             <button
                 onClick={() => setActiveTab('depenses')}
@@ -361,11 +367,15 @@ const Finances: React.FC = () => {
                 }}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
                 activeTab === 'prets' ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100' : 'text-base-content/60 hover:bg-base-200'
-                } \${subscriptionStatus && !subscriptionStatus.is_premium ? 'opacity-50 grayscale' : ''}`}
+                } ${subscriptionStatus && !subscriptionStatus.is_premium ? 'opacity-50 grayscale' : ''}`}
                 title={subscriptionStatus && !subscriptionStatus.is_premium ? "Fonctionnalité Premium" : ""}
             >
                 <Building2 size={18}/> Prêts & Financements
-                {subscriptionStatus && !subscriptionStatus.is_premium && <span className="ml-1 text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded border border-yellow-200">PRO</span>}
+                {subscriptionStatus && !subscriptionStatus.is_premium && (
+                    <span className="ml-1 flex items-center gap-0.5 text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200 font-bold">
+                        <Lock size={10} /> PRO
+                    </span>
+                )}
             </button>
              <button
                 onClick={() => {
@@ -377,11 +387,15 @@ const Finances: React.FC = () => {
                 }}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
                 activeTab === 'fiscalite' ? 'bg-purple-50 text-purple-700 shadow-sm border border-purple-100' : 'text-base-content/60 hover:bg-base-200'
-                } \${subscriptionStatus && !subscriptionStatus.is_premium ? 'opacity-50 grayscale' : ''}`}
+                } ${subscriptionStatus && !subscriptionStatus.is_premium ? 'opacity-50 grayscale' : ''}`}
                 title={subscriptionStatus && !subscriptionStatus.is_premium ? "Fonctionnalité Premium" : ""}
             >
                 <Calculator size={18}/> Fiscalité
-                {subscriptionStatus && !subscriptionStatus.is_premium && <span className="ml-1 text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded border border-yellow-200">PRO</span>}
+                {subscriptionStatus && !subscriptionStatus.is_premium && (
+                    <span className="ml-1 flex items-center gap-0.5 text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200 font-bold">
+                        <Lock size={10} /> PRO
+                    </span>
+                )}
             </button>
         </div>
       </div>
@@ -404,26 +418,38 @@ const Finances: React.FC = () => {
                             <Button variant="ghost" onClick={() => setShowForm(false)}>✕</Button>
                         </div>
                         <div className="space-y-4">
-                             <div>
-                                <label className="block text-sm font-bold text-base-content/80 mb-2">Locataire</label>
-                                <select className="select select-bordered w-full bg-base-200 p-2 border rounded-lg" value={paiementForm.locataireId} onChange={(e) => setPaiementForm({...paiementForm, locataireId: e.target.value})}>
-                                    <option value="">Choisir...</option>
-                                    {locataires.map(l => <option key={l.id} value={l.id}>{l.prenoms} {l.nom}</option>)}
-                                </select>
-                            </div>
+                            <Select
+                                label="Locataire"
+                                value={paiementForm.locataireId}
+                                onChange={(e) => setPaiementForm({...paiementForm, locataireId: e.target.value})}
+                                options={[
+                                    { value: '', label: 'Choisir...' },
+                                    ...locataires.map(l => ({ value: l.id, label: `${l.prenoms} ${l.nom}` }))
+                                ]}
+                            />
                             <div className="grid grid-cols-2 gap-4">
                                 <Input label="Montant" type="number" value={paiementForm.montant} onChange={(e) => setPaiementForm({...paiementForm, montant: parseFloat(e.target.value)})} />
                                 <Input label="Date" type="date" value={paiementForm.date} onChange={(e) => setPaiementForm({...paiementForm, date: e.target.value})} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                <select className="select select-bordered w-full p-2 border rounded-lg" value={paiementForm.type} onChange={(e) => setPaiementForm({...paiementForm, type: e.target.value})}>
-                                    <option value="loyer">Loyer</option>
-                                    <option value="charges">Charges</option>
-                                </select>
-                                <select className="select select-bordered w-full p-2 border rounded-lg" value={paiementForm.modePaiement} onChange={(e) => setPaiementForm({...paiementForm, modePaiement: e.target.value})}>
-                                    <option value="especes">Espèces</option>
-                                    <option value="mobile_money">Mobile Money</option>
-                                </select>
+                                <Select
+                                    label="Type"
+                                    value={paiementForm.type}
+                                    onChange={(e) => setPaiementForm({...paiementForm, type: e.target.value})}
+                                    options={[
+                                        { value: 'loyer', label: 'Loyer' },
+                                        { value: 'charges', label: 'Charges' },
+                                    ]}
+                                />
+                                <Select
+                                    label="Mode de paiement"
+                                    value={paiementForm.modePaiement}
+                                    onChange={(e) => setPaiementForm({...paiementForm, modePaiement: e.target.value})}
+                                    options={[
+                                        { value: 'especes', label: 'Espèces' },
+                                        { value: 'mobile_money', label: 'Mobile Money' },
+                                    ]}
+                                />
                             </div>
                             <div className="flex justify-end gap-2 pt-4">
                                 <Button variant="primary" onClick={handlePaymentSubmit}>Valider Paiement</Button>

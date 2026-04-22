@@ -2,9 +2,11 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Mail, ArrowLeft, CheckCircle, Info, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { API_URL } from '../config';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
 
 const ForgotPassword: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -51,17 +53,15 @@ const ForgotPassword: React.FC = () => {
                             <CheckCircle className="w-16 h-16 text-success" />
                         </div>
                         
-                        <h2 className="card-title text-2xl mb-2">Email en envoyé !</h2>
+                        <h2 className="card-title text-2xl mb-2">Email envoyé !</h2>
                         
                         <p className="text-base-content/70 mb-6">
                             Si un compte existe avec l'adresse <strong>{email}</strong>, 
                             vous recevrez un email contenant un lien de réinitialisation dans quelques minutes.
                         </p>
 
-                        <div className="alert alert-info">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
+                        <div className="alert alert-info flex items-start gap-3">
+                            <Info className="w-5 h-5 text-info shrink-0 mt-0.5" />
                             <div>
                                 <p className="text-sm">Le lien expire dans <strong>15 minutes</strong></p>
                                 <p className="text-xs mt-1">Vérifiez également vos spams</p>
@@ -101,44 +101,32 @@ const ForgotPassword: React.FC = () => {
 
                     {/* Form */}
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="form-control">
-                            <label className="label">
-                                <span className="label-text font-medium">Adresse email</span>
-                            </label>
-                            <input
-                                type="email"
-                                placeholder="votre.email@exemple.com"
-                                className="input input-bordered w-full"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                disabled={loading}
-                            />
-                        </div>
+                        <Input
+                            label="Adresse email"
+                            type="email"
+                            placeholder="votre.email@exemple.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            startIcon={<Mail size={16} />}
+                            required
+                            disabled={loading}
+                        />
 
                         {error && (
-                            <div className="alert alert-error">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span>{error}</span>
+                            <div className="alert alert-error flex items-center gap-3">
+                                <AlertCircle className="w-5 h-5 text-error shrink-0" />
+                                <span className="text-sm">{error}</span>
                             </div>
                         )}
 
-                        <button 
-                            type="submit" 
-                            className="btn btn-primary btn-block"
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            className="w-full"
                             disabled={loading}
                         >
-                            {loading ? (
-                                <>
-                                    <span className="loading loading-spinner"></span>
-                                    Envoi en cours...
-                                </>
-                            ) : (
-                                'Envoyer le lien de réinitialisation'
-                            )}
-                        </button>
+                            {loading ? 'Envoi en cours...' : 'Envoyer le lien de réinitialisation'}
+                        </Button>
                     </form>
 
                     {/* Footer */}

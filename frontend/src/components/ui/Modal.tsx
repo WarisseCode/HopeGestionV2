@@ -1,5 +1,5 @@
 // frontend/src/components/ui/Modal.tsx
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useId } from 'react';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -19,18 +19,19 @@ interface ModalProps {
   blurBackdrop?: boolean;
 }
 
-const Modal: React.FC<ModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  title, 
-  children, 
-  size = 'md', 
+const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = 'md',
   footer,
   closeOnBackdrop = true,
   closeOnEscape = true,
   showCloseButton = true,
   blurBackdrop = true,
 }) => {
+  const titleId = useId();
   const [zIndex, setZIndex] = React.useState(50);
 
   // Gestion du z-index pour les modales empilées
@@ -102,12 +103,15 @@ const Modal: React.FC<ModalProps> = ({
           >
             <div className="flex min-h-full items-center justify-center p-4">
               <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
                 className={`
-                  relative bg-base-100 rounded-2xl shadow-2xl w-full ${sizeClasses[size]} 
+                  relative bg-base-100 rounded-2xl shadow-2xl w-full ${sizeClasses[size]}
                   ${size === 'full' ? 'flex flex-col' : 'max-h-[90vh]'}
                   overflow-hidden
                 `}
@@ -115,7 +119,7 @@ const Modal: React.FC<ModalProps> = ({
               >
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-base-200 bg-gradient-to-r from-base-200/50 to-base-100">
-                  <h2 className="text-2xl font-bold text-base-content">{title}</h2>
+                  <h2 id={titleId} className="text-2xl font-bold text-base-content">{title}</h2>
                   {showCloseButton && (
                     <button
                       onClick={onClose}

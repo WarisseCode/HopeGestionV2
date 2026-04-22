@@ -210,7 +210,11 @@ class FedaPayService {
         }
         catch (error) {
             log.error(context, 'Failed to retrieve transaction', error);
-            return { status: 'error' };
+            // Retourner l'erreur détaillée pour aider au diagnostic
+            return {
+                status: 'error',
+                error: error?.message || 'Erreur API FedaPay inconnue'
+            };
         }
     }
     /**

@@ -4,16 +4,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const database_1 = __importDefault(require("../db/database"));
+// ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
+// Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
+// L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 const authMiddleware_1 = require("../middleware/authMiddleware");
+const tenantGuard_1 = require("../middleware/tenantGuard");
 const router = express_1.default.Router();
-// Protect all routes
+// Protect all routes with auth check and RLS context
 router.use(authMiddleware_1.protect);
+router.use(tenantGuard_1.tenantGuard);
 // ============================================
 // GET /api/edl - Liste des états des lieux
 // ============================================
 router.get('/', async (req, res) => {
     try {
+        const dbClient = req.dbClient;
         const { lot_id, type_edl, statut } = req.query;
         let query = `
             SELECT e.*, 
@@ -37,7 +42,7 @@ router.get('/', async (req, res) => {
             query += ` AND e.statut = $${params.length}`;
         }
         query += ` ORDER BY e.date_realisation DESC, e.created_at DESC`;
-        const result = await database_1.default.query(query, params);
+        const result = await dbClient.query(query, params);
         res.json(result.rows);
     }
     catch (error) {
@@ -50,9 +55,10 @@ router.get('/', async (req, res) => {
 // ============================================
 router.get('/:id', async (req, res) => {
     try {
+        const dbClient = req.dbClient;
         const { id } = req.params;
         // Get EDL Header
-        const edlResult = await database_1.default.query(`
+        const edlResult = await dbClient.query(`
             SELECT e.*, 
                    l.ref_lot, l.type as lot_type,
                    'Bail #' || loc.id as ref_location,
@@ -64,11 +70,11 @@ router.get('/:id', async (req, res) => {
             WHERE e.id = $1
         `, [id]);
         if (edlResult.rows.length === 0) {
-            return res.status(404).json({ message: 'État des lieux non trouvé' });
+            return res.status(404).json({ message: 'État des lieux non trouvé ou accès refusé' });
         }
         const edl = edlResult.rows[0];
         // Get Items
-        const itemsResult = await database_1.default.query(`
+        const itemsResult = await dbClient.query(`
             SELECT * FROM edl_items 
             WHERE edl_id = $1 
             ORDER BY piece, nom
@@ -88,18 +94,20 @@ router.get('/:id', async (req, res) => {
 // ============================================
 router.post('/', async (req, res) => {
     try {
+        const dbClient = req.dbClient;
+        const resolvedOwnerId = req.resolvedOwnerId;
         const { lot_id, location_id, type_edl, date_realisation, locataire_id, locataire_name, locataire_present, commentaires, parent_edl_id } = req.body;
         // Générer référence unique
         const year = new Date().getFullYear();
-        const seqResult = await database_1.default.query(`SELECT nextval('edl_ref_seq')`);
+        const seqResult = await dbClient.query(`SELECT nextval('edl_ref_seq')`);
         const seq = seqResult.rows[0].nextval;
         const ref_edl = `EDL-${year}-${String(seq).padStart(4, '0')}`;
-        const result = await database_1.default.query(`
+        const result = await dbClient.query(`
             INSERT INTO edl_inspections (
                 ref_edl, lot_id, location_id, type_edl, date_realisation,
                 agent_id, agent_name, locataire_id, locataire_name, 
-                locataire_present, commentaires, parent_edl_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                locataire_present, commentaires, parent_edl_id, owner_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING *
         `, [
             ref_edl,
@@ -113,7 +121,8 @@ router.post('/', async (req, res) => {
             locataire_name || '',
             locataire_present !== false,
             commentaires || '',
-            parent_edl_id || null
+            parent_edl_id || null,
+            resolvedOwnerId
         ]);
         res.status(201).json(result.rows[0]);
     }
@@ -127,9 +136,14 @@ router.post('/', async (req, res) => {
 // ============================================
 router.post('/:id/items', async (req, res) => {
     try {
+        const dbClient = req.dbClient;
         const { id } = req.params;
+        const checkResult = await dbClient.query('SELECT id FROM edl_inspections WHERE id = $1', [id]);
+        if (checkResult.rows.length === 0) {
+            return res.status(404).json({ message: 'État des lieux parent introuvable ou accès refusé' });
+        }
         const { inventory_item_id, piece, categorie, nom, description, etat, quantite, observation, photos } = req.body;
-        const result = await database_1.default.query(`
+        const result = await dbClient.query(`
             INSERT INTO edl_items (
                 edl_id, inventory_item_id, piece, categorie, nom,
                 description, etat, quantite, observation, photos
@@ -159,22 +173,28 @@ router.post('/:id/items', async (req, res) => {
 // ============================================
 router.put('/:id/items/:itemId', async (req, res) => {
     try {
-        const { itemId } = req.params;
+        const dbClient = req.dbClient;
+        const { id, itemId } = req.params;
+        const checkResult = await dbClient.query('SELECT id FROM edl_inspections WHERE id = $1', [id]);
+        if (checkResult.rows.length === 0) {
+            return res.status(404).json({ message: 'État des lieux parent introuvable ou accès refusé' });
+        }
         const { etat, quantite, observation, photos } = req.body;
-        const result = await database_1.default.query(`
+        const result = await dbClient.query(`
             UPDATE edl_items SET
                 etat = COALESCE($1, etat),
                 quantite = COALESCE($2, quantite),
                 observation = COALESCE($3, observation),
                 photos = COALESCE($4, photos)
-            WHERE id = $5
+            WHERE id = $5 AND edl_id = $6
             RETURNING *
         `, [
             etat,
             quantite,
             observation,
             photos ? JSON.stringify(photos) : null,
-            itemId
+            itemId,
+            id
         ]);
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Élément non trouvé' });
@@ -191,8 +211,16 @@ router.put('/:id/items/:itemId', async (req, res) => {
 // ============================================
 router.delete('/:id/items/:itemId', async (req, res) => {
     try {
-        const { itemId } = req.params;
-        await database_1.default.query('DELETE FROM edl_items WHERE id = $1', [itemId]);
+        const dbClient = req.dbClient;
+        const { id, itemId } = req.params;
+        const checkResult = await dbClient.query('SELECT id FROM edl_inspections WHERE id = $1', [id]);
+        if (checkResult.rows.length === 0) {
+            return res.status(404).json({ message: 'État des lieux parent introuvable ou accès refusé' });
+        }
+        const result = await dbClient.query('DELETE FROM edl_items WHERE id = $1 AND edl_id = $2 RETURNING id', [itemId, id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Élément non trouvé' });
+        }
         res.json({ message: 'Élément supprimé' });
     }
     catch (error) {
@@ -205,9 +233,10 @@ router.delete('/:id/items/:itemId', async (req, res) => {
 // ============================================
 router.put('/:id/sign', async (req, res) => {
     try {
+        const dbClient = req.dbClient;
         const { id } = req.params;
         const { signatures } = req.body;
-        const result = await database_1.default.query(`
+        const result = await dbClient.query(`
             UPDATE edl_inspections SET
                 signatures_json = $1,
                 statut = 'signe',
@@ -219,7 +248,7 @@ router.put('/:id/sign', async (req, res) => {
             id
         ]);
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'État des lieux non trouvé' });
+            return res.status(404).json({ message: 'État des lieux non trouvé ou accès refusé' });
         }
         res.json(result.rows[0]);
     }
@@ -233,9 +262,10 @@ router.put('/:id/sign', async (req, res) => {
 // ============================================
 router.put('/:id', async (req, res) => {
     try {
+        const dbClient = req.dbClient;
         const { id } = req.params;
         const { statut, commentaires } = req.body;
-        const result = await database_1.default.query(`
+        const result = await dbClient.query(`
             UPDATE edl_inspections SET
                 statut = COALESCE($1, statut),
                 commentaires = COALESCE($2, commentaires),
@@ -248,7 +278,7 @@ router.put('/:id', async (req, res) => {
             id
         ]);
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'État des lieux non trouvé' });
+            return res.status(404).json({ message: 'État des lieux non trouvé ou accès refusé' });
         }
         res.json(result.rows[0]);
     }
@@ -262,16 +292,17 @@ router.put('/:id', async (req, res) => {
 // ============================================
 router.get('/compare/:idEntree/:idSortie', async (req, res) => {
     try {
+        const dbClient = req.dbClient;
         const { idEntree, idSortie } = req.params;
-        // Get both EDLs
-        const edlEntree = await database_1.default.query('SELECT * FROM edl_inspections WHERE id = $1', [idEntree]);
-        const edlSortie = await database_1.default.query('SELECT * FROM edl_inspections WHERE id = $1', [idSortie]);
+        // Get both EDLs (le RLS filtre ceux qui ne m'appartiennent pas)
+        const edlEntree = await dbClient.query('SELECT * FROM edl_inspections WHERE id = $1', [idEntree]);
+        const edlSortie = await dbClient.query('SELECT * FROM edl_inspections WHERE id = $1', [idSortie]);
         if (edlEntree.rows.length === 0 || edlSortie.rows.length === 0) {
-            return res.status(404).json({ message: 'Un ou plusieurs EDL introuvables' });
+            return res.status(404).json({ message: 'Un ou plusieurs EDL introuvables ou accès refusé' });
         }
         // Get items for both
-        const itemsEntree = await database_1.default.query('SELECT * FROM edl_items WHERE edl_id = $1 ORDER BY piece, nom', [idEntree]);
-        const itemsSortie = await database_1.default.query('SELECT * FROM edl_items WHERE edl_id = $1 ORDER BY piece, nom', [idSortie]);
+        const itemsEntree = await dbClient.query('SELECT * FROM edl_items WHERE edl_id = $1 ORDER BY piece, nom', [idEntree]);
+        const itemsSortie = await dbClient.query('SELECT * FROM edl_items WHERE edl_id = $1 ORDER BY piece, nom', [idSortie]);
         res.json({
             entree: {
                 ...edlEntree.rows[0],
@@ -288,4 +319,16 @@ router.get('/compare/:idEntree/:idSortie', async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
+/*
+ * ═══════════════════════════════════════════════════
+ * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — edlRoutes.ts
+ * ═══════════════════════════════════════════════════
+ * ✅ Utilisation exclusive de req.dbClient à la place de pool.query.
+ * ✅ Application globale de protect et tenantGuard en haut de fichier via router.use().
+ * ✅ Injection de owner_id = resolvedOwnerId dans l'INSERT de la table edl_inspections.
+ * ✅ Blocages IDOR stricts : 404 retourné si les requêtes UPDATE/DELETE retournent rowCount === 0.
+ * ✅ Ajout d'une vérification parente sur edl_items pour sécuriser les sous-routes d'état des lieux.
+ * ✅ L'appele à la séquence id ('edl_ref_seq') passe sans soucis par dbClient.
+ * ═══════════════════════════════════════════════════
+ */
 exports.default = router;

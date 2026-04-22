@@ -1,53 +1,27 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+// backend/routes/userAssignmentRoutes.ts
+// ⚠️ RÈGLE ARCHITECTURE : Toutes les routes nécessitent protect (JWT).
+// Les opérations d'écriture sont réservées au rôle super_admin.
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const dotenv = __importStar(require("dotenv"));
-dotenv.config();
-const router = (0, express_1.Router)();
+const authMiddleware_1 = require("../middleware/authMiddleware");
 const database_1 = __importDefault(require("../db/database"));
+const router = (0, express_1.Router)();
+router.use(authMiddleware_1.protect);
 // PUT /api/user-assignments/bulk/:userId
 // Bulk update assignments for a user with granular permissions
+// [SÉCURITÉ] Réservé super_admin — opération privilégiée (modifie les droits d'accès)
 // NOTE: This route MUST be defined BEFORE /:userId to avoid path conflicts
 router.put('/bulk/:userId', async (req, res) => {
+    if (req.userRole !== 'super_admin') {
+        return res.status(403).json({ message: 'Accès refusé. Réservé super_admin.' });
+    }
     try {
         const { userId } = req.params;
-        const { assignments } = req.body; // Array of { owner_id, role, permissions }
+        const { assignments } = req.body;
         if (!assignments || !Array.isArray(assignments)) {
             return res.status(400).json({ message: 'Assignments array required' });
         }
@@ -64,8 +38,8 @@ router.put('/bulk/:userId', async (req, res) => {
                     can_delete_data
                 )
                 VALUES ($1, $2, $3, true, CURRENT_DATE, $4, $5, $6, $7, $8, $9, $10)
-                ON CONFLICT (user_id, owner_id) 
-                DO UPDATE SET 
+                ON CONFLICT (user_id, owner_id)
+                DO UPDATE SET
                     is_active = true,
                     role = EXCLUDED.role,
                     can_view_finances = EXCLUDED.can_view_finances,
@@ -95,12 +69,20 @@ router.put('/bulk/:userId', async (req, res) => {
 });
 // GET /api/user-assignments/by-owner/:ownerId
 // Get all users assigned to a specific owner
-// NOTE: This route MUST be defined BEFORE /:userId 
+// [SÉCURITÉ] Accessible uniquement au super_admin ou aux membres de cet owner
+// NOTE: This route MUST be defined BEFORE /:userId
 router.get('/by-owner/:ownerId', async (req, res) => {
     try {
         const { ownerId } = req.params;
+        // [SÉCURITÉ] super_admin voit tout — sinon vérif que l'appelant appartient à cet owner
+        if (req.userRole !== 'super_admin') {
+            const memberCheck = await database_1.default.query('SELECT 1 FROM owner_user WHERE owner_id = $1 AND user_id = $2 AND is_active = true', [ownerId, req.userId]);
+            if (memberCheck.rows.length === 0) {
+                return res.status(403).json({ message: 'Accès refusé à ce propriétaire.' });
+            }
+        }
         const result = await database_1.default.query(`
-            SELECT 
+            SELECT
                 ou.user_id,
                 ou.start_date as assigned_at,
                 u.nom as user_name,
@@ -120,11 +102,16 @@ router.get('/by-owner/:ownerId', async (req, res) => {
 });
 // GET /api/user-assignments/:userId
 // Get all owner assignments for a specific user
+// [SÉCURITÉ] Un utilisateur ne peut voir que ses propres affectations — super_admin voit tout
 router.get('/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
+        // [SÉCURITÉ] Restreint aux données propres à l'utilisateur, sauf super_admin
+        if (req.userRole !== 'super_admin' && req.userId !== parseInt(userId)) {
+            return res.status(403).json({ message: 'Accès refusé.' });
+        }
         const result = await database_1.default.query(`
-            SELECT 
+            SELECT
                 ou.user_id,
                 ou.owner_id,
                 ou.role,
@@ -154,11 +141,14 @@ router.get('/:userId', async (req, res) => {
 });
 // POST /api/user-assignments
 // Assign a user to an owner with permissions
+// [SÉCURITÉ] Réservé super_admin
 router.post('/', async (req, res) => {
+    if (req.userRole !== 'super_admin') {
+        return res.status(403).json({ message: 'Accès refusé. Réservé super_admin.' });
+    }
     try {
         const { user_id, owner_id, role, permissions } = req.body;
-        // permissions = { can_view_finances: true, ... }
-        const query = `
+        const result = await database_1.default.query(`
             INSERT INTO owner_user (
                 user_id, owner_id, role, is_active, start_date,
                 can_view_finances, can_edit_properties, can_manage_tenants,
@@ -177,8 +167,7 @@ router.post('/', async (req, res) => {
                 can_manage_users = EXCLUDED.can_manage_users,
                 can_delete_data = EXCLUDED.can_delete_data
             RETURNING *
-        `;
-        const result = await database_1.default.query(query, [
+        `, [
             user_id, owner_id, role || 'viewer',
             permissions?.can_view_finances || false,
             permissions?.can_edit_properties || false,
@@ -197,7 +186,11 @@ router.post('/', async (req, res) => {
 });
 // DELETE /api/user-assignments/:userId/:ownerId
 // Remove an assignment (soft delete)
+// [SÉCURITÉ] Réservé super_admin
 router.delete('/:userId/:ownerId', async (req, res) => {
+    if (req.userRole !== 'super_admin') {
+        return res.status(403).json({ message: 'Accès refusé. Réservé super_admin.' });
+    }
     try {
         const { userId, ownerId } = req.params;
         await database_1.default.query('UPDATE owner_user SET is_active = false WHERE user_id = $1 AND owner_id = $2', [userId, ownerId]);

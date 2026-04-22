@@ -21,7 +21,7 @@ const getManagedOwnerId = async (userId) => {
 // Query: start (YYYY-MM-DD), end (YYYY-MM-DD)
 router.get('/', authMiddleware_1.protect, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.userId;
         const ownerId = await getManagedOwnerId(userId);
         if (!ownerId)
             return res.status(200).json({ events: [] });
@@ -137,7 +137,7 @@ router.post('/events', authMiddleware_1.protect, async (req, res) => {
     try {
         const { title, description, start_date, end_date, type, is_all_day } = req.body;
         const result = await database_1.default.query(`INSERT INTO calendar_events (user_id, title, description, start_date, end_date, type, is_all_day)
-             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`, [req.user.id, title, description, start_date, end_date, type, is_all_day || false]);
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`, [req.userId, title, description, start_date, end_date, type, is_all_day || false]);
         res.status(201).json(result.rows[0]);
     }
     catch (error) {
@@ -148,7 +148,7 @@ router.post('/events', authMiddleware_1.protect, async (req, res) => {
 // DELETE /api/calendar/events/:id
 router.delete('/events/:id', authMiddleware_1.protect, async (req, res) => {
     try {
-        await database_1.default.query('DELETE FROM calendar_events WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+        await database_1.default.query('DELETE FROM calendar_events WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]);
         res.json({ message: 'Événement supprimé' });
     }
     catch (error) {
@@ -158,7 +158,7 @@ router.delete('/events/:id', authMiddleware_1.protect, async (req, res) => {
 // GET /api/calendar/settings
 router.get('/settings', authMiddleware_1.protect, async (req, res) => {
     try {
-        const result = await database_1.default.query('SELECT * FROM reminder_settings WHERE user_id = $1', [req.user.id]);
+        const result = await database_1.default.query('SELECT * FROM reminder_settings WHERE user_id = $1', [req.userId]);
         res.json(result.rows);
     }
     catch (error) {
@@ -170,13 +170,13 @@ router.post('/settings', authMiddleware_1.protect, async (req, res) => {
     try {
         const { event_type, delay_days, channel, active } = req.body;
         // Check if exists
-        const existing = await database_1.default.query('SELECT * FROM reminder_settings WHERE user_id = $1 AND event_type = $2', [req.user.id, event_type]);
+        const existing = await database_1.default.query('SELECT * FROM reminder_settings WHERE user_id = $1 AND event_type = $2', [req.userId, event_type]);
         if (existing.rows.length > 0) {
-            const result = await database_1.default.query('UPDATE reminder_settings SET delay_days = $1, channel = $2, active = $3 WHERE user_id = $4 AND event_type = $5 RETURNING *', [delay_days, channel, active, req.user.id, event_type]);
+            const result = await database_1.default.query('UPDATE reminder_settings SET delay_days = $1, channel = $2, active = $3 WHERE user_id = $4 AND event_type = $5 RETURNING *', [delay_days, channel, active, req.userId, event_type]);
             res.json(result.rows[0]);
         }
         else {
-            const result = await database_1.default.query('INSERT INTO reminder_settings (user_id, event_type, delay_days, channel, active) VALUES ($1, $2, $3, $4, $5) RETURNING *', [req.user.id, event_type, delay_days, channel, active]);
+            const result = await database_1.default.query('INSERT INTO reminder_settings (user_id, event_type, delay_days, channel, active) VALUES ($1, $2, $3, $4, $5) RETURNING *', [req.userId, event_type, delay_days, channel, active]);
             res.json(result.rows[0]);
         }
     }

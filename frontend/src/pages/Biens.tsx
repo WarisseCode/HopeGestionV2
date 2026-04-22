@@ -444,7 +444,7 @@ const Biens: React.FC = () => {
                 <Button 
                   variant="primary" 
                   disabled={isLimitReached}
-                  className={`rounded-full px-6 shadow-lg shadow-primary/20 transition-all font-semibold \${isLimitReached ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-primary/40'}`}
+                  className={`rounded-full px-6 shadow-lg shadow-primary/20 transition-all font-semibold ${isLimitReached ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-primary/40'}`}
                   onClick={() => {
                     if (isLimitReached) {
                       toast('Limite de biens atteinte. Veuillez upgrader votre abonnement.', { icon: '👑' });
@@ -606,8 +606,8 @@ const Biens: React.FC = () => {
                           <span className={`absolute top-4 right-4 z-20 badge border-none text-white font-bold ${immeuble.statut === 'Actif' ? 'bg-green-500' : 'bg-orange-500'}`}>
                             {immeuble.statut || 'Actif'}
                           </span>
-                          <div 
-                            className="absolute inset-0 z-25 cursor-zoom-in" 
+                          <div
+                            className="absolute inset-0 z-30 cursor-zoom-in"
                             onClick={(e) => {
                               e.stopPropagation();
                               setGallerySelectedBuilding(immeuble);
@@ -616,9 +616,9 @@ const Biens: React.FC = () => {
                             title="Ouvrir la galerie"
                           />
                           {immeuble.photo ? (
-                            <img src={immeuble.photo} alt={immeuble.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <img src={immeuble.photo} alt={`${immeuble.nom} — ${immeuble.ville}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                           ) : (
-                            <img src={getPlaceholderImage(immeuble.id)} alt={immeuble.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <img src={getPlaceholderImage(immeuble.id)} alt={`${immeuble.nom} — ${immeuble.ville}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                           )}
                           <div className="absolute bottom-4 left-4 z-20 text-white">
                             <h2 className="text-xl font-bold">{immeuble.nom}</h2>
@@ -691,9 +691,9 @@ const Biens: React.FC = () => {
                                   }}
                                   title="Ouvrir la galerie"
                                 >
-                                    <img 
-                                        src={immeuble.photo || (immeuble.photos && immeuble.photos.length > 0 ? immeuble.photos[0] : getPlaceholderImage(immeuble.id))} 
-                                        alt={immeuble.nom}
+                                    <img
+                                        src={immeuble.photo || (immeuble.photos && immeuble.photos.length > 0 ? immeuble.photos[0] : getPlaceholderImage(immeuble.id))}
+                                        alt={`${immeuble.nom} — ${immeuble.ville}`}
                                         className="h-full w-full object-cover transition-transform hover:scale-110"
                                     />
                                 </div>
@@ -739,7 +739,7 @@ const Biens: React.FC = () => {
                         <div className="h-40 bg-base-300 relative overflow-hidden shrink-0">
                           <img 
                             src={lot.photos && lot.photos.length > 0 ? lot.photos[0] : getPlaceholderImage(lot.id)} 
-                            alt={lot.reference} 
+                            alt={`${lot.reference} — ${lot.immeuble || ''}`}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                           <span className={`absolute top-3 right-3 z-20 badge border-none text-white font-bold ${

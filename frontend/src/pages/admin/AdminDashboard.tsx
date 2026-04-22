@@ -107,43 +107,43 @@ const AdminDashboard: React.FC = () => {
       sub: `${stats?.users.active || 0} actifs`,
       trend: stats?.users.trend || 0,
       icon: Users, 
-      gradient: 'from-blue-500 to-blue-600',
-      iconBg: 'bg-blue-500/10 text-blue-500'
+      gradient: 'from-primary to-primary',
+      iconBg: 'bg-primary/10 text-primary'
     },
-    { 
-      label: 'Revenus', 
+    {
+      label: 'Revenus',
       value: stats ? `${formatCurrency(stats.revenue.total)}` : '0',
       sub: `${stats?.revenue.paymentsCount || 0} paiements`,
       trend: 0,
-      icon: Wallet, 
-      gradient: 'from-emerald-500 to-emerald-600',
-      iconBg: 'bg-emerald-500/10 text-emerald-500'
+      icon: Wallet,
+      gradient: 'from-success to-success',
+      iconBg: 'bg-success/10 text-success'
     },
-    { 
-      label: 'Agences', 
-      value: stats?.agencies?.toString() || '0', 
+    {
+      label: 'Agences',
+      value: stats?.agencies?.toString() || '0',
       sub: 'Gestionnaires actifs',
       trend: 0,
-      icon: Building2, 
-      gradient: 'from-purple-500 to-purple-600',
-      iconBg: 'bg-purple-500/10 text-purple-500'
+      icon: Building2,
+      gradient: 'from-secondary to-secondary',
+      iconBg: 'bg-secondary/10 text-secondary'
     },
-    { 
-      label: 'Locataires', 
-      value: stats?.tenants?.toString() || '0', 
+    {
+      label: 'Locataires',
+      value: stats?.tenants?.toString() || '0',
       sub: `${stats?.lots || 0} lots gérés`,
       trend: 0,
-      icon: UserCheck, 
-      gradient: 'from-amber-500 to-orange-500',
-      iconBg: 'bg-amber-500/10 text-amber-500'
+      icon: UserCheck,
+      gradient: 'from-warning to-warning',
+      iconBg: 'bg-warning/10 text-warning'
     },
   ];
 
   const activityDot: Record<string, string> = {
-    success: 'bg-emerald-500',
-    warning: 'bg-amber-500',
-    error: 'bg-red-500',
-    info: 'bg-blue-500',
+    success: 'bg-success',
+    warning: 'bg-warning',
+    error: 'bg-error',
+    info: 'bg-info',
   };
 
   if (loading) {

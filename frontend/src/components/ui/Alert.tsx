@@ -18,17 +18,24 @@ const Alert: React.FC<AlertProps> = ({
   className = ''
 }) => {
   const variantClasses = {
-    info: 'bg-info/10 text-info-content border-info/20',
-    success: 'bg-success/10 text-success-content border-success/20',
-    warning: 'bg-warning/10 text-warning-content border-warning/20',
-    error: 'bg-error/10 text-error-content border-error/20'
+    info: 'bg-info/10 text-info border-info/20',
+    success: 'bg-success/10 text-success border-success/20',
+    warning: 'bg-warning/10 text-warning border-warning/20',
+    error: 'bg-error/10 text-error border-error/20'
   };
-  
+
+  const textClasses = {
+    info: 'text-base-content',
+    success: 'text-base-content',
+    warning: 'text-base-content',
+    error: 'text-base-content'
+  };
+
   const iconMap = {
-    info: <Info className="w-5 h-5" />,
-    success: <CheckCircle2 className="w-5 h-5" />,
-    warning: <AlertCircle className="w-5 h-5" />,
-    error: <XCircle className="w-5 h-5" />
+    info: <Info className="w-5 h-5 text-info" />,
+    success: <CheckCircle2 className="w-5 h-5 text-success" />,
+    warning: <AlertCircle className="w-5 h-5 text-warning" />,
+    error: <XCircle className="w-5 h-5 text-error" />
   };
   
   const icon = iconMap[variant];
@@ -39,7 +46,7 @@ const Alert: React.FC<AlertProps> = ({
         <div className="flex-shrink-0">
           {icon}
         </div>
-        <div className="ml-3 flex-1">
+        <div className={`ml-3 flex-1 ${textClasses[variant]}`}>
           {title && (
             <h3 className="text-sm font-medium">
               {title}

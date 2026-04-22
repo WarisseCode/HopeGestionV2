@@ -28,8 +28,8 @@ import AdminFinances from './pages/admin/AdminFinances';
 import AdminSubscriptions from './pages/admin/AdminSubscriptions';
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
 import AdminSettings from './pages/admin/AdminSettings';
+import NotFound from './pages/NotFound';
 import { getToken, logoutUser } from './api/authApi'; 
-import CustomThemeProvider from './theme/Theme';
 import { UserProvider } from './contexts/UserContext';
 import MonCompte from './pages/MonCompte';
 import Biens from './pages/Biens';
@@ -117,7 +117,6 @@ const App: React.FC = () => {
 
     return (
         <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
-            <CustomThemeProvider>
                 <Router>
                 <Toaster position="top-center" toastOptions={{ duration: 4000, className: 'text-sm font-medium' }} />
                 <Routes>
@@ -229,11 +228,10 @@ const App: React.FC = () => {
                         } 
                     />
                     
-                    {/* Redirection par défaut */}
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    {/* Page 404 */}
+                    <Route path="*" element={<NotFound />} />
                 </Routes>
             </Router>
-        </CustomThemeProvider>
     </GoogleOAuthProvider>
     );
 };

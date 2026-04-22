@@ -15,6 +15,7 @@ import Input from './ui/Input';
 import PhoneInput from './ui/PhoneInput';
 import Alert from './ui/Alert';
 import Select from './ui/Select';
+import Card from './ui/Card';
 import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { registerUser } from '../api/authApi';
@@ -43,6 +44,24 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
   const [error, setError] = useState<string | null>('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  const getPasswordStrength = (pwd: string): { score: number; label: string; color: string } => {
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    const levels = [
+      { label: '', color: 'bg-base-300' },
+      { label: 'Faible', color: 'bg-error' },
+      { label: 'Moyen', color: 'bg-warning' },
+      { label: 'Bon', color: 'bg-success' },
+      { label: 'Fort', color: 'bg-success' },
+    ];
+    return { score, ...levels[score] };
+  };
+
+  const passwordStrength = getPasswordStrength(formData.password);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -127,8 +146,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-200 p-4">
-      <div className="card w-full max-w-md bg-base-100 shadow-xl">
-        <div className="card-body">
+      <Card className="w-full max-w-md" padding="lg">
           <div className="text-center mb-6">
             <img src="/logo.png" alt="Logo" className="w-16 h-auto mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-base-content">Créer un compte</h2>
@@ -182,26 +200,48 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
                 required
               />
               
-              <Input
-                label="Mot de passe"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={handleChange}
-                autoComplete="new-password"
-                startIcon={<Lock size={16} />}
-                endIcon={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="text-base-content/60 hover:text-base-content"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                }
-                required
-              />
+              <div>
+                <Input
+                  label="Mot de passe"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  autoComplete="new-password"
+                  startIcon={<Lock size={16} />}
+                  endIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-base-content/60 hover:text-base-content"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  }
+                  required
+                />
+                {formData.password.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4].map((level) => (
+                        <div
+                          key={level}
+                          className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                            passwordStrength.score >= level ? passwordStrength.color : 'bg-base-300'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    {passwordStrength.label && (
+                      <p className="text-xs text-base-content/60">
+                        Force : <span className="font-semibold">{passwordStrength.label}</span>
+                        {passwordStrength.score < 3 && ' — ajoutez majuscules, chiffres ou caractères spéciaux'}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
               
               <Input
                 label="Confirmer le mot de passe"
@@ -237,6 +277,9 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
               ]}
               required
             />
+            <p className="text-xs text-base-content/50 mt-1 px-1">
+              Vous êtes propriétaire ? Contactez votre gestionnaire pour recevoir une invitation sur la plateforme.
+            </p>
             
             <Button 
               type="submit" 
@@ -272,7 +315,8 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
           <div className="text-center">
             <p className="text-sm text-base-content/70">
               Vous avez déjà un compte ?{' '}
-              <button 
+              <button
+                type="button"
                 onClick={onNavigateToLogin}
                 className="text-primary font-medium hover:underline"
               >
@@ -280,8 +324,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
               </button>
             </p>
           </div>
-        </div>
-      </div>
+      </Card>
     </div>
   );
 };

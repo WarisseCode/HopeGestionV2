@@ -1,21 +1,21 @@
 // frontend/src/pages/Contrats.tsx
 import React, { useState } from 'react';
 import { 
-  FileText, 
-  Plus, 
-  Eye, 
+  FileText,
+  Plus,
+  Eye,
   Home,
   Wallet,
   Download,
   Upload,
   Clock,
   XCircle,
-  Search,
   FileCheck
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import SearchInput from '../components/ui/SearchInput';
 import { useUser } from '../contexts/UserContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { KPICard } from '../components/dashboard';
@@ -75,9 +75,8 @@ const Contrats: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-             <div className="relative group hidden md:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50 group-focus-within:text-primary transition-colors" size={18} />
-                <input type="text" placeholder="Rechercher..." className="input input-sm h-10 pl-10 bg-base-100 border-base-300 focus:border-primary w-64 rounded-full shadow-sm transition-all focus:w-72" />
+             <div className="hidden md:block w-64">
+                <SearchInput placeholder="Rechercher un contrat..." size="sm" />
             </div>
            {canWrite && <Button
             variant="primary"

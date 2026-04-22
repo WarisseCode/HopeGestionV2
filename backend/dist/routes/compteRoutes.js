@@ -29,21 +29,31 @@ router.get('/proprietaires', async (req, res) => {
             WHERE is_active = TRUE
         `;
         const params = [];
-        // Si ce n'est pas un admin, on filtre pour ne montrer que les propriétaires liés (via owner_user)
-        if (req.userRole !== 'admin') {
-            // Trouver les IDs owner liés à cet utilisateur
+        if (req.userRole === 'proprietaire' || req.userRole === 'owner') {
+            // Propriétaire : ne voit que ses propres données
             const linkResult = await database_1.default.query(`SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`, [req.userId]);
             if (linkResult.rows.length > 0) {
-                // Filtrer sur les IDs trouvés
                 const ownerIds = linkResult.rows.map(row => row.owner_id);
                 query += ` AND id = ANY($1)`;
                 params.push(ownerIds);
             }
             else {
-                // Pas de lien owner trouvé -> liste vide
                 return res.json({ proprietaires: [] });
             }
         }
+        else if (req.userRole === 'gestionnaire' || req.userRole === 'manager') {
+            // Gestionnaire : ne voit que les propriétaires qu'il gère (via owner_user)
+            const linkResult = await database_1.default.query(`SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`, [req.userId]);
+            if (linkResult.rows.length > 0) {
+                const ownerIds = linkResult.rows.map(row => row.owner_id);
+                query += ` AND id = ANY($1)`;
+                params.push(ownerIds);
+            }
+            else {
+                return res.json({ proprietaires: [] });
+            }
+        }
+        // admin : voit tous les propriétaires (pas de filtre supplémentaire)
         query += ` ORDER BY name ASC`;
         const result = await database_1.default.query(query, params);
         res.status(200).json({ proprietaires: result.rows });
@@ -152,13 +162,16 @@ router.post('/proprietaires', async (req, res) => {
             managerCode
         ]);
         const ownerId = newOwner.rows[0].id;
-        // Lier à l'utilisateur qui crée (si ce n'est pas un admin pur qui crée pour les autres)
+        // Lier le créateur à l'owner via owner_user
+        // - Gestionnaire/manager : role='gestionnaire' (il gère ce propriétaire)
+        // - Propriétaire : role='owner' (c'est son propre compte)
         try {
-            await database_1.default.query(`INSERT INTO owner_user (user_id, owner_id, role, is_active, start_date) VALUES ($1, $2, 'owner', true, CURRENT_DATE)`, [req.userId, ownerId]);
+            const linkRole = (req.userRole === 'gestionnaire' || req.userRole === 'manager') ? 'gestionnaire' : 'owner';
+            await database_1.default.query(`INSERT INTO owner_user (user_id, owner_id, role, is_active, start_date) VALUES ($1, $2, $3, true, CURRENT_DATE)
+                 ON CONFLICT (user_id, owner_id) DO NOTHING`, [req.userId, ownerId, linkRole]);
         }
         catch (linkError) {
             console.error('Erreur liaison owner_user:', linkError);
-            // On continue même si la liaison échoue (non critique pour la création)
         }
         // Log action
         await AuditService_1.AuditService.log({

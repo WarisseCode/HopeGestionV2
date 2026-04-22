@@ -63,6 +63,8 @@ const database_1 = __importDefault(require("./db/database"));
 exports.pool = database_1.default;
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
+// Railway / Render / Heroku : derrière un reverse proxy
+app.set('trust proxy', 1);
 console.log('✅ JWT_SECRET validation passed');
 // Auto-seed Super Admin if none exists
 const seedAdmin_1 = require("./scripts/seedAdmin");
@@ -84,6 +86,7 @@ exports.pool.connect()
 // 🔒 SECURITY MIDDLEWARE STACK
 // ========================================
 const helmet_1 = __importDefault(require("helmet"));
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const cors_1 = __importDefault(require("cors"));
 // Note: Using PostgreSQL, no need for mongo-sanitize (MongoDB-specific)
 // 1. Security Headers (Helmet)
@@ -108,8 +111,22 @@ app.use((0, helmet_1.default)({
     xssFilter: true,
     crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Requis pour les Popups Google OAuth
 }));
-// 2. Rate Limiting - General API
-// Rate limiters removed temporarily for development
+// 2. Rate Limiting
+const apiLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Trop de requêtes, réessayez dans 15 minutes.' },
+});
+const authLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Trop de tentatives de connexion, réessayez dans 15 minutes.' },
+    skipSuccessfulRequests: true,
+});
 // 4. Body Parsing with size limits (prevent DoS)
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
@@ -121,7 +138,7 @@ app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
 // 8. CORS - Strict Origin Control
 const allowedOrigins = [
     process.env.FRONTEND_URL || 'http://localhost:5173',
-    'https://hope-gestion-frontend.onrender.com',
+    'https://hope-gestion-frontend.vercel.app',
     'https://hopegestion.com',
     'https://www.hopegestion.com'
 ];
@@ -159,19 +176,23 @@ app.use('/uploads', (req, res, next) => {
 }, express_1.default.static(path_1.default.join(__dirname, '../uploads')));
 // --- 2. Routes de l'API ---
 // Apply general rate limiting to all API routes
-// app.use('/api', apiLimiter); // Removed for dev
+app.use('/api', apiLimiter);
 // Routes d'upload
 const uploadRoutes_1 = __importDefault(require("./routes/uploadRoutes"));
 app.use('/api/upload', uploadRoutes_1.default);
 // Routes d'authentification (Publiques) - WITH STRICT RATE LIMITING
-app.use('/api/auth', authRoutes_1.default); // Removed authLimiter
-app.use('/api/auth', googleAuthRoutes_1.default); // Google OAuth routes
+app.use('/api/auth', authLimiter, authRoutes_1.default);
+app.use('/api/auth', authLimiter, googleAuthRoutes_1.default); // Google OAuth routes
 // Routes Réservations (Public + Protected mix inside)
 const reservationRoutes_1 = __importDefault(require("./routes/reservationRoutes"));
 app.use('/api/reservations', reservationRoutes_1.default);
 // Routes Publiques (Aucune authentification requise)
 const publicRoutes_1 = __importDefault(require("./routes/publicRoutes"));
 app.use('/api/public', publicRoutes_1.default);
+// Routes Invitations
+// validate/:token et :token/accept sont publics ; POST / requiert protect (vérifié dans le handler)
+const invitationRoutes_1 = __importDefault(require("./routes/invitationRoutes"));
+app.use('/api/invitations', invitationRoutes_1.default);
 // --- Routes Protégées ---
 // Routes Locataires (Nécessite le jeton JWT)
 app.use('/api/locataires', authMiddleware_1.protect, locataireRoutes_1.default); // <--- NOUVELLE LIGNE
@@ -277,6 +298,21 @@ app.use('/api/admin', authMiddleware_1.protect, adminRoutes_1.default);
 // Public routes for admin invitation (no auth required)
 app.get('/api/admin-invite/check', adminRoutes_1.checkAdminInvite);
 app.post('/api/admin-invite/accept', adminRoutes_1.acceptAdminInvite);
+// ========================================
+// 📄 DOCUMENTATION API (Swagger UI)
+// ========================================
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
+const swagger_1 = require("./config/swagger");
+app.use('/api/docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_1.swaggerSpec, {
+    customSiteTitle: 'HopeGestion API Docs',
+    customCss: '.swagger-ui .topbar { display: none }',
+    swaggerOptions: { persistAuthorization: true },
+}));
+// Endpoint JSON brut (utile pour import Postman / Insomnia)
+app.get('/api/docs.json', (_req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swagger_1.swaggerSpec);
+});
 // --- 3. Test de communication (Endpoint de Ping) ---
 app.get('/api/ping', (req, res) => {
     res.status(200).json({

@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Facebook, 
-  Twitter, 
-  Linkedin, 
+import {
+  Facebook,
+  Twitter,
+  Linkedin,
   Instagram,
   Mail,
   Phone,
@@ -12,9 +12,18 @@ import {
   Send
 } from 'lucide-react';
 import Button from '../ui/Button';
+import toast from 'react-hot-toast';
 
 const PublicFooter: React.FC = () => {
     const currentYear = new Date().getFullYear();
+    const [newsletterEmail, setNewsletterEmail] = useState('');
+
+    const handleNewsletter = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newsletterEmail) return;
+        toast.success('Merci ! Vous serez notifié(e) dès le lancement de la newsletter.');
+        setNewsletterEmail('');
+    };
 
     return (
         <footer className="bg-neutral text-neutral-content font-sans">
@@ -59,16 +68,18 @@ const PublicFooter: React.FC = () => {
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/syndic" className="opacity-70 hover:opacity-100 hover:text-primary transition-colors flex items-center gap-2 group">
-                                    <ArrowRight size={14} className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300" />
+                                <span className="opacity-40 flex items-center gap-2 cursor-not-allowed text-sm">
+                                    <ArrowRight size={14} className="opacity-0" />
                                     Syndic de Copropriété
-                                </Link>
+                                    <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded font-bold">Bientôt</span>
+                                </span>
                             </li>
                             <li>
-                                <Link to="/mobile-money" className="opacity-70 hover:opacity-100 hover:text-primary transition-colors flex items-center gap-2 group">
-                                    <ArrowRight size={14} className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300" />
+                                <span className="opacity-40 flex items-center gap-2 cursor-not-allowed text-sm">
+                                    <ArrowRight size={14} className="opacity-0" />
                                     Paiement Mobile
-                                </Link>
+                                    <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded font-bold">Bientôt</span>
+                                </span>
                             </li>
                             <li>
                                 <Link to="/tarifs" className="opacity-70 hover:opacity-100 hover:text-primary transition-colors flex items-center gap-2 group">
@@ -89,19 +100,22 @@ const PublicFooter: React.FC = () => {
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/blog" className="opacity-70 hover:opacity-100 hover:text-primary transition-colors">
+                                <span className="opacity-40 cursor-not-allowed text-sm flex items-center gap-2">
                                     Actualités & Blog
-                                </Link>
+                                    <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded font-bold">Bientôt</span>
+                                </span>
                             </li>
                             <li>
-                                <Link to="/support" className="opacity-70 hover:opacity-100 hover:text-primary transition-colors">
+                                <span className="opacity-40 cursor-not-allowed text-sm flex items-center gap-2">
                                     Centre d'aide
-                                </Link>
+                                    <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded font-bold">Bientôt</span>
+                                </span>
                             </li>
                             <li>
-                                <Link to="/contact" className="opacity-70 hover:opacity-100 hover:text-primary transition-colors">
+                                <span className="opacity-40 cursor-not-allowed text-sm flex items-center gap-2">
                                     Nous contacter
-                                </Link>
+                                    <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded font-bold">Bientôt</span>
+                                </span>
                             </li>
                         </ul>
                     </div>
@@ -112,31 +126,39 @@ const PublicFooter: React.FC = () => {
                         <p className="opacity-70 text-sm mb-4">
                             Inscrivez-vous à notre newsletter pour recevoir nos conseils en gestion immobilière.
                         </p>
-                        <div className="form-control w-full">
+                        <form onSubmit={handleNewsletter} className="form-control w-full">
                             <div className="relative">
-                                <input 
-                                    type="text" 
-                                    placeholder="Votre email" 
-                                    className="input input-bordered w-full pr-12 bg-base-100/10 border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:border-primary" 
+                                <input
+                                    type="email"
+                                    id="newsletter-email"
+                                    aria-label="Votre adresse email pour la newsletter"
+                                    placeholder="Votre email"
+                                    value={newsletterEmail}
+                                    onChange={(e) => setNewsletterEmail(e.target.value)}
+                                    className="input input-bordered w-full pr-12 bg-base-100/10 border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:border-primary"
                                 />
-                                <button className="absolute top-0 right-0 rounded-l-none btn btn-primary btn-square">
+                                <button
+                                    type="submit"
+                                    aria-label="S'inscrire à la newsletter"
+                                    className="absolute top-0 right-0 rounded-l-none btn btn-primary btn-square"
+                                >
                                     <Send size={18} />
                                 </button>
                             </div>
-                        </div>
+                        </form>
                         <div className="mt-8">
                             <h6 className="text-xs font-bold uppercase opacity-50 mb-3">Suivez-nous</h6>
                             <div className="flex gap-2">
-                                <a href="#" className="btn btn-ghost btn-sm btn-square hover:bg-base-100/10 hover:text-blue-500 transition-colors">
+                                <a href="#" aria-label="Facebook" className="btn btn-ghost btn-sm btn-square hover:bg-base-100/10 hover:text-blue-500 transition-colors">
                                     <Facebook size={18} />
                                 </a>
-                                <a href="#" className="btn btn-ghost btn-sm btn-square hover:bg-base-100/10 hover:text-sky-400 transition-colors">
+                                <a href="#" aria-label="Twitter" className="btn btn-ghost btn-sm btn-square hover:bg-base-100/10 hover:text-sky-400 transition-colors">
                                     <Twitter size={18} />
                                 </a>
-                                <a href="#" className="btn btn-ghost btn-sm btn-square hover:bg-base-100/10 hover:text-blue-600 transition-colors">
+                                <a href="#" aria-label="LinkedIn" className="btn btn-ghost btn-sm btn-square hover:bg-base-100/10 hover:text-blue-600 transition-colors">
                                     <Linkedin size={18} />
                                 </a>
-                                <a href="#" className="btn btn-ghost btn-sm btn-square hover:bg-base-100/10 hover:text-pink-500 transition-colors">
+                                <a href="#" aria-label="Instagram" className="btn btn-ghost btn-sm btn-square hover:bg-base-100/10 hover:text-pink-500 transition-colors">
                                     <Instagram size={18} />
                                 </a>
                             </div>
@@ -151,11 +173,11 @@ const PublicFooter: React.FC = () => {
                     <p className="text-xs opacity-60 text-center md:text-left">
                         © {currentYear} Hope Gestion. Tous droits réservés.
                     </p>
-                    <div className="flex flex-wrap justify-center gap-6 text-xs opacity-60">
-                        <Link to="/mentions-legales" className="hover:opacity-100 transition-opacity">Mentions Légales</Link>
-                        <Link to="/cgu" className="hover:opacity-100 transition-opacity">CGU</Link>
-                        <Link to="/confidentialite" className="hover:opacity-100 transition-opacity">Confidentialité</Link>
-                        <Link to="/cookies" className="hover:opacity-100 transition-opacity">Cookies</Link>
+                    <div className="flex flex-wrap justify-center gap-6 text-xs opacity-40">
+                        <span>Mentions Légales</span>
+                        <span>CGU</span>
+                        <span>Confidentialité</span>
+                        <span>Cookies</span>
                     </div>
                 </div>
             </div>

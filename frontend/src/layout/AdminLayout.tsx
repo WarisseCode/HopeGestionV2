@@ -24,9 +24,22 @@ interface AdminLayoutProps {
 }
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onLogout }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [notifCount, setNotifCount] = useState(0);
   const location = useLocation();
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      setIsSidebarOpen(!mobile);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -61,9 +74,18 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onLogout }) => {
 
   return (
     <div className="flex h-screen bg-base-200 font-sans text-base-content overflow-hidden">
-      
+
+      {/* Backdrop mobile */}
+      {isMobile && isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-20 md:hidden"
+          onClick={toggleSidebar}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Admin Sidebar - Distinctive Purple Theme */}
-      <aside 
+      <aside
         className={`bg-primary text-primary-content shadow-xl z-30 transition-all duration-300 ease-in-out flex flex-col
           ${isSidebarOpen ? 'w-64' : 'w-20'} 
           fixed md:relative h-full
@@ -79,8 +101,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onLogout }) => {
           ) : (
              <ShieldAlert className="mx-auto text-warning" />
           )}
-          <button 
-            onClick={toggleSidebar} 
+          <button
+            type="button"
+            aria-label="Fermer le menu"
+            onClick={toggleSidebar}
             className="p-1 rounded-lg hover:bg-primary-focus md:hidden"
           >
             <X size={20} />
@@ -124,8 +148,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onLogout }) => {
 
         {/* Bottom Actions */}
         <div className="p-4 border-t border-primary-content/10 bg-primary-focus/30">
-           <button 
+           <button
+             type="button"
              onClick={onLogout}
+             aria-label="Déconnexion"
              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-primary-content hover:bg-error/20 hover:text-error w-full transition-colors
                ${!isSidebarOpen && 'justify-center'}
              `}
@@ -141,8 +167,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onLogout }) => {
         {/* Top Header */}
         <header className="h-16 bg-base-100 shadow-sm z-10 flex items-center justify-between px-4 md:px-8 border-b border-base-200">
             <div className="flex items-center gap-4">
-                <button 
-                  onClick={toggleSidebar} 
+                <button
+                  type="button"
+                  aria-label="Ouvrir le menu"
+                  onClick={toggleSidebar}
                   className="p-2 rounded-lg hover:bg-base-200 text-base-content"
                 >
                   <Menu size={24} />
@@ -156,7 +184,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onLogout }) => {
             <div className="flex items-center gap-4">
                 <div className="indicator">
                     <Bell className="text-base-content/70" />
-                    <span className="badge badge-xs badge-error indicator-item"></span>
+                    {notifCount > 0 && (
+                        <span className="badge badge-xs badge-error indicator-item">{notifCount > 99 ? '99+' : notifCount}</span>
+                    )}
                 </div>
             </div>
         </header>

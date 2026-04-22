@@ -309,16 +309,15 @@ const Select: React.FC<SelectProps> = ({
                         transition-colors
                       `}
                     >
-                      {/* Highlight search match */}
+                      {/* Highlight search match — XSS-safe via React elements */}
                       {searchQuery ? (
-                        <span
-                          dangerouslySetInnerHTML={{
-                            __html: option.label.replace(
-                              new RegExp(`(${searchQuery})`, 'gi'),
-                              '<mark class="bg-yellow-200 rounded px-0.5">$1</mark>'
-                            ),
-                          }}
-                        />
+                        <span>
+                          {option.label.split(new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')).map((part, i) =>
+                            part.toLowerCase() === searchQuery.toLowerCase()
+                              ? <mark key={i} className="bg-yellow-200 rounded px-0.5">{part}</mark>
+                              : part
+                          )}
+                        </span>
                       ) : (
                         <span>{option.label}</span>
                       )}

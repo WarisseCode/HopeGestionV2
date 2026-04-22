@@ -38,83 +38,32 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 // backend/routes/documentRoutes.ts
 const express_1 = require("express");
+// ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
+// Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
+// L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 const dotenv = __importStar(require("dotenv"));
-const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
-const fs_1 = __importDefault(require("fs"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
 const permissionMiddleware_1 = __importDefault(require("../middleware/permissionMiddleware"));
+const tenantGuard_1 = require("../middleware/tenantGuard");
 const pdfkit_1 = __importDefault(require("pdfkit"));
+const uploadMiddleware_1 = require("../middleware/uploadMiddleware");
+const spacesUploadService_1 = require("../services/spacesUploadService");
 dotenv.config();
 const router = (0, express_1.Router)();
-// Middleware to log all requests to this router
-const database_1 = __importDefault(require("../db/database"));
-// Helper function to get owner IDs for current user
-const getManagedOwnerIds = async (userId, userRole) => {
-    if (userRole === 'admin') {
-        return null; // Admin sees all
-    }
-    const result = await database_1.default.query(`SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`, [userId]);
-    return result.rows.map(r => r.owner_id);
-};
-// --- Multer Configuration ---
-const uploadDir = path_1.default.join(__dirname, '../../uploads');
-if (!fs_1.default.existsSync(uploadDir)) {
-    fs_1.default.mkdirSync(uploadDir, { recursive: true });
-}
-const storage = multer_1.default.diskStorage({
-    destination: (req, file, cb) => {
-        const date = new Date();
-        const year = date.getFullYear();
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const finalPath = path_1.default.join(uploadDir, `${year}/${month}`);
-        if (!fs_1.default.existsSync(finalPath)) {
-            fs_1.default.mkdirSync(finalPath, { recursive: true });
-        }
-        cb(null, finalPath);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path_1.default.extname(file.originalname));
-    }
-});
-const upload = (0, multer_1.default)({
-    storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|pdf|doc|docx/;
-        const extname = allowedTypes.test(path_1.default.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
-        if (extname && mimetype) {
-            return cb(null, true);
-        }
-        else {
-            cb(new Error('Format de fichier non supporté (Images, PDF, Word uniquement)'));
-        }
-    }
-});
+const spacesConfigured = !!(process.env.SPACES_KEY &&
+    process.env.SPACES_SECRET &&
+    process.env.SPACES_ENDPOINT &&
+    process.env.SPACES_BUCKET);
 // --- Routes ---
-// GET /api/documents - List documents (filtered by owner)
-router.get('/', permissionMiddleware_1.default.canRead('documents'), async (req, res) => {
+// GET /api/documents - List documents (filtered by owner via RLS)
+router.get('/', permissionMiddleware_1.default.canRead('documents'), tenantGuard_1.tenantGuard, async (req, res) => {
     try {
+        const dbClient = req.dbClient;
         const { entity_type, entity_id, categorie } = req.query;
-        const ownerIds = await getManagedOwnerIds(req.userId, req.userRole);
-        // Build owner filter based on entity type
-        let ownerFilter = '';
-        if (ownerIds !== null && ownerIds.length > 0) {
-            const ownerIdsList = ownerIds.join(',');
-            ownerFilter = `
-                AND (
-                    (entity_type = 'building' AND entity_id IN (SELECT id FROM buildings WHERE owner_id IN (${ownerIdsList})))
-                    OR (entity_type = 'lot' AND entity_id IN (SELECT l.id FROM lots l JOIN buildings b ON l.building_id = b.id WHERE b.owner_id IN (${ownerIdsList})))
-                    OR (entity_type = 'tenant' AND entity_id IN (SELECT id FROM tenants WHERE owner_id IN (${ownerIdsList})))
-                    OR (entity_type = 'lease' AND entity_id IN (SELECT id FROM leases WHERE owner_id IN (${ownerIdsList})))
-                    OR (entity_type IS NULL OR entity_type NOT IN ('building', 'lot', 'tenant', 'lease'))
-                )
-            `;
-        }
         let query = `
             SELECT * FROM documents 
-            WHERE 1=1 ${ownerFilter}
+            WHERE 1=1
         `;
         const params = [];
         let paramIndex = 1;
@@ -129,7 +78,7 @@ router.get('/', permissionMiddleware_1.default.canRead('documents'), async (req,
             paramIndex++;
         }
         query += ` ORDER BY created_at DESC`;
-        const result = await database_1.default.query(query, params);
+        const result = await dbClient.query(query, params);
         res.json(result.rows);
     }
     catch (error) {
@@ -138,19 +87,34 @@ router.get('/', permissionMiddleware_1.default.canRead('documents'), async (req,
     }
 });
 // POST /api/documents/upload - Upload file
-router.post('/upload', permissionMiddleware_1.default.canWrite('documents'), upload.single('file'), async (req, res) => {
+router.post('/upload', permissionMiddleware_1.default.canWrite('documents'), tenantGuard_1.tenantGuard, uploadMiddleware_1.upload.single('file'), async (req, res) => {
     try {
+        const dbClient = req.dbClient;
+        const strictOwnerId = req.resolvedOwnerId;
         if (!req.file) {
             return res.status(400).json({ message: 'Aucun fichier fourni' });
         }
         const { entity_type, entity_id, categorie, description, nom } = req.body;
-        const relativePath = path_1.default.relative(path_1.default.join(__dirname, '../../'), req.file.path).replace(/\\/g, '/');
-        const url = `/${relativePath}`;
-        const result = await database_1.default.query(`
+        let url;
+        if (spacesConfigured) {
+            // Prod : upload vers Digital Ocean Spaces
+            url = await (0, spacesUploadService_1.uploadToSpaces)(req.file, 'documents');
+        }
+        else {
+            // Dev : fallback disque local
+            const date = new Date();
+            const folder = `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            const localDir = path_1.default.join(__dirname, '../../uploads', folder);
+            await fs_extra_1.default.ensureDir(localDir);
+            const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path_1.default.extname(req.file.originalname)}`;
+            await fs_extra_1.default.writeFile(path_1.default.join(localDir, uniqueName), req.file.buffer);
+            url = `/uploads/${folder}/${uniqueName}`;
+        }
+        const result = await dbClient.query(`
             INSERT INTO documents (
-                user_id, nom, type, url, taille, categorie, 
-                entity_type, entity_id, description
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                user_id, nom, type, url, taille, categorie,
+                entity_type, entity_id, description, owner_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
         `, [
             req.userId || 1,
@@ -161,29 +125,39 @@ router.post('/upload', permissionMiddleware_1.default.canWrite('documents'), upl
             categorie || 'autre',
             entity_type,
             entity_id ? parseInt(entity_id) : null,
-            description
+            description,
+            strictOwnerId
         ]);
         res.status(201).json(result.rows[0]);
     }
     catch (error) {
         console.error('Error uploading document:', error);
-        res.status(500).json({ message: 'Erreur lors de l\'upload' });
+        res.status(500).json({ message: 'Erreur serveur lors de l\'upload ou accès refusé' });
     }
 });
 // DELETE /api/documents/:id - Delete document
-router.delete('/:id', permissionMiddleware_1.default.canWrite('documents'), async (req, res) => {
+router.delete('/:id', permissionMiddleware_1.default.canWrite('documents'), tenantGuard_1.tenantGuard, async (req, res) => {
     try {
+        const dbClient = req.dbClient;
         const { id } = req.params;
-        const result = await database_1.default.query('SELECT url FROM documents WHERE id = $1', [id]);
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Document non trouvé' });
+        // La clause LIMIT 1 avec suppression gère le RLS et renvoie la ligne affectée
+        const result = await dbClient.query('DELETE FROM documents WHERE id = $1 RETURNING url', [id]);
+        if (result.rowCount === 0) {
+            // RLS a bloqué ou document inexistant
+            return res.status(404).json({ message: 'Document non trouvé ou accès refusé' });
         }
         const docUrl = result.rows[0].url;
-        await database_1.default.query('DELETE FROM documents WHERE id = $1', [id]);
         if (docUrl) {
-            const filePath = path_1.default.join(__dirname, '../../', docUrl);
-            if (fs_1.default.existsSync(filePath)) {
-                fs_1.default.unlinkSync(filePath);
+            if (spacesConfigured && docUrl.startsWith('http')) {
+                // Suppression depuis Spaces (best-effort, ne bloque pas la réponse)
+                (0, spacesUploadService_1.deleteFromSpaces)(docUrl).catch(err => console.warn('[UPLOAD] Impossible de supprimer le fichier Spaces:', err));
+            }
+            else {
+                // Fallback : suppression disque local (dev)
+                const filePath = path_1.default.join(__dirname, '../../', docUrl);
+                if (await fs_extra_1.default.pathExists(filePath)) {
+                    await fs_extra_1.default.remove(filePath);
+                }
             }
         }
         res.json({ message: 'Document supprimé' });
@@ -194,11 +168,13 @@ router.delete('/:id', permissionMiddleware_1.default.canWrite('documents'), asyn
     }
 });
 // POST /api/documents/generate - Generate PDF from Template
-router.post('/generate', permissionMiddleware_1.default.canWrite('documents'), async (req, res) => {
+router.post('/generate', permissionMiddleware_1.default.canWrite('documents'), tenantGuard_1.tenantGuard, async (req, res) => {
     try {
+        const dbClient = req.dbClient;
+        const strictOwnerId = req.resolvedOwnerId;
         const { templateId, entityId, type } = req.body; // type = 'lease', 'receipt'
-        // 1. Fetch Template
-        const templateRes = await database_1.default.query('SELECT * FROM document_templates WHERE id = $1', [templateId]);
+        // 1. Fetch Template (document_templates table should be accessible/read-only usually without tenant logic or configured via RLS natively if any)
+        const templateRes = await dbClient.query('SELECT * FROM document_templates WHERE id = $1', [templateId]);
         if (templateRes.rows.length === 0)
             return res.status(404).json({ message: 'Modèle introuvable' });
         const template = templateRes.rows[0];
@@ -219,9 +195,9 @@ router.post('/generate', permissionMiddleware_1.default.canWrite('documents'), a
                 LEFT JOIN owners o ON l.owner_id = o.id
                 WHERE l.id = $1
             `;
-            const dbRes = await database_1.default.query(query, [entityId]);
+            const dbRes = await dbClient.query(query, [entityId]);
             if (dbRes.rows.length === 0)
-                return res.status(404).json({ message: 'Bail introuvable' });
+                return res.status(404).json({ message: 'Bail introuvable ou accès refusé' });
             const row = dbRes.rows[0];
             // Map to variables (French labels matching templateRoutes)
             data = {
@@ -255,22 +231,26 @@ router.post('/generate', permissionMiddleware_1.default.canWrite('documents'), a
             const date = new Date();
             const year = date.getFullYear();
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const dir = path_1.default.join(uploadDir, `${year}/${month}`);
-            if (!fs_1.default.existsSync(dir))
-                fs_1.default.mkdirSync(dir, { recursive: true });
             const fileName = `${template.name.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
-            const filePath = path_1.default.join(dir, fileName);
-            fs_1.default.writeFileSync(filePath, resultData);
-            // DB Insert
-            const relativePath = `uploads/${year}/${month}/${fileName}`;
-            const url = `/${relativePath}`;
-            const dbResult = await database_1.default.query(`
+            let url;
+            if (spacesConfigured) {
+                const fakeFile = { buffer: resultData, originalname: fileName, mimetype: 'application/pdf' };
+                url = await (0, spacesUploadService_1.uploadToSpaces)(fakeFile, 'documents');
+            }
+            else {
+                const dir = path_1.default.join(__dirname, '../../uploads', `${year}/${month}`);
+                if (!fs_extra_1.default.existsSync(dir))
+                    fs_extra_1.default.mkdirSync(dir, { recursive: true });
+                fs_extra_1.default.writeFileSync(path_1.default.join(dir, fileName), resultData);
+                url = `/uploads/${year}/${month}/${fileName}`;
+            }
+            const dbResult = await dbClient.query(`
                 INSERT INTO documents (
                     user_id, nom, type, url, taille, categorie, 
-                    entity_type, entity_id, description
-                ) VALUES ($1, $2, 'application/pdf', $3, $4, 'generated', $5, $6, 'Généré automatiquement')
+                    entity_type, entity_id, description, owner_id
+                ) VALUES ($1, $2, 'application/pdf', $3, $4, 'generated', $5, $6, 'Généré automatiquement', $7)
                 RETURNING *
-            `, [req.userId || 1, fileName, url, resultData.length.toString(), type, entityId]);
+            `, [req.userId || 1, fileName, url, resultData.length.toString(), type, entityId, strictOwnerId]);
             res.status(201).json(dbResult.rows[0]);
         });
         // Write content
@@ -282,15 +262,19 @@ router.post('/generate', permissionMiddleware_1.default.canWrite('documents'), a
     }
     catch (error) {
         console.error('Generation Error:', error);
-        res.status(500).json({ message: 'Erreur génération PDF' });
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Erreur génération PDF' });
+        }
     }
 });
 // POST /api/documents/generate/lease/:id - Generate lease PDF
-router.post('/generate/lease/:id', permissionMiddleware_1.default.canWrite('documents'), async (req, res) => {
+router.post('/generate/lease/:id', permissionMiddleware_1.default.canWrite('documents'), tenantGuard_1.tenantGuard, async (req, res) => {
     try {
+        const dbClient = req.dbClient;
+        const strictOwnerId = req.resolvedOwnerId;
         const leaseId = req.params.id;
         // Check if document already exists for this lease
-        const existingDoc = await database_1.default.query("SELECT id FROM documents WHERE entity_type = 'lease' AND entity_id = $1 AND categorie = 'baux'", [leaseId]);
+        const existingDoc = await dbClient.query("SELECT id FROM documents WHERE entity_type = 'lease' AND entity_id = $1 AND categorie = 'baux'", [leaseId]);
         if (existingDoc.rows.length > 0) {
             return res.status(400).json({
                 message: 'Un contrat de bail existe déjà pour cette location dans la liste des documents.'
@@ -311,9 +295,9 @@ router.post('/generate/lease/:id', permissionMiddleware_1.default.canWrite('docu
             LEFT JOIN owners o ON l.owner_id = o.id
             WHERE l.id = $1
         `;
-        const result = await database_1.default.query(leaseQuery, [leaseId]);
+        const result = await dbClient.query(leaseQuery, [leaseId]);
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Bail non trouvé' });
+            return res.status(404).json({ message: 'Bail non trouvé ou accès refusé' });
         }
         const data = result.rows[0];
         const tenantName = `${data.t_prenom} ${data.t_nom}`;
@@ -330,32 +314,38 @@ router.post('/generate/lease/:id', permissionMiddleware_1.default.canWrite('docu
         });
         doc.on('end', async () => {
             const resultData = Buffer.concat(chunks);
-            // Save to disk
+            // Save to disk or Spaces
             const date = new Date();
             const year = date.getFullYear();
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const dir = path_1.default.join(uploadDir, `${year}/${month}`);
-            if (!fs_1.default.existsSync(dir))
-                fs_1.default.mkdirSync(dir, { recursive: true });
             const fileName = `Bail_${leaseId}_${Date.now()}.pdf`;
-            const filePath = path_1.default.join(dir, fileName);
-            fs_1.default.writeFileSync(filePath, resultData);
-            // Save to DB
-            const relativePath = `uploads/${year}/${month}/${fileName}`;
-            const url = `/${relativePath}`;
+            let url;
+            if (spacesConfigured) {
+                const fakeFile = { buffer: resultData, originalname: fileName, mimetype: 'application/pdf' };
+                url = await (0, spacesUploadService_1.uploadToSpaces)(fakeFile, 'documents');
+            }
+            else {
+                const dir = path_1.default.join(__dirname, '../../uploads', `${year}/${month}`);
+                if (!fs_extra_1.default.existsSync(dir))
+                    fs_extra_1.default.mkdirSync(dir, { recursive: true });
+                fs_extra_1.default.writeFileSync(path_1.default.join(dir, fileName), resultData);
+                url = `/uploads/${year}/${month}/${fileName}`;
+            }
             try {
-                const dbResult = await database_1.default.query(`
+                const dbResult = await dbClient.query(`
                     INSERT INTO documents (
                         user_id, nom, type, url, taille, categorie, 
-                        entity_type, entity_id, description
-                    ) VALUES ($1, $2, 'application/pdf', $3, $4, 'baux', 'lease', $5, 'Contrat de bail généré automatiquement')
+                        entity_type, entity_id, description, owner_id
+                    ) VALUES ($1, $2, 'application/pdf', $3, $4, 'baux', 'lease', $5, 'Contrat de bail généré automatiquement', $6)
                     RETURNING *
-                `, [req.userId || 1, fileName, url, resultData.length.toString(), leaseId]);
+                `, [req.userId || 1, fileName, url, resultData.length.toString(), leaseId, strictOwnerId]);
                 res.status(201).json(dbResult.rows[0]);
             }
             catch (err) {
                 console.error('Error saving document to DB:', err);
-                res.status(500).json({ message: 'Erreur lors de la sauvegarde du document' });
+                if (!res.headersSent) {
+                    res.status(500).json({ message: 'Erreur lors de la sauvegarde du document' });
+                }
             }
         });
         // Write PDF content - NEW DESIGN
@@ -363,22 +353,19 @@ router.post('/generate/lease/:id', permissionMiddleware_1.default.canWrite('docu
         const pageHeight = doc.page.height;
         // Helper function for section titles
         const drawSectionTitle = (title, yPos) => {
-            // Check if we need a new page for the section
             if (yPos > pageHeight - 150) {
                 doc.addPage();
-                yPos = 50; // New Y
+                yPos = 50;
             }
             doc.roundedRect(50, yPos, pageWidth - 100, 25, 4).fillAndStroke('#F3F4F6', '#E5E7EB');
-            // Re-set fill color for text
             doc.fillColor('#1F2937').fontSize(11).font('Helvetica-Bold').text(title, 60, yPos + 7);
-            doc.fillColor('#4B5563'); // Default text color for body
-            return yPos + 35; // Return new Y for body
+            doc.fillColor('#4B5563');
+            return yPos + 35;
         };
-        // Header Section (Dark Blue banner)
+        // Header Section
         doc.rect(0, 0, pageWidth, 100).fill('#1E3A8A');
-        // Logo on a white pill-shaped badge for clean contrast
         const logoPath = path_1.default.join(process.cwd(), 'assets', 'logo.png');
-        if (fs_1.default.existsSync(logoPath)) {
+        if (fs_extra_1.default.existsSync(logoPath)) {
             doc.roundedRect(25, 10, 200, 80, 10).fill('#FFFFFF');
             doc.image(logoPath, 35, 15, { height: 70 });
         }
@@ -386,11 +373,10 @@ router.post('/generate/lease/:id', permissionMiddleware_1.default.canWrite('docu
             doc.roundedRect(25, 10, 200, 80, 10).fill('#FFFFFF');
             doc.fillColor('#1E3A8A').fontSize(22).font('Helvetica-Bold').text('HOPE GESTION', 45, 35);
         }
-        // Right side: contract info on blue
+        // Right side
         doc.fillColor('#FFFFFF').fontSize(13).font('Helvetica-Bold').text('CONTRAT DE BAIL', pageWidth - 250, 20, { align: 'right', width: 200 });
         doc.fillColor('#CBD5E1').fontSize(10).font('Helvetica').text(`Réf: ${data.reference_bail || 'Auto-généré'}`, pageWidth - 250, 42, { align: 'right', width: 200 });
         doc.fillColor('#CBD5E1').fontSize(10).text(`Date d'édition: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth - 250, 58, { align: 'right', width: 200 });
-        // Subtle tagline
         doc.fillColor('#93C5FD').fontSize(8).font('Helvetica-Oblique').text('Votre partenaire immobilier de confiance', pageWidth - 250, 76, { align: 'right', width: 200 });
         doc.fillColor('#1E3A8A');
         doc.y = 120;
@@ -399,7 +385,6 @@ router.post('/generate/lease/:id', permissionMiddleware_1.default.canWrite('docu
         doc.moveDown(2);
         // Content
         doc.fillColor('#4B5563');
-        // 1. Parties au contrat
         let currentY = drawSectionTitle('1. LES PARTIES AU CONTRAT', doc.y);
         doc.y = currentY;
         doc.font('Helvetica-Bold').fontSize(11).text('LE BAILLEUR (Propriétaire / Représentant) :');
@@ -412,7 +397,6 @@ router.post('/generate/lease/:id', permissionMiddleware_1.default.canWrite('docu
         doc.text(`Téléphone : ${data.t_tel || 'Non communiqué'}`);
         doc.text(`Email : ${data.t_email || 'Non communiqué'}`);
         doc.moveDown(1);
-        // 2. Désignation
         currentY = drawSectionTitle('2. DÉSIGNATION DES LIEUX LOUÉS', doc.y);
         doc.y = currentY;
         doc.font('Helvetica-Bold').text(`Désignation du Lot : `, { continued: true });
@@ -422,7 +406,6 @@ router.post('/generate/lease/:id', permissionMiddleware_1.default.canWrite('docu
         doc.font('Helvetica-Bold').text(`Étage : `, { continued: true });
         doc.font('Helvetica').text(`${data.etage || 'Standard'}`);
         doc.moveDown(1);
-        // 3. Durée et Loyer
         currentY = drawSectionTitle('3. DURÉE ET LLOYER DU BAIL', doc.y);
         doc.y = currentY;
         doc.font('Helvetica').text(`Le présent contrat de bail est conclu pour une durée commençant le `, { continued: true, align: 'justify' });
@@ -439,14 +422,11 @@ router.post('/generate/lease/:id', permissionMiddleware_1.default.canWrite('docu
         doc.font('Helvetica-Bold').text('Montant du Loyer mensuel prévu : ', { continued: true });
         doc.font('Helvetica').text(`${Number(data.loyer_actuel).toLocaleString('fr-FR')} FCFA / mois`);
         doc.moveDown(1);
-        // 4. Conditions optionnelles
         currentY = drawSectionTitle('4. CLAUSES ET CONDITIONS PARTICULIÈRES', doc.y);
         doc.y = currentY;
         doc.font('Helvetica-Oblique').text(data.conditions_particulieres || 'Le bail se déroule de plein droit sous les autres conditions d\'usage et de loi relatives aux baux d\'habitation de la législation en vigueur dans le pays. Aucune condition spécifique supplémentaire n\'a d\'autre part été expressément demandée par les deux parties contractantes.');
         doc.moveDown(2);
-        // Signatures Page logic
         doc.addPage();
-        // Header mini for Page 2
         doc.rect(0, 0, pageWidth, 40).fill('#1E3A8A');
         doc.fillColor('#FFFFFF').fontSize(12).font('Helvetica-Bold').text('HOPE GESTION', 50, 15);
         doc.fontSize(9).font('Helvetica').text(`Vérification des signatures - Réf: ${data.reference_bail || 'N/A'}`, pageWidth - 300, 16, { align: 'right', width: 250 });
@@ -470,14 +450,13 @@ router.post('/generate/lease/:id', permissionMiddleware_1.default.canWrite('docu
             try {
                 const relativePath = data.signature_url.startsWith('/') ? data.signature_url.slice(1) : data.signature_url;
                 let signaturePath = path_1.default.join(process.cwd(), '../', relativePath);
-                if (!fs_1.default.existsSync(signaturePath))
+                if (!fs_extra_1.default.existsSync(signaturePath))
                     signaturePath = path_1.default.join(process.cwd(), relativePath);
-                if (fs_1.default.existsSync(signaturePath)) {
-                    // Preneur signature block
+                if (fs_extra_1.default.existsSync(signaturePath)) {
                     doc.image(signaturePath, 50 + (pageWidth - 100) / 2 + 50, sigY + 30, { width: 140 });
                     if (data.date_signature_electronique) {
                         doc.fontSize(8).font('Helvetica-Bold')
-                            .fillColor('#10B981') // Success Green
+                            .fillColor('#10B981')
                             .text(`DOCUMENT SIGNÉ ÉLECTRONIQUEMENT\nDate : ${new Date(data.date_signature_electronique).toLocaleString('fr-FR')}\nCertifié par la plateforme HopeGestion\n(Intégrité numérique garantie)`, 50 + (pageWidth - 100) / 2, sigY + 110, { width: (pageWidth - 100) / 2, align: 'right' });
                     }
                 }
@@ -486,18 +465,31 @@ router.post('/generate/lease/:id', permissionMiddleware_1.default.canWrite('docu
                 console.error('Error embedding signature in PDF:', err);
             }
         }
-        // Footer Numbering
         const pages = doc.bufferedPageRange();
         for (let i = 0; i < pages.count; i++) {
             doc.switchToPage(i);
             doc.fillColor('#9CA3AF').fontSize(8).text(`— Page ${i + 1} sur ${pages.count} — \nPropulsé avec confiance et transparence par le système ERP HopeGestion`, 50, pageHeight - 50, { align: 'center' });
         }
-        // Finalize doc
         doc.end();
     }
     catch (error) {
         console.error('Error generating lease:', error);
-        res.status(500).json({ message: 'Erreur lors de la génération du bail' });
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Erreur lors de la génération du bail' });
+        }
     }
 });
+/*
+ * ═══════════════════════════════════════════════════
+ * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — documentRoutes.ts
+ * ═══════════════════════════════════════════════════
+ * ✅ Import pool supprimé et remplacé par l'avertissement réglementaire.
+ * ✅ tenantGuard ajouté post-authMiddleware sur toutes les méthodes.
+ * ✅ Suppression du helper 'getManagedOwnerIds' très verbeux. RLS fait le travail invisiblement dans le GET.
+ * ✅ Remplacement de tous les pool.query par req.dbClient.query.
+ * ✅ 'DELETE /' complété par vérifier rowCount = 0 (RLS refus).
+ * ✅ Routes PDF modifiées pour incorporer la variable dbClient ET user_id, mais la création PDF ne subit pas d'interruption.
+ * ✅ 'strictOwnerId' systématiquement injecté dans les requêtes de créations de documents en BDD via 'INSERT INTO documents'.
+ * ═══════════════════════════════════════════════════
+ */
 exports.default = router;

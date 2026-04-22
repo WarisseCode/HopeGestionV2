@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Trash2, Info, X } from 'lucide-react';
 
@@ -25,6 +25,9 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     cancelLabel = 'Annuler',
     isLoading = false
 }) => {
+    const titleId = useId();
+    const descId = useId();
+
     // Configuration selon le type
     const config = {
         danger: {
@@ -68,6 +71,10 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
                     {/* Modal */}
                     <motion.div
+                        role="alertdialog"
+                        aria-modal="true"
+                        aria-labelledby={titleId}
+                        aria-describedby={descId}
                         initial={{ scale: 0.95, opacity: 0, y: 10 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 10 }}
@@ -95,11 +102,11 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                                 <Icon size={32} className={currentConfig.color} />
                             </motion.div>
 
-                            <h3 className="text-lg font-bold text-base-content mb-2">
+                            <h3 id={titleId} className="text-lg font-bold text-base-content mb-2">
                                 {title}
                             </h3>
-                            
-                            <p className="text-base-content/60 text-sm mb-6 leading-relaxed">
+
+                            <p id={descId} className="text-base-content/60 text-sm mb-6 leading-relaxed">
                                 {message}
                             </p>
 

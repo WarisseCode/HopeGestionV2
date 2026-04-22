@@ -77,8 +77,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onGoBackToHome, o
                 if (data.needsProfileCompletion) {
                     navigate('/complete-profile');
                 } else {
-                    // Force full page reload to ensure token is properly recognized
-                    window.location.href = '/dashboard';
+                    navigate('/dashboard');
                 }
             } else {
                 setError(data.message || 'Erreur Google OAuth');

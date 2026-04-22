@@ -51,16 +51,17 @@ const Card: React.FC<CardProps> = ({
   };
 
   return (
-    <div 
+    <div
       className={`
-        rounded-2xl overflow-hidden 
-        ${variantClasses[variant]} 
-        ${hoverClasses} 
+        rounded-2xl overflow-hidden
+        ${variantClasses[variant]}
+        ${hoverClasses}
         ${className}
       `}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
     >
       {(title || subtitle || headerActions) && (
         <div className={`${contentPaddingClasses[padding]} pt-6 pb-4 flex items-start justify-between`}>

@@ -24,7 +24,7 @@ const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-heading font-semibold rounded-xl border border-transparent transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md active:scale-95';
+  const baseClasses = 'inline-flex items-center justify-center font-heading font-semibold rounded-xl border border-transparent transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md active:scale-95';
   
   const variantClasses = {
     primary: 'bg-primary text-primary-content hover:bg-primary-focus focus:ring-primary shadow-md hover:shadow-lg',

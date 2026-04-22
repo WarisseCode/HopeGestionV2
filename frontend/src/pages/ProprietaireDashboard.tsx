@@ -18,43 +18,12 @@ import {
 import { useUser } from '../contexts/UserContext';
 import { getToken } from '../api/authApi';
 import { API_URL } from '../config';
-import { DashboardSkeleton, PeriodFilter, UpcomingEvents } from '../components/dashboard';
+import { DashboardSkeleton, KPICard, PeriodFilter, UpcomingEvents } from '../components/dashboard';
 import type { Period } from '../components/dashboard/PeriodFilter';
 import type { UpcomingEvent } from '../components/dashboard/UpcomingEvents';
 
 const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
-
-const KPI: React.FC<{
-    icon: React.ElementType;
-    label: string;
-    value: string | number;
-    sub?: string;
-    color: 'blue' | 'green' | 'purple' | 'orange';
-    trend?: 'up' | 'down' | 'neutral';
-}> = ({ icon: Icon, label, value, sub, color, trend }) => {
-    const colors = {
-        blue:   { bg: 'bg-blue-50',   icon: 'text-blue-500',   border: 'border-blue-100' },
-        green:  { bg: 'bg-green-50',  icon: 'text-green-500',  border: 'border-green-100' },
-        purple: { bg: 'bg-purple-50', icon: 'text-purple-500', border: 'border-purple-100' },
-        orange: { bg: 'bg-orange-50', icon: 'text-orange-500', border: 'border-orange-100' },
-    };
-    const c = colors[color];
-    return (
-        <div className={`bg-base-100 rounded-2xl p-5 border ${c.border} shadow-sm hover:shadow-md transition-shadow`}>
-            <div className="flex items-start justify-between mb-3">
-                <div className={`w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center`}>
-                    <Icon size={20} className={c.icon} />
-                </div>
-                {trend === 'up'   && <TrendingUp  size={15} className="text-green-400 mt-1" />}
-                {trend === 'down' && <TrendingDown size={15} className="text-red-400 mt-1" />}
-            </div>
-            <p className="text-2xl font-extrabold text-base-content tracking-tight">{value}</p>
-            <p className="text-sm font-medium text-base-content/60 mt-0.5">{label}</p>
-            {sub && <p className="text-xs text-base-content/40 mt-1">{sub}</p>}
-        </div>
-    );
-};
 
 const ProprietaireDashboard: React.FC = () => {
     const { user, stats, loading } = useUser();
@@ -169,10 +138,10 @@ const ProprietaireDashboard: React.FC = () => {
 
             {/* ── KPIs ── */}
             <motion.div variants={item} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <KPI icon={Building2}   label="Biens sous gestion" value={stats?.totalBiens || 0}                     color="blue"   trend="neutral" />
-                <KPI icon={Users}       label="Taux d'occupation"  value={`${stats?.tauxOccupation || 0}%`}           color="green"  trend="up"      sub="Tous les lots" />
-                <KPI icon={Wallet}      label="Revenus du mois"    value={formatCurrency(stats?.revenusMois || 0)}    color="purple" trend="up" />
-                <KPI icon={AlertCircle} label="Impayés en cours"   value={formatCurrency(stats?.impayesEnCours || 0)} color="orange" trend={stats?.impayesEnCours ? 'down' : 'neutral'} />
+                <KPICard icon={Building2}   label="Biens sous gestion" value={stats?.totalBiens || 0}                     color="blue" />
+                <KPICard icon={Users}       label="Taux d'occupation"  value={`${stats?.tauxOccupation || 0}%`}           color="green" />
+                <KPICard icon={Wallet}      label="Revenus du mois"    value={formatCurrency(stats?.revenusMois || 0)}    color="purple" />
+                <KPICard icon={AlertCircle} label="Impayés en cours"   value={formatCurrency(stats?.impayesEnCours || 0)} color="orange" />
             </motion.div>
 
             {/* ── Contenu principal ── */}

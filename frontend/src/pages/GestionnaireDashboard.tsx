@@ -72,6 +72,7 @@ const GestionnaireDashboard: React.FC = () => {
   const [isLoadingKpis, setIsLoadingKpis] = useState(true);
   const [isLoadingChart, setIsLoadingChart] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleKpiClick = (kpi: KPIData) => {
       if (kpi.id === 'lots_occupation') {
@@ -186,7 +187,7 @@ const GestionnaireDashboard: React.FC = () => {
     };
     
     fetchKPIs();
-  }, [stats, period]);
+  }, [stats, period, refreshKey]);
 
 
   // Fetch chart data and other dashboard widgets
@@ -269,7 +270,7 @@ const GestionnaireDashboard: React.FC = () => {
   // Financial Banner Values
   const totalRevenus = kpis.find(k => k.id === 'loyers_encaisses')?.value as number || 0;
   const totalImpayes = kpis.find(k => k.id === 'loyers_impayes')?.value as number || 0;
-  const revenuNet = Math.max(0, totalRevenus - 0); // Expenses not yet in KPI, assuming 0 for now or fetch separate
+  const revenuNet = totalRevenus;
 
   // Show full skeleton while user context loads
   if (userLoading) {
@@ -312,7 +313,7 @@ const GestionnaireDashboard: React.FC = () => {
 
       {/* Financial Summary Banner */}
       <motion.div variants={itemVariants}>
-        <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+        <div className="bg-gradient-to-r from-primary via-primary to-secondary rounded-2xl p-6 text-primary-content shadow-xl relative overflow-hidden">
           {/* Decorative background pattern */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-0 right-0 w-64 h-64 bg-base-100 rounded-full -translate-y-1/2 translate-x-1/3"></div>
@@ -323,7 +324,7 @@ const GestionnaireDashboard: React.FC = () => {
             <div>
               <p className="text-white/80 text-sm font-medium">Performance globale (Mois)</p>
               <p className="text-3xl font-bold">{new Intl.NumberFormat('fr-FR').format(revenuNet)} FCFA</p>
-              <p className="text-white/60 text-xs mt-1">Revenu net estimé</p>
+              <p className="text-white/60 text-xs mt-1">Revenus encaissés (mois)</p>
             </div>
             <div className="flex gap-4 flex-wrap">
               <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
@@ -443,7 +444,7 @@ const GestionnaireDashboard: React.FC = () => {
                               period === '1y' ? 'Cette année' : 'Tout'
                             })</p>
                         </div>
-                        <Button variant="ghost" size="sm" className="gap-1">
+                        <Button variant="ghost" size="sm" className="gap-1" onClick={() => setRefreshKey(k => k + 1)}>
                           <RefreshCw size={14} />
                           Actualiser
                         </Button>

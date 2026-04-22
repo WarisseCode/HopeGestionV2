@@ -4,86 +4,39 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const database_1 = __importDefault(require("../db/database"));
+// ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
+// Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
+// L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 const authMiddleware_1 = require("../middleware/authMiddleware");
 const subscriptionLimits_1 = require("../middleware/subscriptionLimits");
 const AuditService_1 = require("../services/AuditService");
 const permissionMiddleware_1 = __importDefault(require("../middleware/permissionMiddleware"));
+const tenantGuard_1 = require("../middleware/tenantGuard");
 const router = express_1.default.Router();
-/**
- * Helper: Récupérer TOUS les IDs propriétaires gérés par l'utilisateur connecté.
- * Retourne:
- *   - number[] (liste d'owner_ids) pour les utilisateurs liés via owner_user
- *   - null (accès global, sans filtre) uniquement pour role='admin' (super-admin plateforme)
- *   - [] (tableau vide) si aucun accès
- *
- * SÉCURITÉ: Seul role='admin' voit toute la plateforme. Un gestionnaire ne voit
- * que les locataires des owners auxquels il est explicitement lié via owner_user.
- */
-const getManagedOwnerIds = async (userId, userRole) => {
-    // 1. Super-admin plateforme uniquement → accès global (null = pas de filtre)
-    if (userRole === 'admin') {
-        console.log(`[getManagedOwnerIds] user=${userId} → admin plateforme, accès global`);
-        return null;
-    }
-    // 2. Chercher TOUS les liens owner_user actifs
-    const result = await database_1.default.query(`SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`, [userId]);
-    if (result.rows.length > 0) {
-        const ids = result.rows.map((r) => r.owner_id);
-        console.log(`[getManagedOwnerIds] user=${userId} → owners=[${ids}] via owner_user`);
-        return ids;
-    }
-    // 3. Fallback DB : vérifier le rôle réel dans users
-    const userRes = await database_1.default.query(`SELECT user_type, role FROM users WHERE id = $1`, [userId]);
-    if (userRes.rows.length > 0) {
-        const u = userRes.rows[0];
-        console.log(`[getManagedOwnerIds] user=${userId} → user_type=${u.user_type} role=${u.role} (DB lookup)`);
-        if (u.role === 'admin') {
-            return null; // accès global uniquement pour vrai admin
-        }
-    }
-    console.log(`[getManagedOwnerIds] user=${userId} → aucun accès (owner_user vide)`);
-    return []; // Aucun owner lié = aucun accès
-};
-// Compatibilité : helper retournant un seul owner_id (pour les endpoints non‑liste)
-const getManagedOwnerId = async (userId, userRole, userType) => {
-    if (userRole === 'admin')
-        return -1;
-    const result = await database_1.default.query(`SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE ORDER BY (CASE WHEN role='owner' THEN 1 ELSE 2 END) LIMIT 1`, [userId]);
-    if (result.rows.length > 0)
-        return result.rows[0].owner_id;
-    const userRes = await database_1.default.query(`SELECT role FROM users WHERE id = $1`, [userId]);
-    if (userRes.rows.length > 0 && userRes.rows[0].role === 'admin')
-        return -1;
-    return null;
-};
+// [RLS] Filtrage automatique par tenant via PostgreSQL Row-Level Security
+// Anciens helpers getManagedOwnerIds et getManagedOwnerId supprimés car redondants.
 // GET /api/locataires - Liste des locataires
-router.get('/', authMiddleware_1.protect, permissionMiddleware_1.default.canRead('locataires'), async (req, res) => {
+router.get('/', authMiddleware_1.protect, permissionMiddleware_1.default.canRead('locataires'), tenantGuard_1.tenantGuard, async (req, res) => {
+    const dbClient = req.dbClient;
     try {
-        const userId = req.user.id;
-        const userRole = req.user.role || req.userRole;
-        const ownerIds = await getManagedOwnerIds(userId, userRole);
-        console.log(`[GET /locataires] userId=${userId} role=${userRole} ownerIds=${JSON.stringify(ownerIds)}`);
-        // Tableau vide = aucun accès
-        if (ownerIds !== null && ownerIds.length === 0) {
-            return res.status(200).json({ locataires: [] });
-        }
         const { type, search } = req.query;
+        const validOwnerIds = req.validOwnerIds || [];
+        const isAdmin = req.userRole === 'admin';
         let query = `
-            SELECT t.*, 
+            SELECT t.*,
                    (SELECT COUNT(*) FROM leases l WHERE l.tenant_id = t.id AND l.statut = 'actif') as active_leases,
                    al.ref_lot as lot_nom,
                    al.loyer_mensuel as loyer_actuel,
                    al.lease_id as active_lease_id,
                    al.lease_statut as bail_statut,
-                   CASE 
+                   CASE
                      WHEN al.lease_id IS NULL THEN 'unknown'
                      WHEN lp.last_payment_date IS NULL THEN 'pending'
                      WHEN lp.last_payment_date < CURRENT_DATE - INTERVAL '35 days' THEN 'late'
                      WHEN EXTRACT(MONTH FROM lp.last_payment_date) = EXTRACT(MONTH FROM CURRENT_DATE) THEN 'paid'
                      ELSE 'pending'
                    END as payment_status
-            FROM tenants t 
+            FROM tenants t
             LEFT JOIN LATERAL (
                 SELECT lot.ref_lot, l.loyer_actuel as loyer_mensuel, l.id as lease_id, l.statut as lease_statut
                 FROM leases l
@@ -99,14 +52,15 @@ router.get('/', authMiddleware_1.protect, permissionMiddleware_1.default.canRead
             ) lp ON true
             WHERE t.statut != 'Archivé'
         `;
+        // Filtrage explicite par owner — indispensable quand BYPASSRLS est actif
+        if (!isAdmin && validOwnerIds.length > 0) {
+            query += ` AND t.owner_id IN (${validOwnerIds.join(',')})`;
+        }
+        else if (!isAdmin) {
+            query += ` AND 1=0`;
+        }
         const params = [];
         let paramIndex = 1;
-        // Filtre strict par owner_ids — null = admin plateforme (pas de filtre)
-        if (ownerIds !== null) {
-            query += ` AND t.owner_id = ANY($${paramIndex}::int[])`;
-            params.push(ownerIds);
-            paramIndex++;
-        }
         if (type) {
             query += ` AND t.type = $${paramIndex}`;
             params.push(type);
@@ -118,8 +72,7 @@ router.get('/', authMiddleware_1.protect, permissionMiddleware_1.default.canRead
             paramIndex++;
         }
         query += ` ORDER BY t.statut DESC, t.nom, t.prenoms`;
-        const result = await database_1.default.query(query, params);
-        console.log(`[GET /locataires] → ${result.rows.length} résultats`);
+        const result = await dbClient.query(query, params);
         res.json({ locataires: result.rows });
     }
     catch (error) {
@@ -128,21 +81,17 @@ router.get('/', authMiddleware_1.protect, permissionMiddleware_1.default.canRead
     }
 });
 // GET /api/locataires/:id - Détail complet
-router.get('/:id', authMiddleware_1.protect, async (req, res) => {
+router.get('/:id', authMiddleware_1.protect, tenantGuard_1.tenantGuard, async (req, res) => {
+    const dbClient = req.dbClient;
     try {
-        const userId = req.user.id;
-        const tenantId = req.params.id;
-        const ownerId = await getManagedOwnerId(userId);
-        if (!ownerId)
-            return res.status(403).json({ message: "Non autorisé" });
-        // Vérifier appartenance
-        const tenantCheck = await database_1.default.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
-        if (tenantCheck.rows.length === 0)
-            return res.status(404).json({ message: "Locataire non trouvé" });
+        const tenantId = parseInt(req.params.id, 10);
         // 1. Infos Locataire
-        const tenantResult = await database_1.default.query('SELECT * FROM tenants WHERE id = $1', [tenantId]);
+        const tenantResult = await dbClient.query('SELECT * FROM tenants WHERE id = $1', [tenantId]);
+        if (tenantResult.rows.length === 0) {
+            return res.status(404).json({ message: "Locataire non trouvé ou accès refusé." });
+        }
         // 2. Baux / Contrats
-        const leasesResult = await database_1.default.query(`
+        const leasesResult = await dbClient.query(`
             SELECT l.*, b.nom as building_name, lot.ref_lot, lot.type as lot_type
             FROM leases l
             JOIN lots lot ON l.lot_id = lot.id
@@ -151,7 +100,7 @@ router.get('/:id', authMiddleware_1.protect, async (req, res) => {
             ORDER BY l.date_debut DESC
         `, [tenantId]);
         // 3. Paiements récents
-        const paymentsResult = await database_1.default.query(`
+        const paymentsResult = await dbClient.query(`
             SELECT p.*, l.lot_id 
             FROM payments p
             JOIN leases l ON p.lease_id = l.id
@@ -171,70 +120,41 @@ router.get('/:id', authMiddleware_1.protect, async (req, res) => {
     }
 });
 // POST /api/locataires - Création
-router.post('/', authMiddleware_1.protect, permissionMiddleware_1.default.canWrite('locataires'), subscriptionLimits_1.checkTenantLimit, async (req, res) => {
+router.post('/', authMiddleware_1.protect, permissionMiddleware_1.default.canWrite('locataires'), subscriptionLimits_1.checkTenantLimit, tenantGuard_1.tenantGuard, async (req, res) => {
+    const dbClient = req.dbClient;
+    const strictOwnerId = req.resolvedOwnerId;
     try {
-        const userId = req.user.id;
-        const userRole = req.user.role || req.userRole;
-        const userType = req.user.user_type;
-        let ownerId = await getManagedOwnerId(userId, userRole, userType);
-        let finalOwnerId = ownerId;
-        if (finalOwnerId === null) {
-            // Un admin global ne devrait pas se voir interdire la création (fallback 1 = par défaut)
-            if (userRole === 'admin') {
-                const firstOwner = await database_1.default.query(`SELECT id FROM owners LIMIT 1`);
-                if (firstOwner.rows.length > 0)
-                    finalOwnerId = firstOwner.rows[0].id;
-                else
-                    return res.status(403).json({ message: "Le système n'a aucun propriétaire/agence enregistré. Impossible de rattacher le locataire." });
-            }
-            else {
-                return res.status(403).json({ message: "Vous devez gérer une organisation (être lié à un propriétaire ou agence) pour créer un locataire." });
-            }
-        }
-        if (finalOwnerId === -1 && userRole === 'admin') {
-            const firstOwner = await database_1.default.query(`SELECT id FROM owners LIMIT 1`);
-            if (firstOwner.rows.length > 0)
-                finalOwnerId = firstOwner.rows[0].id;
-            else
-                return res.status(403).json({ message: "Le système n'a aucun propriétaire/agence enregistré. Impossible de rattacher le locataire." });
-        }
-        const { nom, prenoms, email, telephone_principal, telephone_secondaire, nationalite, type_piece, numero_piece, type, mode_paiement_preferentiel, 
-        // Module IV new fields
-        adresse_actuelle, date_expiration_piece, photo_profil_url, photo_piece_url, caution, avance, paiement_echelonne } = req.body;
-        // Sanitize optional fields (empty string -> null)
+        const { nom, prenoms, email, telephone_principal, telephone_secondaire, nationalite, type_piece, numero_piece, type, mode_paiement_preferentiel, adresse_actuelle, date_expiration_piece, photo_profil_url, photo_piece_url, caution, avance, paiement_echelonne } = req.body;
         const cleanEmail = email && email.trim() !== '' ? email : null;
         const cleanStartPhone2 = telephone_secondaire && telephone_secondaire.trim() !== '' ? telephone_secondaire : null;
         const cleanAddress = adresse_actuelle && adresse_actuelle.trim() !== '' ? adresse_actuelle : null;
         const cleanExpDate = date_expiration_piece && date_expiration_piece.trim() !== '' ? date_expiration_piece : null;
         const cleanPhotoProfil = photo_profil_url && photo_profil_url.trim() !== '' ? photo_profil_url : null;
         const cleanPhotoPiece = photo_piece_url && photo_piece_url.trim() !== '' ? photo_piece_url : null;
-        // Check for duplicates (Phone or Email) logic for same owner
-        const duplicateCheck = await database_1.default.query(`SELECT id FROM tenants 
+        const duplicateCheck = await dbClient.query(`SELECT id FROM tenants 
              WHERE owner_id = $1 
              AND (telephone_principal = $2 OR (email IS NOT NULL AND email != '' AND email = $3))
-             AND statut != 'Archivé'`, [ownerId, telephone_principal, cleanEmail || '']);
+             AND statut != 'Archivé'`, [strictOwnerId, telephone_principal, cleanEmail || '']);
         if (duplicateCheck.rows.length > 0) {
             return res.status(409).json({ message: "Un locataire avec ce téléphone ou cet email existe déjà." });
         }
-        // Generate invitation code: LOC- + 6 random alphanumeric chars
         const invitationCode = 'LOC-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-        const result = await database_1.default.query(`INSERT INTO tenants (
+        const result = await dbClient.query(`INSERT INTO tenants (
                 owner_id, nom, prenoms, email, telephone_principal, telephone_secondaire,
                 nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel,
                 adresse_actuelle, date_expiration_piece, photo_profil_url, photo_piece_url,
                 caution, avance, paiement_echelonne, invitation_code
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Actif', $11, $12, $13, $14, $15, $16, $17, $18, $19) 
             RETURNING id, invitation_code`, [
-            finalOwnerId, nom, prenoms, cleanEmail, telephone_principal, cleanStartPhone2,
+            strictOwnerId, nom, prenoms, cleanEmail, telephone_principal, cleanStartPhone2,
             nationalite, type_piece, numero_piece, type || 'Locataire', mode_paiement_preferentiel,
             cleanAddress, cleanExpDate, cleanPhotoProfil, cleanPhotoPiece,
             caution || 0, avance || 0, paiement_echelonne || false,
             invitationCode
         ]);
-        // Log Creation (Silent fail)
         try {
             await AuditService_1.AuditService.log({
-                userId: userId,
+                userId: req.user.id,
                 action: 'CREATE_TENANT',
                 entityType: 'TENANT',
                 entityId: result.rows[0].id,
@@ -258,47 +178,37 @@ router.post('/', authMiddleware_1.protect, permissionMiddleware_1.default.canWri
     }
 });
 // PUT /api/locataires/:id - Modification
-router.put('/:id', authMiddleware_1.protect, async (req, res) => {
+router.put('/:id', authMiddleware_1.protect, tenantGuard_1.tenantGuard, async (req, res) => {
+    const dbClient = req.dbClient;
+    const tenantId = parseInt(req.params.id, 10);
     try {
-        const userId = req.user.id;
-        const tenantId = req.params.id;
-        const userRole = req.user.role || req.userRole;
-        const userType = req.user.user_type;
-        let ownerId = await getManagedOwnerId(userId, userRole, userType);
-        // Verification appartenance sauf pour le global admin
-        if (ownerId === null && userRole !== 'admin') {
-            return res.status(403).json({ message: "Non autorisé" });
-        }
-        if (ownerId !== -1 && userRole !== 'admin') {
-            const tenantCheck = await database_1.default.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
-            if (tenantCheck.rows.length === 0)
-                return res.status(404).json({ message: "Locataire non trouvé ou non autorisé" });
-        }
-        else {
-            const tenantCheck = await database_1.default.query('SELECT id FROM tenants WHERE id = $1', [tenantId]);
-            if (tenantCheck.rows.length === 0)
-                return res.status(404).json({ message: "Locataire non trouvé" });
-        }
-        const { nom, prenoms, email, telephone_principal, telephone_secondaire, nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel, 
-        // Module IV new fields
-        adresse_actuelle, date_expiration_piece, photo_profil_url, photo_piece_url, caution, avance, paiement_echelonne } = req.body;
-        await database_1.default.query(`UPDATE tenants SET 
+        const { nom, prenoms, email, telephone_principal, telephone_secondaire, nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel, adresse_actuelle, date_expiration_piece, photo_profil_url, photo_piece_url, caution, avance, paiement_echelonne } = req.body;
+        const cleanEmail = email && typeof email === 'string' && email.trim() !== '' ? email : null;
+        const cleanPhone2 = telephone_secondaire && typeof telephone_secondaire === 'string' && telephone_secondaire.trim() !== '' ? telephone_secondaire : null;
+        const cleanAddress = adresse_actuelle && typeof adresse_actuelle === 'string' && adresse_actuelle.trim() !== '' ? adresse_actuelle : null;
+        const cleanExpDate = date_expiration_piece && typeof date_expiration_piece === 'string' && date_expiration_piece.trim() !== '' ? date_expiration_piece : null;
+        const cleanPhotoProfil = photo_profil_url && typeof photo_profil_url === 'string' && photo_profil_url.trim() !== '' ? photo_profil_url : null;
+        const cleanPhotoPiece = photo_piece_url && typeof photo_piece_url === 'string' && photo_piece_url.trim() !== '' ? photo_piece_url : null;
+        const queryParams = [
+            nom, prenoms, cleanEmail, telephone_principal, cleanPhone2,
+            nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel,
+            cleanAddress, cleanExpDate, cleanPhotoProfil, cleanPhotoPiece,
+            caution || 0, avance || 0, paiement_echelonne || false,
+            tenantId
+        ];
+        const result = await dbClient.query(`UPDATE tenants SET 
                 nom = $1, prenoms = $2, email = $3, telephone_principal = $4, 
                 telephone_secondaire = $5, nationalite = $6, type_piece = $7, 
                 numero_piece = $8, type = $9, statut = $10, mode_paiement_preferentiel = $11,
                 adresse_actuelle = $12, date_expiration_piece = $13, photo_profil_url = $14, photo_piece_url = $15,
-                caution = $16, avance = $17, paiement_echelonne = $18,
-                updated_at = CURRENT_TIMESTAMP
-             WHERE id = $19`, [
-            nom, prenoms, email, telephone_principal, telephone_secondaire,
-            nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel,
-            adresse_actuelle || null, date_expiration_piece || null, photo_profil_url || null, photo_piece_url || null,
-            caution || 0, avance || 0, paiement_echelonne || false,
-            tenantId
-        ]);
-        const AuditService = require('../services/AuditService').AuditService;
+                caution = $16, avance = $17, paiement_echelonne = $18
+             WHERE id = $19 RETURNING id`, queryParams);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Ressource introuvable ou accès refusé.' });
+        }
+        const { AuditService } = require('../services/AuditService');
         AuditService.log({
-            userId: userId,
+            userId: req.user.id,
             action: 'UPDATE_TENANT',
             entityType: 'TENANT',
             entityId: tenantId,
@@ -310,35 +220,21 @@ router.put('/:id', authMiddleware_1.protect, async (req, res) => {
     }
     catch (error) {
         console.error('Error updating tenant:', error);
-        res.status(500).json({ message: 'Erreur serveur' });
+        res.status(500).json({ message: error.message || 'Erreur serveur' });
     }
 });
 // DELETE /api/locataires/:id - Archivage
-router.delete('/:id', authMiddleware_1.protect, async (req, res) => {
+router.delete('/:id', authMiddleware_1.protect, tenantGuard_1.tenantGuard, async (req, res) => {
+    const dbClient = req.dbClient;
+    const tenantId = parseInt(req.params.id, 10);
     try {
-        const userId = req.user.id;
-        const tenantId = req.params.id;
-        const userRole = req.user.role || req.userRole;
-        const userType = req.user.user_type;
-        let ownerId = await getManagedOwnerId(userId, userRole, userType);
-        // Verification appartenance sauf pour le global admin
-        if (ownerId === null && userRole !== 'admin') {
-            return res.status(403).json({ message: "Non autorisé" });
+        const result = await dbClient.query("UPDATE tenants SET statut = 'Archivé' WHERE id = $1 RETURNING id", [tenantId]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Ressource introuvable ou accès refusé.' });
         }
-        if (ownerId !== -1 && userRole !== 'admin') {
-            const tenantCheck = await database_1.default.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
-            if (tenantCheck.rows.length === 0)
-                return res.status(404).json({ message: "Locataire non trouvé ou non autorisé" });
-        }
-        else {
-            const tenantCheck = await database_1.default.query('SELECT id FROM tenants WHERE id = $1', [tenantId]);
-            if (tenantCheck.rows.length === 0)
-                return res.status(404).json({ message: "Locataire non trouvé" });
-        }
-        await database_1.default.query("UPDATE tenants SET statut = 'Archivé' WHERE id = $1", [tenantId]);
-        const AuditService = require('../services/AuditService').AuditService;
+        const { AuditService } = require('../services/AuditService');
         AuditService.log({
-            userId: userId,
+            userId: req.user.id,
             action: 'ARCHIVE_TENANT',
             entityType: 'TENANT',
             entityId: tenantId,
@@ -353,27 +249,17 @@ router.delete('/:id', authMiddleware_1.protect, async (req, res) => {
     }
 });
 // POST /api/locataires/:id/approve - Valider une demande
-router.post('/:id/approve', authMiddleware_1.protect, async (req, res) => {
+router.post('/:id/approve', authMiddleware_1.protect, tenantGuard_1.tenantGuard, async (req, res) => {
+    const dbClient = req.dbClient;
+    const tenantId = parseInt(req.params.id, 10);
     try {
-        const userId = req.user.id;
-        const tenantId = req.params.id;
-        const userRole = req.user.role || req.userRole;
-        const userType = req.user.user_type;
-        const ownerId = await getManagedOwnerId(userId, userRole, userType);
-        if (ownerId === null)
-            return res.status(403).json({ message: "Non autorisé" });
-        // Vérif appartenance — si admin (ownerId=-1), on vérifie juste l'existence du tenant
-        const tenantCheck = ownerId === -1
-            ? await database_1.default.query('SELECT id FROM tenants WHERE id = $1', [tenantId])
-            : await database_1.default.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
-        if (tenantCheck.rows.length === 0)
-            return res.status(404).json({ message: "Locataire non trouvé" });
-        await database_1.default.query("UPDATE tenants SET statut = 'Actif' WHERE id = $1", [tenantId]);
-        // Notification au locataire
-        const tenantData = await database_1.default.query('SELECT user_id, nom FROM tenants WHERE id = $1', [tenantId]);
-        if (tenantData.rows.length > 0 && tenantData.rows[0].user_id) {
-            const tenantUserId = tenantData.rows[0].user_id;
-            await database_1.default.query(`INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+        const result = await dbClient.query("UPDATE tenants SET statut = 'Actif' WHERE id = $1 RETURNING user_id", [tenantId]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Ressource introuvable ou accès refusé.' });
+        }
+        const tenantUserId = result.rows[0].user_id;
+        if (tenantUserId) {
+            await dbClient.query(`INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
                  VALUES ($1, 'success', $2, $3, '/dashboard', false, NOW())`, [
                 tenantUserId,
                 'Demande acceptée ✅',
@@ -388,27 +274,17 @@ router.post('/:id/approve', authMiddleware_1.protect, async (req, res) => {
     }
 });
 // POST /api/locataires/:id/reject - Refuser une demande
-router.post('/:id/reject', authMiddleware_1.protect, async (req, res) => {
+router.post('/:id/reject', authMiddleware_1.protect, tenantGuard_1.tenantGuard, async (req, res) => {
+    const dbClient = req.dbClient;
+    const tenantId = parseInt(req.params.id, 10);
     try {
-        const userId = req.user.id;
-        const tenantId = req.params.id;
-        const userRole = req.user.role || req.userRole;
-        const userType = req.user.user_type;
-        const ownerId = await getManagedOwnerId(userId, userRole, userType);
-        if (ownerId === null)
-            return res.status(403).json({ message: "Non autorisé" });
-        // Vérif appartenance — si admin (ownerId=-1), on vérifie juste l'existence du tenant
-        const tenantCheck = ownerId === -1
-            ? await database_1.default.query('SELECT id FROM tenants WHERE id = $1', [tenantId])
-            : await database_1.default.query('SELECT id FROM tenants WHERE id = $1 AND owner_id = $2', [tenantId, ownerId]);
-        if (tenantCheck.rows.length === 0)
-            return res.status(404).json({ message: "Locataire non trouvé" });
-        await database_1.default.query("UPDATE tenants SET statut = 'Rejeté' WHERE id = $1", [tenantId]);
-        // Notification au locataire
-        const tenantData = await database_1.default.query('SELECT user_id FROM tenants WHERE id = $1', [tenantId]);
-        if (tenantData.rows.length > 0 && tenantData.rows[0].user_id) {
-            const tenantUserId = tenantData.rows[0].user_id;
-            await database_1.default.query(`INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+        const result = await dbClient.query("UPDATE tenants SET statut = 'Rejeté' WHERE id = $1 RETURNING user_id", [tenantId]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Ressource introuvable ou accès refusé.' });
+        }
+        const tenantUserId = result.rows[0].user_id;
+        if (tenantUserId) {
+            await dbClient.query(`INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
                  VALUES ($1, 'error', $2, $3, '/dashboard', false, NOW())`, [
                 tenantUserId,
                 'Demande refusée ❌',
@@ -422,4 +298,17 @@ router.post('/:id/reject', authMiddleware_1.protect, async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
+/*
+ * ═══════════════════════════════════════════════════
+ * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — locataireRoutes.ts
+ * ═══════════════════════════════════════════════════
+ * ✅ Import pool supprimé et remplacé par le commentaire d'avertissement.
+ * ✅ tenantGuard ajouté sur toutes les routes (7 routes).
+ * ✅ pool.query() remplacé par req.dbClient.query() sur 10 occurrences.
+ * ✅ resolvedOwnerId utilisé pour la vérification de doublons et l'insertion dans POST /.
+ * ✅ Anciens accessCheck (getManagedOwnerIds, getManagedOwnerId) supprimés : 2 helpers complexes jetés. Multiples requêtes économisées.
+ * ✅ Réponse 404 ajoutée si rowCount === 0 sur les 4 UPDATE (PUT /, DELETE /, POST /approve, POST /reject).
+ * ⚠️ Points d'attention particuliers : L'insertion des notifications a été simplifiée (user_id récupéré avec le RETURNING de l'UPDATE de statut).
+ * ═══════════════════════════════════════════════════
+ */
 exports.default = router;

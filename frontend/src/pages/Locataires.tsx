@@ -53,21 +53,18 @@ const ITEMS_PER_PAGE = 12;
 // Placeholder avatars
 const getAvatarColor = (name: string): string => {
   const colors = [
-    'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 
+    'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500',
     'bg-pink-500', 'bg-indigo-500', 'bg-teal-500', 'bg-red-500'
   ];
-  const index = name.charCodeAt(0) % colors.length;
-  return colors[index];
+  const hash = name.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  return colors[hash % colors.length];
 };
 
 // Payment status helper
 type PaymentStatus = 'paid' | 'pending' | 'late' | 'unknown';
 
 const getPaymentStatus = (locataire: Locataire): PaymentStatus => {
-  // In real app, this would come from API
-  // For demo, simulate based on ID
   if (!locataire.loyer_actuel) return 'unknown';
-  // Use status computed by backend if available, otherwise fallback (should not happen with new backend)
   return (locataire as any).payment_status || 'unknown';
 };
 
@@ -389,7 +386,7 @@ const Locataires: React.FC = () => {
                 <Button
                   variant="primary"
                   disabled={isLimitReached}
-                  className={`rounded-full px-6 shadow-lg shadow-primary/20 transition-all font-semibold whitespace-nowrap \${isLimitReached ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-primary/40'}`}
+                  className={`rounded-full px-6 shadow-lg shadow-primary/20 transition-all font-semibold whitespace-nowrap ${isLimitReached ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-primary/40'}`}
                   onClick={() => {
                     if (isLimitReached) {
                       toast('Limite de locataires atteinte. Veuillez upgrader votre abonnement.', { icon: '👑' });

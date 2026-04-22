@@ -4,7 +4,10 @@
       "Bash(curl:*)",
       "Bash(npx tsc:*)",
       "Bash(xargs grep:*)",
-      "Bash(find \"d:/Hope GImmo/HopeGestionV2/backend/db\" -name \"*.sql\" -exec grep -l \"POLICY\\\\|rls\\\\|ROW LEVEL\" {} \\\\;)"
+      "Bash(find \"d:/Hope GImmo/HopeGestionV2/backend/db\" -name \"*.sql\" -exec grep -l \"POLICY\\\\|rls\\\\|ROW LEVEL\" {} \\\\;)",
+      "Bash(PGPASSWORD=HopeGestion2026Secure psql -U hopegestion -h localhost -d hopegestion -c \"SELECT id, email, nom, user_type FROM users WHERE email = 'codeman2codeman@gmail.com';\")",
+      "Bash(PGPASSWORD=postgres123 psql -U postgres -h localhost -c \"\\\\l\")",
+      "Bash(PGPASSWORD=postgres123 psql -U postgres -h localhost -d hope_gestion_db -c \"SELECT id, email, nom, user_type FROM users WHERE email ILIKE '%codeman%' OR user_type = 'gestionnaire' LIMIT 10;\")"
     ]
   }
 }

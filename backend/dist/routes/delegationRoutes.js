@@ -53,7 +53,7 @@ const getManagedOwnerId = async (userId) => {
 // GET /api/delegations - Lister mon équipe
 router.get('/', authMiddleware_1.protect, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.userId;
         const ownerId = await getManagedOwnerId(userId);
         if (!ownerId) {
             return res.status(403).json({ message: "Vous n'êtes pas propriétaire d'une organisation." });
@@ -74,7 +74,7 @@ router.get('/', authMiddleware_1.protect, async (req, res) => {
 // POST /api/delegations - Ajouter un membre par email
 router.post('/', authMiddleware_1.protect, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.userId;
         const { email, role, permissions } = req.body;
         // 1. Vérifier droits
         const ownerId = await getManagedOwnerId(userId);
@@ -134,7 +134,7 @@ router.post('/', authMiddleware_1.protect, async (req, res) => {
 // DELETE /api/delegations/:userId - Retirer un membre
 router.delete('/:targetId', authMiddleware_1.protect, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.userId;
         const targetId = parseInt(req.params.targetId);
         const ownerId = await getManagedOwnerId(userId);
         if (!ownerId)

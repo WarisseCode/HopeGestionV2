@@ -35,7 +35,7 @@ router.get('/status', authMiddleware_1.protect, async (req, res) => {
         if (subResult.rows.length === 0) {
             // Default to Free plan
             const freePlan = await index_1.pool.query(`SELECT * FROM plans WHERE name = 'free' LIMIT 1`);
-            let countPropertiesRes = await index_1.pool.query(`SELECT COUNT(l.id) as total_lots FROM lots l JOIN buildings b ON l.building_id = b.id JOIN owner_user ou ON b.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
+            let countPropertiesRes = await index_1.pool.query(`SELECT COUNT(l.id) as total_lots FROM lots l JOIN owner_user ou ON l.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
             let countTenantsRes = await index_1.pool.query(`SELECT COUNT(t.id) as total_tenants FROM tenants t JOIN owner_user ou ON t.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
             return res.json({
                 plan: freePlan.rows[0] || { name: 'free', display_name: 'Gratuit', max_properties: 3, max_tenants: 5 },
@@ -52,7 +52,7 @@ router.get('/status', authMiddleware_1.protect, async (req, res) => {
         const endDate = subscription.end_date ? new Date(subscription.end_date) : null;
         const daysRemaining = endDate ? Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
         // Récupération de l'usage actuel
-        let countPropertiesRes = await index_1.pool.query(`SELECT COUNT(l.id) as total_lots FROM lots l JOIN buildings b ON l.building_id = b.id JOIN owner_user ou ON b.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
+        let countPropertiesRes = await index_1.pool.query(`SELECT COUNT(l.id) as total_lots FROM lots l JOIN owner_user ou ON l.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
         let countTenantsRes = await index_1.pool.query(`SELECT COUNT(t.id) as total_tenants FROM tenants t JOIN owner_user ou ON t.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
         let countAgenciesRes = await index_1.pool.query(`SELECT COUNT(id) as total_agencies FROM owner_user WHERE user_id = $1 AND role = 'owner' AND is_active = TRUE`, [userId]);
         res.json({
@@ -210,6 +210,13 @@ router.get('/check-payment/:transactionId', authMiddleware_1.protect, async (req
         fedapayService_1.fedapayLogger.info(context, 'Manual payment validation requested', { transactionId, userId });
         // 1. Check FedaPay Status
         const fedaResult = await fedapayService_1.fedapayService.getTransactionStatus(transactionId);
+        if (fedaResult.status === 'error') {
+            fedapayService_1.fedapayLogger.error(context, 'FedaPay API error during validation', { transactionId, error: fedaResult.error });
+            return res.status(400).json({
+                status: 'error',
+                message: fedaResult.error || 'Erreur lors de la communication avec FedaPay'
+            });
+        }
         if (fedaResult.status !== 'approved') {
             return res.json({
                 status: fedaResult.status,

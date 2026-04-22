@@ -132,7 +132,14 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle
 
             {/* Profile Dropdown */}
             <div className="dropdown dropdown-end ml-1">
-                <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar online placeholder ring-2 ring-base-200 ring-offset-1 ring-offset-base-100 hover:ring-primary transition-all">
+                <div
+                    tabIndex={0}
+                    role="button"
+                    aria-label="Profil utilisateur"
+                    aria-haspopup="true"
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}
+                    className="btn btn-ghost btn-circle avatar online placeholder ring-2 ring-base-200 ring-offset-1 ring-offset-base-100 hover:ring-primary transition-all"
+                >
                     <div className="w-9 rounded-full bg-neutral text-neutral-content flex items-center justify-center">
                         {/* Initials */}
                         <span className="text-xs font-bold">

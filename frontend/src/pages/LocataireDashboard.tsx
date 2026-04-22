@@ -95,8 +95,8 @@ const LocataireDashboard: React.FC = () => {
   const statutContrat = (stats as any)?.statutContrat || 'inactif';
   // Calculate days until next payment
   const nextPaymentDate = (stats as any)?.prochainPaiement ? new Date((stats as any).prochainPaiement) : new Date();
-  const diffTime = Math.abs(nextPaymentDate.getTime() - new Date().getTime());
-  const joursAvantEcheance = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+  const diffTime = nextPaymentDate.getTime() - new Date().getTime();
+  const joursAvantEcheance = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
 
   const recentPayments = (stats as any)?.recentPayments || [];
@@ -141,13 +141,19 @@ const LocataireDashboard: React.FC = () => {
             <div>
               <p className="text-white/80 text-sm font-medium">Prochain paiement</p>
               <p className="text-2xl font-bold">{formatCurrency(loyerMensuel)}</p>
-              <p className="text-white/70 text-sm">Échéance dans {joursAvantEcheance} jours</p>
+              <p className="text-white/70 text-sm">
+                {joursAvantEcheance < 0
+                  ? `En retard de ${Math.abs(joursAvantEcheance)} jour(s)`
+                  : joursAvantEcheance === 0
+                  ? "Échéance aujourd'hui"
+                  : `Échéance dans ${joursAvantEcheance} jours`}
+              </p>
             </div>
           </div>
           <Button 
             variant="ghost" 
             className="bg-base-100 text-primary hover:bg-base-100/90 font-semibold shadow-lg"
-            onClick={() => navigate('/dashboard/finances/mobile-money')}
+            onClick={() => navigate('/dashboard/mobile-money')}
           >
             <CreditCard size={18} className="mr-2" />
             Payer maintenant
@@ -199,9 +205,17 @@ const LocataireDashboard: React.FC = () => {
              <motion.div variants={itemVariants}>
                 <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200 flex flex-col md:flex-row gap-6 items-start">
                      <div className="w-full md:w-1/3 rounded-xl overflow-hidden shadow-inner bg-gradient-to-br from-primary/5 to-primary/10 aspect-video md:aspect-square relative">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                           <Home size={48} className="text-primary/30" />
-                        </div>
+                        {(stats as any)?.photoLogement ? (
+                            <img
+                                src={(stats as any).photoLogement}
+                                alt={nomLogement}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <Home size={48} className="text-primary/30" />
+                            </div>
+                        )}
                      </div>
                      <div className="flex-1 w-full space-y-4">
                          <div className="flex justify-between items-start">

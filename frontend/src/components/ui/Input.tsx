@@ -84,13 +84,13 @@ const Input: React.FC<InputProps> = ({
             ${className}
           `}
         />
-        {hasError && showErrorIcon ? (
-          <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-error">
-            <AlertCircle size={18} />
-          </div>
-        ) : endIcon ? (
+        {endIcon ? (
           <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-base-content/60">
             {endIcon}
+          </div>
+        ) : hasError && showErrorIcon ? (
+          <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-error">
+            <AlertCircle size={18} />
           </div>
         ) : null}
       </div>
