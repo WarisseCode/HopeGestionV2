@@ -1,74 +1,49 @@
 // backend/routes/dashboardRoutes.ts
 
 import { Router, Response } from 'express';
-import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
+import { tenantGuard } from '../middleware/tenantGuard';
 
 dotenv.config();
 
 const router = Router();
-import pool from '../db/database';
-
 
 // GET /api/dashboard/stats/gestionnaire : Stats globales pour le gestionnaire
-router.get('/stats/gestionnaire', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/stats/gestionnaire', tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     if (!['gestionnaire', 'admin', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
-    
+
+    const dbClient = (req as any).dbClient;
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    const isAdmin = req.userRole === 'admin';
+
     try {
-        let ownerIds: number[] = [];
-
-        // Si pas admin, on filtre par les propriétaires assignés
-        if (req.userRole !== 'admin') {
-            const ownersResult = await pool.query(
-                `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
-                [req.userId]
-            );
-            
-            if (ownersResult.rows.length === 0) {
-                // Aucun propriétaire assigné -> stats vides
-                return res.status(200).json({
-                    stats: { totalBiens: 0, totalLots: 0, lotsOccupes: 0, tauxOccupation: 0, revenusMois: 0, impayesEnCours: 0, locatairesActifs: 0 }
-                });
-            }
-
-            ownerIds = ownersResult.rows.map(r => r.owner_id);
+        if (!isAdmin && validOwnerIds.length === 0) {
+            return res.status(200).json({
+                stats: { totalBiens: 0, totalLots: 0, lotsOccupes: 0, tauxOccupation: 0, revenusMois: 0, impayesEnCours: 0, locatairesActifs: 0 }
+            });
         }
 
-        // Build WHERE clause based on role
-        const ownerFilter = ownerIds.length > 0 ? `owner_id IN (${ownerIds.join(',')})` : '1=1';
+        const ownerFilter = isAdmin ? '1=1' : `owner_id IN (${validOwnerIds.join(',')})`;
+        const leaseFilter = isAdmin ? '1=1' : `l.owner_id IN (${validOwnerIds.join(',')})`;
 
-        // Exécuter les requêtes en parallèle pour améliorer les performances
-        const [
-            buildingsResult,
-            lotsResult,
-            occupiedResult,
-            revenusResult,
-            impayesResult,
-            tenantsResult
-        ] = await Promise.all([
-            // Total des bâtiments
-            pool.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`),
-            // Total des lots (use lots.owner_id directly)
-            pool.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`),
-            // Lots occupés
-            pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`),
-            // Total revenus (use payments.owner_id directly)
-            pool.query(`
+        const [buildingsResult, lotsResult, occupiedResult, revenusResult, impayesResult, tenantsResult] = await Promise.all([
+            dbClient.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`),
+            dbClient.query(`
                 SELECT COALESCE(SUM(montant), 0) as total
                 FROM payments
                 WHERE ${ownerFilter}
                 AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
                 AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
             `),
-            // Impayés (use leases.owner_id directly)
-            pool.query(`
+            dbClient.query(`
                 SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
                 FROM leases l
-                WHERE l.${ownerFilter.replace(/owner_id/g, 'owner_id')}
-                AND l.statut = 'actif'
+                WHERE ${leaseFilter} AND l.statut = 'actif'
                 AND NOT EXISTS (
                     SELECT 1 FROM payments p
                     WHERE p.lease_id = l.id
@@ -76,12 +51,7 @@ router.get('/stats/gestionnaire', async (req: AuthenticatedRequest, res: Respons
                     AND EXTRACT(YEAR FROM p.date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
                 )
             `),
-            // Locataires actifs
-            pool.query(`
-                SELECT COUNT(DISTINCT tenant_id) FROM leases
-                WHERE statut = 'actif'
-                AND ${ownerFilter}
-            `)
+            dbClient.query(`SELECT COUNT(DISTINCT tenant_id) FROM leases WHERE statut = 'actif' AND ${ownerFilter}`)
         ]);
 
         const totalBiens = parseInt(buildingsResult.rows[0].count, 10);
@@ -93,15 +63,7 @@ router.get('/stats/gestionnaire', async (req: AuthenticatedRequest, res: Respons
         const locatairesActifs = parseInt(tenantsResult.rows[0].count, 10);
 
         res.status(200).json({
-            stats: {
-                totalBiens,
-                totalLots,
-                lotsOccupes,
-                tauxOccupation,
-                revenusMois,
-                impayesEnCours,
-                locatairesActifs
-            }
+            stats: { totalBiens, totalLots, lotsOccupes, tauxOccupation, revenusMois, impayesEnCours, locatairesActifs }
         });
 
     } catch (error) {
@@ -111,63 +73,40 @@ router.get('/stats/gestionnaire', async (req: AuthenticatedRequest, res: Respons
 });
 
 // GET /api/dashboard/stats/manager : Stats filtrées par propriétaires assignés
-router.get('/stats/manager', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/stats/manager', tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     if (!['gestionnaire', 'admin', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
-    
+
+    const dbClient = (req as any).dbClient;
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    const isAdmin = req.userRole === 'admin';
+
     try {
-        let ownerIds: number[] = [];
-
-        // Si pas admin, on filtre par les propriétaires assignés
-        if (req.userRole !== 'admin') {
-            const ownersResult = await pool.query(
-                `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
-                [req.userId]
-            );
-            
-            if (ownersResult.rows.length === 0) {
-                // Aucun propriétaire assigné -> stats vides
-                return res.status(200).json({
-                    stats: { totalBiens: 0, totalLots: 0, lotsOccupes: 0, tauxOccupation: 0, revenusMois: 0, impayesEnCours: 0, locatairesActifs: 0 }
-                });
-            }
-
-            ownerIds = ownersResult.rows.map(r => r.owner_id);
+        if (!isAdmin && validOwnerIds.length === 0) {
+            return res.status(200).json({
+                stats: { totalBiens: 0, totalLots: 0, lotsOccupes: 0, tauxOccupation: 0, revenusMois: 0, impayesEnCours: 0, locatairesActifs: 0 }
+            });
         }
 
-        // Build WHERE clause based on role
-        const ownerFilter = ownerIds.length > 0 ? `owner_id IN (${ownerIds.join(',')})` : '1=1';
+        const ownerFilter = isAdmin ? '1=1' : `owner_id IN (${validOwnerIds.join(',')})`;
+        const leaseFilter = isAdmin ? '1=1' : `l.owner_id IN (${validOwnerIds.join(',')})`;
 
-        // Exécuter les requêtes en parallèle pour améliorer les performances
-        const [
-            buildingsResult,
-            lotsResult,
-            occupiedResult,
-            revenusResult,
-            impayesResult,
-            tenantsResult
-        ] = await Promise.all([
-            // Total des bâtiments
-            pool.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`),
-            // Total des lots (use lots.owner_id directly)
-            pool.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`),
-            // Lots occupés
-            pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`),
-            // Total revenus (use payments.owner_id directly)
-            pool.query(`
+        const [buildingsResult, lotsResult, occupiedResult, revenusResult, impayesResult, tenantsResult] = await Promise.all([
+            dbClient.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`),
+            dbClient.query(`
                 SELECT COALESCE(SUM(montant), 0) as total
                 FROM payments
                 WHERE ${ownerFilter}
                 AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
                 AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
             `),
-            // Impayés (use leases.owner_id directly)
-            pool.query(`
+            dbClient.query(`
                 SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
                 FROM leases l
-                WHERE l.${ownerFilter.replace(/owner_id/g, 'owner_id')}
-                AND l.statut = 'actif'
+                WHERE ${leaseFilter} AND l.statut = 'actif'
                 AND NOT EXISTS (
                     SELECT 1 FROM payments p
                     WHERE p.lease_id = l.id
@@ -175,12 +114,7 @@ router.get('/stats/manager', async (req: AuthenticatedRequest, res: Response) =>
                     AND EXTRACT(YEAR FROM p.date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
                 )
             `),
-            // Locataires actifs
-            pool.query(`
-                SELECT COUNT(DISTINCT tenant_id) FROM leases
-                WHERE statut = 'actif'
-                AND ${ownerFilter}
-            `)
+            dbClient.query(`SELECT COUNT(DISTINCT tenant_id) FROM leases WHERE statut = 'actif' AND ${ownerFilter}`)
         ]);
 
         const totalBiens = parseInt(buildingsResult.rows[0].count, 10);
@@ -192,15 +126,7 @@ router.get('/stats/manager', async (req: AuthenticatedRequest, res: Response) =>
         const locatairesActifs = parseInt(tenantsResult.rows[0].count, 10);
 
         res.status(200).json({
-            stats: {
-                totalBiens,
-                totalLots,
-                lotsOccupes,
-                tauxOccupation,
-                revenusMois,
-                impayesEnCours,
-                locatairesActifs
-            }
+            stats: { totalBiens, totalLots, lotsOccupes, tauxOccupation, revenusMois, impayesEnCours, locatairesActifs }
         });
 
     } catch (error) {
@@ -209,61 +135,36 @@ router.get('/stats/manager', async (req: AuthenticatedRequest, res: Response) =>
     }
 });
 
-
-
 // GET /api/dashboard/stats/proprietaire : Stats filtrées par owner_id
-router.get('/stats/proprietaire', async (req: AuthenticatedRequest, res: Response) => {
-    // Allow proprietaire and gestionnaire to access this endpoint
+router.get('/stats/proprietaire', tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     if (!['proprietaire', 'gestionnaire', 'admin'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
-    
-    const userId = req.userId;
-    
+
+    const dbClient = (req as any).dbClient;
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+
     try {
-        // Trouver l'owner_id associé à cet utilisateur
-        const ownerResult = await pool.query(`
-            SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE LIMIT 1
-        `, [userId]);
-        
-        if (ownerResult.rows.length === 0) {
+        if (validOwnerIds.length === 0) {
             return res.status(200).json({
-                stats: {
-                    totalBiens: 0,
-                    totalLots: 0,
-                    tauxOccupation: 0,
-                    revenusMois: 0,
-                    impayesEnCours: 0
-                }
+                stats: { totalBiens: 0, totalLots: 0, tauxOccupation: 0, revenusMois: 0, impayesEnCours: 0 }
             });
         }
-        
-        const ownerId = ownerResult.rows[0].owner_id;
 
-        // Exécuter les requêtes en parallèle pour améliorer les performances
-        const [
-            buildingsResult,
-            lotsResult,
-            occupiedResult,
-            revenusResult,
-            impayesResult
-        ] = await Promise.all([
-            // Total des bâtiments de ce propriétaire
-            pool.query('SELECT COUNT(*) FROM buildings WHERE owner_id = $1', [ownerId]),
-            // Total des lots de ce propriétaire
-            pool.query('SELECT COUNT(*) FROM lots WHERE owner_id = $1', [ownerId]),
-            // Lots occupés
-            pool.query("SELECT COUNT(*) FROM lots WHERE owner_id = $1 AND statut = 'occupe'", [ownerId]),
-            // Revenus du mois pour ce propriétaire
-            pool.query(`
+        const ownerId = validOwnerIds[0];
+
+        const [buildingsResult, lotsResult, occupiedResult, revenusResult, impayesResult] = await Promise.all([
+            dbClient.query('SELECT COUNT(*) FROM buildings WHERE owner_id = $1', [ownerId]),
+            dbClient.query('SELECT COUNT(*) FROM lots WHERE owner_id = $1', [ownerId]),
+            dbClient.query("SELECT COUNT(*) FROM lots WHERE owner_id = $1 AND statut = 'occupe'", [ownerId]),
+            dbClient.query(`
                 SELECT COALESCE(SUM(montant), 0) as total
                 FROM payments
                 WHERE owner_id = $1
                 AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
                 AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
             `, [ownerId]),
-            // Impayés pour ce propriétaire
-            pool.query(`
+            dbClient.query(`
                 SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
                 FROM leases l
                 WHERE l.owner_id = $1 AND l.statut = 'actif'
@@ -283,14 +184,7 @@ router.get('/stats/proprietaire', async (req: AuthenticatedRequest, res: Respons
         const impayesEnCours = parseFloat(impayesResult.rows[0].total) || 0;
 
         res.status(200).json({
-            stats: {
-                totalBiens,
-                totalLots,
-                lotsOccupes,
-                tauxOccupation,
-                revenusMois,
-                impayesEnCours
-            }
+            stats: { totalBiens, totalLots, lotsOccupes, tauxOccupation, revenusMois, impayesEnCours }
         });
 
     } catch (error) {
@@ -299,57 +193,49 @@ router.get('/stats/proprietaire', async (req: AuthenticatedRequest, res: Respons
     }
 });
 
-
-// GET /api/dashboard/stats/locataire : Stats pour un locataire
 // GET /api/dashboard/stats/locataire : Stats pour un locataire (support multi-dossiers)
-router.get('/stats/locataire', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/stats/locataire', tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     if (req.userRole !== 'locataire') {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
-    
+
+    const dbClient = (req as any).dbClient;
     const userId = req.userId;
-    
+
     try {
         // Trouver TOUS les tenants associés à cet utilisateur
-        const tenantResult = await pool.query(`
+        const tenantResult = await dbClient.query(`
             SELECT t.id, t.nom, t.prenoms
             FROM tenants t
             WHERE t.user_id = $1
         `, [userId]);
-        
+
         let tenants = tenantResult.rows;
 
-        // Si aucun tenant lié par ID, on essaie encore par email/tel pour la rétrocompatibilité ou liaison auto
+        // Liaison auto par email/tel si pas de lien direct
         if (tenants.length === 0) {
-             const userResult = await pool.query('SELECT email, telephone FROM users WHERE id = $1', [userId]);
-             if (userResult.rows.length > 0) {
+            const userResult = await dbClient.query('SELECT email, telephone FROM users WHERE id = $1', [userId]);
+            if (userResult.rows.length > 0) {
                 const { email, telephone } = userResult.rows[0];
-                const fallbackTenant = await pool.query(`
-                    SELECT id, nom, prenoms FROM tenants 
+                const fallbackTenant = await dbClient.query(`
+                    SELECT id, nom, prenoms FROM tenants
                     WHERE email = $1 OR telephone_principal = $2
                 `, [email, telephone]);
-                
                 if (fallbackTenant.rows.length > 0) {
                     tenants = fallbackTenant.rows;
                 }
-             }
+            }
         }
 
         if (tenants.length === 0) {
             return res.status(200).json({
-                stats: {
-                    nomLogement: 'Aucun logement',
-                    loyerMensuel: 0,
-                    prochainPaiement: null,
-                    statutContrat: 'inactif'
-                }
+                stats: { nomLogement: 'Aucun logement', loyerMensuel: 0, prochainPaiement: null, statutContrat: 'inactif' }
             });
         }
-        
+
         const tenantIds = tenants.map((t: any) => t.id);
-        
-        // Trouver TOUS les baux actifs pour ces locataires
-        const leaseResult = await pool.query(`
+
+        const leaseResult = await dbClient.query(`
             SELECT l.id, l.loyer_actuel, l.jour_echeance, l.statut, l.date_debut, l.date_fin,
                    lo.ref_lot, b.nom as nom_immeuble
             FROM leases l
@@ -358,46 +244,31 @@ router.get('/stats/locataire', async (req: AuthenticatedRequest, res: Response) 
             WHERE l.tenant_id = ANY($1) AND l.statut = 'actif'
             ORDER BY l.date_debut DESC
         `, [tenantIds]);
-        
+
         if (leaseResult.rows.length === 0) {
             return res.status(200).json({
-                stats: {
-                    nomLogement: 'Aucun bail actif',
-                    loyerMensuel: 0,
-                    prochainPaiement: null,
-                    statutContrat: 'inactif'
-                }
+                stats: { nomLogement: 'Aucun bail actif', loyerMensuel: 0, prochainPaiement: null, statutContrat: 'inactif' }
             });
         }
 
-        // AGGREGATION LOGIC
         let totalLoyerMensuel = 0;
         let nextPaymentDate: Date | null = null;
-        let combinedPayments: any[] = [];
         let logementsNames: string[] = [];
         let leaseIds: number[] = [];
 
-        // 1. Calculate Total Rent & Collect Names
         for (const lease of leaseResult.rows) {
             totalLoyerMensuel += parseFloat(lease.loyer_actuel) || 0;
             logementsNames.push(`${lease.ref_lot} (${lease.nom_immeuble})`);
             leaseIds.push(lease.id);
 
-            // 2. Find earliest next payment date
             const today = new Date();
             const jourEcheance = lease.jour_echeance || 5;
             let np = new Date(today.getFullYear(), today.getMonth(), jourEcheance);
-            if (np < today) {
-                np = new Date(today.getFullYear(), today.getMonth() + 1, jourEcheance);
-            }
-
-            if (!nextPaymentDate || np < nextPaymentDate) {
-                nextPaymentDate = np;
-            }
+            if (np < today) np = new Date(today.getFullYear(), today.getMonth() + 1, jourEcheance);
+            if (!nextPaymentDate || np < nextPaymentDate) nextPaymentDate = np;
         }
 
-        // 3. Fetch recent payments for ALL active leases
-        const paymentsResult = await pool.query(`
+        const paymentsResult = await dbClient.query(`
             SELECT id, montant, date_paiement, type, method, status
             FROM payments
             WHERE lease_id = ANY($1)
@@ -405,7 +276,7 @@ router.get('/stats/locataire', async (req: AuthenticatedRequest, res: Response) 
             LIMIT 10
         `, [leaseIds]);
 
-        combinedPayments = paymentsResult.rows.map(p => ({
+        const combinedPayments = paymentsResult.rows.map((p: any) => ({
             id: p.id,
             amount: parseFloat(p.montant),
             date: p.date_paiement,
@@ -413,23 +284,21 @@ router.get('/stats/locataire', async (req: AuthenticatedRequest, res: Response) 
             month: new Date(p.date_paiement).toLocaleString('fr-FR', { month: 'long' })
         }));
 
-        // Determine display name for housing
-        let nomLogementDisplay = logementsNames[0];
-        if (logementsNames.length > 1) {
-            nomLogementDisplay = `${logementsNames.length} Logements actifs`;
-        }
+        const nomLogementDisplay = logementsNames.length > 1
+            ? `${logementsNames.length} Logements actifs`
+            : logementsNames[0];
 
-        const statsResponse = {
-            nomLogement: nomLogementDisplay,
-            loyerMensuel: totalLoyerMensuel,
-            prochainPaiement: nextPaymentDate ? nextPaymentDate.toISOString().split('T')[0] : null,
-            statutContrat: 'actif',
-            dateDebut: leaseResult.rows[0].date_debut, // Most recent
-            dateFin: leaseResult.rows[0].date_fin,
-            recentPayments: combinedPayments
-        };
-        
-        return res.status(200).json({ stats: statsResponse });
+        return res.status(200).json({
+            stats: {
+                nomLogement: nomLogementDisplay,
+                loyerMensuel: totalLoyerMensuel,
+                prochainPaiement: nextPaymentDate ? nextPaymentDate.toISOString().split('T')[0] : null,
+                statutContrat: 'actif',
+                dateDebut: leaseResult.rows[0].date_debut,
+                dateFin: leaseResult.rows[0].date_fin,
+                recentPayments: combinedPayments
+            }
+        });
 
     } catch (error) {
         console.error('Erreur récupération stats locataire:', error);
@@ -437,96 +306,60 @@ router.get('/stats/locataire', async (req: AuthenticatedRequest, res: Response) 
     }
 });
 
-
 // GET /api/dashboard/kpi : KPIs complets avec statuts dynamiques
-router.get('/kpi', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/kpi', tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+    const dbClient = (req as any).dbClient;
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    const isAdmin = req.userRole === 'admin';
+
     try {
-        // Get owner filtering for non-admin users
-        let ownerIds: number[] = [];
-        let ownerFilter = '1=1';
-        
-        if (req.userRole !== 'admin') {
-            const ownersResult = await pool.query(
-                `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
-                [req.userId]
-            );
-            
-            if (ownersResult.rows.length === 0) {
-                // No assigned owners -> empty KPIs
-                return res.status(200).json({
-                    kpis: [],
-                    summary: {
-                        totalBiens: 0, totalLots: 0, lotsOccupes: 0, lotsLibres: 0,
-                        tauxOccupation: 0, loyersEncaisses: 0, loyersImpayes: 0,
-                        contratsActifs: 0, plaintesOuvertes: 0, reservationsEnAttente: 0,
-                        montantARecouvrer: 0, echelonementsEnRetard: 0
-                    }
-                });
-            }
-            
-            ownerIds = ownersResult.rows.map(r => r.owner_id);
-            ownerFilter = `owner_id IN (${ownerIds.join(',')})`;
+        if (!isAdmin && validOwnerIds.length === 0) {
+            return res.status(200).json({
+                kpis: [],
+                summary: {
+                    totalBiens: 0, totalLots: 0, lotsOccupes: 0, lotsLibres: 0,
+                    tauxOccupation: 0, loyersEncaisses: 0, loyersImpayes: 0,
+                    contratsActifs: 0, plaintesOuvertes: 0, reservationsEnAttente: 0,
+                    montantARecouvrer: 0, echelonementsEnRetard: 0
+                }
+            });
         }
 
-        // Exécuter les requêtes en parallèle pour améliorer les performances
+        const ownerFilter = isAdmin ? '1=1' : `owner_id IN (${validOwnerIds.join(',')})`;
+        const leaseFilter = isAdmin ? '1=1' : `l.owner_id IN (${validOwnerIds.join(',')})`;
+        const lotFilter = isAdmin ? 'TRUE' : `l.owner_id IN (${validOwnerIds.join(',')})`;
+
         const [
-            buildingsResult,
-            lotsResult,
-            occupiedResult,
-            freeResult,
-            reservedResult,
-            loyersEncaissesResult,
-            loyersAttendusResult,
-            contratsResult,
-            plaintesResult,
-            recouvrementResult
+            buildingsResult, lotsResult, occupiedResult, freeResult, reservedResult,
+            loyersEncaissesResult, loyersAttendusResult, contratsResult, plaintesResult, recouvrementResult
         ] = await Promise.all([
-            // 1. Nombre total de biens (bâtiments)
-            pool.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`),
-            // 2. Total des lots
-            pool.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`),
-            // 3. Lots occupés
-            pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`),
-            // 4. Lots libres
-            pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'disponible' AND ${ownerFilter}`),
-            // 5. Lots réservés
-            pool.query(`SELECT COUNT(*) FROM lots WHERE statut = 'reserve' AND ${ownerFilter}`),
-            // 7. Loyers encaissés (mois en cours)
-            pool.query(`
+            dbClient.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'disponible' AND ${ownerFilter}`),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'reserve' AND ${ownerFilter}`),
+            dbClient.query(`
                 SELECT COALESCE(SUM(montant), 0) as total
                 FROM payments
-                WHERE type = 'Loyer'
-                AND ${ownerFilter}
+                WHERE type = 'Loyer' AND ${ownerFilter}
                 AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
                 AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
                 AND statut = 'valide'
             `),
-            // 8. Loyers attendus (contrats actifs)
-            pool.query(`
-                SELECT COALESCE(SUM(loyer_actuel), 0) as total
-                FROM leases
-                WHERE statut = 'actif' AND ${ownerFilter}
+            dbClient.query(`SELECT COALESCE(SUM(loyer_actuel), 0) as total FROM leases WHERE statut = 'actif' AND ${ownerFilter}`),
+            dbClient.query(`SELECT COUNT(*) FROM leases WHERE statut = 'actif' AND ${ownerFilter}`),
+            dbClient.query(`
+                SELECT COUNT(*) FROM tickets t
+                JOIN lots l ON t.lot_id = l.id
+                WHERE t.statut = 'ouvert' AND ${lotFilter}
             `),
-            // 10. Contrats actifs
-            pool.query(`SELECT COUNT(*) FROM leases WHERE statut = 'actif' AND ${ownerFilter}`),
-            // 11. Plaintes ouvertes (tickets)
-            ownerIds.length > 0 ?
-                pool.query(`
-                    SELECT COUNT(*) FROM tickets t
-                    JOIN lots l ON t.lot_id = l.id
-                    WHERE t.statut = 'ouvert' AND l.${ownerFilter}
-                `) :
-                pool.query("SELECT COUNT(*) FROM tickets WHERE statut = 'ouvert'"),
-            // 12. Montant à recouvrer
-            pool.query(`
+            dbClient.query(`
                 SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
                 FROM leases l
-                WHERE l.statut = 'actif' AND l.${ownerFilter}
+                WHERE l.statut = 'actif' AND ${leaseFilter}
                 AND NOT EXISTS (
                     SELECT 1 FROM payments p
-                    WHERE p.lease_id = l.id
-                    AND p.type = 'Loyer'
-                    AND p.statut = 'valide'
+                    WHERE p.lease_id = l.id AND p.type = 'Loyer' AND p.statut = 'valide'
                     AND p.date_paiement >= DATE_TRUNC('month', CURRENT_DATE)
                 )
             `)
@@ -544,11 +377,8 @@ router.get('/kpi', async (req: AuthenticatedRequest, res: Response) => {
         const contratsActifs = parseInt(contratsResult.rows[0].count, 10);
         const plaintesOuvertes = parseInt(plaintesResult.rows[0].count, 10);
         const montantARecouvrer = parseFloat(recouvrementResult.rows[0].total) || 0;
-
-        // 13. Paiements échelonnés en retard (not implemented yet)
         const echelonementsEnRetard = 0;
 
-        // Fonction pour déterminer le statut dynamique
         const getStatus = (type: string, value: number, total?: number): 'success' | 'warning' | 'danger' => {
             switch(type) {
                 case 'occupation':
@@ -575,100 +405,21 @@ router.get('/kpi', async (req: AuthenticatedRequest, res: Response) => {
 
         res.status(200).json({
             kpis: [
-                {
-                    id: 'total_biens',
-                    label: 'Nombre total de biens',
-                    value: totalBiens,
-                    status: 'success',
-                    icon: 'Building2',
-                    modulePath: '/biens'
-                },
-                {
-                    id: 'lots_occupation',
-                    label: 'Lots occupés / libres',
-                    value: `${lotsOccupes} / ${lotsLibres}`,
-                    status: getStatus('occupation', tauxOccupation),
-                    icon: 'Home',
-                    modulePath: '/biens'
-                },
-                {
-                    id: 'loyers_encaisses',
-                    label: 'Loyers encaissés (mois)',
-                    value: loyersEncaisses,
-                    status: loyersEncaisses >= loyersAttendus * 0.8 ? 'success' : loyersEncaisses >= loyersAttendus * 0.5 ? 'warning' : 'danger',
-                    icon: 'Wallet',
-                    modulePath: '/paiements'
-                },
-                {
-                    id: 'loyers_impayes',
-                    label: 'Loyers impayés',
-                    value: loyersImpayes,
-                    status: getStatus('impayes', loyersImpayes, loyersAttendus * 0.2),
-                    icon: 'AlertTriangle',
-                    modulePath: '/paiements'
-                },
-                {
-                    id: 'taux_occupation',
-                    label: "Taux d'occupation",
-                    value: `${tauxOccupation}%`,
-                    status: getStatus('occupation', tauxOccupation),
-                    icon: 'Percent',
-                    modulePath: '/biens'
-                },
-                {
-                    id: 'contrats_actifs',
-                    label: 'Contrats actifs',
-                    value: contratsActifs,
-                    status: 'success',
-                    icon: 'FileText',
-                    modulePath: '/locataires'
-                },
-                {
-                    id: 'plaintes_ouvertes',
-                    label: 'Plaintes ouvertes',
-                    value: plaintesOuvertes,
-                    status: getStatus('plaintes', plaintesOuvertes),
-                    icon: 'MessageCircle',
-                    modulePath: '/alertes'
-                },
-                {
-                    id: 'reservations',
-                    label: 'Réservations en attente',
-                    value: reservationsEnAttente,
-                    status: reservationsEnAttente > 0 ? 'warning' : 'success',
-                    icon: 'Calendar',
-                    modulePath: '/biens'
-                },
-                {
-                    id: 'recouvrement',
-                    label: 'Montant à recouvrer',
-                    value: montantARecouvrer,
-                    status: getStatus('recouvrement', montantARecouvrer, loyersAttendus * 0.3),
-                    icon: 'DollarSign',
-                    modulePath: '/paiements'
-                },
-                {
-                    id: 'echelonements_retard',
-                    label: 'Échelonnements en retard',
-                    value: echelonementsEnRetard,
-                    status: getStatus('echelonements', echelonementsEnRetard),
-                    icon: 'Clock',
-                    modulePath: '/paiements'
-                }
+                { id: 'total_biens', label: 'Nombre total de biens', value: totalBiens, status: 'success', icon: 'Building2', modulePath: '/biens' },
+                { id: 'lots_occupation', label: 'Lots occupés / libres', value: `${lotsOccupes} / ${lotsLibres}`, status: getStatus('occupation', tauxOccupation), icon: 'Home', modulePath: '/biens' },
+                { id: 'loyers_encaisses', label: 'Loyers encaissés (mois)', value: loyersEncaisses, status: loyersEncaisses >= loyersAttendus * 0.8 ? 'success' : loyersEncaisses >= loyersAttendus * 0.5 ? 'warning' : 'danger', icon: 'Wallet', modulePath: '/paiements' },
+                { id: 'loyers_impayes', label: 'Loyers impayés', value: loyersImpayes, status: getStatus('impayes', loyersImpayes, loyersAttendus * 0.2), icon: 'AlertTriangle', modulePath: '/paiements' },
+                { id: 'taux_occupation', label: "Taux d'occupation", value: `${tauxOccupation}%`, status: getStatus('occupation', tauxOccupation), icon: 'Percent', modulePath: '/biens' },
+                { id: 'contrats_actifs', label: 'Contrats actifs', value: contratsActifs, status: 'success', icon: 'FileText', modulePath: '/locataires' },
+                { id: 'plaintes_ouvertes', label: 'Plaintes ouvertes', value: plaintesOuvertes, status: getStatus('plaintes', plaintesOuvertes), icon: 'MessageCircle', modulePath: '/alertes' },
+                { id: 'reservations', label: 'Réservations en attente', value: reservationsEnAttente, status: reservationsEnAttente > 0 ? 'warning' : 'success', icon: 'Calendar', modulePath: '/biens' },
+                { id: 'recouvrement', label: 'Montant à recouvrer', value: montantARecouvrer, status: getStatus('recouvrement', montantARecouvrer, loyersAttendus * 0.3), icon: 'DollarSign', modulePath: '/paiements' },
+                { id: 'echelonements_retard', label: 'Échelonnements en retard', value: echelonementsEnRetard, status: getStatus('echelonements', echelonementsEnRetard), icon: 'Clock', modulePath: '/paiements' }
             ],
             summary: {
-                totalBiens,
-                totalLots,
-                lotsOccupes,
-                lotsLibres,
-                tauxOccupation,
-                loyersEncaisses,
-                loyersImpayes,
-                contratsActifs,
-                plaintesOuvertes,
-                reservationsEnAttente,
-                montantARecouvrer,
-                echelonementsEnRetard
+                totalBiens, totalLots, lotsOccupes, lotsLibres, tauxOccupation,
+                loyersEncaisses, loyersImpayes, contratsActifs, plaintesOuvertes,
+                reservationsEnAttente, montantARecouvrer, echelonementsEnRetard
             }
         });
 
@@ -678,73 +429,59 @@ router.get('/kpi', async (req: AuthenticatedRequest, res: Response) => {
     }
 });
 
-
 // GET /api/dashboard/chart-data : Données pour les graphiques (revenus/dépenses par mois)
-router.get('/chart-data', async (req: AuthenticatedRequest, res: Response) => {
-    const period = (req.query.period as string) || '6m'; // 7d, 30d, 90d, 6m, 1y
-    
+router.get('/chart-data', tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+    const period = (req.query.period as string) || '6m';
+    const dbClient = (req as any).dbClient;
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    const isAdmin = req.userRole === 'admin';
+
     try {
-        // Déterminer la période
         let interval: string;
-        
         switch(period) {
-            case '7d':
-                interval = '7 days';
-                break;
-            case '30d':
-                interval = '30 days';
-                break;
-            case '90d':
-                interval = '90 days';
-                break;
-            case '1y':
-                interval = '1 year';
-                break;
-            default:
-                interval = '6 months';
+            case '7d':  interval = '7 days'; break;
+            case '30d': interval = '30 days'; break;
+            case '90d': interval = '90 days'; break;
+            case '1y':  interval = '1 year'; break;
+            default:    interval = '6 months';
         }
 
-        // Revenus par mois (paiements validés)
-        const revenusResult = await pool.query(`
-            SELECT 
+        const ownerFilter = isAdmin ? '1=1' : (validOwnerIds.length > 0 ? `owner_id IN (${validOwnerIds.join(',')})` : '1=0');
+
+        const revenusResult = await dbClient.query(`
+            SELECT
                 TO_CHAR(date_paiement, 'Mon') as name,
                 EXTRACT(MONTH FROM date_paiement) as month_num,
                 COALESCE(SUM(montant), 0) as revenus
             FROM payments
             WHERE date_paiement >= CURRENT_DATE - INTERVAL '${interval}'
-            AND statut = 'valide'
+            AND statut = 'valide' AND ${ownerFilter}
             GROUP BY TO_CHAR(date_paiement, 'Mon'), EXTRACT(MONTH FROM date_paiement)
             ORDER BY month_num
         `);
 
-        // Dépenses par mois
-        const depensesResult = await pool.query(`
-            SELECT 
+        const depensesResult = await dbClient.query(`
+            SELECT
                 TO_CHAR(date_expense, 'Mon') as name,
                 EXTRACT(MONTH FROM date_expense) as month_num,
                 COALESCE(SUM(amount), 0) as depenses
             FROM expenses
             WHERE date_expense >= CURRENT_DATE - INTERVAL '${interval}'
+            AND ${ownerFilter}
             GROUP BY TO_CHAR(date_expense, 'Mon'), EXTRACT(MONTH FROM date_expense)
             ORDER BY month_num
         `);
 
-        // Noms des mois en français
         const monthNames: { [key: number]: string } = {
             1: 'Jan', 2: 'Fév', 3: 'Mar', 4: 'Avr', 5: 'Mai', 6: 'Juin',
             7: 'Juil', 8: 'Août', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Déc'
         };
 
-        // Fusionner revenus et dépenses
         const dataMap = new Map<number, { name: string; revenus: number; depenses: number }>();
 
         revenusResult.rows.forEach((row: any) => {
             const monthNum = parseInt(row.month_num);
-            dataMap.set(monthNum, {
-                name: monthNames[monthNum] || row.name,
-                revenus: parseFloat(row.revenus) || 0,
-                depenses: 0
-            });
+            dataMap.set(monthNum, { name: monthNames[monthNum] || row.name, revenus: parseFloat(row.revenus) || 0, depenses: 0 });
         });
 
         depensesResult.rows.forEach((row: any) => {
@@ -753,30 +490,20 @@ router.get('/chart-data', async (req: AuthenticatedRequest, res: Response) => {
             if (existing) {
                 existing.depenses = parseFloat(row.depenses) || 0;
             } else {
-                dataMap.set(monthNum, {
-                    name: monthNames[monthNum] || row.name,
-                    revenus: 0,
-                    depenses: parseFloat(row.depenses) || 0
-                });
+                dataMap.set(monthNum, { name: monthNames[monthNum] || row.name, revenus: 0, depenses: parseFloat(row.depenses) || 0 });
             }
         });
 
-        // Trier par mois
         const chartData = Array.from(dataMap.entries())
             .sort((a, b) => a[0] - b[0])
             .map(([_, data]) => data);
 
-        // Si aucune donnée, retourner tableau vide
         if (chartData.length === 0) {
             const now = new Date();
             const emptyData = [];
             for (let i = 5; i >= 0; i--) {
                 const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                emptyData.push({
-                    name: monthNames[d.getMonth() + 1] || 'N/A',
-                    revenus: 0,
-                    depenses: 0
-                });
+                emptyData.push({ name: monthNames[d.getMonth() + 1] || 'N/A', revenus: 0, depenses: 0 });
             }
             return res.json({ chartData: emptyData, period });
         }
@@ -790,120 +517,74 @@ router.get('/chart-data', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // GET /api/dashboard/activity : Fil d'actualité (Paiements, Baux, Tickets)
-router.get('/activity', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/activity', tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+    const dbClient = (req as any).dbClient;
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    const isAdmin = req.userRole === 'admin';
+
     try {
-        let whereClauseOwners = '1=1';
-        let whereClauseUsers = '1=1';
+        let paymentWhere = '1=1';
+        let leaseWhere = '1=1';
+        let ticketWhere = '1=1';
 
-        // Filter by owner/user if not admin
-        if (req.userRole !== 'admin') {
-            if (req.userRole === 'locataire') {
-                // Find tenant ID via user email
-                const userResult = await pool.query('SELECT email FROM users WHERE id = $1', [req.userId]);
-                if (userResult.rows.length > 0) {
-                     const tenantResult = await pool.query('SELECT id FROM tenants WHERE email = $1', [userResult.rows[0].email]);
-                     if (tenantResult.rows.length > 0) {
-                         const tenantId = tenantResult.rows[0].id;
-                         // Find active lease to link to activities
-                         const leaseResult = await pool.query('SELECT id FROM leases WHERE tenant_id = $1', [tenantId]);
-                         if (leaseResult.rows.length > 0) {
-                             const leaseIds = leaseResult.rows.map(r => r.id);
-                             whereClauseOwners = `1=0`; // Don't use owner filter
-                             // For payments: p.lease_id IN (...)
-                             whereClauseUsers = `l.id IN (${leaseIds.join(',')})`; 
-                         } else {
-                             return res.json({ activities: [] });
-                         }
-                     } else {
-                         return res.json({ activities: [] });
-                     }
-                } else {
-                    return res.json({ activities: [] });
-                }
-            } else {
-                // For managers/owners, we get their assigned owners
-                const ownersResult = await pool.query(
-                    `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
-                    [req.userId]
-                );
-                if (ownersResult.rows.length > 0) {
-                    const ownerIds = ownersResult.rows.map(r => r.owner_id);
-                    whereClauseOwners = `owner_id IN (${ownerIds.join(',')})`;
-                    whereClauseUsers = `l.owner_id IN (${ownerIds.join(',')})`; 
-                } else {
-                     return res.json({ activities: [] });
-                }
-            }
-        }
-        // Define where clauses for queries
-        let paymentWhere = whereClauseOwners.replace(/owner_id/g, 'p.owner_id');
-        let leaseWhere = whereClauseOwners.replace(/owner_id/g, 'l.owner_id');
-        let ticketWhere = whereClauseUsers; 
-        
         if (req.userRole === 'locataire') {
-             paymentWhere = whereClauseUsers.replace(/l.id/g, 'p.lease_id'); 
-             leaseWhere = whereClauseUsers.replace(/l.id/g, 'l.id');
+            const userResult = await dbClient.query('SELECT email FROM users WHERE id = $1', [req.userId]);
+            if (userResult.rows.length === 0) return res.json({ activities: [] });
+
+            const tenantResult = await dbClient.query('SELECT id FROM tenants WHERE email = $1', [userResult.rows[0].email]);
+            if (tenantResult.rows.length === 0) return res.json({ activities: [] });
+
+            const tenantId = tenantResult.rows[0].id;
+            const leaseResult = await dbClient.query('SELECT id FROM leases WHERE tenant_id = $1', [tenantId]);
+            if (leaseResult.rows.length === 0) return res.json({ activities: [] });
+
+            const leaseIds = leaseResult.rows.map((r: any) => r.id);
+            paymentWhere = `p.lease_id IN (${leaseIds.join(',')})`;
+            leaseWhere = `l.id IN (${leaseIds.join(',')})`;
+            ticketWhere = `l.id IN (${leaseIds.join(',')})`;
+
+        } else if (!isAdmin) {
+            if (validOwnerIds.length === 0) return res.json({ activities: [] });
+            const ownerList = validOwnerIds.join(',');
+            paymentWhere = `p.owner_id IN (${ownerList})`;
+            leaseWhere = `l.owner_id IN (${ownerList})`;
+            ticketWhere = `l.owner_id IN (${ownerList})`;
         }
-
-
-        // 1. Recent Payments
-        const paymentsQuery = `
-            SELECT 
-                p.id, 
-                'payment' as type, 
-                'Paiement reçu' as title, 
-                CONCAT(t.prenoms, ' ', t.nom, ' - ', p.type) as description, 
-                p.created_at as created_at
-            FROM payments p
-            JOIN leases l ON p.lease_id = l.id
-            JOIN tenants t ON l.tenant_id = t.id
-            WHERE ${paymentWhere}
-            ORDER BY p.created_at DESC LIMIT 5
-        `;
-
-        // 2. New Leases
-        const leasesQuery = `
-            SELECT 
-                l.id, 
-                'contract' as type, 
-                'Nouveau bail' as title, 
-                CONCAT(lo.ref_lot, ' - ', t.prenoms, ' ', t.nom) as description, 
-                l.created_at as created_at
-            FROM leases l
-            JOIN tenants t ON l.tenant_id = t.id
-            JOIN lots lo ON l.lot_id = lo.id
-            WHERE ${leaseWhere}
-            ORDER BY l.created_at DESC LIMIT 5
-        `;
-
-        // 3. Recent Tickets (if table exists)
-        // Adjust if 'tickets' table does not exist or has different schema
-        const ticketsQuery = `
-            SELECT 
-                t.id, 
-                'intervention' as type, 
-                CONCAT('Ticket: ', t.titre) as title, 
-                t.description as description, 
-                t.created_at as created_at
-            FROM tickets t
-            JOIN leases l ON t.lease_id = l.id
-            WHERE ${ticketWhere}
-            ORDER BY t.created_at DESC LIMIT 5
-        `;
 
         const [payments, leases, tickets] = await Promise.all([
-            pool.query(paymentsQuery),
-            pool.query(leasesQuery),
-            pool.query(ticketsQuery).catch(() => ({ rows: [] })) // Fallback if tickets table issue
+            dbClient.query(`
+                SELECT p.id, 'payment' as type, 'Paiement reçu' as title,
+                    CONCAT(t.prenoms, ' ', t.nom, ' - ', p.type) as description,
+                    p.created_at as created_at
+                FROM payments p
+                JOIN leases l ON p.lease_id = l.id
+                JOIN tenants t ON l.tenant_id = t.id
+                WHERE ${paymentWhere}
+                ORDER BY p.created_at DESC LIMIT 5
+            `),
+            dbClient.query(`
+                SELECT l.id, 'contract' as type, 'Nouveau bail' as title,
+                    CONCAT(lo.ref_lot, ' - ', t.prenoms, ' ', t.nom) as description,
+                    l.created_at as created_at
+                FROM leases l
+                JOIN tenants t ON l.tenant_id = t.id
+                JOIN lots lo ON l.lot_id = lo.id
+                WHERE ${leaseWhere}
+                ORDER BY l.created_at DESC LIMIT 5
+            `),
+            dbClient.query(`
+                SELECT t.id, 'intervention' as type, CONCAT('Ticket: ', t.titre) as title,
+                    t.description as description, t.created_at as created_at
+                FROM tickets t
+                JOIN leases l ON t.lease_id = l.id
+                WHERE ${ticketWhere}
+                ORDER BY t.created_at DESC LIMIT 5
+            `).catch(() => ({ rows: [] }))
         ]);
 
-        // Combine and Sort
-        const allActivities = [
-            ...payments.rows, 
-            ...leases.rows, 
-            ...tickets.rows
-        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 10);
+        const allActivities = [...payments.rows, ...leases.rows, ...tickets.rows]
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .slice(0, 10);
 
         res.json({ activities: allActivities });
 
@@ -914,43 +595,33 @@ router.get('/activity', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // GET /api/dashboard/featured-properties : Biens en vedette
-router.get('/featured-properties', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/featured-properties', tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+    const dbClient = (req as any).dbClient;
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    const isAdmin = req.userRole === 'admin';
+
     try {
-        let whereClause = '1=1';
-        if (req.userRole !== 'admin') {
-            const ownersResult = await pool.query(
-                `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
-                [req.userId]
-            );
-            if (ownersResult.rows.length > 0) {
-                const ownerIds = ownersResult.rows.map(r => r.owner_id);
-                whereClause = `owner_id IN (${ownerIds.join(',')})`;
-            } else {
-                 return res.json({ properties: [] });
-            }
+        if (!isAdmin && validOwnerIds.length === 0) {
+            return res.json({ properties: [] });
         }
 
-        const query = `
-            SELECT 
-                b.id,
-                b.nom,
-                b.ville,
-                b.quartier,
+        const whereClause = isAdmin ? '1=1' : `b.owner_id IN (${validOwnerIds.join(',')})`;
+
+        const result = await dbClient.query(`
+            SELECT
+                b.id, b.nom, b.ville, b.quartier,
                 COUNT(l.id) as total_units,
                 SUM(CASE WHEN l.statut = 'occupe' THEN 1 ELSE 0 END) as occupied_units,
                 (NULLIF(b.photos, '[]')::jsonb->0) as main_photo
             FROM buildings b
             LEFT JOIN lots l ON b.id = l.building_id
-            WHERE ${whereClause.replace(/owner_id/g, 'b.owner_id')}
+            WHERE ${whereClause}
             GROUP BY b.id
             ORDER BY occupied_units DESC, total_units DESC
             LIMIT 4
-        `;
+        `);
 
-        const result = await pool.query(query);
-
-        // Format for frontend
-        const properties = result.rows.map(row => ({
+        const properties = result.rows.map((row: any) => ({
             id: row.id,
             name: row.nom,
             location: `${row.quartier || ''}, ${row.ville || ''}`,
@@ -963,8 +634,8 @@ router.get('/featured-properties', async (req: AuthenticatedRequest, res: Respon
         res.json({ properties });
 
     } catch (error) {
-         console.error('Error fetching featured properties:', error);
-         res.status(500).json({ message: 'Erreur serveur.' });
+        console.error('Error fetching featured properties:', error);
+        res.status(500).json({ message: 'Erreur serveur.' });
     }
 });
 
