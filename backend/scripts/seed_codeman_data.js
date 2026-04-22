@@ -153,6 +153,26 @@ async function seed() {
             }
         }
 
+        // 3. Lier le gestionnaire à chaque propriétaire dans owner_user (nécessaire pour le RLS)
+        for (const ownerId of ownerIds) {
+            const existing = await client.query(
+                `SELECT id FROM owner_user WHERE owner_id = $1 AND user_id = $2`,
+                [ownerId, gestionnaire.id]
+            );
+            if (existing.rows.length === 0) {
+                await client.query(
+                    `INSERT INTO owner_user (owner_id, user_id, role, is_active, start_date,
+                        can_view_finances, can_edit_properties, can_manage_tenants,
+                        can_manage_contracts, can_validate_payments)
+                     VALUES ($1, $2, 'gestionnaire', TRUE, CURRENT_DATE, TRUE, TRUE, TRUE, TRUE, TRUE)`,
+                    [ownerId, gestionnaire.id]
+                );
+                console.log(`🔗 Lien owner_user créé: gestionnaire ${gestionnaire.id} → owner ${ownerId}`);
+            } else {
+                console.log(`🔗 Lien owner_user existant: gestionnaire ${gestionnaire.id} → owner ${ownerId}`);
+            }
+        }
+
         console.log(`\n🏗️  Création de ${nomsImmeubles.length} immeubles...`);
         const createdBuildings = [];
 
