@@ -162,6 +162,9 @@ async function seed() {
             const { ville, quartier } = randomVille();
             const { lat, lng } = coordsForVille(ville);
 
+            // Aligner le contexte RLS sur l'owner du building avant l'INSERT
+            await client.query(`SELECT set_config('app.current_owner_id', $1, false)`, [ownerId.toString()]);
+
             const res = await client.query(
                 `INSERT INTO buildings (
                     owner_id, gestionnaire_id, nom, type, adresse, ville, pays,
@@ -187,6 +190,9 @@ async function seed() {
         for (const building of createdBuildings) {
             const nbLots = randomInt(2, 5);
             let buildingOccupes = 0;
+
+            // Aligner le contexte RLS sur l'owner du building pour les lots
+            await client.query(`SELECT set_config('app.current_owner_id', $1, false)`, [building.ownerId.toString()]);
 
             for (let j = 0; j < nbLots; j++) {
                 const type = random(typesLots);
