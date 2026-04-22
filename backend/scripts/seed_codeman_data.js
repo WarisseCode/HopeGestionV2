@@ -123,6 +123,11 @@ async function seed() {
         const gestionnaire = gestRes.rows[0];
         console.log(`✅ Gestionnaire trouvé: ${gestionnaire.nom} (ID: ${gestionnaire.id})`);
 
+        // Initialiser le contexte RLS (comme le fait tenantGuard)
+        await client.query(`SELECT set_config('app.current_user_id', $1, false)`, [gestionnaire.id.toString()]);
+        await client.query(`SELECT set_config('app.current_owner_id', '', false)`);
+        console.log(`🔐 Contexte RLS configuré pour user_id=${gestionnaire.id}`);
+
         // 2. Créer ou récupérer les propriétaires
         const ownerIds = [];
         for (const proprio of nomsProprios) {
