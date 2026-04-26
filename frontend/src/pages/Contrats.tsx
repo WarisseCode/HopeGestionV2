@@ -636,10 +636,11 @@ const Contrats: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Locataire / Acheteur */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-base-content/70">
+            <label htmlFor="form-tenant" className="text-sm font-semibold text-base-content/70">
               {createForm.type_contrat === 'vente' ? 'Acheteur' : 'Locataire'} <span className="text-error">*</span>
             </label>
             <select
+              id="form-tenant"
               required
               className="select select-bordered w-full"
               value={createForm.tenant_id || ''}
@@ -656,23 +657,28 @@ const Contrats: React.FC = () => {
 
           {/* Bien / Lot */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-base-content/70">
+            <label htmlFor="form-lot" className="text-sm font-semibold text-base-content/70">
               Bien (lot) <span className="text-error">*</span>
             </label>
             <select
+              id="form-lot"
               required
               className="select select-bordered w-full"
               value={createForm.lot_id || ''}
               onChange={e => setCreateForm(f => ({ ...f, lot_id: Number(e.target.value) }))}
             >
               <option value="">Sélectionner…</option>
-              {lots
-                .filter(l => ['libre', 'disponible'].includes(l.statut?.toLowerCase()))
-                .map(l => (
-                  <option key={l.id} value={l.id}>
-                    {l.reference} — {l.immeuble}
+              {lots.length === 0 && (
+                <option disabled>Aucun lot trouvé</option>
+              )}
+              {lots.map(l => {
+                const dispo = ['libre', 'disponible'].includes(l.statut?.toLowerCase());
+                return (
+                  <option key={l.id} value={l.id} disabled={!dispo}>
+                    {l.reference} — {l.immeuble}{!dispo ? ` (${l.statut})` : ''}
                   </option>
-                ))}
+                );
+              })}
             </select>
           </div>
 
@@ -704,8 +710,9 @@ const Contrats: React.FC = () => {
 
           {/* Devise */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-base-content/70">Devise</label>
+            <label htmlFor="form-devise" className="text-sm font-semibold text-base-content/70">Devise</label>
             <select
+              id="form-devise"
               className="select select-bordered w-full"
               value={createForm.devise}
               onChange={e => setCreateForm(f => ({ ...f, devise: e.target.value }))}
