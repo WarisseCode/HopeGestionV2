@@ -1,6 +1,6 @@
 // frontend/src/pages/Contrats.tsx
 import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   FileText,
@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import SearchInput from '../components/ui/SearchInput';
 import Select from '../components/ui/Select';
@@ -31,8 +32,10 @@ import { useUser } from '../contexts/UserContext';
 import { motion } from 'framer-motion';
 import { KPICard } from '../components/dashboard';
 import toast from 'react-hot-toast';
-import { locationApi, type Location } from '../api/locationApi';
+import { locationApi, type Location, type CreateLocationData } from '../api/locationApi';
 import { interventionApi } from '../api/interventionApi';
+import { getLocataires } from '../api/locataireApi';
+import { getLots } from '../api/bienApi';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type TabKey = 'locations' | 'ventes' | 'interventions';
@@ -58,16 +61,38 @@ const formatMontant = (n: number) => {
   return n.toLocaleString();
 };
 
+// ── Types form création ────────────────────────────────────────────────────────
+type TypeContrat = 'location' | 'vente';
+
+const EMPTY_FORM: CreateLocationData & { owner_id: number } = {
+  type_contrat: 'location',
+  tenant_id:    0,
+  lot_id:       0,
+  owner_id:     0,
+  date_debut:   '',
+  date_fin:     '',
+  duree_contrat:         12,
+  loyer_mensuel:         0,
+  prix_vente:            0,
+  caution:               0,
+  avance:                0,
+  charges_mensuelles:    0,
+  devise:                'XOF',
+};
+
 // ── Component ──────────────────────────────────────────────────────────────────
 const Contrats: React.FC = () => {
   const { user } = useUser();
-  const navigate  = useNavigate();
-  const canWrite  = !['proprietaire', 'locataire'].includes(user?.userType || '');
+  const navigate      = useNavigate();
+  const queryClient   = useQueryClient();
+  const canWrite      = !['proprietaire', 'locataire'].includes(user?.userType || '');
 
-  const [activeTab,     setActiveTab]     = useState<TabKey>('locations');
-  const [searchQuery,   setSearchQuery]   = useState('');
-  const [statutFilter,  setStatutFilter]  = useState('');
-  const [selectedLease, setSelectedLease] = useState<Location | null>(null);
+  const [activeTab,       setActiveTab]       = useState<TabKey>('locations');
+  const [searchQuery,     setSearchQuery]     = useState('');
+  const [statutFilter,    setStatutFilter]    = useState('');
+  const [selectedLease,   setSelectedLease]   = useState<Location | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm,      setCreateForm]      = useState({ ...EMPTY_FORM });
 
   // ── Data fetching ─────────────────────────────────────────────────────────
   const {
@@ -89,6 +114,45 @@ const Contrats: React.FC = () => {
     queryFn:  () => interventionApi.getTickets({ limit: 200 }),
     staleTime: 30_000,
   });
+
+  // Chargés uniquement quand le modal de création est ouvert
+  const { data: locataires = [] } = useQuery({
+    queryKey: ['locataires-list'],
+    queryFn:  () => getLocataires(),
+    enabled:  showCreateModal,
+    staleTime: 60_000,
+  });
+
+  const { data: lots = [] } = useQuery({
+    queryKey: ['lots-list'],
+    queryFn:  () => getLots(),
+    enabled:  showCreateModal,
+    staleTime: 60_000,
+  });
+
+  // Mutation de création
+  const createMutation = useMutation({
+    mutationFn: (data: CreateLocationData) => locationApi.createLocation(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      toast.success('Contrat créé avec succès !');
+      setShowCreateModal(false);
+      setCreateForm({ ...EMPTY_FORM });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Erreur lors de la création');
+    },
+  });
+
+  const handleCreateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const { owner_id: _oid, ...payload } = createForm;
+    createMutation.mutate({
+      ...payload,
+      tenant_id: Number(createForm.tenant_id),
+      lot_id:    Number(createForm.lot_id),
+    } as CreateLocationData);
+  };
 
   const tickets = ticketsData?.data ?? [];
 
@@ -153,12 +217,12 @@ const Contrats: React.FC = () => {
     .filter(l => l.statut === 'actif' && (!l.type_contrat || l.type_contrat === 'location'))
     .reduce((acc, l) => acc + Number(l.loyer_mensuel ?? 0), 0);
 
-  // ── Navigation vers pages de création réelles (B2 / U2) ──────────────────
   const handleNewContrat = () => {
     if (activeTab === 'interventions') {
       navigate('/dashboard/interventions');
     } else {
-      navigate('/dashboard/locations');
+      setCreateForm({ ...EMPTY_FORM, type_contrat: activeTab === 'ventes' ? 'vente' : 'location' });
+      setShowCreateModal(true);
     }
   };
 
@@ -249,7 +313,7 @@ const Contrats: React.FC = () => {
               key={tab.key}
               type="button"
               role="tab"
-              aria-selected={activeTab === tab.key}
+              aria-selected={activeTab === tab.key ? 'true' : 'false'}
               onClick={() => { setActiveTab(tab.key); setStatutFilter(''); }}
               className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
                 activeTab === tab.key
@@ -526,6 +590,192 @@ const Contrats: React.FC = () => {
         </Card>
       </motion.div>
     </motion.div>
+
+    {/* ── Modal création contrat ── */}
+    <Modal
+      isOpen={showCreateModal}
+      onClose={() => setShowCreateModal(false)}
+      title="Nouveau contrat"
+      size="lg"
+      footer={
+        <>
+          <Button variant="ghost" type="button" onClick={() => setShowCreateModal(false)}>
+            Annuler
+          </Button>
+          <Button
+            variant="primary"
+            type="submit"
+            form="create-contrat-form"
+            disabled={createMutation.isPending}
+          >
+            {createMutation.isPending ? <Loader2 size={16} className="animate-spin mr-2" /> : <Plus size={16} className="mr-2" />}
+            Créer le contrat
+          </Button>
+        </>
+      }
+    >
+      <form id="create-contrat-form" onSubmit={handleCreateSubmit} className="space-y-5">
+        {/* Type de contrat */}
+        <div className="flex gap-3">
+          {(['location', 'vente'] as TypeContrat[]).map(type => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => setCreateForm(f => ({ ...f, type_contrat: type }))}
+              className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all capitalize ${
+                createForm.type_contrat === type
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-base-300 text-base-content/50 hover:border-base-400'
+              }`}
+            >
+              {type === 'location' ? 'Bail de location' : 'Contrat de vente'}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Locataire / Acheteur */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-semibold text-base-content/70">
+              {createForm.type_contrat === 'vente' ? 'Acheteur' : 'Locataire'} <span className="text-error">*</span>
+            </label>
+            <select
+              required
+              className="select select-bordered w-full"
+              value={createForm.tenant_id || ''}
+              onChange={e => setCreateForm(f => ({ ...f, tenant_id: Number(e.target.value) }))}
+            >
+              <option value="">Sélectionner…</option>
+              {locataires.map(l => (
+                <option key={l.id} value={l.id}>
+                  {l.nom} {l.prenoms}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Bien / Lot */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-semibold text-base-content/70">
+              Bien (lot) <span className="text-error">*</span>
+            </label>
+            <select
+              required
+              className="select select-bordered w-full"
+              value={createForm.lot_id || ''}
+              onChange={e => setCreateForm(f => ({ ...f, lot_id: Number(e.target.value) }))}
+            >
+              <option value="">Sélectionner…</option>
+              {lots
+                .filter(l => l.statut === 'disponible' || l.statut === 'Disponible')
+                .map(l => (
+                  <option key={l.id} value={l.id}>
+                    {l.reference} — {l.immeuble}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          {/* Date début */}
+          <Input
+            label="Date de début"
+            required
+            type="date"
+            value={createForm.date_debut}
+            onChange={e => setCreateForm(f => ({ ...f, date_debut: e.target.value }))}
+          />
+
+          {/* Date fin */}
+          <Input
+            label="Date de fin"
+            type="date"
+            value={createForm.date_fin as string}
+            onChange={e => setCreateForm(f => ({ ...f, date_fin: e.target.value }))}
+          />
+
+          {/* Durée */}
+          <Input
+            label="Durée (mois)"
+            type="number"
+            min={1}
+            value={createForm.duree_contrat ?? ''}
+            onChange={e => setCreateForm(f => ({ ...f, duree_contrat: Number(e.target.value) }))}
+          />
+
+          {/* Devise */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-semibold text-base-content/70">Devise</label>
+            <select
+              className="select select-bordered w-full"
+              value={createForm.devise}
+              onChange={e => setCreateForm(f => ({ ...f, devise: e.target.value }))}
+            >
+              <option value="XOF">XOF (FCFA)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="USD">USD ($)</option>
+            </select>
+          </div>
+
+          {/* Loyer — location uniquement */}
+          {createForm.type_contrat === 'location' && (
+            <Input
+              label="Loyer mensuel"
+              required
+              type="number"
+              min={0}
+              value={createForm.loyer_mensuel || ''}
+              onChange={e => setCreateForm(f => ({ ...f, loyer_mensuel: Number(e.target.value) }))}
+              endIcon={<span className="text-xs text-base-content/40">{createForm.devise}</span>}
+            />
+          )}
+
+          {/* Prix de vente — vente uniquement */}
+          {createForm.type_contrat === 'vente' && (
+            <Input
+              label="Prix de vente"
+              required
+              type="number"
+              min={0}
+              value={createForm.prix_vente || ''}
+              onChange={e => setCreateForm(f => ({ ...f, prix_vente: Number(e.target.value) }))}
+              endIcon={<span className="text-xs text-base-content/40">{createForm.devise}</span>}
+            />
+          )}
+
+          {/* Caution */}
+          <Input
+            label="Caution"
+            type="number"
+            min={0}
+            value={createForm.caution || ''}
+            onChange={e => setCreateForm(f => ({ ...f, caution: Number(e.target.value) }))}
+            endIcon={<span className="text-xs text-base-content/40">{createForm.devise}</span>}
+          />
+
+          {/* Avance */}
+          <Input
+            label="Avance"
+            type="number"
+            min={0}
+            value={createForm.avance || ''}
+            onChange={e => setCreateForm(f => ({ ...f, avance: Number(e.target.value) }))}
+            endIcon={<span className="text-xs text-base-content/40">{createForm.devise}</span>}
+          />
+
+          {/* Charges — location uniquement */}
+          {createForm.type_contrat === 'location' && (
+            <Input
+              label="Charges mensuelles"
+              type="number"
+              min={0}
+              value={createForm.charges_mensuelles || ''}
+              onChange={e => setCreateForm(f => ({ ...f, charges_mensuelles: Number(e.target.value) }))}
+              endIcon={<span className="text-xs text-base-content/40">{createForm.devise}</span>}
+            />
+          )}
+        </div>
+      </form>
+    </Modal>
 
     {/* ── Modal détail contrat ── */}
 
