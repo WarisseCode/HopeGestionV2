@@ -15,9 +15,16 @@ import {
   AlertCircle,
   Wrench,
   Filter,
+  User,
+  Building2,
+  CalendarDays,
+  Banknote,
+  ExternalLink,
+  Phone,
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import Modal from '../components/ui/Modal';
 import SearchInput from '../components/ui/SearchInput';
 import Select from '../components/ui/Select';
 import { useUser } from '../contexts/UserContext';
@@ -57,9 +64,10 @@ const Contrats: React.FC = () => {
   const navigate  = useNavigate();
   const canWrite  = !['proprietaire', 'locataire'].includes(user?.userType || '');
 
-  const [activeTab,    setActiveTab]    = useState<TabKey>('locations');
-  const [searchQuery,  setSearchQuery]  = useState('');
-  const [statutFilter, setStatutFilter] = useState('');
+  const [activeTab,     setActiveTab]     = useState<TabKey>('locations');
+  const [searchQuery,   setSearchQuery]   = useState('');
+  const [statutFilter,  setStatutFilter]  = useState('');
+  const [selectedLease, setSelectedLease] = useState<Location | null>(null);
 
   // ── Data fetching ─────────────────────────────────────────────────────────
   const {
@@ -369,7 +377,7 @@ const Contrats: React.FC = () => {
                               variant="ghost" size="sm"
                               aria-label={`Voir détails du contrat ${item.reference_bail}`}
                               className="w-10 h-10 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"
-                              onClick={() => navigate(`/dashboard/locations/${item.id}`)}
+                              onClick={() => setSelectedLease(item)}
                             >
                               <Eye size={20} />
                             </Button>
@@ -432,7 +440,7 @@ const Contrats: React.FC = () => {
                               variant="ghost" size="sm"
                               aria-label={`Voir détails du contrat de vente ${item.reference_bail}`}
                               className="w-10 h-10 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"
-                              onClick={() => navigate(`/dashboard/locations/${item.id}`)}
+                              onClick={() => setSelectedLease(item)}
                             >
                               <Eye size={20} />
                             </Button>
@@ -517,6 +525,173 @@ const Contrats: React.FC = () => {
         </Card>
       </motion.div>
     </motion.div>
+
+    {/* ── Modal détail contrat ── */}
+    <Modal
+      isOpen={!!selectedLease}
+      onClose={() => setSelectedLease(null)}
+      title={selectedLease?.reference_bail ?? ''}
+      size="lg"
+      footer={
+        <>
+          <Button variant="ghost" onClick={() => setSelectedLease(null)}>Fermer</Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              window.open(`/dashboard/locations/${selectedLease?.id}`, '_blank');
+            }}
+          >
+            <ExternalLink size={16} className="mr-2" />
+            Fiche complète
+          </Button>
+        </>
+      }
+    >
+      {selectedLease && (
+        <div className="space-y-6">
+          {/* Badge type + statut */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="badge badge-outline badge-lg capitalize">
+              {selectedLease.type_contrat === 'vente' ? 'Vente' : 'Location'}
+            </span>
+            <span className={`badge badge-lg ${statutBadge(selectedLease.statut)}`}>
+              {selectedLease.statut?.toUpperCase()}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* ── Locataire / Acheteur ── */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider flex items-center gap-2">
+                <User size={14} /> {selectedLease.type_contrat === 'vente' ? 'Acheteur' : 'Locataire'}
+              </h3>
+              <div className="bg-base-200/50 rounded-xl p-4 space-y-2">
+                <p className="font-bold text-base-content text-lg">
+                  {[selectedLease.locataire_nom, selectedLease.locataire_prenoms].filter(Boolean).join(' ') || '—'}
+                </p>
+                {selectedLease.locataire_telephone && (
+                  <p className="text-sm text-base-content/60 flex items-center gap-2">
+                    <Phone size={14} /> {selectedLease.locataire_telephone}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* ── Bien ── */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider flex items-center gap-2">
+                <Building2 size={14} /> Bien immobilier
+              </h3>
+              <div className="bg-base-200/50 rounded-xl p-4 space-y-2">
+                <p className="font-bold text-base-content">
+                  {selectedLease.immeuble_nom || '—'}
+                </p>
+                <p className="text-sm text-base-content/60 flex items-center gap-2">
+                  <Home size={14} />
+                  {[selectedLease.ref_lot, selectedLease.lot_type].filter(Boolean).join(' · ') || '—'}
+                </p>
+              </div>
+            </div>
+
+            {/* ── Période ── */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider flex items-center gap-2">
+                <CalendarDays size={14} /> Période
+              </h3>
+              <div className="bg-base-200/50 rounded-xl p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-base-content/60">Début</span>
+                  <span className="font-semibold">{new Date(selectedLease.date_debut).toLocaleDateString('fr-FR')}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-base-content/60">Fin</span>
+                  <span className="font-semibold">
+                    {selectedLease.date_fin
+                      ? new Date(selectedLease.date_fin).toLocaleDateString('fr-FR')
+                      : 'Indéterminée'}
+                  </span>
+                </div>
+                {selectedLease.duree_contrat && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-base-content/60">Durée</span>
+                    <span className="font-semibold">{selectedLease.duree_contrat} mois</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Financier ── */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider flex items-center gap-2">
+                <Banknote size={14} /> Financier
+              </h3>
+              <div className="bg-base-200/50 rounded-xl p-4 space-y-2">
+                {selectedLease.type_contrat === 'vente' ? (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-base-content/60">Prix de vente</span>
+                    <span className="font-bold text-success text-base">
+                      {Number(selectedLease.prix_vente ?? 0).toLocaleString()} F
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-base-content/60">Loyer mensuel</span>
+                      <span className="font-bold text-primary text-base">
+                        {Number(selectedLease.loyer_mensuel ?? 0).toLocaleString()} F
+                      </span>
+                    </div>
+                    {Number(selectedLease.charges_mensuelles) > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-base-content/60">Charges</span>
+                        <span className="font-semibold">{Number(selectedLease.charges_mensuelles).toLocaleString()} F</span>
+                      </div>
+                    )}
+                  </>
+                )}
+                {Number(selectedLease.caution) > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-base-content/60">Caution</span>
+                    <span className="font-semibold">{Number(selectedLease.caution).toLocaleString()} F</span>
+                  </div>
+                )}
+                {Number(selectedLease.avance) > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-base-content/60">Avance</span>
+                    <span className="font-semibold">{Number(selectedLease.avance).toLocaleString()} F</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm">
+                  <span className="text-base-content/60">Devise</span>
+                  <span className="font-semibold">{selectedLease.devise || 'XOF'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Propriétaire ── */}
+          {selectedLease.proprietaire_nom && (
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-center justify-between">
+              <span className="text-sm text-base-content/60">Propriétaire</span>
+              <span className="font-semibold text-primary">{selectedLease.proprietaire_nom}</span>
+            </div>
+          )}
+
+          {/* ── Document signé ── */}
+          {selectedLease.signature_url && (
+            <div className="bg-success/10 border border-success/20 rounded-xl p-4 flex items-center justify-between">
+              <span className="text-sm text-success font-medium">✍️ Contrat signé électroniquement</span>
+              <Button
+                variant="ghost" size="sm"
+                onClick={() => window.open(selectedLease.signature_url, '_blank')}
+              >
+                <Download size={16} className="mr-1" /> Télécharger
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </Modal>
   );
 };
 
