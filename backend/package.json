@@ -12,6 +12,7 @@
     "test:coverage": "jest --coverage --runInBand --forceExit",
     "start": "node dist/index.js",
     "build": "tsc",
+    "deploy": "npm install && tsc && pm2 restart hopegestion-backend",
     "dev": "nodemon index.ts",
     "migrate": "ts-node scripts/runMigration.ts",
     "migrate-prod": "node dist/scripts/runMigration.js",
