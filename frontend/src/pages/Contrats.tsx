@@ -667,7 +667,7 @@ const Contrats: React.FC = () => {
             >
               <option value="">Sélectionner…</option>
               {lots
-                .filter(l => l.statut === 'disponible' || l.statut === 'Disponible')
+                .filter(l => ['libre', 'disponible'].includes(l.statut?.toLowerCase()))
                 .map(l => (
                   <option key={l.id} value={l.id}>
                     {l.reference} — {l.immeuble}
