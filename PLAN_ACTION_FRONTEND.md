@@ -1,6 +1,6 @@
 # Plan d'action — Audit Frontend HopeGestionV2
 **Date :** Avril 2026  
-**Statut global :** ✅ Terminé (48/48)
+**Statut global :** ✅ Terminé (48/48 — complet)
 
 ---
 
@@ -87,7 +87,7 @@
 
 | # | Statut | Type | Fichier | Description |
 |---|---|---|---|---|
-| 5.1 | 🔴 | ⚠️ | `Contrats.tsx` | Connecter la page à la vraie API (contrats de location + vente) — supprimer les données mockées hardcodées |
+| 5.1 | ✅ | ⚠️ | `Contrats.tsx` | Connecter la page à la vraie API (contrats de location + vente) — supprimer les données mockées hardcodées |
 | 5.2 | ✅ | ⚠️ | `Locataires.tsx` | Supprimer commentaire "In real app…" — le champ `payment_status` vient bien de l'API |
 | 5.3 | ✅ | ⚠️ | `Locataires.tsx` | `getAvatarColor()` — augmenter l'entropie (utiliser le nom complet, pas seulement le premier caractère) |
 | 5.4 | ✅ | ⚠️ | `PublicFooter.tsx` | Formulaire newsletter : toast "Bientôt disponible" en attendant l'API |
@@ -114,8 +114,6 @@
 | Phase 2 — Accessibilité | 9 | ✅ Terminée |
 | Phase 3 — UX & Navigation | 10 | ✅ Terminée |
 | Phase 4 — Incohérences composants | 9 | ✅ Terminée |
-| Phase 5 — Données & Logique | 5 | ✅ Terminée (5.1 reporté — nécessite API backend) |
+| Phase 5 — Données & Logique | 5 | ✅ Terminée |
 | Phase 6 — Nettoyage | 4 | ✅ Terminée |
-| **Total** | **48 items** | **47/48 résolus** |
-
-> **5.1** (Contrats.tsx → API réelle) est volontairement reporté : nécessite une route backend `/contrats` avec les données de location et vente — à implémenter en sprint dédié.
+| **Total** | **48 items** | **48/48 résolus** |
