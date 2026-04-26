@@ -114,29 +114,31 @@ router.post('/', permissions.canWrite('locataires'), tenantGuard, async (req: Au
             return res.status(400).json({ message: 'Ce lot a déjà une affectation active' });
         }
 
-        const refResult = await dbClient.query("SELECT COUNT(*) FROM leases");
-        const count = parseInt(refResult.rows[0].count) + 1;
-        const prefix = type_contrat === 'vente' ? 'VTE' : type_contrat === 'reservation' ? 'RES' : 'BAIL';
-        const reference_bail = `${prefix}-${new Date().getFullYear()}-${String(count).padStart(4, '0')}`;
-
+        // INSERT sans reference_bail — on l'attribue après pour utiliser l'id (garanti unique, sans race condition RLS)
         const result = await dbClient.query(`
             INSERT INTO leases (
-                tenant_id, lot_id, owner_id, reference_bail, type_contrat,
+                tenant_id, lot_id, owner_id, type_contrat,
                 date_debut, date_fin, duree_contrat, loyer_actuel,
                 caution, avance, charges_mensuelles, type_charges, devise,
                 type_paiement, frequence_paiement, jour_echeance, penalite_retard, tolerance_jours,
                 prix_vente, apport_initial, modalite_paiement, date_expiration, conditions_particulieres,
                 statut, gestionnaire_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, 'actif', $25)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, 'actif', $24)
             RETURNING *
         `, [
-            tenant_id, lot_id, strictOwnerId, reference_bail, type_contrat,
+            tenant_id, lot_id, strictOwnerId, type_contrat,
             date_debut, date_fin || null, duree_contrat || 12, loyer_mensuel || 0,
             caution || 0, avance || 0, charges_mensuelles || 0, type_charges || 'forfaitaire', devise || 'XOF',
             type_paiement || 'classique', frequence_paiement || 'mensuel', jour_echeance || 1, penalite_retard || 0, tolerance_jours || 0,
             prix_vente || null, apport_initial || null, modalite_paiement || null, date_expiration || null, conditions_particulieres || null,
             req.userId
         ]);
+
+        const lease = result.rows[0];
+        const prefix = type_contrat === 'vente' ? 'VTE' : type_contrat === 'reservation' ? 'RES' : 'BAIL';
+        const reference_bail = `${prefix}-${new Date().getFullYear()}-${String(lease.id).padStart(4, '0')}`;
+        await dbClient.query('UPDATE leases SET reference_bail = $1 WHERE id = $2', [reference_bail, lease.id]);
+        lease.reference_bail = reference_bail;
 
         let newLotStatus = 'loue';
         if (type_contrat === 'vente') newLotStatus = 'vendu';
