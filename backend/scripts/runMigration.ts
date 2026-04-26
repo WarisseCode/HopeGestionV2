@@ -139,6 +139,8 @@ async function runMigration() {
 
         await runStep(client, '29 migration_manager_code.sql', path.join(dbDir, 'migration_manager_code.sql'), true);
 
+        await runStep(client, '30 create_intervention_tables', path.join(dbDir, 'migrations', 'create_intervention_tables.sql'), true);
+
         console.log('\n✅ Migration exécutée avec succès (mode résilient) !');
 
         
