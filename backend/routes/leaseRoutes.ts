@@ -48,7 +48,6 @@ router.get('/:id', permissions.canRead('locataires'), tenantGuard, async (req: A
                 t.email as locataire_email,
                 lot.ref_lot,
                 lot.type as lot_type,
-                lot.superficie,
                 b.nom as immeuble_nom,
                 b.adresse as immeuble_adresse,
                 o.name as proprietaire_nom
