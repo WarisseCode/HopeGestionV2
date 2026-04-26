@@ -143,7 +143,7 @@ const Contrats: React.FC = () => {
   }).length;
   const totalLoyer = allLeases
     .filter(l => l.statut === 'actif' && (!l.type_contrat || l.type_contrat === 'location'))
-    .reduce((acc, l) => acc + (l.loyer_mensuel ?? 0), 0);
+    .reduce((acc, l) => acc + Number(l.loyer_mensuel ?? 0), 0);
 
   // ── Navigation vers pages de création réelles (B2 / U2) ──────────────────
   const handleNewContrat = () => {
@@ -367,9 +367,9 @@ const Contrats: React.FC = () => {
                           <div className="flex justify-end gap-2">
                             <Button
                               variant="ghost" size="sm"
-                              aria-label={`Voir contrat ${item.reference_bail}`}
+                              aria-label={`Voir détails du contrat ${item.reference_bail}`}
                               className="w-10 h-10 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"
-                              onClick={() => toast('Visualisation du contrat bientôt disponible.')}
+                              onClick={() => navigate(`/dashboard/locations/${item.id}`)}
                             >
                               <Eye size={20} />
                             </Button>
@@ -377,7 +377,13 @@ const Contrats: React.FC = () => {
                               variant="ghost" size="sm"
                               aria-label={`Télécharger contrat ${item.reference_bail}`}
                               className="w-10 h-10 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"
-                              onClick={() => toast('Téléchargement bientôt disponible.')}
+                              onClick={() => {
+                                if (item.signature_url) {
+                                  window.open(item.signature_url, '_blank');
+                                } else {
+                                  toast('Aucun document signé disponible pour ce contrat.');
+                                }
+                              }}
                             >
                               <Download size={20} />
                             </Button>
@@ -424,9 +430,9 @@ const Contrats: React.FC = () => {
                           <div className="flex justify-end gap-2">
                             <Button
                               variant="ghost" size="sm"
-                              aria-label={`Voir contrat de vente ${item.reference_bail}`}
+                              aria-label={`Voir détails du contrat de vente ${item.reference_bail}`}
                               className="w-10 h-10 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"
-                              onClick={() => toast('Visualisation du contrat bientôt disponible.')}
+                              onClick={() => navigate(`/dashboard/locations/${item.id}`)}
                             >
                               <Eye size={20} />
                             </Button>
@@ -434,7 +440,13 @@ const Contrats: React.FC = () => {
                               variant="ghost" size="sm"
                               aria-label={`Télécharger contrat de vente ${item.reference_bail}`}
                               className="w-10 h-10 p-0 flex items-center justify-center rounded-lg text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"
-                              onClick={() => toast('Téléchargement bientôt disponible.')}
+                              onClick={() => {
+                                if (item.signature_url) {
+                                  window.open(item.signature_url, '_blank');
+                                } else {
+                                  toast('Aucun document signé disponible pour ce contrat.');
+                                }
+                              }}
                             >
                               <Download size={20} />
                             </Button>
