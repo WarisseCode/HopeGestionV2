@@ -17,15 +17,23 @@ const ENDPOINT    = process.env.SPACES_ENDPOINT || 'fra1.digitaloceanspaces.com'
 const REGION      = process.env.SPACES_REGION   || 'fra1';
 const CDN_BASE    = process.env.SPACES_CDN_URL  || `https://${BUCKET_NAME}.${ENDPOINT}`;
 
-const s3 = new S3Client({
-    endpoint:        `https://${ENDPOINT}`,
-    region:          REGION,
-    credentials: {
-        accessKeyId:     process.env.SPACES_KEY    || '',
-        secretAccessKey: process.env.SPACES_SECRET || '',
-    },
-    forcePathStyle: false,
-});
+// Lazy init — ne crée le client qu'au premier appel pour ne pas crasher au démarrage
+// si les credentials Spaces ne sont pas configurés.
+let _s3: S3Client | null = null;
+function getS3Client(): S3Client {
+    if (!_s3) {
+        _s3 = new S3Client({
+            endpoint:    `https://${ENDPOINT}`,
+            region:      REGION,
+            credentials: {
+                accessKeyId:     process.env.SPACES_KEY    || '',
+                secretAccessKey: process.env.SPACES_SECRET || '',
+            },
+            forcePathStyle: false,
+        });
+    }
+    return _s3;
+}
 
 /**
  * Upload un fichier vers Digital Ocean Spaces (S3-compatible).
@@ -40,7 +48,7 @@ export const uploadToSpaces = async (
     const ext      = path.extname(file.originalname);
     const key      = `${folder}/${uuidv4()}${ext}`;
 
-    await s3.send(new PutObjectCommand({
+    await getS3Client().send(new PutObjectCommand({
         Bucket:       BUCKET_NAME,
         Key:          key,
         Body:         file.buffer,
@@ -60,7 +68,7 @@ export const deleteFromSpaces = async (fileUrl: string): Promise<boolean> => {
         const url = new URL(fileUrl);
         const key = url.pathname.replace(/^\//, '');
 
-        await s3.send(new DeleteObjectCommand({
+        await getS3Client().send(new DeleteObjectCommand({
             Bucket: BUCKET_NAME,
             Key:    key,
         }));
@@ -78,7 +86,7 @@ export const deleteFromSpaces = async (fileUrl: string): Promise<boolean> => {
  */
 export const getSignedUrl = async (fileKey: string, expiresIn = 3600): Promise<string> => {
     const command = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: fileKey });
-    return awsGetSignedUrl(s3, command, { expiresIn });
+    return awsGetSignedUrl(getS3Client(), command, { expiresIn });
 };
 
 /**
