@@ -146,11 +146,11 @@ const Contrats: React.FC = () => {
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const { owner_id: _oid, ...payload } = createForm;
     createMutation.mutate({
-      ...payload,
+      ...createForm,
       tenant_id: Number(createForm.tenant_id),
       lot_id:    Number(createForm.lot_id),
+      owner_id:  Number(createForm.owner_id),
     } as CreateLocationData);
   };
 
@@ -665,7 +665,11 @@ const Contrats: React.FC = () => {
               required
               className="select select-bordered w-full"
               value={createForm.lot_id || ''}
-              onChange={e => setCreateForm(f => ({ ...f, lot_id: Number(e.target.value) }))}
+              onChange={e => {
+                const lotId = Number(e.target.value);
+                const lot = lots.find(l => l.id === lotId);
+                setCreateForm(f => ({ ...f, lot_id: lotId, owner_id: lot?.owner_id ?? f.owner_id }));
+              }}
             >
               <option value="">Sélectionner…</option>
               {lots.length === 0 && (
