@@ -102,6 +102,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
             { icon: <Building2 size={20} />, label: 'Mes Biens', path: '/biens' },
             { icon: <Users size={20} />, label: 'Mes Locataires', path: '/locataires' },
             { icon: <FileText size={20} />, label: 'Locations', path: '/locations' },
+            { icon: <ClipboardList size={20} />, label: 'Contrats', path: '/contrats' },
             { icon: <CalendarCheck size={20} />, label: 'Réservations', path: '/reservations' },
           ]
         },
@@ -155,6 +156,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
     // Consolidation of renting activities
     if (perms.locataires_read || role === 'admin' || role === 'gestionnaire') {
         gestionItems.push({ icon: <Home size={20} />, label: 'Baux & Locations', path: '/locations' });
+        gestionItems.push({ icon: <ClipboardList size={20} />, label: 'Contrats', path: '/contrats' });
     }
     if (role === 'admin' || role === 'gestionnaire') {
         gestionItems.push({ icon: <ClipboardCheck size={20} />, label: 'États des Lieux', path: '/etats-des-lieux' });
