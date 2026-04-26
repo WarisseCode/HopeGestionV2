@@ -192,6 +192,7 @@ const Contrats: React.FC = () => {
   const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
 
   return (
+    <>
     <motion.div
       className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto"
       variants={containerVariants}
@@ -248,7 +249,7 @@ const Contrats: React.FC = () => {
               key={tab.key}
               type="button"
               role="tab"
-              aria-selected={activeTab === tab.key ? 'true' : 'false'}
+              aria-selected={activeTab === tab.key}
               onClick={() => { setActiveTab(tab.key); setStatutFilter(''); }}
               className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
                 activeTab === tab.key
@@ -527,6 +528,7 @@ const Contrats: React.FC = () => {
     </motion.div>
 
     {/* ── Modal détail contrat ── */}
+
     <Modal
       isOpen={!!selectedLease}
       onClose={() => setSelectedLease(null)}
@@ -692,6 +694,7 @@ const Contrats: React.FC = () => {
         </div>
       )}
     </Modal>
+    </>
   );
 };
 
