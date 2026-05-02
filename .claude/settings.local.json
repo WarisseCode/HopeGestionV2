@@ -7,7 +7,24 @@
       "Bash(find \"d:/Hope GImmo/HopeGestionV2/backend/db\" -name \"*.sql\" -exec grep -l \"POLICY\\\\|rls\\\\|ROW LEVEL\" {} \\\\;)",
       "Bash(PGPASSWORD=HopeGestion2026Secure psql -U hopegestion -h localhost -d hopegestion -c \"SELECT id, email, nom, user_type FROM users WHERE email = 'codeman2codeman@gmail.com';\")",
       "Bash(PGPASSWORD=postgres123 psql -U postgres -h localhost -c \"\\\\l\")",
-      "Bash(PGPASSWORD=postgres123 psql -U postgres -h localhost -d hope_gestion_db -c \"SELECT id, email, nom, user_type FROM users WHERE email ILIKE '%codeman%' OR user_type = 'gestionnaire' LIMIT 10;\")"
+      "Bash(PGPASSWORD=postgres123 psql -U postgres -h localhost -d hope_gestion_db -c \"SELECT id, email, nom, user_type FROM users WHERE email ILIKE '%codeman%' OR user_type = 'gestionnaire' LIMIT 10;\")",
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'fix\\(cron\\): ajouter migration create_intervention_tables \\(table providers manquante\\) *)",
+      "Bash(git push *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git commit -m 'fix\\(contrats\\): inclure statut '\\\\''libre'\\\\'' dans le filtre des lots disponibles *)",
+      "Bash(git commit -m 'fix\\(contrats\\): afficher tous les lots \\(désactivés si occupés\\) + aria labels *)",
+      "Bash(git commit -m 'fix\\(leases\\): générer reference_bail depuis l'\\\\''id après INSERT \\(pas COUNT\\) *)",
+      "Bash(gh api *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(npx --version)",
+      "Bash(npx uipro-cli@latest init --ai claude)",
+      "Bash(python3 *)",
+      "Bash(python \"D:/Hope GImmo/HopeGestionV2/.claude/skills/ui-ux-pro-max/scripts/search.py\" --version)",
+      "Bash(python *)",
+      "Bash(npx vite *)"
     ]
   }
 }

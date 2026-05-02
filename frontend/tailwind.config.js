@@ -8,21 +8,20 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          200: '#c7d2fe',
-          300: '#a5b4fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5', // Make sure this is the main primary
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
+          50: '#f0fdfa',
+          100: '#ccfbf1',
+          200: '#99f6e4',
+          300: '#5eead4',
+          400: '#2dd4bf',
+          500: '#14b8a6',
+          600: '#0d9488',
+          700: '#0f766e',
+          800: '#115e59',
+          900: '#134e4a',
         },
-        secondary: { // Keeping Pink/Rose as secondary for alerts/accents or switching to Sky? 
-                     // Let's use Sky as "Accent" and keep Pink as Secondary for variety
+        secondary: {
           50: '#f0f9ff',
-          100: '#e0f2fe', // The user liked this Sky
+          100: '#e0f2fe',
           200: '#bae6fd',
           300: '#7dd3fc',
           400: '#38bdf8',
@@ -103,35 +102,35 @@ export default {
     themes: [
       {
         hopegestion: {
-          "primary": "#4f46e5", // Indigo 600
+          "primary": "#0d9488",   // Teal 600
           "secondary": "#0ea5e9", // Sky 500
-          "accent": "#8b5cf6", // Violet
-          "neutral": "#1e293b", // Slate 800
+          "accent": "#14b8a6",    // Teal 500
+          "neutral": "#1e293b",   // Slate 800
           "base-100": "#ffffff",
-          "base-200": "#f8fafc", // Slate 50
+          "base-200": "#f0fdfa",  // Teal 50 — fond légèrement chaleureux
           "info": "#3b82f6",
           "success": "#22c55e",
           "warning": "#f59e0b",
           "error": "#ef4444",
-          "--rounded-box": "1rem", // rounded-2xl
-          "--rounded-btn": "0.5rem", // rounded-lg
+          "--rounded-box": "1rem",
+          "--rounded-btn": "0.5rem",
         },
       },
       {
         dark: {
-          "primary": "#6366f1", // Indigo 500 (lighter for dark mode)
+          "primary": "#2dd4bf",   // Teal 400 (plus lumineux sur fond sombre)
           "secondary": "#38bdf8", // Sky 400
-          "accent": "#a78bfa", // Violet 400
-          "neutral": "#94a3b8", // Slate 400
-          "base-100": "#0f172a", // Slate 900 (Main BG)
-          "base-200": "#1e293b", // Slate 800 (Secondary BG)
-          "base-300": "#334155", // Slate 700 (Borders)
+          "accent": "#5eead4",    // Teal 300
+          "neutral": "#94a3b8",   // Slate 400
+          "base-100": "#0f172a",  // Slate 900
+          "base-200": "#1e293b",  // Slate 800
+          "base-300": "#334155",  // Slate 700
           "info": "#60a5fa",
           "success": "#4ade80",
           "warning": "#fbbf24",
           "error": "#f87171",
-          "--rounded-box": "1rem", 
-          "--rounded-btn": "0.5rem", 
+          "--rounded-box": "1rem",
+          "--rounded-btn": "0.5rem",
         },
       },
     ],
