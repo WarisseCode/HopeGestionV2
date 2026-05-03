@@ -6,6 +6,9 @@ if (!apiUrl.startsWith('http')) {
     apiUrl = `https://${apiUrl}`;
 }
 
-export const API_BASE = apiUrl;
-export const API_URL = `${API_BASE}/api`;
+// Supprimer le /api trailing si déjà présent pour éviter le double préfixe /api/api
+const apiBase = apiUrl.replace(/\/api\/?$/, '');
+
+export const API_BASE = apiBase;
+export const API_URL = `${apiBase}/api`;
 
