@@ -10,7 +10,7 @@ import { toast } from 'react-hot-toast';
 
 const ETATS = [
     { value: 'neuf', label: 'Neuf', color: 'bg-green-100 text-green-700' },
-    { value: 'bon', label: 'Bon', color: 'bg-blue-100 text-blue-700' },
+    { value: 'bon', label: 'Bon', color: 'bg-teal-100 text-teal-700' },
     { value: 'usager', label: 'Usagé', color: 'bg-yellow-100 text-yellow-700' },
     { value: 'mauvais', label: 'Mauvais', color: 'bg-orange-100 text-orange-700' },
     { value: 'hs', label: 'Hors Service', color: 'bg-red-100 text-red-700' },
@@ -145,22 +145,22 @@ const EdlCreate: React.FC = () => {
 
     const renderStepIndicator = () => (
         <div className="flex items-center justify-center gap-3 mb-8">
-            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-blue-600' : 'text-base-content/50'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-base-300'}`}>
+            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-teal-600' : 'text-base-content/50'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step >= 1 ? 'bg-teal-600 text-white' : 'bg-base-300'}`}>
                     {step > 1 ? <Check size={16} /> : '1'}
                 </div>
                 <span className="hidden sm:block font-medium">Contexte</span>
             </div>
             <div className="h-px w-8 bg-gray-300"></div>
-            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-blue-600' : 'text-base-content/50'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-base-300'}`}>
+            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-teal-600' : 'text-base-content/50'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step >= 2 ? 'bg-teal-600 text-white' : 'bg-base-300'}`}>
                     {step > 2 ? <Check size={16} /> : '2'}
                 </div>
                 <span className="hidden sm:block font-medium">Inspection</span>
             </div>
             <div className="h-px w-8 bg-gray-300"></div>
-            <div className={`flex items-center gap-2 ${step >= 3 ? 'text-blue-600' : 'text-base-content/50'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step >= 3 ? 'bg-blue-600 text-white' : 'bg-base-300'}`}>
+            <div className={`flex items-center gap-2 ${step >= 3 ? 'text-teal-600' : 'text-base-content/50'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step >= 3 ? 'bg-teal-600 text-white' : 'bg-base-300'}`}>
                     3
                 </div>
                 <span className="hidden sm:block font-medium">Validation</span>
@@ -179,7 +179,7 @@ const EdlCreate: React.FC = () => {
                     <ChevronLeft size={20} /> Retour
                 </button>
                 <h1 className="text-2xl font-bold text-base-content flex items-center gap-2">
-                    <ClipboardCheck className="text-blue-600" />
+                    <ClipboardCheck className="text-teal-600" />
                     Nouvel État des Lieux
                 </h1>
                 <div className="w-20"></div> {/* Spacer */}
@@ -275,7 +275,7 @@ const EdlCreate: React.FC = () => {
                                     id="present"
                                     checked={context.locataire_present}
                                     onChange={(e) => setContext({...context, locataire_present: e.target.checked})}
-                                    className="w-4 h-4 text-blue-600"
+                                    className="w-4 h-4 text-teal-600"
                                 />
                                 <label htmlFor="present" className="text-sm text-base-content/80">
                                     Locataire présent lors de l'inspection
@@ -351,9 +351,9 @@ const EdlCreate: React.FC = () => {
                         >
                             <h2 className="text-xl font-bold text-base-content">Validation et Enregistrement</h2>
                             
-                            <div className="bg-blue-50 p-4 rounded-xl">
-                                <h3 className="font-bold text-blue-900 mb-2">Récapitulatif</h3>
-                                <ul className="text-sm text-blue-800 space-y-1">
+                            <div className="bg-teal-50 p-4 rounded-xl">
+                                <h3 className="font-bold text-teal-900 mb-2">Récapitulatif</h3>
+                                <ul className="text-sm text-teal-800 space-y-1">
                                     <li>• Type: {context.type_edl === 'entree' ? 'Entrée' : context.type_edl === 'sortie' ? 'Sortie' : 'Intermédiaire'}</li>
                                     <li>• Date: {new Date(context.date_realisation).toLocaleDateString()}</li>
                                     <li>• Locataire: {context.locataire_name || 'N/A'}</li>
@@ -480,7 +480,7 @@ const EdlCreate: React.FC = () => {
                                                 <img src={src} className="w-full h-full object-cover" alt="" />
                                             </div>
                                         ))}
-                                        <label className="aspect-square rounded-lg border-2 border-dashed border-base-300 flex items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition">
+                                        <label className="aspect-square rounded-lg border-2 border-dashed border-base-300 flex items-center justify-center cursor-pointer hover:border-teal-500 hover:bg-teal-50 transition">
                                             <Plus className="text-base-content/50" />
                                             <input type="file" multiple accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                                         </label>

@@ -75,14 +75,14 @@ const EdlSignature: React.FC = () => {
 
             <div className="bg-base-100 p-8 rounded-2xl shadow-sm border border-base-200">
                 <h1 className="text-2xl font-bold text-base-content mb-2 flex items-center gap-2">
-                    <PenTool className="text-blue-600" />
+                    <PenTool className="text-teal-600" />
                     Signature de l'État des Lieux
                 </h1>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8 flex items-start gap-3">
-                    <Building className="text-blue-600 mt-1 shrink-0" size={20} />
+                <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-8 flex items-start gap-3">
+                    <Building className="text-teal-600 mt-1 shrink-0" size={20} />
                     <div>
-                        <h3 className="font-bold text-blue-900 text-sm">Signature en présentiel</h3>
-                        <p className="text-sm text-blue-800 mt-1">
+                        <h3 className="font-bold text-teal-900 text-sm">Signature en présentiel</h3>
+                        <p className="text-sm text-teal-800 mt-1">
                             Cette page est conçue pour être utilisée sur tablette lors de l'état des lieux. 
                             Le gestionnaire et le locataire signent successivement sur le même appareil pour valider le constat immédiatement.
                         </p>

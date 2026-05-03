@@ -209,7 +209,7 @@ const CalendrierPage: React.FC = () => {
               <div className="grid grid-cols-8 border-b">
                   <div className="p-4 border-r text-xs text-base-content/50">Heure</div>
                   {weekDays.map(day => (
-                      <div key={day.toString()} className={`p-4 border-r text-center ${isSameDay(day, new Date()) ? 'bg-blue-50' : ''}`}>
+                      <div key={day.toString()} className={`p-4 border-r text-center ${isSameDay(day, new Date()) ? 'bg-teal-50' : ''}`}>
                           <div className="font-bold text-base-content/90">{format(day, 'EEEE', { locale: fr })}</div>
                           <div className="text-sm text-base-content/60">{format(day, 'd MMM')}</div>
                       </div>
@@ -246,7 +246,7 @@ const CalendrierPage: React.FC = () => {
           case 'payment': return 'bg-green-50 text-green-700 border-green-200';
           case 'intervention': return 'bg-orange-50 text-orange-700 border-orange-200';
           case 'contract': return 'bg-red-50 text-red-700 border-red-200';
-          case 'rdv': return 'bg-blue-50 text-blue-700 border-blue-200';
+          case 'rdv': return 'bg-teal-50 text-teal-700 border-teal-200';
           default: return 'bg-base-200 text-base-content/80 border-base-300';
       }
   };
@@ -254,7 +254,7 @@ const CalendrierPage: React.FC = () => {
       switch(type) {
           case 'payment': return 'bg-green-500';
           case 'notification': return 'bg-teal-500';
-          default: return 'bg-blue-500';
+          default: return 'bg-teal-500';
       }
   };
 

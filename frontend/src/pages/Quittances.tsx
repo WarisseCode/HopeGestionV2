@@ -211,7 +211,7 @@ const Quittances: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
+                <div className="p-3 bg-teal-100 text-teal-600 rounded-full">
                     <FileText size={24} />
                 </div>
                 <div>
@@ -288,7 +288,7 @@ const Quittances: React.FC = () => {
                             onClick={async () => {
                                 await generateQuittancePDF(quittance, 'preview');
                             }}
-                            className="text-blue-600 hover:bg-blue-50"
+                            className="text-teal-600 hover:bg-teal-50"
                            >
                             <Eye size={18} />
                            </Button>

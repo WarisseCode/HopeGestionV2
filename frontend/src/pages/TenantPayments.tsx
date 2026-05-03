@@ -121,7 +121,7 @@ const TenantPayments: React.FC = () => {
         const configs: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
             'pending': { color: 'bg-yellow-100 text-yellow-700', icon: <Clock size={14} />, label: 'En attente' },
             'overdue': { color: 'bg-red-100 text-red-700', icon: <AlertCircle size={14} />, label: 'En retard' },
-            'partial': { color: 'bg-blue-100 text-blue-700', icon: <Clock size={14} />, label: 'Partiel' },
+            'partial': { color: 'bg-teal-100 text-teal-700', icon: <Clock size={14} />, label: 'Partiel' },
             'paid': { color: 'bg-green-100 text-green-700', icon: <CheckCircle size={14} />, label: 'Payé' },
             'approved': { color: 'bg-green-100 text-green-700', icon: <CheckCircle size={14} />, label: 'Payé' },
             'failed': { color: 'bg-red-100 text-red-700', icon: <AlertCircle size={14} />, label: 'Échoué' },
@@ -333,7 +333,7 @@ const TenantPayments: React.FC = () => {
             >
                 {selectedSchedule && (
                     <div className="space-y-6">
-                        <div className="bg-blue-50 p-4 rounded-lg">
+                        <div className="bg-teal-50 p-4 rounded-lg">
                             <h4 className="font-bold text-base-content/90 mb-2">{selectedSchedule.description}</h4>
                             <div className="flex justify-between items-center">
                                 <span className="text-base-content/70">Montant à payer</span>
@@ -367,12 +367,12 @@ const TenantPayments: React.FC = () => {
                                     onClick={() => setSelectedOperator('moov')}
                                     className={`p-4 border-2 rounded-lg transition-all ${
                                         selectedOperator === 'moov'
-                                            ? 'border-blue-500 bg-blue-50'
+                                            ? 'border-teal-500 bg-teal-50'
                                             : 'border-base-300 hover:border-base-300'
                                     }`}
                                 >
                                     <div className="text-center">
-                                        <div className="text-2xl font-bold text-blue-600 mb-1">MOOV</div>
+                                        <div className="text-2xl font-bold text-teal-600 mb-1">MOOV</div>
                                         <div className="text-xs text-base-content/60">Money</div>
                                     </div>
                                 </button>

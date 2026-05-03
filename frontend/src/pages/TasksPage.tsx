@@ -69,7 +69,7 @@ const TasksPage: React.FC = () => {
       switch(p) {
           case 'urgent': return 'text-red-600 bg-red-50 border-red-200';
           case 'high': return 'text-orange-600 bg-orange-50 border-orange-200';
-          case 'medium': return 'text-blue-600 bg-blue-50 border-blue-200';
+          case 'medium': return 'text-teal-600 bg-teal-50 border-teal-200';
           default: return 'text-base-content/70 bg-base-200 border-base-300';
       }
   };
