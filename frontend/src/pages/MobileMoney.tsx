@@ -251,17 +251,17 @@ const MobileMoney: React.FC = () => {
 
       {/* Stats Cards */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border-none shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+          <Card className="border-none shadow-lg bg-gradient-to-br from-teal-500 to-teal-600 text-white">
               <div className="flex justify-between items-start">
                   <div>
-                      <p className="text-blue-100 font-medium mb-1">Solde Total (Théorique)</p>
+                      <p className="text-teal-100 font-medium mb-1">Solde Total (Théorique)</p>
                       <h3 className="text-3xl font-bold">{stats.total.toLocaleString()} F</h3>
                   </div>
                   <div className="p-3 bg-base-100/20 rounded-xl backdrop-blur-sm">
                       <Wallet size={24} className="text-white"/>
                   </div>
               </div>
-              <div className="mt-4 flex items-center gap-2 text-sm text-blue-100 bg-blue-600/30 w-fit px-2 py-1 rounded-lg">
+              <div className="mt-4 flex items-center gap-2 text-sm text-teal-100 bg-teal-600/30 w-fit px-2 py-1 rounded-lg">
                   <TrendingUp size={14} /> Basé sur l'historique
               </div>
           </Card>
@@ -381,7 +381,7 @@ const MobileMoney: React.FC = () => {
             {configurations.map(config => (
                 <Card key={config.id} className={`border-none shadow-xl bg-base-100 hover:-translate-y-1 transition-transform group ${config.statut === 'inactif' ? 'opacity-60 grayscale' : ''}`}>
                     <div className="flex justify-between items-start mb-4">
-                        <div className={`p-3 rounded-2xl ${config.operateur.includes('MOOV') ? 'bg-blue-100 text-blue-600' : 'bg-yellow-100 text-yellow-600'}`}>
+                        <div className={`p-3 rounded-2xl ${config.operateur.includes('MOOV') ? 'bg-teal-100 text-teal-600' : 'bg-yellow-100 text-yellow-600'}`}>
                             <Smartphone size={24} />
                         </div>
                         <div className="form-control">

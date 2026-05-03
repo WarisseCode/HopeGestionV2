@@ -149,13 +149,13 @@ const PublicFooter: React.FC = () => {
                         <div className="mt-8">
                             <h6 className="text-xs font-bold uppercase opacity-50 mb-3">Suivez-nous</h6>
                             <div className="flex gap-2">
-                                <a href="#" aria-label="Facebook" className="btn btn-ghost btn-sm btn-square hover:bg-base-100/10 hover:text-blue-500 transition-colors">
+                                <a href="#" aria-label="Facebook" className="btn btn-ghost btn-sm btn-square hover:bg-base-100/10 hover:text-teal-500 transition-colors">
                                     <Facebook size={18} />
                                 </a>
                                 <a href="#" aria-label="Twitter" className="btn btn-ghost btn-sm btn-square hover:bg-base-100/10 hover:text-sky-400 transition-colors">
                                     <Twitter size={18} />
                                 </a>
-                                <a href="#" aria-label="LinkedIn" className="btn btn-ghost btn-sm btn-square hover:bg-base-100/10 hover:text-blue-600 transition-colors">
+                                <a href="#" aria-label="LinkedIn" className="btn btn-ghost btn-sm btn-square hover:bg-base-100/10 hover:text-teal-600 transition-colors">
                                     <Linkedin size={18} />
                                 </a>
                                 <a href="#" aria-label="Instagram" className="btn btn-ghost btn-sm btn-square hover:bg-base-100/10 hover:text-pink-500 transition-colors">

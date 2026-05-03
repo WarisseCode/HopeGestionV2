@@ -43,14 +43,14 @@ const GestionnaireProprietairePage: React.FC = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="py-20 px-4 md:px-8 bg-gradient-to-b from-blue-50 to-base-100">
+      <section className="py-20 px-4 md:px-8 bg-gradient-to-b from-teal-50 to-base-100">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
             >
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold mb-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-100 text-teal-700 text-sm font-semibold mb-6">
                 <Building2 size={16} /> Pour Gestionnaires & Propriétaires
               </div>
               <h1 className="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">
@@ -92,7 +92,7 @@ const GestionnaireProprietairePage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <FeatureCard 
-              icon={<Building2 className="text-blue-600" size={32} />}
+              icon={<Building2 className="text-teal-600" size={32} />}
               title="Gestion multi-biens"
               features={["Immeubles et lots", "États des lieux numériques", "Photos et documents"]}
             />
