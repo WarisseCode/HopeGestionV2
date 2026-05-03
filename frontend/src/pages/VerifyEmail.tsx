@@ -69,8 +69,8 @@ const VerifyEmail: React.FC = () => {
     <div className="min-h-screen bg-base-200 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center">
-            <MailOpen className="w-8 h-8 text-blue-600" />
+          <div className="h-16 w-16 bg-teal-100 rounded-full flex items-center justify-center">
+            <MailOpen className="w-8 h-8 text-teal-600" />
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-base-content">
@@ -108,7 +108,7 @@ const VerifyEmail: React.FC = () => {
                   type="text"
                   maxLength={6}
                   required
-                  className="appearance-none block w-3/4 px-3 py-3 border border-base-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-xl text-center font-mono tracking-widest"
+                  className="appearance-none block w-3/4 px-3 py-3 border border-base-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-xl text-center font-mono tracking-widest"
                   placeholder="------"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))} // Que des chiffres
@@ -120,7 +120,7 @@ const VerifyEmail: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading || otp.length !== 6}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50"
               >
                 {loading ? <Loader2 className="animate-spin" /> : 'Vérifier mon compte'}
               </button>
@@ -144,7 +144,7 @@ const VerifyEmail: React.FC = () => {
                 type="button"
                 onClick={handleResend}
                 disabled={resendLoading}
-                className="text-sm font-medium text-blue-600 hover:text-blue-500 focus:outline-none flex items-center justify-center w-full"
+                className="text-sm font-medium text-teal-600 hover:text-teal-500 focus:outline-none flex items-center justify-center w-full"
               >
                 {resendLoading ? <Loader2 className="animate-spin mr-2" /> : null}
                 Renvoyer le code

@@ -118,7 +118,7 @@ const AcceptInvite: React.FC = () => {
                                 type="text"
                                 value={nom}
                                 onChange={(e) => setNom(e.target.value)}
-                                className="w-full px-4 py-2 rounded-lg border border-base-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full px-4 py-2 rounded-lg border border-base-300 focus:ring-2 focus:ring-teal-500 outline-none"
                                 placeholder="Votre nom"
                             />
                         </div>
@@ -128,7 +128,7 @@ const AcceptInvite: React.FC = () => {
                                 type="text"
                                 value={prenom}
                                 onChange={(e) => setPrenom(e.target.value)}
-                                className="w-full px-4 py-2 rounded-lg border border-base-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full px-4 py-2 rounded-lg border border-base-300 focus:ring-2 focus:ring-teal-500 outline-none"
                                 placeholder="Votre prénom"
                             />
                         </div>
@@ -142,7 +142,7 @@ const AcceptInvite: React.FC = () => {
                                 type="password" 
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 rounded-lg border border-base-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full pl-10 pr-4 py-2 rounded-lg border border-base-300 focus:ring-2 focus:ring-teal-500 outline-none"
                                 placeholder="••••••••"
                                 required
                             />
@@ -157,7 +157,7 @@ const AcceptInvite: React.FC = () => {
                                 type="password" 
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 rounded-lg border border-base-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full pl-10 pr-4 py-2 rounded-lg border border-base-300 focus:ring-2 focus:ring-teal-500 outline-none"
                                 placeholder="••••••••"
                                 required
                             />
@@ -168,7 +168,7 @@ const AcceptInvite: React.FC = () => {
                         type="submit" 
                         disabled={loading || !token}
                         className={`w-full py-3 rounded-lg text-white font-semibold shadow-md transition-all ${
-                            loading || !token ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg'
+                            loading || !token ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-700 hover:shadow-lg'
                         }`}
                     >
                         {loading ? 'Activation...' : 'Activer mon compte'}

@@ -201,7 +201,7 @@ const CompteProfil: React.FC = () => {
                 className="bg-base-100 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl p-8 shadow-sm border border-base-200 dark:border-slate-700/50 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden"
             >
                 {/* Decorative background blur */}
-                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-blue-100/40 rounded-full blur-3xl pointer-events-none"></div>
+                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-teal-100/40 rounded-full blur-3xl pointer-events-none"></div>
 
                 {/* Photo Section */}
                 <div className="relative group z-10 w-32 h-32">
@@ -238,7 +238,7 @@ const CompteProfil: React.FC = () => {
                         {formData.prenom} {formData.nom}
                     </h2>
                     <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-4">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-100">
                             <User size={12} className="mr-1.5" />
                             {profile?.role === 'admin' ? 'Administrateur' : profile?.role === 'owner' ? 'Propriétaire' : profile?.role}
                         </span>
@@ -259,7 +259,7 @@ const CompteProfil: React.FC = () => {
                     {/* Information Personnelles Card */}
                     <motion.div variants={cardVariants} initial="hidden" animate="visible" className="bg-base-100 dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-base-200 dark:border-slate-700 transition-shadow hover:shadow-md">
                         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-50 dark:border-slate-800">
-                            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                            <div className="p-2 bg-teal-50 text-teal-600 rounded-xl">
                                 <User size={20} />
                             </div>
                             <h3 className="text-xl font-bold text-base-content/90 dark:text-gray-100">Informations Personnelles</h3>
@@ -272,7 +272,7 @@ const CompteProfil: React.FC = () => {
                                     type="text"
                                     value={formData.prenom}
                                     onChange={(e) => setFormData({...formData, prenom: e.target.value})}
-                                    className="w-full px-4 py-3 rounded-xl border border-base-300 dark:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-base-200/50 dark:bg-slate-900/50"
+                                    className="w-full px-4 py-3 rounded-xl border border-base-300 dark:border-slate-600 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all bg-base-200/50 dark:bg-slate-900/50"
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -281,7 +281,7 @@ const CompteProfil: React.FC = () => {
                                     type="text"
                                     value={formData.nom}
                                     onChange={(e) => setFormData({...formData, nom: e.target.value})}
-                                    className="w-full px-4 py-3 rounded-xl border border-base-300 dark:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-base-200/50 dark:bg-slate-900/50"
+                                    className="w-full px-4 py-3 rounded-xl border border-base-300 dark:border-slate-600 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all bg-base-200/50 dark:bg-slate-900/50"
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -294,7 +294,7 @@ const CompteProfil: React.FC = () => {
                                         type="email"
                                         value={formData.email}
                                         onChange={(e) => setFormData({...formData, email: e.target.value})}
-                                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-base-300 dark:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-base-200/50 dark:bg-slate-900/50"
+                                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-base-300 dark:border-slate-600 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all bg-base-200/50 dark:bg-slate-900/50"
                                     />
                                 </div>
                             </div>
@@ -308,7 +308,7 @@ const CompteProfil: React.FC = () => {
                                         type="tel"
                                         value={formData.telephone}
                                         onChange={(e) => setFormData({...formData, telephone: e.target.value})}
-                                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-base-300 dark:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-base-200/50 dark:bg-slate-900/50"
+                                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-base-300 dark:border-slate-600 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all bg-base-200/50 dark:bg-slate-900/50"
                                         placeholder="+229 XX XX XX XX"
                                     />
                                 </div>
@@ -370,9 +370,9 @@ const CompteProfil: React.FC = () => {
                                 <h4 className="font-semibold text-base-content/90 dark:text-gray-100 mb-4 flex items-center gap-2">
                                     Appareils connectés <span className="text-xs font-normal text-base-content/60 dark:text-base-content/50">(1 session active)</span>
                                 </h4>
-                                <div className="flex items-center justify-between p-4 rounded-xl border border-blue-100 bg-blue-50/30">
+                                <div className="flex items-center justify-between p-4 rounded-xl border border-teal-100 bg-teal-50/30">
                                     <div className="flex items-center gap-4">
-                                        <div className="p-2.5 bg-blue-100 text-blue-600 rounded-lg">
+                                        <div className="p-2.5 bg-teal-100 text-teal-600 rounded-lg">
                                             <Monitor size={20} />
                                         </div>
                                         <div>
@@ -380,7 +380,7 @@ const CompteProfil: React.FC = () => {
                                             <p className="text-xs text-base-content/60 dark:text-base-content/50">Cotonou, Bénin • Actif en ce moment</p>
                                         </div>
                                     </div>
-                                    <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-md">Cet appareil</span>
+                                    <span className="text-xs font-semibold text-teal-600 bg-teal-100 px-2 py-1 rounded-md">Cet appareil</span>
                                 </div>
                             </div>
                         </div>

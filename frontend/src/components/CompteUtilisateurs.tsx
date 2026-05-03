@@ -362,7 +362,7 @@ const CompteUtilisateurs: React.FC = () => {
                 </div>
                 <button 
                     onClick={() => setShowAddModal(true)}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                    className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition"
                 >
                     <Plus size={18} /> Nouvel Utilisateur
                 </button>
@@ -395,7 +395,7 @@ const CompteUtilisateurs: React.FC = () => {
                                     : 'hover:bg-base-200'
                             }`}>
                                 <td className="p-4 flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                                    <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-bold">
                                         {user.prenom?.[0] || user.nom?.[0]}
                                     </div>
                                     <div>
@@ -409,7 +409,7 @@ const CompteUtilisateurs: React.FC = () => {
                                     <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${
                                         user.role === 'admin' ? 'bg-teal-100 text-teal-700' :
                                         user.role === 'manager' ? 'bg-teal-50 text-teal-600' :
-                                        'bg-blue-100 text-blue-700'
+                                        'bg-teal-100 text-teal-700'
                                     }`}>
                                         {user.role}
                                     </span>
@@ -435,7 +435,7 @@ const CompteUtilisateurs: React.FC = () => {
                                         <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-200">
                                             {user.role !== 'admin' && (
                                                 <li>
-                                                    <a onClick={() => openAssignModal(user)} className="text-base-content/80 hover:text-blue-600 hover:bg-blue-50">
+                                                    <a onClick={() => openAssignModal(user)} className="text-base-content/80 hover:text-teal-600 hover:bg-teal-50">
                                                         <Link2 size={16} /> Gérer les accès
                                                     </a>
                                                 </li>
@@ -500,14 +500,14 @@ const CompteUtilisateurs: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => { setCreationMode('invite'); setInvitationLink(null); }}
-                                    className={`flex-1 py-1.5 text-sm font-medium rounded-md transition ${creationMode === 'invite' ? 'bg-base-100 shadow text-blue-600' : 'text-base-content/60'}`}
+                                    className={`flex-1 py-1.5 text-sm font-medium rounded-md transition ${creationMode === 'invite' ? 'bg-base-100 shadow text-teal-600' : 'text-base-content/60'}`}
                                 >
                                     Invitation (Recommandé)
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setCreationMode('direct')}
-                                    className={`flex-1 py-1.5 text-sm font-medium rounded-md transition ${creationMode === 'direct' ? 'bg-base-100 shadow text-blue-600' : 'text-base-content/60'}`}
+                                    className={`flex-1 py-1.5 text-sm font-medium rounded-md transition ${creationMode === 'direct' ? 'bg-base-100 shadow text-teal-600' : 'text-base-content/60'}`}
                                 >
                                     Création Directe
                                 </button>
@@ -584,7 +584,7 @@ const CompteUtilisateurs: React.FC = () => {
                                         </button>
                                         <button 
                                             type="submit"
-                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                                            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2"
                                         >
                                             {creationMode === 'invite' ? <Send size={16}/> : <Plus size={16}/>}
                                             {creationMode === 'invite' ? 'Générer Invitation' : 'Créer'}
@@ -669,7 +669,7 @@ const CompteUtilisateurs: React.FC = () => {
                                                 type="checkbox"
                                                 checked={isAssigned}
                                                 onChange={() => toggleOwnerAssignment(owner.id)}
-                                                className="w-4 h-4 text-blue-600 rounded"
+                                                className="w-4 h-4 text-teal-600 rounded"
                                             />
                                             <div className="flex-1">
                                                 <div className="font-medium text-base-content/90">{owner.nom}</div>
@@ -691,7 +691,7 @@ const CompteUtilisateurs: React.FC = () => {
                                                     </select>
                                                     <button 
                                                         onClick={() => setExpandedOwnerId(isExpanded ? null : owner.id)}
-                                                        className={`p-1 rounded-md hover:bg-base-300 ${isExpanded ? 'text-blue-600 bg-blue-50' : 'text-base-content/50'}`}
+                                                        className={`p-1 rounded-md hover:bg-base-300 ${isExpanded ? 'text-teal-600 bg-teal-50' : 'text-base-content/50'}`}
                                                         title="Paramètres avancés"
                                                     >
                                                         <Settings size={16} />
@@ -750,7 +750,7 @@ const CompteUtilisateurs: React.FC = () => {
                                 </button>
                                 <button 
                                     onClick={saveAssignments}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                                    className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2"
                                 >
                                     <Check size={16} /> Enregistrer
                                 </button>
@@ -871,7 +871,7 @@ const CompteUtilisateurs: React.FC = () => {
 
                                 <button 
                                     onClick={copyKey}
-                                    className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2 font-medium"
+                                    className="w-full py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg flex items-center justify-center gap-2 font-medium"
                                 >
                                     <Link2 size={18}/> Copier la Clé
                                 </button>
