@@ -77,7 +77,7 @@ const NotificationBell: React.FC = () => {
 
   const getIconColor = (type: string) => {
     switch (type) {
-      case 'rent_due': return 'text-blue-500 bg-blue-50';
+      case 'rent_due': return 'text-teal-500 bg-teal-50';
       case 'late_payment': return 'text-red-500 bg-red-50';
       case 'new_complaint': return 'text-orange-500 bg-orange-50';
       case 'payment_received': return 'text-green-500 bg-green-50';
@@ -130,7 +130,7 @@ const NotificationBell: React.FC = () => {
                   {notifications.map((notification) => (
                     <div 
                       key={notification.id} 
-                      className={`p-4 hover:bg-base-200 transition-colors ${!notification.is_read ? 'bg-blue-50/30' : ''}`}
+                      className={`p-4 hover:bg-base-200 transition-colors ${!notification.is_read ? 'bg-teal-50/30' : ''}`}
                     >
                       <div className="flex gap-3">
                         <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${getIconColor(notification.type)}`}>
@@ -153,7 +153,7 @@ const NotificationBell: React.FC = () => {
                             className="flex-shrink-0 text-base-content/40 hover:text-primary transition-colors"
                             title="Marquer comme lu"
                           >
-                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <div className="w-2 h-2 rounded-full bg-teal-500"></div>
                           </button>
                         )}
                       </div>

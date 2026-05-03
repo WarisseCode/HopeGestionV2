@@ -46,10 +46,10 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         },
         info: {
             icon: Info,
-            color: 'text-blue-600',
-            bgIcon: 'bg-blue-100',
-            btn: 'bg-blue-600 hover:bg-blue-700 text-white',
-            ring: 'focus:ring-blue-500'
+            color: 'text-teal-600',
+            bgIcon: 'bg-teal-100',
+            btn: 'bg-teal-600 hover:bg-teal-700 text-white',
+            ring: 'focus:ring-teal-500'
         }
     };
 

@@ -409,7 +409,7 @@ const Alertes: React.FC = () => {
                              >
                                  <div className="flex flex-col md:flex-row justify-between gap-5">
                                      <div className="flex items-start gap-5">
-                                         <div className={`p-3.5 rounded-2xl ${notif.type === 'success' ? 'bg-green-100/80 text-green-600 dark:bg-green-900/30' : notif.type === 'error' ? 'bg-red-100/80 text-red-600 dark:bg-red-900/30' : 'bg-blue-100/80 text-blue-600 dark:bg-blue-900/30'} flex-shrink-0 shadow-sm`}>
+                                         <div className={`p-3.5 rounded-2xl ${notif.type === 'success' ? 'bg-green-100/80 text-green-600 dark:bg-green-900/30' : notif.type === 'error' ? 'bg-red-100/80 text-red-600 dark:bg-red-900/30' : 'bg-teal-100/80 text-teal-600 dark:bg-teal-900/30'} flex-shrink-0 shadow-sm`}>
                                              {notif.type === 'success' ? <CheckCircle size={22} /> : <AlertTriangle size={22} />}
                                          </div>
                                          <div className="pt-1">
