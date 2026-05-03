@@ -62,12 +62,12 @@ const CarnetContacts: React.FC = () => {
                 {filteredContacts.map(c => (
                     <Card key={c.id} className="hover:shadow-md transition-shadow">
                         <div className="flex items-start gap-4">
-                            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xl">
+                            <div className="h-12 w-12 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-bold text-xl">
                                 {c.name.charAt(0)}
                             </div>
                             <div>
                                 <h3 className="font-bold text-base-content">{c.name}</h3>
-                                <p className="text-sm text-blue-600 font-medium">{c.role}</p>
+                                <p className="text-sm text-teal-600 font-medium">{c.role}</p>
                             </div>
                         </div>
 
@@ -91,7 +91,7 @@ const CarnetContacts: React.FC = () => {
                              {c.phone && (
                                  <a 
                                     href={`tel:${c.phone}`} 
-                                    className="flex-1 py-1.5 text-center text-blue-600 bg-blue-50 rounded hover:bg-blue-100 text-sm font-medium transition-colors"
+                                    className="flex-1 py-1.5 text-center text-teal-600 bg-teal-50 rounded hover:bg-teal-100 text-sm font-medium transition-colors"
                                  >
                                      Appeler
                                  </a>

@@ -74,7 +74,7 @@ const CarnetField: React.FC = () => {
 
     const getTypeColor = (t: string) => {
         switch(t) {
-            case 'visite': return 'bg-blue-100 text-blue-800 border-blue-200';
+            case 'visite': return 'bg-teal-100 text-teal-800 border-teal-200';
             case 'intervention': return 'bg-red-100 text-red-800 border-red-200';
             case 'check': return 'bg-green-100 text-green-800 border-green-200';
             default: return 'bg-base-300 text-base-content/90';
@@ -153,7 +153,7 @@ const CarnetField: React.FC = () => {
                     <div key={action.id} className="relative pl-8">
                         {/* Timeline Dot */}
                         <div className={`absolute -left-[9px] top-0 h-4 w-4 rounded-full border-2 border-white ${
-                            action.type === 'visite' ? 'bg-blue-500' : 
+                            action.type === 'visite' ? 'bg-teal-500' : 
                             action.type === 'intervention' ? 'bg-red-500' : 'bg-green-500'
                         }`}></div>
                         
@@ -168,7 +168,7 @@ const CarnetField: React.FC = () => {
                                     </span>
                                 </div>
                                 {action.location_address && (
-                                    <span className="text-xs text-blue-600 flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
+                                    <span className="text-xs text-teal-600 flex items-center gap-1 bg-teal-50 px-2 py-1 rounded">
                                         <MapPin size={12}/> {action.location_address}
                                     </span>
                                 )}
