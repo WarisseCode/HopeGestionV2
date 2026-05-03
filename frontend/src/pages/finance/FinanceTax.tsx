@@ -112,7 +112,7 @@ const FinanceTax: React.FC = () => {
                                                     // Close dropdown by blurring (hacky but works with daisyui dropdown)
                                                     (document.activeElement as HTMLElement)?.blur();
                                                 }}
-                                                className="text-black hover:bg-blue-50"
+                                                className="text-black hover:bg-teal-50"
                                             >
                                                 {o.name}
                                             </button>
@@ -177,11 +177,11 @@ const FinanceTax: React.FC = () => {
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        <Card className="bg-gradient-to-br from-blue-900 to-blue-800 text-white border-none">
+                        <Card className="bg-gradient-to-br from-teal-900 to-teal-800 text-white border-none">
                             <div className="flex justify-between items-center mb-6">
                                 <div>
                                     <h2 className="text-2xl font-bold">Situation Fiscale Estimée</h2>
-                                    <p className="text-blue-200">Année {new Date().getFullYear()}</p>
+                                    <p className="text-teal-200">Année {new Date().getFullYear()}</p>
                                 </div>
                                 <Button variant="secondary" onClick={generateReport} disabled={loading} className="bg-base-100/10 text-white hover:bg-base-100/20 border-none">
                                     {loading ? 'Calcul...' : 'Actualiser le calcul'}
@@ -192,21 +192,21 @@ const FinanceTax: React.FC = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
                                     <div className="space-y-4">
                                         <div className="flex justify-between items-center pb-2 border-b border-white/10">
-                                            <span className="text-blue-200">Revenus Locatifs Bruts</span>
+                                            <span className="text-teal-200">Revenus Locatifs Bruts</span>
                                             <span className="font-bold text-xl text-green-400">+{formatMoney(report.income)}</span>
                                         </div>
                                         <div className="flex justify-between items-center pb-2 border-b border-white/10">
-                                            <span className="text-blue-200">Charges Déductibles</span>
+                                            <span className="text-teal-200">Charges Déductibles</span>
                                             <span className="font-bold text-red-300">-{formatMoney(report.deductible_expenses)}</span>
                                         </div>
                                         <div className="flex justify-between items-center pb-2 border-b border-white/10">
-                                            <span className="text-blue-200">Intérêts d'Emprunt</span>
+                                            <span className="text-teal-200">Intérêts d'Emprunt</span>
                                             <span className="font-bold text-red-300">-{formatMoney(report.loan_interest)}</span>
                                         </div>
                                     </div>
 
                                     <div className="bg-base-100/10 p-6 rounded-xl flex flex-col justify-center items-center text-center">
-                                        <span className="text-sm text-blue-200 uppercase tracking-wider mb-2">Base Imposable Estimée</span>
+                                        <span className="text-sm text-teal-200 uppercase tracking-wider mb-2">Base Imposable Estimée</span>
                                         <span className="text-4xl font-extrabold">{formatMoney(report.taxable_base)}</span>
                                         <div className="mt-4 pt-4 border-t border-white/10 w-full flex justify-between text-sm">
                                             <span>Impôt Estimé ({settings.tax_rate}%)</span>
@@ -217,7 +217,7 @@ const FinanceTax: React.FC = () => {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="text-center py-8 text-blue-200">
+                                <div className="text-center py-8 text-teal-200">
                                     Cliquez sur "Actualiser" pour générer le rapport
                                 </div>
                             )}

@@ -198,7 +198,7 @@ const FinanceExpenses: React.FC = () => {
                                         <label className={`flex flex-col items-center justify-center gap-2 p-6 rounded border-2 border-dashed cursor-pointer transition-colors text-sm h-32 ${
                                             proofFile 
                                                 ? 'bg-green-50 border-green-300 text-green-700' 
-                                                : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
+                                                : 'bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100'
                                         }`}>
                                             <Upload size={24} />
                                             <span className="text-center">{proofFile ? proofFile.name : 'Cliquez pour ajouter un fichier'}</span>
@@ -281,7 +281,7 @@ const FinanceExpenses: React.FC = () => {
                                                 href={item.proof_url} 
                                                 target="_blank" 
                                                 rel="noreferrer" 
-                                                className="text-blue-500 hover:text-blue-700"
+                                                className="text-teal-600 hover:text-teal-700"
                                                 title="Voir le justificatif"
                                             >
                                                 <ExternalLink size={16} />

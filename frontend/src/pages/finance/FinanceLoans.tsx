@@ -132,7 +132,7 @@ const FinanceLoans: React.FC = () => {
                         {/* Progress Bar (dynamic from paid installments) */}
                         <div className="w-full bg-base-300 rounded-full h-2 mb-4">
                             <div 
-                                className="bg-blue-600 h-2 rounded-full transition-all" 
+                                className="bg-teal-600 h-2 rounded-full transition-all" 
                                 style={{ width: `${loan.duration_months > 0 ? ((Number(loan.paid_installments) || 0) / loan.duration_months) * 100 : 0}%` }}
                             ></div>
                         </div>
