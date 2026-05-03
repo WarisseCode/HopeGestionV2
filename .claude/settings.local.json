@@ -24,7 +24,10 @@
       "Bash(python3 *)",
       "Bash(python \"D:/Hope GImmo/HopeGestionV2/.claude/skills/ui-ux-pro-max/scripts/search.py\" --version)",
       "Bash(python *)",
-      "Bash(npx vite *)"
+      "Bash(npx vite *)",
+      "Bash(claude mcp *)",
+      "WebSearch",
+      "Bash(py .claude/skills/ui-ux-pro-max/scripts/search.py \"property management SaaS dashboard minimalism swiss style teal\" --design-system -p \"HopeGestion\")"
     ]
   }
 }
