@@ -72,7 +72,7 @@ const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLog
             {/* Logo & Close */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-base-200">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                    <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
                         <Eye size={16} className="text-white" />
                     </div>
                     <span className="font-bold text-base-content text-sm">HopeGestion</span>
@@ -85,12 +85,12 @@ const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLog
             </div>
 
             {/* Vue propriétaire badge */}
-            <div className="mx-3 mt-3 mb-1 px-3 py-2 bg-indigo-50 rounded-xl border border-indigo-100">
+            <div className="mx-3 mt-3 mb-1 px-3 py-2 bg-teal-50 rounded-xl border border-teal-100">
                 <div className="flex items-center gap-2">
-                    <Eye size={13} className="text-indigo-500 shrink-0" />
+                    <Eye size={13} className="text-teal-500 shrink-0" />
                     <div>
-                        <p className="text-xs font-semibold text-indigo-700">Mode consultation</p>
-                        <p className="text-[10px] text-indigo-500 leading-tight">Géré par {gestionnaireName}</p>
+                        <p className="text-xs font-semibold text-teal-700">Mode consultation</p>
+                        <p className="text-[10px] text-teal-500 leading-tight">Géré par {gestionnaireName}</p>
                     </div>
                 </div>
             </div>
@@ -108,7 +108,7 @@ const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLog
                                 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
                                 transition-all duration-150 group
                                 ${active
-                                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                                    ? 'bg-teal-600 text-white shadow-md shadow-teal-200'
                                     : 'text-base-content/70 hover:bg-base-200 hover:text-base-content'
                                 }
                             `}
@@ -150,7 +150,7 @@ const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLog
                 {/* User card */}
                 <div className="mt-2 pt-2 border-t border-base-200">
                     <div className="flex items-center gap-3 px-3 py-2">
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-sm shrink-0">
                             {userProfile?.nom?.charAt(0)?.toUpperCase() || 'P'}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -223,7 +223,7 @@ const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLog
                         )}
 
                         <Link to="/dashboard/mon-compte" className="flex items-center gap-2 hover:bg-base-200 rounded-xl px-2 py-1.5 transition-colors">
-                            <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
+                            <div className="w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-xs">
                                 {userProfile?.nom?.charAt(0)?.toUpperCase() || 'P'}
                             </div>
                             <span className="hidden md:block text-sm font-medium text-base-content/80">{userProfile?.nom}</span>

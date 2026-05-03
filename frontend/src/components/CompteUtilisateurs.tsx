@@ -407,8 +407,8 @@ const CompteUtilisateurs: React.FC = () => {
                                 <td className="p-4 text-base-content/70">{user.email}</td>
                                 <td className="p-4">
                                     <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${
-                                        user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
-                                        user.role === 'manager' ? 'bg-indigo-100 text-indigo-700' :
+                                        user.role === 'admin' ? 'bg-teal-100 text-teal-700' :
+                                        user.role === 'manager' ? 'bg-teal-50 text-teal-600' :
                                         'bg-blue-100 text-blue-700'
                                     }`}>
                                         {user.role}

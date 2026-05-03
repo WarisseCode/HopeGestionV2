@@ -85,12 +85,12 @@ const LocatairePublicPage: React.FC = () => {
               description="Signalez un problème et suivez sa résolution en temps réel."
             />
             <FeatureCard 
-              icon={<Bell className="text-purple-600" size={32} />}
+              icon={<Bell className="text-teal-600" size={32} />}
               title="Notifications"
               description="Recevez des rappels de paiement par WhatsApp ou SMS."
             />
             <FeatureCard 
-              icon={<MessageCircle className="text-indigo-600" size={32} />}
+              icon={<MessageCircle className="text-teal-600" size={32} />}
               title="Messagerie"
               description="Communiquez directement avec votre gestionnaire."
             />

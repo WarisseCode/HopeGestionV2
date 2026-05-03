@@ -303,7 +303,7 @@ const Finances: React.FC = () => {
             icon={Building2} 
             label="Loyer en Attente" 
             value={formatCurrency(stats.pending_total)} 
-            color="purple" 
+            color="teal"
         />
       </div>
 
@@ -386,7 +386,7 @@ const Finances: React.FC = () => {
                     setActiveTab('fiscalite')
                 }}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'fiscalite' ? 'bg-purple-50 text-purple-700 shadow-sm border border-purple-100' : 'text-base-content/60 hover:bg-base-200'
+                activeTab === 'fiscalite' ? 'bg-teal-50 text-teal-700 shadow-sm border border-teal-100' : 'text-base-content/60 hover:bg-base-200'
                 } ${subscriptionStatus && !subscriptionStatus.is_premium ? 'opacity-50 grayscale' : ''}`}
                 title={subscriptionStatus && !subscriptionStatus.is_premium ? "Fonctionnalité Premium" : ""}
             >

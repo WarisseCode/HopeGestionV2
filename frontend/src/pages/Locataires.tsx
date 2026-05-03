@@ -53,8 +53,8 @@ const ITEMS_PER_PAGE = 12;
 // Placeholder avatars
 const getAvatarColor = (name: string): string => {
   const colors = [
-    'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500',
-    'bg-pink-500', 'bg-indigo-500', 'bg-teal-500', 'bg-red-500'
+    'bg-blue-500', 'bg-green-500', 'bg-teal-500', 'bg-orange-500',
+    'bg-pink-500', 'bg-teal-700', 'bg-teal-400', 'bg-red-500'
   ];
   const hash = name.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
   return colors[hash % colors.length];
@@ -619,7 +619,7 @@ const Locataires: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => navigate(`/dashboard/locataires/${person.id}`)}
-                          className="btn btn-sm btn-ghost bg-purple-100/50 hover:bg-purple-100 text-purple-600"
+                          className="btn btn-sm btn-ghost bg-teal-100/50 hover:bg-teal-100 text-teal-600"
                           title="Détails"
                         >
                           <Eye size={16} />

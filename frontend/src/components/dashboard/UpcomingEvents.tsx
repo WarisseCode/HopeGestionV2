@@ -30,7 +30,7 @@ const getEventIcon = (type: UpcomingEvent['type']) => {
     case 'rent':
       return { icon: Wallet, bgClass: 'bg-blue-100', textClass: 'text-blue-600' };
     case 'contract':
-      return { icon: FileText, bgClass: 'bg-purple-100', textClass: 'text-purple-600' };
+      return { icon: FileText, bgClass: 'bg-teal-100', textClass: 'text-teal-600' };
     case 'intervention':
       return { icon: Wrench, bgClass: 'bg-orange-100', textClass: 'text-orange-600' };
     case 'alert':

@@ -188,8 +188,8 @@ const LocationDetails: React.FC = () => {
                 </Card>
                 <Card className="p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                            <Calendar className="text-purple-600" size={20} />
+                        <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+                            <Calendar className="text-teal-600" size={20} />
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-base-content/90">{echeancier.length}</p>

@@ -61,7 +61,7 @@ const ProprietaireDashboard: React.FC = () => {
     }, [period]);
 
     const occupationData = useMemo(() => [
-        { name: 'Occupé', value: stats?.tauxOccupation || 0, color: '#6366f1' },
+        { name: 'Occupé', value: stats?.tauxOccupation || 0, color: '#0d9488' },
         { name: 'Vacant', value: 100 - (stats?.tauxOccupation || 0), color: '#e2e8f0' },
     ], [stats]);
 
@@ -105,7 +105,7 @@ const ProprietaireDashboard: React.FC = () => {
 
             {/* ── Bannière financière ── */}
             <motion.div variants={item}>
-                <div className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 rounded-2xl p-6 text-white shadow-xl overflow-hidden">
+                <div className="relative bg-gradient-to-br from-teal-600 via-teal-700 to-teal-800 rounded-2xl p-6 text-white shadow-xl overflow-hidden">
                     <div className="absolute inset-0 opacity-10 pointer-events-none">
                         <div className="absolute -top-16 -right-16 w-64 h-64 bg-white rounded-full" />
                         <div className="absolute -bottom-12 -left-8 w-48 h-48 bg-white rounded-full" />
@@ -140,7 +140,7 @@ const ProprietaireDashboard: React.FC = () => {
             <motion.div variants={item} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <KPICard icon={Building2}   label="Biens sous gestion" value={stats?.totalBiens || 0}                     color="blue" />
                 <KPICard icon={Users}       label="Taux d'occupation"  value={`${stats?.tauxOccupation || 0}%`}           color="green" />
-                <KPICard icon={Wallet}      label="Revenus du mois"    value={formatCurrency(stats?.revenusMois || 0)}    color="purple" />
+                <KPICard icon={Wallet}      label="Revenus du mois"    value={formatCurrency(stats?.revenusMois || 0)}    color="teal" />
                 <KPICard icon={AlertCircle} label="Impayés en cours"   value={formatCurrency(stats?.impayesEnCours || 0)} color="orange" />
             </motion.div>
 
@@ -159,7 +159,7 @@ const ProprietaireDashboard: React.FC = () => {
                                     <p className="text-xs text-base-content/50 mt-0.5">Évolution des revenus locatifs</p>
                                 </div>
                                 <div className="flex items-center gap-3 text-xs text-base-content/40">
-                                    <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-indigo-500 rounded-full inline-block" />Revenus</span>
+                                    <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-teal-500 rounded-full inline-block" />Revenus</span>
                                     <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-orange-400 rounded-full inline-block" />Dépenses</span>
                                 </div>
                             </div>
@@ -168,8 +168,8 @@ const ProprietaireDashboard: React.FC = () => {
                                     <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id="gradRev" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.25} />
-                                                <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                                <stop offset="5%"  stopColor="#0d9488" stopOpacity={0.25} />
+                                                <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
                                             </linearGradient>
                                             <linearGradient id="gradDep" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%"  stopColor="#fb923c" stopOpacity={0.2} />
@@ -183,7 +183,7 @@ const ProprietaireDashboard: React.FC = () => {
                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontSize: 12 }}
                                             formatter={(val: any) => [`${Number(val).toLocaleString('fr-FR')} FCFA`]}
                                         />
-                                        <Area type="monotone" dataKey="revenus"  stroke="#6366f1" strokeWidth={2.5} fill="url(#gradRev)" name="Revenus" />
+                                        <Area type="monotone" dataKey="revenus"  stroke="#0d9488" strokeWidth={2.5} fill="url(#gradRev)" name="Revenus" />
                                         <Area type="monotone" dataKey="depenses" stroke="#fb923c" strokeWidth={2}   fill="url(#gradDep)" name="Dépenses" />
                                     </AreaChart>
                                 </ResponsiveContainer>
@@ -195,11 +195,11 @@ const ProprietaireDashboard: React.FC = () => {
                     <motion.div variants={item}>
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="font-bold text-base-content flex items-center gap-2">
-                                <Building2 size={17} className="text-indigo-500" /> Vos Propriétés
+                                <Building2 size={17} className="text-teal-500" /> Vos Propriétés
                             </h3>
                             <button
                                 onClick={() => navigate('/dashboard/biens')}
-                                className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                                className="flex items-center gap-1 text-sm text-teal-600 hover:text-teal-800 font-medium transition-colors"
                             >
                                 Voir tout <ArrowRight size={13} />
                             </button>
@@ -214,7 +214,7 @@ const ProprietaireDashboard: React.FC = () => {
                                 {featuredProperties.map(p => (
                                     <div
                                         key={p.id}
-                                        className="bg-base-100 rounded-2xl p-4 border border-base-200 shadow-sm flex gap-4 hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer group"
+                                        className="bg-base-100 rounded-2xl p-4 border border-base-200 shadow-sm flex gap-4 hover:shadow-md hover:border-teal-200 transition-all cursor-pointer group"
                                         onClick={() => navigate('/dashboard/biens')}
                                     >
                                         <div className="w-20 h-20 rounded-xl bg-base-200 overflow-hidden shrink-0">
@@ -227,7 +227,7 @@ const ProprietaireDashboard: React.FC = () => {
                                             <h4 className="font-bold text-base-content truncate text-sm">{p.name}</h4>
                                             <p className="text-xs text-base-content/50 truncate mb-2">{p.location}</p>
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="text-xs bg-indigo-50 text-indigo-600 font-semibold px-2 py-0.5 rounded-lg">{p.units} lots</span>
+                                                <span className="text-xs bg-teal-50 text-teal-600 font-semibold px-2 py-0.5 rounded-lg">{p.units} lots</span>
                                                 <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${p.occupancy >= 80 ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
                                                     {p.occupancy}% occupé
                                                 </span>
@@ -267,7 +267,7 @@ const ProprietaireDashboard: React.FC = () => {
                                 </div>
                             </div>
                             <div className="flex justify-around mt-1">
-                                {[{ label: 'Occupé', val: `${stats?.tauxOccupation || 0}%`, color: 'bg-indigo-500' },
+                                {[{ label: 'Occupé', val: `${stats?.tauxOccupation || 0}%`, color: 'bg-teal-500' },
                                   { label: 'Vacant',  val: `${100 - (stats?.tauxOccupation || 0)}%`, color: 'bg-base-300' }]
                                 .map(({ label, val, color }) => (
                                     <div key={label} className="text-center">
@@ -288,7 +288,7 @@ const ProprietaireDashboard: React.FC = () => {
                                 {[
                                     { label: 'Mes Locataires', path: '/dashboard/locataires', icon: Users,      color: 'text-blue-500 bg-blue-50' },
                                     { label: 'Mes Finances',   path: '/dashboard/finances',   icon: Wallet,     color: 'text-green-500 bg-green-50' },
-                                    { label: 'Mes Documents',  path: '/dashboard/documents',  icon: Building2,  color: 'text-purple-500 bg-purple-50' },
+                                    { label: 'Mes Documents',  path: '/dashboard/documents',  icon: Building2,  color: 'text-teal-500 bg-teal-50' },
                                     { label: 'Mes Rapports',   path: '/dashboard/rapports',   icon: TrendingUp, color: 'text-orange-500 bg-orange-50' },
                                 ].map(({ label, path, icon: Icon, color }) => (
                                     <button
@@ -311,7 +311,7 @@ const ProprietaireDashboard: React.FC = () => {
                     <motion.div variants={item}>
                         <Card className="border-none shadow-lg bg-base-100">
                             <h3 className="font-bold text-base-content mb-3 flex items-center gap-2">
-                                <Calendar size={15} className="text-indigo-400" /> Prochaines Échéances
+                                <Calendar size={15} className="text-teal-400" /> Prochaines Échéances
                             </h3>
                             <UpcomingEvents events={upcomingEvents} userType="proprietaire" />
                         </Card>

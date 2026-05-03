@@ -275,7 +275,7 @@ const Parametres: React.FC = () => {
                 <Card title="Apparence" className="border-none shadow-xl bg-base-100">
                   <div className="flex items-center justify-between p-2">
                     <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-xl ${darkMode ? 'bg-indigo-900 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
+                      <div className={`p-3 rounded-xl ${darkMode ? 'bg-teal-900 text-teal-300' : 'bg-teal-100 text-teal-600'}`}>
                         {darkMode ? <Moon size={24} /> : <Sun size={24} />}
                       </div>
                       <div>
@@ -410,7 +410,7 @@ const Parametres: React.FC = () => {
                     {[
                       { name: 'MTN Mobile Money', status: 'Connecté • Compte principal', connected: true, color: 'bg-yellow-400 text-black', iconText: 'MTN' },
                       { name: 'Moov Money', status: 'Non connecté', connected: false, color: 'bg-blue-600 text-white', iconText: 'Moov' },
-                      { name: 'Celtiis Cash', status: 'Non connecté', connected: false, color: 'bg-indigo-600 text-white', iconText: 'Celtiis' }
+                      { name: 'Celtiis Cash', status: 'Non connecté', connected: false, color: 'bg-teal-600 text-white', iconText: 'Celtiis' }
                     ].map((item, index) => (
                       <div key={index} className="border border-base-200 rounded-2xl p-6 flex items-center justify-between hover:shadow-lg transition-all duration-300 bg-base-100">
                         <div className="flex items-center gap-6">

@@ -819,9 +819,9 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
                 />
 
                 {/* Portail info */}
-                <div className="flex items-start gap-3 p-3.5 bg-purple-50 border border-purple-100 rounded-xl">
-                  <ShieldCheck size={17} className="text-purple-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs text-purple-700 leading-snug">
+                <div className="flex items-start gap-3 p-3.5 bg-teal-50 border border-teal-100 rounded-xl">
+                  <ShieldCheck size={17} className="text-teal-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-teal-700 leading-snug">
                     L'accès au portail locataire sera configuré après l'enregistrement du profil.
                   </p>
                 </div>

@@ -259,7 +259,7 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="flex gap-3 text-xs">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#8b5cf6]" /> Utilisateurs
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#0d9488]" /> Utilisateurs
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#10b981]" /> Revenus
@@ -273,8 +273,8 @@ const AdminDashboard: React.FC = () => {
                   <AreaChart data={growth}>
                     <defs>
                       <linearGradient id="gradUsers" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#0d9488" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#0d9488" stopOpacity={0}/>
                       </linearGradient>
                       <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
@@ -296,7 +296,7 @@ const AdminDashboard: React.FC = () => {
                     <Area 
                       type="monotone" 
                       dataKey="users" 
-                      stroke="#8b5cf6" 
+                      stroke="#0d9488" 
                       strokeWidth={2.5}
                       fillOpacity={1} 
                       fill="url(#gradUsers)" 

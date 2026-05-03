@@ -808,13 +808,13 @@ const Biens: React.FC = () => {
                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
                                   lot.statut === 'libre' ? 'bg-green-100 text-green-700' :
                                   lot.statut === 'occupe' || lot.statut === 'occupé' || lot.statut === 'loue' ? 'bg-blue-100 text-blue-700' : 
-                                  lot.statut === 'vendu' ? 'bg-purple-100 text-purple-700' :
+                                  lot.statut === 'vendu' ? 'bg-teal-100 text-teal-700' :
                                   'bg-orange-100 text-orange-700'
                                 }`}>
                                   <span className={`w-1.5 h-1.5 rounded-full ${
                                     lot.statut === 'libre' ? 'bg-green-500' :
                                     lot.statut === 'occupe' || lot.statut === 'occupé' || lot.statut === 'loue' ? 'bg-blue-500' : 
-                                    lot.statut === 'vendu' ? 'bg-purple-500' :
+                                    lot.statut === 'vendu' ? 'bg-teal-500' :
                                     'bg-orange-500'
                                   }`}></span>
                                   {lot.statut || 'libre'}
@@ -822,7 +822,7 @@ const Biens: React.FC = () => {
                               </td>
                               <td className="font-mono font-medium text-base-content/80 hidden sm:table-cell">
                                   {lot.type === 'Vente' || lot.prix_vente ? (
-                                      <span className="text-purple-700">{lot.prix_vente?.toLocaleString()} FCFA (Vente)</span>
+                                      <span className="text-teal-700">{lot.prix_vente?.toLocaleString()} FCFA (Vente)</span>
                                   ) : (
                                       <span>{lot.loyer?.toLocaleString()} FCFA/mois</span>
                                   )}

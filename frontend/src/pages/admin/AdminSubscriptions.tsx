@@ -53,7 +53,7 @@ const PLAN_ICONS: Record<string, React.ElementType> = {
 
 const PLAN_COLORS: Record<string, string> = {
   'Gratuit': 'from-gray-500 to-gray-600',
-  'Pro': 'from-blue-500 to-indigo-600',
+  'Pro': 'from-blue-500 to-teal-600',
   'Enterprise': 'from-amber-500 to-orange-600',
 };
 

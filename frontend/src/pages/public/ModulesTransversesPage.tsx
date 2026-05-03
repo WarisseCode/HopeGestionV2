@@ -42,10 +42,10 @@ const ModulesTransversesPage: React.FC = () => {
       </nav>
 
       {/* Hero */}
-      <section className="py-20 px-4 md:px-8 bg-gradient-to-b from-purple-50 to-base-100">
+      <section className="py-20 px-4 md:px-8 bg-gradient-to-b from-teal-50 to-base-100">
         <div className="max-w-7xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-100 text-teal-700 text-sm font-semibold mb-6">
               <Settings size={16} /> Modules Transverses
             </div>
             <h1 className="text-4xl md:text-5xl font-extrabold mb-6">
@@ -64,7 +64,7 @@ const ModulesTransversesPage: React.FC = () => {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold mb-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-100 text-teal-700 text-sm font-semibold mb-4">
                 <MapPin size={16} /> Module Réservations
               </div>
               <h2 className="text-3xl font-bold mb-4">Géolocalisation & Rendez-vous</h2>
@@ -79,10 +79,10 @@ const ModulesTransversesPage: React.FC = () => {
                 <FeatureItem text="Notifications automatiques" />
               </ul>
             </div>
-            <div className="bg-purple-50 rounded-3xl p-8">
+            <div className="bg-teal-50 rounded-3xl p-8">
               <div className="bg-base-100 rounded-2xl shadow-lg p-6 space-y-4">
                 <div className="flex items-center gap-3">
-                  <MapPin className="text-purple-600" size={24} />
+                  <MapPin className="text-teal-600" size={24} />
                   <span className="font-semibold">Carte des biens disponibles</span>
                 </div>
                 <div className="h-48 bg-base-200 rounded-lg flex items-center justify-center">
@@ -187,7 +187,7 @@ const ModulesTransversesPage: React.FC = () => {
             </div>
 
             <div className="bg-base-100 border border-base-200 rounded-2xl p-8 text-center">
-              <Phone className="text-purple-600 mx-auto mb-4" size={40} />
+              <Phone className="text-teal-600 mx-auto mb-4" size={40} />
               <h3 className="text-xl font-bold mb-3">Personnalisation</h3>
               <p className="text-base-content/70 mb-4">
                 Adaptez la plateforme à votre image et vos processus

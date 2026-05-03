@@ -69,7 +69,7 @@ const SignatureModal: React.FC<SignatureModalProps> = ({
                     </button>
                     <button
                         onClick={save}
-                        className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-colors"
+                        className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-teal-600 rounded-xl hover:bg-teal-700 shadow-md shadow-teal-200 transition-colors"
                     >
                         <Check size={16} />
                         Valider la signature

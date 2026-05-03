@@ -361,7 +361,7 @@ const LocataireDetails: React.FC = () => {
               )}
               {locataire.photo_profil_url && (
                 <Card className="p-4 flex items-center gap-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600">
+                  <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center text-teal-600">
                     <User size={24} />
                   </div>
                   <div className="flex-1">
@@ -390,7 +390,7 @@ const LocataireDetails: React.FC = () => {
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600">
+                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center text-teal-600">
                     <Key size={20} />
                   </div>
                   <div>

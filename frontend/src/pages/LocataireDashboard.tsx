@@ -170,7 +170,7 @@ const LocataireDashboard: React.FC = () => {
           icon={Wallet} 
           label="Loyer Mensuel" 
           value={formatCurrency(loyerMensuel)} 
-          color="purple"
+          color="teal"
           trend={{ value: joursAvantEcheance.toString(), label: `jours avant échéance`, positive: true }}
         />
         <KPICard 
@@ -184,7 +184,7 @@ const LocataireDashboard: React.FC = () => {
           icon={Calendar} 
           label="Prochaine Échéance" 
           value={new Date(nextPaymentDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-          color="purple" 
+          color="teal" 
           trend={{ value: `J-${joursAvantEcheance}`, label: "avant retard", positive: joursAvantEcheance > 5 }}
         />
          <KPICard 

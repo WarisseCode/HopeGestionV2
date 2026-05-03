@@ -158,8 +158,8 @@ const LotsPage: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-base-100 rounded-xl border border-base-200 p-4">
           <div className="flex items-center gap-3">
-            <div className="bg-purple-100 p-2 rounded-lg">
-              <Home className="text-purple-600" size={20} />
+            <div className="bg-teal-100 p-2 rounded-lg">
+              <Home className="text-teal-600" size={20} />
             </div>
             <div>
               <p className="text-2xl font-bold">{totalLots}</p>

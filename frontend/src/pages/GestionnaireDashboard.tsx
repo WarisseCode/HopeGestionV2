@@ -135,16 +135,16 @@ const GestionnaireDashboard: React.FC = () => {
       }
   };
 
-  const getKeyColor = (kpi: KPIData): 'blue' | 'green' | 'purple' | 'orange' | 'pink' => {
+  const getKeyColor = (kpi: KPIData): 'blue' | 'green' | 'teal' | 'orange' | 'pink' => {
       switch(kpi.id) {
           case 'total_biens': return 'blue';
-          case 'lots_occupation': return 'purple';
+          case 'lots_occupation': return 'teal';
           case 'loyers_encaisses': return 'green';
           case 'loyers_impayes': return 'pink';
           case 'taux_occupation': return 'blue';
           case 'contrats_actifs': return 'green';
           case 'plaintes_ouvertes': return 'orange';
-          case 'reservations': return 'purple';
+          case 'reservations': return 'teal';
           case 'recouvrement': return 'pink';
           case 'echelonements_retard': return 'orange';
           default: return 'blue';
@@ -260,7 +260,7 @@ const GestionnaireDashboard: React.FC = () => {
   const revenusData = chartData;
 
   const occupationData = [
-    { name: 'Occupé', value: stats?.tauxOccupation || 0, color: '#6366f1' },
+    { name: 'Occupé', value: stats?.tauxOccupation || 0, color: '#0d9488' },
     { name: 'Vacant', value: 100 - (stats?.tauxOccupation || 0), color: '#e2e8f0' },
   ];
 
@@ -454,8 +454,8 @@ const GestionnaireDashboard: React.FC = () => {
                         <AreaChart data={revenusData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="colorRevenusGest" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                    <stop offset="5%" stopColor="#0d9488" stopOpacity={0.3}/>
+                                    <stop offset="95%" stopColor="#0d9488" stopOpacity={0}/>
                                 </linearGradient>
                                 <linearGradient id="colorDepensesGest" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3}/>
@@ -470,7 +470,7 @@ const GestionnaireDashboard: React.FC = () => {
                                 formatter={(value: any) => [`${value?.toLocaleString() ?? 0} FCFA`, '']}
                                 labelStyle={{color: '#64748b', marginBottom: '0.5rem'}}
                             />
-                            <Area type="monotone" dataKey="revenus" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenusGest)" name="Revenus" />
+                            <Area type="monotone" dataKey="revenus" stroke="#0d9488" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenusGest)" name="Revenus" />
                             <Area type="monotone" dataKey="depenses" stroke="#ec4899" strokeWidth={3} fillOpacity={1} fill="url(#colorDepensesGest)" name="Dépenses" />
                         </AreaChart>
                         </ResponsiveContainer>

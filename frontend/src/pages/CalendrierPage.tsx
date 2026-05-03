@@ -253,7 +253,7 @@ const CalendrierPage: React.FC = () => {
   const getEventDot = (type: string) => {
       switch(type) {
           case 'payment': return 'bg-green-500';
-          case 'notification': return 'bg-purple-500';
+          case 'notification': return 'bg-teal-500';
           default: return 'bg-blue-500';
       }
   };

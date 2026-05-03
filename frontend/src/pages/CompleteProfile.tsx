@@ -84,7 +84,7 @@ const CompleteProfile: React.FC = () => {
             label: 'Locataire',
             icon: Key,
             description: 'Accédez à votre espace locataire',
-            color: 'from-purple-500 to-purple-600'
+            color: 'from-teal-500 to-teal-600'
         }
     ];
 

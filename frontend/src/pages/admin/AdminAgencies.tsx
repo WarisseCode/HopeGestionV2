@@ -111,7 +111,7 @@ const AdminAgencies: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'Agences', value: agencies.length, icon: Building2, color: 'text-primary' },
-          { label: 'Immeubles', value: totalProperties, icon: Home, color: 'text-purple-500' },
+          { label: 'Immeubles', value: totalProperties, icon: Home, color: 'text-teal-500' },
           { label: 'Lots gérés', value: totalLots, icon: Hash, color: 'text-blue-500' },
           { label: 'Revenus', value: `${formatCurrency(totalRevenue)} FCFA`, icon: Wallet, color: 'text-emerald-500' },
         ].map((stat, i) => (

@@ -305,7 +305,7 @@ const Rapports: React.FC = () => {
                         label: "Total Encaissé", 
                         value: stats ? `${stats.stats.financial_performance.total_paid.toLocaleString()} F` : "---", 
                         sub: "Ce mois-ci",
-                        color: "bg-purple-100 dark:bg-purple-900/30" 
+                        color: "bg-teal-100 dark:bg-teal-900/30"
                     },
                     { 
                         label: "Lots Occupés", 

@@ -28,7 +28,7 @@ const SubscriptionBadge: React.FC = () => {
     const getIcon = () => {
         switch (status.plan?.name) {
             case 'pro': return <Crown className="text-amber-500" size={14} />;
-            case 'enterprise': return <Star className="text-purple-500" size={14} />;
+            case 'enterprise': return <Star className="text-teal-500" size={14} />;
             default: return <Zap className="text-base-content/50" size={14} />;
         }
     };
@@ -36,7 +36,7 @@ const SubscriptionBadge: React.FC = () => {
     const getBadgeStyle = () => {
         switch (status.plan?.name) {
             case 'pro': return 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 border-amber-200';
-            case 'enterprise': return 'bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-800 border-purple-200';
+            case 'enterprise': return 'bg-gradient-to-r from-teal-100 to-teal-200 text-teal-800 border-teal-200';
             default: return 'bg-base-300 text-base-content/70 border-base-300';
         }
     };

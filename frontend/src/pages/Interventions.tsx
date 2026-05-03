@@ -392,7 +392,7 @@ const Interventions: React.FC = () => {
         <KPICard icon={AlertCircle} label="Urgentes" value={urgentCount.toString()} color="orange" />
         <KPICard icon={Clock} label="En cours" value={enCoursCount.toString()} color="orange" />
         <KPICard icon={CheckCircle} label="Résolues" value={resoluCount.toString()} color="green" />
-        <KPICard icon={Users} label="Prestataires" value={providers.length.toString()} color="purple" />
+        <KPICard icon={Users} label="Prestataires" value={providers.length.toString()} color="teal" />
       </div>
 
       {/* Tabs */}

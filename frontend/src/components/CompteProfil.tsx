@@ -319,7 +319,7 @@ const CompteProfil: React.FC = () => {
                     {/* Security Card */}
                     <motion.div variants={cardVariants} initial="hidden" animate="visible" className="bg-base-100 dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-base-200 dark:border-slate-700 transition-shadow hover:shadow-md">
                         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-50 dark:border-slate-800">
-                            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                            <div className="p-2 bg-teal-50 text-teal-600 rounded-xl">
                                 <Shield size={20} />
                             </div>
                             <h3 className="text-xl font-bold text-base-content/90 dark:text-gray-100">Sécurité & Connexion</h3>
@@ -393,7 +393,7 @@ const CompteProfil: React.FC = () => {
                     {/* Appearance & Theme */}
                     <motion.div variants={cardVariants} initial="hidden" animate="visible" className="bg-base-100 dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-base-200 dark:border-slate-700 transition-shadow hover:shadow-md">
                         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-50 dark:border-slate-800">
-                            <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+                            <div className="p-2 bg-teal-50 text-teal-600 rounded-xl">
                                 <Sun size={20} />
                             </div>
                             <h3 className="text-xl font-bold text-base-content/90 dark:text-gray-100">Apparence</h3>
@@ -408,7 +408,7 @@ const CompteProfil: React.FC = () => {
                                     document.documentElement.classList.remove('dark');
                                 }}
                                 className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2
-                                    ${formData.theme === 'light' ? 'border-purple-500 bg-purple-50/30 shadow-sm dark:bg-slate-800' : 'border-base-200 dark:border-slate-700 bg-base-100 dark:bg-slate-800 dark:border-slate-700 hover:border-base-300 dark:border-slate-600'}
+                                    ${formData.theme === 'light' ? 'border-teal-500 bg-teal-50/30 shadow-sm dark:bg-slate-800' : 'border-base-200 dark:border-slate-700 bg-base-100 dark:bg-slate-800 dark:border-slate-700 hover:border-base-300 dark:border-slate-600'}
                                 `}
                             >
                                 <div className="p-3 rounded-full bg-base-300 dark:bg-slate-700 text-base-content/70 dark:text-base-content/40">
@@ -424,7 +424,7 @@ const CompteProfil: React.FC = () => {
                                     document.documentElement.classList.add('dark');
                                 }}
                                 className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2
-                                    ${formData.theme === 'dark' ? 'border-purple-500 bg-purple-50/30 shadow-sm dark:bg-slate-700' : 'border-base-200 dark:border-slate-700 bg-base-100 dark:bg-slate-800 dark:border-slate-700 hover:border-base-300 dark:border-slate-600'}
+                                    ${formData.theme === 'dark' ? 'border-teal-500 bg-teal-50/30 shadow-sm dark:bg-slate-700' : 'border-base-200 dark:border-slate-700 bg-base-100 dark:bg-slate-800 dark:border-slate-700 hover:border-base-300 dark:border-slate-600'}
                                 `}
                             >
                                 <div className="p-3 rounded-full bg-gray-800 text-base-content/40">
@@ -548,7 +548,7 @@ const CompteProfil: React.FC = () => {
                             <button
                                 type="submit"
                                 disabled={saving}
-                                className={`flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3.5 rounded-full font-bold shadow-lg shadow-blue-500/30 transition-all transform hover:scale-105 active:scale-95 ${saving ? 'opacity-75 cursor-not-allowed' : ''}`}
+                                className={`flex items-center gap-2 bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-8 py-3.5 rounded-full font-bold shadow-lg shadow-teal-500/30 transition-all transform hover:scale-105 active:scale-95 ${saving ? 'opacity-75 cursor-not-allowed' : ''}`}
                             >
                                 <Save size={18} />
                                 {saving ? 'Enregistrement en cours...' : 'Enregistrer les modifications'}
@@ -570,7 +570,7 @@ const CompteProfil: React.FC = () => {
                     >
                         <div className="p-6 border-b border-base-200 dark:border-slate-700 flex justify-between items-center bg-base-200/50 dark:bg-slate-900/50">
                             <h3 className="text-xl font-bold flex items-center gap-2 text-base-content/90 dark:text-gray-100">
-                                <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                                <div className="p-2 bg-teal-100 text-teal-600 rounded-lg">
                                     <Lock size={20} />
                                 </div>
                                 Changer de mot de passe
@@ -594,7 +594,7 @@ const CompteProfil: React.FC = () => {
                                     <div className="relative">
                                         <input 
                                             type={showPassword ? "text" : "password"}
-                                            className="w-full px-4 py-3 rounded-xl border border-base-300 dark:border-slate-600 pr-12 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-base-200/50 dark:bg-slate-900/50"
+                                            className="w-full px-4 py-3 rounded-xl border border-base-300 dark:border-slate-600 pr-12 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all bg-base-200/50 dark:bg-slate-900/50"
                                             value={field.value}
                                             onChange={e => setPasswordData({...passwordData, [field.key]: e.target.value})}
                                             required
@@ -620,7 +620,7 @@ const CompteProfil: React.FC = () => {
                                 </button>
                                 <button 
                                     type="submit"
-                                    className="flex-1 px-4 py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-md shadow-indigo-500/20 hover:bg-indigo-700 transition-all"
+                                    className="flex-1 px-4 py-3 bg-teal-600 text-white font-semibold rounded-xl shadow-md shadow-teal-500/20 hover:bg-teal-700 transition-all"
                                 >
                                     Valider
                                 </button>

@@ -137,7 +137,7 @@ const Documents: React.FC = () => {
   };
 
   const getIcon = (type: string) => {
-    if (type.includes('image')) return <ImageIcon size={20} className="text-purple-500" />;
+    if (type.includes('image')) return <ImageIcon size={20} className="text-teal-500" />;
     if (type.includes('pdf')) return <FileText size={20} className="text-red-500" />;
     return <File size={20} className="text-base-content/60" />;
   };
@@ -267,7 +267,7 @@ const Documents: React.FC = () => {
                                 </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${doc.categorie === 'generated' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${doc.categorie === 'generated' ? 'bg-teal-100 text-teal-800' : 'bg-blue-100 text-blue-800'}`}>
                                     {doc.categorie}
                                 </span>
                                 </td>

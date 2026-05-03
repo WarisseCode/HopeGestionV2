@@ -102,7 +102,7 @@ const GestionnaireProprietairePage: React.FC = () => {
               features={["Dossiers complets", "Historique des paiements", "Communication intégrée"]}
             />
             <FeatureCard 
-              icon={<Shield className="text-purple-600" size={32} />}
+              icon={<Shield className="text-teal-600" size={32} />}
               title="Délégation d'accès"
               features={["Permissions granulaires", "Multi-utilisateurs", "Audit des actions"]}
             />
@@ -117,7 +117,7 @@ const GestionnaireProprietairePage: React.FC = () => {
               features={["Tickets d'intervention", "Suivi prestataires", "Historique complet"]}
             />
             <FeatureCard 
-              icon={<FileText className="text-indigo-600" size={32} />}
+              icon={<FileText className="text-teal-600" size={32} />}
               title="Documents"
               features={["Coffre-fort sécurisé", "Modèles de baux", "Génération automatique"]}
             />

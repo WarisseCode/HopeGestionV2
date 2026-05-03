@@ -6,7 +6,7 @@ interface KPICardProps {
   icon: React.ElementType;
   label: string;
   value: string | number;
-  color: 'blue' | 'green' | 'purple' | 'orange' | 'pink';
+  color: 'blue' | 'green' | 'teal' | 'orange' | 'pink';
   trend?: {
     value: string;
     label: string;
@@ -32,13 +32,13 @@ const colorClasses = {
     gradient: 'from-green-500/10 to-green-500/5 dark:from-green-500/20 dark:to-green-500/10',
     shadow: 'shadow-green-500/5 hover:shadow-green-500/10 dark:shadow-none'
   },
-  purple: {
+  teal: {
     bg: 'bg-base-100 dark:bg-base-100',
-    border: 'border-purple-100 dark:border-purple-900/30',
-    iconBg: 'bg-purple-50 dark:bg-purple-900/20',
-    iconText: 'text-purple-600 dark:text-purple-400',
-    gradient: 'from-purple-500/10 to-purple-500/5 dark:from-purple-500/20 dark:to-purple-500/10',
-    shadow: 'shadow-purple-500/5 hover:shadow-purple-500/10 dark:shadow-none'
+    border: 'border-teal-100 dark:border-teal-900/30',
+    iconBg: 'bg-teal-50 dark:bg-teal-900/20',
+    iconText: 'text-teal-600 dark:text-teal-400',
+    gradient: 'from-teal-500/10 to-teal-500/5 dark:from-teal-500/20 dark:to-teal-500/10',
+    shadow: 'shadow-teal-500/5 hover:shadow-teal-500/10 dark:shadow-none'
   },
   orange: {
     bg: 'bg-base-100 dark:bg-base-100',

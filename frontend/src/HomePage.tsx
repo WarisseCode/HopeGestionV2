@@ -185,7 +185,7 @@ const HomePage: React.FC = () => {
             />
             <FeatureCard 
               icon={<Wallet className="w-8 h-8 text-white"/>}
-              color="bg-purple-600"
+              color="bg-teal-600"
               title="Paiements Automatisés"
               desc="Intégration native Mobile Money. Génération automatique de quittances dès réception du paiement."
             />
@@ -209,7 +209,7 @@ const HomePage: React.FC = () => {
             />
             <FeatureCard 
               icon={<BarChart3 className="w-8 h-8 text-white"/>}
-              color="bg-indigo-600"
+              color="bg-teal-700"
               title="Comptabilité Temps Réel"
               desc="Tableaux de bord financiers, calcul de rentabilité et rapports d'exportation."
             />

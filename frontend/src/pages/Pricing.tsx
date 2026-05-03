@@ -163,7 +163,7 @@ const Pricing: React.FC = () => {
         switch (name) {
             case 'free': return <Zap className="text-base-content/60" size={28} />;
             case 'pro': return <Crown className="text-amber-500" size={28} />;
-            case 'enterprise': return <Star className="text-purple-500" size={28} />;
+            case 'enterprise': return <Star className="text-teal-500" size={28} />;
             default: return <Zap size={28} />;
         }
     };
@@ -172,7 +172,7 @@ const Pricing: React.FC = () => {
         switch (name) {
             case 'free': return 'from-base-100 to-base-200 border-base-300 shadow-sm';
             case 'pro': return 'from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 ring-2 ring-amber-300 dark:ring-amber-600';
-            case 'enterprise': return 'from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-700 shadow-sm';
+            case 'enterprise': return 'from-teal-50 to-teal-100 dark:from-teal-900/20 dark:to-teal-800/20 border-teal-200 dark:border-teal-700 shadow-sm';
             default: return 'from-base-100 to-base-200 border-base-300';
         }
     };
@@ -194,7 +194,7 @@ const Pricing: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-3xl md:text-4xl font-black text-base-content mb-4"
                 >
-                    Choisissez votre <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Abonnement</span>
+                    Choisissez votre <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-teal-400">Abonnement</span>
                 </motion.h1>
                 <p className="text-base-content/60 text-lg max-w-xl mx-auto">
                     Gérez vos biens immobiliers plus efficacement avec nos offres adaptées à vos besoins.
@@ -206,7 +206,7 @@ const Pricing: React.FC = () => {
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="mb-8 p-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl text-white text-center"
+                    className="mb-8 p-4 bg-gradient-to-r from-teal-500 to-teal-700 rounded-2xl text-white text-center"
                 >
                     <p className="text-sm opacity-80">Votre plan actuel</p>
                     <p className="text-xl font-bold">{currentStatus.plan?.display_name || 'Gratuit'}</p>
@@ -306,7 +306,7 @@ const Pricing: React.FC = () => {
                                     {plan.max_properties === -1 ? 'Biens illimités' : `${plan.max_properties} biens`}
                                 </li>
                                 <li className="flex items-start gap-2 text-sm text-base-content/80">
-                                    <Users className="text-purple-500 flex-shrink-0 mt-0.5" size={16} />
+                                    <Users className="text-teal-500 flex-shrink-0 mt-0.5" size={16} />
                                     {plan.max_tenants === -1 ? 'Locataires illimités' : `${plan.max_tenants} locataires`}
                                 </li>
                             </ul>
@@ -353,7 +353,7 @@ const Pricing: React.FC = () => {
                                 </button>
                             </div>
 
-                            <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl mb-6">
+                            <div className="p-4 bg-gradient-to-r from-teal-50 to-teal-100 rounded-xl mb-6">
                                 <p className="text-sm text-base-content/60">Plan sélectionné</p>
                                 <p className="text-lg font-bold text-base-content">{selectedPlan.display_name}</p>
                                 <p className="text-2xl font-black text-blue-600">{selectedPlan.price.toLocaleString()} FCFA</p>

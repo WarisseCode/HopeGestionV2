@@ -329,8 +329,8 @@ const Locations: React.FC = () => {
                 </div>
                 <div className="bg-base-100 p-4 rounded-xl shadow-sm border border-base-200">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                            <DollarSign className="text-purple-600" size={20} />
+                        <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+                            <DollarSign className="text-teal-600" size={20} />
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-base-content/90">
@@ -429,7 +429,7 @@ const Locations: React.FC = () => {
                                                                     setSelectedLeaseId(location.id);
                                                                     setShowSignatureModal(true);
                                                                 }}
-                                                                className="flex items-center gap-2 py-3 text-indigo-600"
+                                                                className="flex items-center gap-2 py-3 text-teal-600"
                                                             >
                                                                 <Pen size={16} />
                                                                 <span>Signer le contrat</span>
