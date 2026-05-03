@@ -297,9 +297,9 @@ const Finances: React.FC = () => {
             icon={TrendingUp} 
             label="Trésorerie Nette" 
             value={formatCurrency(stats.net_balance)} 
-            color="blue" 
+            color="teal"
         />
-         <KPICard 
+         <KPICard
             icon={Building2} 
             label="Loyer en Attente" 
             value={formatCurrency(stats.pending_total)} 
@@ -366,7 +366,7 @@ const Finances: React.FC = () => {
                     setActiveTab('prets')
                 }}
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'prets' ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100' : 'text-base-content/60 hover:bg-base-200'
+                activeTab === 'prets' ? 'bg-teal-50 text-teal-700 shadow-sm border border-teal-100' : 'text-base-content/60 hover:bg-base-200'
                 } ${subscriptionStatus && !subscriptionStatus.is_premium ? 'opacity-50 grayscale' : ''}`}
                 title={subscriptionStatus && !subscriptionStatus.is_premium ? "Fonctionnalité Premium" : ""}
             >
@@ -518,7 +518,7 @@ const Finances: React.FC = () => {
               <p className="text-base-content/70">
                   Cette action va générer automatiquement les quittances de loyer pour tous les baux actifs du mois courant.
               </p>
-              <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 p-4 rounded-lg text-sm border border-blue-200 dark:border-blue-700">
+              <div className="bg-teal-50 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200 p-4 rounded-lg text-sm border border-teal-200 dark:border-teal-700">
                   ℹ️ Les quittances déjà existantes pour ce mois ne seront pas dupliquées.
               </div>
           </div>

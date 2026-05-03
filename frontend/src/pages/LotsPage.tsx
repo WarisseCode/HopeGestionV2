@@ -191,8 +191,8 @@ const LotsPage: React.FC = () => {
         </div>
         <div className="bg-base-100 rounded-xl border border-base-200 p-4">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-100 p-2 rounded-lg">
-              <DollarSign className="text-blue-600" size={20} />
+            <div className="bg-teal-100 p-2 rounded-lg">
+              <DollarSign className="text-teal-600" size={20} />
             </div>
             <div>
               <p className="text-2xl font-bold">{loyerTotal.toLocaleString()}</p>

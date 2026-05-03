@@ -157,7 +157,7 @@ const LocataireDetails: React.FC = () => {
             <Button variant="ghost" size="sm" onClick={handleWhatsApp} className="bg-green-50 text-green-600 hover:bg-green-100">
               <MessageCircle size={16} className="mr-1" /> WhatsApp
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleCall} className="bg-blue-50 text-blue-600 hover:bg-blue-100">
+            <Button variant="ghost" size="sm" onClick={handleCall} className="bg-teal-50 text-teal-600 hover:bg-teal-100">
               <Phone size={16} className="mr-1" /> Appeler
             </Button>
             <Button variant="primary" size="sm" onClick={() => setShowEditModal(true)}>
@@ -347,7 +347,7 @@ const LocataireDetails: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {locataire.photo_piece_url && (
                 <Card className="p-4 flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                  <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center text-teal-600">
                     <CreditCard size={24} />
                   </div>
                   <div className="flex-1">

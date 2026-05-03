@@ -223,7 +223,7 @@ const Locations: React.FC = () => {
 
     const getStatusColor = (statut: string) => {
         switch (statut) {
-            case 'actif': return 'bg-blue-100 text-blue-700';
+            case 'actif': return 'bg-teal-100 text-teal-700';
             case 'signe': return 'bg-green-100 text-green-700';
             case 'expire': return 'bg-orange-100 text-orange-700';
             case 'resilie': return 'bg-red-100 text-red-700';
@@ -292,8 +292,8 @@ const Locations: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-base-100 p-4 rounded-xl shadow-sm border border-base-200">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                            <FileText className="text-blue-600" size={20} />
+                        <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+                            <FileText className="text-teal-600" size={20} />
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-base-content/90">{locations.length}</p>
@@ -367,13 +367,13 @@ const Locations: React.FC = () => {
                                     onClick={() => openDetail(location)}
                                 >
                                     <td className="p-4">
-                                        <span className="font-mono text-xs font-bold bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded-md border border-blue-100 shadow-sm">
+                                        <span className="font-mono text-xs font-bold bg-teal-50 text-teal-700 px-2.5 py-1.5 rounded-md border border-teal-100 shadow-sm">
                                             {location.reference_bail || "SANS RÉF."}
                                         </span>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                                            <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-bold text-sm">
                                                 {location.locataire_nom?.[0]}{location.locataire_prenoms?.[0]}
                                             </div>
                                             <span className="font-medium">{location.locataire_prenoms} {location.locataire_nom}</span>
@@ -417,7 +417,7 @@ const Locations: React.FC = () => {
                                                         </button>
                                                     </li>
                                                     <li>
-                                                        <button onClick={() => handleEdit(location)} className="flex items-center gap-2 py-3 text-blue-600">
+                                                        <button onClick={() => handleEdit(location)} className="flex items-center gap-2 py-3 text-teal-600">
                                                             <Pen size={16} />
                                                             <span>Modifier le bail</span>
                                                         </button>
@@ -567,7 +567,7 @@ const Locations: React.FC = () => {
                                     <>
                                         <button 
                                             onClick={() => handleGenerateLease(selectedLocation.id)}
-                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+                                            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition flex items-center gap-2"
                                             title="Générer et sauvegarder le PDF"
                                         >
                                             <FileText size={16} /> Générer Bail

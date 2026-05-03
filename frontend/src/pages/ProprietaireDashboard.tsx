@@ -286,7 +286,7 @@ const ProprietaireDashboard: React.FC = () => {
                             <h3 className="font-bold text-base-content mb-3">Consultation Rapide</h3>
                             <div className="space-y-1.5">
                                 {[
-                                    { label: 'Mes Locataires', path: '/dashboard/locataires', icon: Users,      color: 'text-blue-500 bg-blue-50' },
+                                    { label: 'Mes Locataires', path: '/dashboard/locataires', icon: Users,      color: 'text-teal-500 bg-teal-50' },
                                     { label: 'Mes Finances',   path: '/dashboard/finances',   icon: Wallet,     color: 'text-green-500 bg-green-50' },
                                     { label: 'Mes Documents',  path: '/dashboard/documents',  icon: Building2,  color: 'text-teal-500 bg-teal-50' },
                                     { label: 'Mes Rapports',   path: '/dashboard/rapports',   icon: TrendingUp, color: 'text-orange-500 bg-orange-50' },

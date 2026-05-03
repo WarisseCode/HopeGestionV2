@@ -83,13 +83,13 @@ const InventoriesList: React.FC = () => {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-base-content flex items-center gap-2">
-                        <ClipboardList className="text-blue-600" /> Gestion des Inventaires
+                        <ClipboardList className="text-teal-600" /> Gestion des Inventaires
                     </h1>
                     <p className="text-base-content/60">États des lieux et suivi des équipements</p>
                 </div>
                 <Link 
                     to="/dashboard/inventories/new" 
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all duration-200 flex items-center gap-2 font-medium"
+                    className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl shadow-lg hover:shadow-teal-500/30 transition-all duration-200 flex items-center gap-2 font-medium"
                 >
                     <Plus size={20} /> Nouvel Inventaire
                 </Link>
@@ -102,7 +102,7 @@ const InventoriesList: React.FC = () => {
                     <input 
                         type="text" 
                         placeholder="Rechercher..." 
-                        className="w-full pl-10 pr-4 py-2 bg-base-200 border border-base-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-2 bg-base-200 border border-base-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -114,7 +114,7 @@ const InventoriesList: React.FC = () => {
                             onClick={() => setFilterStatut(status)}
                             className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
                                 filterStatut === status 
-                                    ? 'bg-blue-100 text-blue-700' 
+                                    ? 'bg-teal-100 text-teal-700' 
                                     : 'bg-base-200 text-base-content/70 hover:bg-base-300'
                             }`}
                         >
@@ -137,7 +137,7 @@ const InventoriesList: React.FC = () => {
                     <div className="divide-y divide-gray-100">
                         {filteredInventories.map((inv) => (
                             <div key={inv.id} className="p-4 hover:bg-base-200 transition-colors flex flex-col md:flex-row md:items-center gap-4">
-                                <div className="p-3 bg-blue-50 rounded-xl text-blue-600">
+                                <div className="p-3 bg-teal-50 rounded-xl text-teal-600">
                                     <ClipboardList size={24} />
                                 </div>
                                 <div className="flex-1">

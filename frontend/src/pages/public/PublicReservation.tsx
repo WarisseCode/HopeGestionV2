@@ -122,7 +122,7 @@ const PublicReservation: React.FC = () => {
                     <>
                         <img src={lot.images[0]} alt="Bien" className="absolute inset-0 w-full h-full object-cover opacity-60" />
                         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-gray-900 to-transparent p-8">
-                            <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">
+                            <span className="bg-teal-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">
                                 {lot.type}
                             </span>
                             <h1 className="text-3xl font-bold mb-2">{lot.description}</h1>
@@ -133,7 +133,7 @@ const PublicReservation: React.FC = () => {
                         </div>
                         {/* Map Overlay Preview */}
                         <div className="absolute top-4 right-4 w-32 h-32 bg-base-100 rounded-xl shadow-lg border-2 border-white overflow-hidden opacity-90 hover:opacity-100 transition">
-                            <div className="w-full h-full bg-blue-100 flex items-center justify-center text-blue-900 text-xs font-bold p-2 text-center">
+                            <div className="w-full h-full bg-teal-100 flex items-center justify-center text-teal-900 text-xs font-bold p-2 text-center">
                                 <MapPin className="mx-auto mb-1" size={16} />
                                 Voir sur la carte
                             </div>
@@ -148,7 +148,7 @@ const PublicReservation: React.FC = () => {
                     <div className="mb-8">
                         <h2 className="text-sm font-bold text-base-content/50 uppercase tracking-widest mb-1">Réservation en ligne</h2>
                         <h3 className="text-3xl font-bold text-base-content">Sécurisez ce bien</h3>
-                        <div className="h-1 w-20 bg-blue-600 mt-4 rounded-full"></div>
+                        <div className="h-1 w-20 bg-teal-600 mt-4 rounded-full"></div>
                     </div>
 
                     <form onSubmit={submitReservation} className="space-y-6">
@@ -233,16 +233,16 @@ const PublicReservation: React.FC = () => {
 
                                 {/* Dépôt de réservation 5% */}
                                 {lot && lot.loyer_actuel > 0 && (
-                                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                                        <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-2">Dépôt de réservation requis</p>
+                                    <div className="bg-teal-50 border border-teal-200 rounded-xl p-4">
+                                        <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-2">Dépôt de réservation requis</p>
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-2xl font-extrabold text-blue-900">{Math.round(lot.loyer_actuel * 0.05).toLocaleString()} FCFA</p>
-                                                <p className="text-xs text-blue-600 mt-0.5">5% du loyer mensuel ({lot.loyer_actuel.toLocaleString()} FCFA)</p>
+                                                <p className="text-2xl font-extrabold text-teal-900">{Math.round(lot.loyer_actuel * 0.05).toLocaleString()} FCFA</p>
+                                                <p className="text-xs text-teal-600 mt-0.5">5% du loyer mensuel ({lot.loyer_actuel.toLocaleString()} FCFA)</p>
                                             </div>
-                                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-extrabold text-lg">5%</div>
+                                            <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center text-teal-700 font-extrabold text-lg">5%</div>
                                         </div>
-                                        <p className="text-xs text-blue-500 mt-2 leading-relaxed">
+                                        <p className="text-xs text-teal-500 mt-2 leading-relaxed">
                                             Ce montant sera à régler lors de la confirmation avec le gestionnaire. Il sécurise votre réservation pendant <span className="font-bold">48h</span>.
                                         </p>
                                     </div>

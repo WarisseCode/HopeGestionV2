@@ -743,7 +743,7 @@ const Biens: React.FC = () => {
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                           <span className={`absolute top-3 right-3 z-20 badge border-none text-white font-bold ${
-                            lot.statut === 'libre' ? 'bg-green-500' : 'bg-blue-500'
+                            lot.statut === 'libre' ? 'bg-green-500' : 'bg-teal-500'
                           }`}>
                             {lot.statut || 'libre'}
                           </span>
@@ -807,13 +807,13 @@ const Biens: React.FC = () => {
                               <td>
                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
                                   lot.statut === 'libre' ? 'bg-green-100 text-green-700' :
-                                  lot.statut === 'occupe' || lot.statut === 'occupé' || lot.statut === 'loue' ? 'bg-blue-100 text-blue-700' : 
+                                  lot.statut === 'occupe' || lot.statut === 'occupé' || lot.statut === 'loue' ? 'bg-teal-100 text-teal-700' : 
                                   lot.statut === 'vendu' ? 'bg-teal-100 text-teal-700' :
                                   'bg-orange-100 text-orange-700'
                                 }`}>
                                   <span className={`w-1.5 h-1.5 rounded-full ${
                                     lot.statut === 'libre' ? 'bg-green-500' :
-                                    lot.statut === 'occupe' || lot.statut === 'occupé' || lot.statut === 'loue' ? 'bg-blue-500' : 
+                                    lot.statut === 'occupe' || lot.statut === 'occupé' || lot.statut === 'loue' ? 'bg-teal-500' : 
                                     lot.statut === 'vendu' ? 'bg-teal-500' :
                                     'bg-orange-500'
                                   }`}></span>

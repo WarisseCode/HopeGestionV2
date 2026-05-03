@@ -11,7 +11,7 @@ import type { Plan, SubscriptionStatus } from '../api/subscriptionApi';
 
 const OPERATORS = [
     { id: 'mtn', name: 'MTN Mobile Money', color: 'bg-yellow-500' },
-    { id: 'moov', name: 'Moov Money', color: 'bg-blue-500' }
+    { id: 'moov', name: 'Moov Money', color: 'bg-teal-500' }
 ];
 
 const Pricing: React.FC = () => {
@@ -180,7 +180,7 @@ const Pricing: React.FC = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="animate-spin text-blue-500" size={48} />
+                <Loader2 className="animate-spin text-teal-500" size={48} />
             </div>
         );
     }
@@ -227,10 +227,10 @@ const Pricing: React.FC = () => {
                         exit={{ opacity: 0, height: 0 }}
                         className="mb-8"
                     >
-                        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                        <div className="bg-teal-50 border border-teal-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 rounded-lg">
-                                    <Loader2 className="animate-spin text-blue-600" size={24} />
+                                <div className="p-2 bg-teal-100 rounded-lg">
+                                    <Loader2 className="animate-spin text-teal-600" size={24} />
                                 
                                 </div>
                                 <div>
@@ -243,7 +243,7 @@ const Pricing: React.FC = () => {
                             <button
                                 onClick={verifyPayment}
                                 disabled={processing}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                className="px-4 py-2 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 transition-colors flex items-center gap-2"
                             >
                                 {processing ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
                                 <span className="hidden md:inline">J'ai payé</span>
@@ -302,7 +302,7 @@ const Pricing: React.FC = () => {
                                     </li>
                                 ))}
                                 <li className="flex items-start gap-2 text-sm text-base-content/80">
-                                    <Building2 className="text-blue-500 flex-shrink-0 mt-0.5" size={16} />
+                                    <Building2 className="text-teal-500 flex-shrink-0 mt-0.5" size={16} />
                                     {plan.max_properties === -1 ? 'Biens illimités' : `${plan.max_properties} biens`}
                                 </li>
                                 <li className="flex items-start gap-2 text-sm text-base-content/80">
@@ -356,7 +356,7 @@ const Pricing: React.FC = () => {
                             <div className="p-4 bg-gradient-to-r from-teal-50 to-teal-100 rounded-xl mb-6">
                                 <p className="text-sm text-base-content/60">Plan sélectionné</p>
                                 <p className="text-lg font-bold text-base-content">{selectedPlan.display_name}</p>
-                                <p className="text-2xl font-black text-blue-600">{selectedPlan.price.toLocaleString()} FCFA</p>
+                                <p className="text-2xl font-black text-teal-600">{selectedPlan.price.toLocaleString()} FCFA</p>
                             </div>
 
                             <div className="space-y-4 mb-6">
@@ -390,7 +390,7 @@ const Pricing: React.FC = () => {
                                         placeholder="Ex: 97000000"
                                         value={paymentData.phone_number}
                                         onChange={e => setPaymentData({ ...paymentData, phone_number: e.target.value })}
-                                        className="w-full p-4 border-2 border-base-300 rounded-xl focus:border-blue-500 outline-none transition"
+                                        className="w-full p-4 border-2 border-base-300 rounded-xl focus:border-teal-500 outline-none transition"
                                     />
                                 </div>
                             </div>

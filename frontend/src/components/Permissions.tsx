@@ -219,7 +219,7 @@ const PermissionToggle = ({ label, desc, checked, onChange, disabled, danger }: 
                     onChange={onChange}
                     disabled={disabled}
                 />
-                <div className={`w-9 h-5 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 transition-colors ${
+                <div className={`w-9 h-5 rounded-full peer peer-focus:ring-2 peer-focus:ring-teal-300 transition-colors ${
                     checked 
                         ? (danger ? 'bg-red-500' : 'bg-green-500') 
                         : 'bg-base-300'

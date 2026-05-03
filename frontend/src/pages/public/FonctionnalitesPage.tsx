@@ -54,7 +54,7 @@ const FonctionnalitesPage: React.FC = () => {
       <section className="py-20 px-4 md:px-8 bg-base-100">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-4 mb-12">
-            <div className="bg-blue-600 p-4 rounded-2xl">
+            <div className="bg-teal-600 p-4 rounded-2xl">
               <Building2 className="text-white" size={32} />
             </div>
             <div>
@@ -193,7 +193,7 @@ const FonctionnalitesPage: React.FC = () => {
             </div>
 
             <div className="bg-base-200 rounded-2xl p-8">
-              <Bell className="text-blue-600 mb-4" size={40} />
+              <Bell className="text-teal-600 mb-4" size={40} />
               <h3 className="text-xl font-bold mb-3">Paramètres avancés</h3>
               <ul className="space-y-2 text-base-content/70">
                 <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-success" /> Configuration Mobile Money</li>

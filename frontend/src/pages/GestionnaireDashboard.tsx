@@ -515,7 +515,7 @@ const GestionnaireDashboard: React.FC = () => {
                                     <h4 className="font-bold text-base-content truncate">{property.name}</h4>
                                     <p className="text-sm text-base-content/60 mb-2 truncate">{property.location}</p>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-xs font-medium bg-blue-50 text-blue-600 px-2 py-1 rounded-lg">{property.units} Lots</span>
+                                        <span className="text-xs font-medium bg-teal-50 text-teal-600 px-2 py-1 rounded-lg">{property.units} Lots</span>
                                         <span className="text-sm font-bold text-base-content">{property.occupancy}% Occ.</span>
                                     </div>
                                 </div>

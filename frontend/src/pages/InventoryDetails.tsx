@@ -96,11 +96,11 @@ const InventoryDetails: React.FC = () => {
                         <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider mb-3">Contexte</h3>
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                                <Building size={16} className="text-blue-500" />
+                                <Building size={16} className="text-teal-500" />
                                 <span className="font-medium text-base-content capitalize">{inventory.entity_type}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Warehouse size={16} className="text-blue-500" />
+                                <Warehouse size={16} className="text-teal-500" />
                                 <span className="text-base-content/80">ID: {inventory.entity_id}</span>
                             </div>
                         </div>
@@ -109,11 +109,11 @@ const InventoryDetails: React.FC = () => {
                         <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider mb-3">Réalisé par</h3>
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                                <User size={16} className="text-blue-500" />
+                                <User size={16} className="text-teal-500" />
                                 <span className="font-medium text-base-content">{inventory.agent_name}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Calendar size={16} className="text-blue-500" />
+                                <Calendar size={16} className="text-teal-500" />
                                 <span className="text-base-content/80">Le {new Date(inventory.date_realisation).toLocaleDateString()}</span>
                             </div>
                         </div>
@@ -125,7 +125,7 @@ const InventoryDetails: React.FC = () => {
                     {Object.entries(groupedItems).map(([category, items]) => (
                         <div key={category}>
                             <h3 className="flex items-center gap-2 text-lg font-bold text-base-content border-b border-base-300 pb-2 mb-4">
-                                <ClipboardList className="text-blue-500" size={20} /> 
+                                <ClipboardList className="text-teal-500" size={20} /> 
                                 {category}
                             </h3>
                             <div className="grid grid-cols-1 gap-2"> {/* Table-like grid */}
@@ -154,7 +154,7 @@ const InventoryDetails: React.FC = () => {
                                         <div className="col-span-2">
                                             <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold capitalize 
                                                 ${item.etat === 'neuf' ? 'bg-green-100 text-green-700 print:border print:border-green-200' : ''}
-                                                ${item.etat === 'bon' ? 'bg-blue-100 text-blue-700 print:border print:border-blue-200' : ''}
+                                                ${item.etat === 'bon' ? 'bg-teal-100 text-teal-700 print:border print:border-teal-200' : ''}
                                                 ${item.etat === 'usager' ? 'bg-yellow-100 text-yellow-700 print:border print:border-yellow-200' : ''}
                                                 ${item.etat === 'mauvais' ? 'bg-orange-100 text-orange-700 print:border print:border-orange-200' : ''}
                                                 ${item.etat === 'hs' ? 'bg-red-100 text-red-700 print:border print:border-red-200' : ''}

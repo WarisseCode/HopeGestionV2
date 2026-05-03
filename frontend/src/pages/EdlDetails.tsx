@@ -64,7 +64,7 @@ const EdlDetails: React.FC = () => {
             case 'brouillon':
                 return <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">Brouillon</span>;
             case 'cloture':
-                return <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">Clôturé</span>;
+                return <span className="px-3 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-700">Clôturé</span>;
             default:
                 return null;
         }
@@ -120,7 +120,7 @@ const EdlDetails: React.FC = () => {
                         <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider mb-3">Bien Concerné</h3>
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                                <Building size={16} className="text-blue-500" />
+                                <Building size={16} className="text-teal-500" />
                                 <span className="font-medium text-base-content">{edl.ref_lot}</span>
                             </div>
                             {edl.ref_location && (
@@ -134,7 +134,7 @@ const EdlDetails: React.FC = () => {
                         <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider mb-3">Parties Présentes</h3>
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                                <User size={16} className="text-blue-500" />
+                                <User size={16} className="text-teal-500" />
                                 <div>
                                     <div className="font-medium text-base-content">Agent: {edl.agent_name}</div>
                                     {edl.locataire_name && (
@@ -152,7 +152,7 @@ const EdlDetails: React.FC = () => {
                     {Object.entries(groupedItems).map(([piece, items]) => (
                         <div key={piece}>
                             <h3 className="flex items-center gap-2 text-lg font-bold text-base-content border-b border-base-300 pb-2 mb-4">
-                                <ClipboardCheck className="text-blue-500" size={20} /> 
+                                <ClipboardCheck className="text-teal-500" size={20} /> 
                                 {piece}
                             </h3>
                             <div className="grid grid-cols-1 gap-3">
@@ -167,7 +167,7 @@ const EdlDetails: React.FC = () => {
                                             </div>
                                             <span className={`px-2 py-1 rounded text-xs font-bold capitalize 
                                                 ${item.etat === 'neuf' ? 'bg-green-100 text-green-700' : ''}
-                                                ${item.etat === 'bon' ? 'bg-blue-100 text-blue-700' : ''}
+                                                ${item.etat === 'bon' ? 'bg-teal-100 text-teal-700' : ''}
                                                 ${item.etat === 'usager' ? 'bg-yellow-100 text-yellow-700' : ''}
                                                 ${item.etat === 'mauvais' ? 'bg-orange-100 text-orange-700' : ''}
                                                 ${item.etat === 'hs' ? 'bg-red-100 text-red-700' : ''}
@@ -198,9 +198,9 @@ const EdlDetails: React.FC = () => {
 
                 {/* Comments */}
                 {edl.commentaires && (
-                    <div className="mt-8 p-4 bg-blue-50 rounded-xl">
-                        <h3 className="font-bold text-blue-900 mb-2">Commentaires</h3>
-                        <p className="text-sm text-blue-800">{edl.commentaires}</p>
+                    <div className="mt-8 p-4 bg-teal-50 rounded-xl">
+                        <h3 className="font-bold text-teal-900 mb-2">Commentaires</h3>
+                        <p className="text-sm text-teal-800">{edl.commentaires}</p>
                     </div>
                 )}
 

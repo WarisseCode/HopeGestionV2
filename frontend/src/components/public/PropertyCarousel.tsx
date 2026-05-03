@@ -35,7 +35,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onViewDetails }) 
         <div className="absolute top-3 left-3">
           <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg
             ${property.type === 'Villa' ? 'bg-amber-500 text-white' : 
-              property.type === 'Appartement' ? 'bg-blue-500 text-white' :
+              property.type === 'Appartement' ? 'bg-teal-500 text-white' :
               property.type === 'Studio' ? 'bg-teal-600 text-white' :
               property.type === 'Boutique' ? 'bg-green-500 text-white' :
               'bg-gray-500 text-white'}`}

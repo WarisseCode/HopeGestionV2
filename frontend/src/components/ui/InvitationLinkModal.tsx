@@ -72,8 +72,8 @@ const InvitationLinkModal: React.FC<InvitationLinkModalProps> = ({ isOpen, onClo
   if (!isOpen) return null;
 
   const roleLabel = type === 'owner' ? 'Propriétaire' : 'Locataire';
-  const accentColor = type === 'owner' ? 'text-blue-600' : 'text-green-600';
-  const accentBg = type === 'owner' ? 'bg-blue-50' : 'bg-green-50';
+  const accentColor = type === 'owner' ? 'text-teal-600' : 'text-green-600';
+  const accentBg = type === 'owner' ? 'bg-teal-50' : 'bg-green-50';
   const btnClass = type === 'owner' ? 'btn-primary' : 'btn-success text-white';
 
   return (

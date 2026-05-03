@@ -56,7 +56,7 @@ const EdlList: React.FC = () => {
             case 'brouillon':
                 return <span className="px-2 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 flex items-center gap-1"><Clock size={10} /> Brouillon</span>;
             case 'cloture':
-                return <span className="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 flex items-center gap-1"><CheckCircle size={10} /> Clôturé</span>;
+                return <span className="px-2 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-700 flex items-center gap-1"><CheckCircle size={10} /> Clôturé</span>;
             case 'archive':
                 return <span className="px-2 py-1 rounded-full text-xs font-bold bg-base-300 text-base-content/80">Archivé</span>;
             default:
@@ -99,13 +99,13 @@ const EdlList: React.FC = () => {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-base-content flex items-center gap-2">
-                        <ClipboardCheck className="text-blue-600" /> États des Lieux
+                        <ClipboardCheck className="text-teal-600" /> États des Lieux
                     </h1>
                     <p className="text-base-content/60">Inspections juridiques d'entrée et sortie</p>
                 </div>
                 <Link 
                     to="/dashboard/etats-des-lieux/nouveau" 
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all duration-200 flex items-center gap-2 font-medium"
+                    className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl shadow-lg hover:shadow-teal-500/30 transition-all duration-200 flex items-center gap-2 font-medium"
                 >
                     <Plus size={20} /> Nouvel État des Lieux
                 </Link>
@@ -118,7 +118,7 @@ const EdlList: React.FC = () => {
                     <input 
                         type="text" 
                         placeholder="Rechercher (Réf, Lot, Locataire...)" 
-                        className="w-full pl-10 pr-4 py-2 bg-base-200 border border-base-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-2 bg-base-200 border border-base-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -126,7 +126,7 @@ const EdlList: React.FC = () => {
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0">
                     <Filter size={18} className="text-base-content/50 hidden lg:block" />
                     <select 
-                        className="px-4 py-2 rounded-xl text-sm font-medium bg-base-200 border border-base-300 focus:ring-2 focus:ring-blue-500"
+                        className="px-4 py-2 rounded-xl text-sm font-medium bg-base-200 border border-base-300 focus:ring-2 focus:ring-teal-500"
                         value={filterType}
                         onChange={(e) => setFilterType(e.target.value)}
                     >
@@ -136,7 +136,7 @@ const EdlList: React.FC = () => {
                         <option value="intermediaire">Intermédiaire</option>
                     </select>
                     <select 
-                        className="px-4 py-2 rounded-xl text-sm font-medium bg-base-200 border border-base-300 focus:ring-2 focus:ring-blue-500"
+                        className="px-4 py-2 rounded-xl text-sm font-medium bg-base-200 border border-base-300 focus:ring-2 focus:ring-teal-500"
                         value={filterStatut}
                         onChange={(e) => setFilterStatut(e.target.value)}
                     >
@@ -162,7 +162,7 @@ const EdlList: React.FC = () => {
                     <div className="divide-y divide-gray-100">
                         {filteredEdls.map((edl) => (
                             <div key={edl.id} className="p-4 hover:bg-base-200 transition-colors flex flex-col md:flex-row md:items-center gap-4">
-                                <div className="p-3 bg-blue-50 rounded-xl text-3xl">
+                                <div className="p-3 bg-teal-50 rounded-xl text-3xl">
                                     {getTypeIcon(edl.type_edl)}
                                 </div>
                                 <div className="flex-1">
@@ -170,7 +170,7 @@ const EdlList: React.FC = () => {
                                         <h3 className="font-semibold text-base-content">{edl.ref_edl}</h3>
                                         {getStatusBadge(edl.statut)}
                                     </div>
-                                    <p className="text-sm text-blue-600 font-medium mb-1">{getTypeLabel(edl.type_edl)}</p>
+                                    <p className="text-sm text-teal-600 font-medium mb-1">{getTypeLabel(edl.type_edl)}</p>
                                     <div className="flex items-center gap-4 text-sm text-base-content/60 flex-wrap">
                                         <span className="flex items-center gap-1">
                                             <Building size={14} /> {edl.ref_lot}

@@ -112,7 +112,7 @@ const AdminAgencies: React.FC = () => {
         {[
           { label: 'Agences', value: agencies.length, icon: Building2, color: 'text-primary' },
           { label: 'Immeubles', value: totalProperties, icon: Home, color: 'text-teal-500' },
-          { label: 'Lots gérés', value: totalLots, icon: Hash, color: 'text-blue-500' },
+          { label: 'Lots gérés', value: totalLots, icon: Hash, color: 'text-teal-500' },
           { label: 'Revenus', value: `${formatCurrency(totalRevenue)} FCFA`, icon: Wallet, color: 'text-emerald-500' },
         ].map((stat, i) => (
           <motion.div
@@ -191,7 +191,7 @@ const AdminAgencies: React.FC = () => {
                     <span className="text-[10px] text-base-content/50">Immeubles</span>
                   </div>
                   <div className="text-center p-2 rounded-lg bg-base-200/30">
-                    <Hash size={14} className="mx-auto mb-1 text-blue-500/60" />
+                    <Hash size={14} className="mx-auto mb-1 text-teal-500/60" />
                     <span className="block font-bold text-lg">{agency.lotCount}</span>
                     <span className="text-[10px] text-base-content/50">Lots</span>
                   </div>

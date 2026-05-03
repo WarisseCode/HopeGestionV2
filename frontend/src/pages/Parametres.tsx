@@ -409,7 +409,7 @@ const Parametres: React.FC = () => {
                   <div className="grid grid-cols-1 gap-6">
                     {[
                       { name: 'MTN Mobile Money', status: 'Connecté • Compte principal', connected: true, color: 'bg-yellow-400 text-black', iconText: 'MTN' },
-                      { name: 'Moov Money', status: 'Non connecté', connected: false, color: 'bg-blue-600 text-white', iconText: 'Moov' },
+                      { name: 'Moov Money', status: 'Non connecté', connected: false, color: 'bg-teal-600 text-white', iconText: 'Moov' },
                       { name: 'Celtiis Cash', status: 'Non connecté', connected: false, color: 'bg-teal-600 text-white', iconText: 'Celtiis' }
                     ].map((item, index) => (
                       <div key={index} className="border border-base-200 rounded-2xl p-6 flex items-center justify-between hover:shadow-lg transition-all duration-300 bg-base-100">

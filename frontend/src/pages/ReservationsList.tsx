@@ -240,7 +240,7 @@ const ReservationsList: React.FC = () => {
                                                     Demande: {new Date(reservation.created_at).toLocaleDateString('fr-FR')}
                                                 </p>
                                                 {reservation.montant_depot > 0 && (
-                                                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
+                                                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-teal-100 text-teal-700 text-xs font-bold rounded-full">
                                                         Dépôt 5% : {reservation.montant_depot.toLocaleString()} FCFA
                                                     </span>
                                                 )}
@@ -325,7 +325,7 @@ const ReservationsList: React.FC = () => {
                                         type="date" 
                                         value={transformData.date_fin}
                                         onChange={(e) => setTransformData({...transformData, date_fin: e.target.value})}
-                                        className="w-full p-3 border border-base-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full p-3 border border-base-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                     />
                                 </div>
 
@@ -337,7 +337,7 @@ const ReservationsList: React.FC = () => {
                                             placeholder="Auto = 1 mois"
                                             value={transformData.caution}
                                             onChange={(e) => setTransformData({...transformData, caution: e.target.value})}
-                                            className="w-full p-3 border border-base-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            className="w-full p-3 border border-base-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                         />
                                     </div>
                                     <div>
@@ -347,7 +347,7 @@ const ReservationsList: React.FC = () => {
                                             min="1" 
                                             value={transformData.avance}
                                             onChange={(e) => setTransformData({...transformData, avance: e.target.value})}
-                                            className="w-full p-3 border border-base-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            className="w-full p-3 border border-base-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                         />
                                     </div>
                                 </div>
@@ -357,7 +357,7 @@ const ReservationsList: React.FC = () => {
                                     <select 
                                         value={transformData.periodicite}
                                         onChange={(e) => setTransformData({...transformData, periodicite: e.target.value})}
-                                        className="w-full p-3 border border-base-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full p-3 border border-base-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                     >
                                         <option value="mensuel">Mensuel</option>
                                         <option value="trimestriel">Trimestriel</option>
@@ -377,7 +377,7 @@ const ReservationsList: React.FC = () => {
                                 <button 
                                     onClick={handleTransform}
                                     disabled={transformLoading}
-                                    className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                                    className="flex-1 py-3 px-4 rounded-xl bg-teal-600 text-white font-medium hover:bg-teal-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
                                     {transformLoading ? (
                                         <><RefreshCw size={16} className="animate-spin" /> Transformation...</>

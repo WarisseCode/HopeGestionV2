@@ -28,7 +28,7 @@ interface UpcomingEventsProps {
 const getEventIcon = (type: UpcomingEvent['type']) => {
   switch (type) {
     case 'rent':
-      return { icon: Wallet, bgClass: 'bg-blue-100', textClass: 'text-blue-600' };
+      return { icon: Wallet, bgClass: 'bg-teal-100', textClass: 'text-teal-600' };
     case 'contract':
       return { icon: FileText, bgClass: 'bg-teal-100', textClass: 'text-teal-600' };
     case 'intervention':

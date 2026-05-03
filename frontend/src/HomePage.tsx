@@ -179,7 +179,7 @@ const HomePage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <FeatureCard 
               icon={<Building2 className="w-8 h-8 text-white"/>}
-              color="bg-blue-600"
+              color="bg-teal-600"
               title="Gestion de Patrimoine"
               desc="Vues détaillées de vos immeubles et lots. Suivi de l'occupation et de l'état des lieux."
             />

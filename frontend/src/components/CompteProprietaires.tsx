@@ -445,7 +445,7 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                                             {visibleColumns.type && (
                                                 <td className="p-4 hidden md:table-cell text-center">
                                                     <span className={`px-2.5 py-1 rounded text-[10px] uppercase font-bold tracking-wider ${
-                                                        owner.type === 'individual' ? 'bg-blue-50 text-blue-700' : 'bg-teal-50 text-teal-700'
+                                                        owner.type === 'individual' ? 'bg-teal-50 text-teal-700' : 'bg-teal-50 text-teal-700'
                                                     }`}>
                                                         {owner.type === 'individual' ? 'Particulier' : 'Entreprise'}
                                                     </span>

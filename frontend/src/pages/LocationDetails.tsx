@@ -140,7 +140,7 @@ const LocationDetails: React.FC = () => {
                 </div>
                 <span className={`px-4 py-2 rounded-full text-sm font-medium capitalize ${
                     location.statut === 'actif' ? 'bg-green-100 text-green-700' :
-                    location.statut === 'signe' ? 'bg-blue-100 text-blue-700' :
+                    location.statut === 'signe' ? 'bg-teal-100 text-teal-700' :
                     'bg-base-300 text-base-content/70'
                 }`}>
                     {location.statut}
@@ -155,8 +155,8 @@ const LocationDetails: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card className="p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                            <DollarSign className="text-blue-600" size={20} />
+                        <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+                            <DollarSign className="text-teal-600" size={20} />
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-base-content/90">{formatCurrency(location.loyer_mensuel)}</p>

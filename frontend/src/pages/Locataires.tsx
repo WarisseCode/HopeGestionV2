@@ -53,7 +53,7 @@ const ITEMS_PER_PAGE = 12;
 // Placeholder avatars
 const getAvatarColor = (name: string): string => {
   const colors = [
-    'bg-blue-500', 'bg-green-500', 'bg-teal-500', 'bg-orange-500',
+    'bg-teal-500', 'bg-green-500', 'bg-teal-500', 'bg-orange-500',
     'bg-pink-500', 'bg-teal-700', 'bg-teal-400', 'bg-red-500'
   ];
   const hash = name.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
@@ -519,7 +519,7 @@ const Locataires: React.FC = () => {
           <motion.div key="affectation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <Card className="border-none shadow-xl bg-base-100 text-center py-12">
               <div className="flex flex-col items-center">
-                <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-4"><Home size={32}/></div>
+                <div className="w-16 h-16 bg-teal-50 text-teal-500 rounded-full flex items-center justify-center mb-4"><Home size={32}/></div>
                 <h2 className="text-xl font-bold text-base-content/90">Gestion des Affectations</h2>
                 <p className="text-base-content/60 max-w-md mt-2 mb-6">Gérez ici l'attribution des logements à vos locataires.</p>
                 <Button variant="primary" onClick={() => navigate('/dashboard/locations')}>
@@ -611,7 +611,7 @@ const Locataires: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleCall(person.telephone_principal)}
-                          className="btn btn-sm btn-ghost bg-blue-100/50 hover:bg-blue-100 text-blue-600"
+                          className="btn btn-sm btn-ghost bg-teal-100/50 hover:bg-teal-100 text-teal-600"
                           title="Appeler"
                         >
                           <Phone size={16} />
@@ -680,7 +680,7 @@ const Locataires: React.FC = () => {
                             <td className="pr-6 text-right">
                               <div className="flex justify-end gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button onClick={() => handleWhatsApp(person.telephone_principal, person.prenoms)} className="btn btn-ghost btn-xs btn-square text-green-600"><MessageCircle size={14} /></button>
-                                <button onClick={() => handleCall(person.telephone_principal)} className="btn btn-ghost btn-xs btn-square text-blue-600"><Phone size={14} /></button>
+                                <button onClick={() => handleCall(person.telephone_principal)} className="btn btn-ghost btn-xs btn-square text-teal-600"><Phone size={14} /></button>
                                 <button onClick={() => navigate(`/dashboard/locataires/${person.id}`)} className="btn btn-ghost btn-xs btn-square"><Eye size={14} /></button>
                                 {canWrite && <button onClick={() => handleDelete(person.id)} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>}
                               </div>

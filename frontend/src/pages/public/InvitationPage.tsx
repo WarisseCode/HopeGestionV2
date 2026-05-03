@@ -141,8 +141,8 @@ const InvitationPage: React.FC = () => {
   };
 
   const roleLabel = context?.type === 'owner' ? 'Propriétaire' : 'Locataire';
-  const roleColor = context?.type === 'owner' ? 'text-blue-600' : 'text-green-600';
-  const roleBg = context?.type === 'owner' ? 'bg-blue-50' : 'bg-green-50';
+  const roleColor = context?.type === 'owner' ? 'text-teal-600' : 'text-green-600';
+  const roleBg = context?.type === 'owner' ? 'bg-teal-50' : 'bg-green-50';
   const btnClass = context?.type === 'owner' ? 'btn-primary' : 'btn-success';
 
   return (

@@ -133,14 +133,14 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-5 border border-blue-200"
+                    className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-2xl p-5 border border-teal-200"
                 >
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="bg-blue-500 rounded-xl p-2"><CreditCard size={18} className="text-white" /></div>
-                        <span className="text-sm font-semibold text-blue-700">Total Attendu</span>
+                        <div className="bg-teal-500 rounded-xl p-2"><CreditCard size={18} className="text-white" /></div>
+                        <span className="text-sm font-semibold text-teal-700">Total Attendu</span>
                     </div>
-                    <p className="text-2xl font-extrabold text-blue-900">{formatCurrency(totalExpected)}</p>
-                    <p className="text-xs text-blue-600 mt-1">{schedules.length} échéance(s)</p>
+                    <p className="text-2xl font-extrabold text-teal-900">{formatCurrency(totalExpected)}</p>
+                    <p className="text-xs text-teal-600 mt-1">{schedules.length} échéance(s)</p>
                 </motion.div>
 
                 <motion.div

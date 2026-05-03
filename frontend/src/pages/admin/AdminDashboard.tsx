@@ -350,7 +350,7 @@ const AdminDashboard: React.FC = () => {
                     transition={{ delay: 0.7 + index * 0.03 }}
                     className="flex gap-3 items-start py-3 border-b border-base-200/50 last:border-0"
                   >
-                    <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${activityDot[item.type] || 'bg-blue-500'}`} />
+                    <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${activityDot[item.type] || 'bg-teal-500'}`} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium leading-tight">{item.action}</p>
                       <p className="text-xs text-base-content/50 mt-0.5 truncate">

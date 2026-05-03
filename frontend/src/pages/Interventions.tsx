@@ -72,7 +72,7 @@ interface ServiceContract {
 
 // Status configuration
 const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: any }> = {
-  'Ouvert': { color: 'text-blue-700', bg: 'bg-blue-100', icon: AlertCircle },
+  'Ouvert': { color: 'text-teal-700', bg: 'bg-teal-100', icon: AlertCircle },
   'En cours': { color: 'text-orange-700', bg: 'bg-orange-100', icon: Clock },
   'En attente': { color: 'text-yellow-700', bg: 'bg-yellow-100', icon: PauseCircle },
   'Résolu': { color: 'text-green-700', bg: 'bg-green-100', icon: CheckCheck },

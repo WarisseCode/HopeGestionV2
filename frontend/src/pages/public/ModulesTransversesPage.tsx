@@ -148,7 +148,7 @@ const ModulesTransversesPage: React.FC = () => {
       <section className="py-20 px-4 md:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-100 text-teal-700 text-sm font-semibold mb-4">
               <Settings size={16} /> Module Paramètres
             </div>
             <h2 className="text-3xl font-bold mb-4">Configuration avancée</h2>
@@ -159,7 +159,7 @@ const ModulesTransversesPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-base-100 border border-base-200 rounded-2xl p-8 text-center">
-              <CreditCard className="text-blue-600 mx-auto mb-4" size={40} />
+              <CreditCard className="text-teal-600 mx-auto mb-4" size={40} />
               <h3 className="text-xl font-bold mb-3">Modes de paiement</h3>
               <p className="text-base-content/70 mb-4">
                 Configurez les moyens de paiement acceptés : Mobile Money, Virement, Espèces

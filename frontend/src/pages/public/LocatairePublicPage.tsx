@@ -75,7 +75,7 @@ const LocatairePublicPage: React.FC = () => {
               description="Téléchargez vos documents à tout moment : bail, quittances, attestations."
             />
             <FeatureCard 
-              icon={<CreditCard className="text-blue-600" size={32} />}
+              icon={<CreditCard className="text-teal-600" size={32} />}
               title="Paiement en ligne"
               description="Payez votre loyer par Mobile Money (MTN, Moov, Orange) ou virement en 1 clic."
             />

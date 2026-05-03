@@ -143,7 +143,7 @@ const AdminUsers: React.FC = () => {
   };
 
   const getProviderIcon = (provider?: string) => {
-    if (provider === 'google') return <span aria-label="Google"><Globe size={14} className="text-blue-500" /></span>;
+    if (provider === 'google') return <span aria-label="Google"><Globe size={14} className="text-teal-500" /></span>;
     return <span aria-label="Email"><Mail size={14} className="text-base-content/60" /></span>;
   };
 

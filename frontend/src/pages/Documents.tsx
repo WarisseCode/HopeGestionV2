@@ -267,7 +267,7 @@ const Documents: React.FC = () => {
                                 </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${doc.categorie === 'generated' ? 'bg-teal-100 text-teal-800' : 'bg-blue-100 text-blue-800'}`}>
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${doc.categorie === 'generated' ? 'bg-teal-100 text-teal-800' : 'bg-teal-100 text-teal-800'}`}>
                                     {doc.categorie}
                                 </span>
                                 </td>

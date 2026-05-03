@@ -70,7 +70,7 @@ const CompleteProfile: React.FC = () => {
             label: 'Gestionnaire Immobilier',
             icon: Building2,
             description: 'Gérez des biens pour vos clients',
-            color: 'from-blue-500 to-blue-600'
+            color: 'from-teal-500 to-teal-600'
         },
         {
             value: 'proprietaire',

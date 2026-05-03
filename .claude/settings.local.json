@@ -27,7 +27,8 @@
       "Bash(npx vite *)",
       "Bash(claude mcp *)",
       "WebSearch",
-      "Bash(py .claude/skills/ui-ux-pro-max/scripts/search.py \"property management SaaS dashboard minimalism swiss style teal\" --design-system -p \"HopeGestion\")"
+      "Bash(py .claude/skills/ui-ux-pro-max/scripts/search.py \"property management SaaS dashboard minimalism swiss style teal\" --design-system -p \"HopeGestion\")",
+      "Bash(xargs sed -i 's/text-blue-\\\\\\([0-9]\\\\+\\\\\\)/text-teal-\\\\1/g; *)"
     ]
   }
 }

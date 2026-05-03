@@ -445,7 +445,7 @@ const BiensPublicsPage: React.FC = () => {
                   viewMode === 'list' ? 'flex' : ''
                 } ${
                   highlightedPropertyId === property.id 
-                    ? 'border-blue-500 ring-4 ring-blue-500/30 animate-pulse' 
+                    ? 'border-teal-500 ring-4 ring-teal-500/30 animate-pulse' 
                     : ''
                 }`}
                 onClick={() => {
@@ -466,7 +466,7 @@ const BiensPublicsPage: React.FC = () => {
                   <div className="absolute top-3 left-3 flex gap-2">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold shadow-lg
                       ${property.type === 'Villa' ? 'bg-amber-500 text-white' : 
-                        property.type === 'Appartement' ? 'bg-blue-500 text-white' :
+                        property.type === 'Appartement' ? 'bg-teal-500 text-white' :
                         property.type === 'Studio' ? 'bg-teal-600 text-white' :
                         'bg-gray-500 text-white'}`}
                     >
@@ -674,7 +674,7 @@ const BiensPublicsPage: React.FC = () => {
                 <div className="absolute bottom-4 left-6 text-white">
                   <span className={`px-3 py-1 rounded-full text-xs font-bold mb-2 inline-block
                     ${selectedProperty.type === 'Villa' ? 'bg-amber-500' : 
-                      selectedProperty.type === 'Appartement' ? 'bg-blue-500' :
+                      selectedProperty.type === 'Appartement' ? 'bg-teal-500' :
                       'bg-gray-500'}`}
                   >
                     {selectedProperty.type}
