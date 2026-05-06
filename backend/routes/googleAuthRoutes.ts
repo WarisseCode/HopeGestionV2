@@ -127,7 +127,7 @@ router.post('/google', async (req: Request, res: Response) => {
         );
 
         // 5. Return response
-        console.log(`✅ Google OAuth ${isNewUser ? 'registration' : 'login'} for userId:${userId} from IP: ${req.ip}`);
+        console.log(`✅ Google OAuth ${isNewUser ? 'registration' : 'login'} for userId:${user.id} from IP: ${req.ip}`);
 
         res.json({
             message: isNewUser ? 'Compte créé avec succès.' : 'Connexion réussie.',

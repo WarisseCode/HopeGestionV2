@@ -401,7 +401,7 @@ router.post('/login', async (req, res) => {
             userAgent: (req.headers['user-agent'] as string) || 'unknown'
         });
 
-        console.log(`✅ Successful login for userId:${user.id} from IP: ${req.ip}`);
+        console.log(`✅ Successful login for userId:${utilisateur.id} from IP: ${req.ip}`);
 
         res.json({
             message: 'Connexion réussie.',
