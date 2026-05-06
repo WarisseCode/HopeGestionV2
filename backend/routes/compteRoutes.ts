@@ -301,7 +301,7 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
                 if (error.constraint === 'owners_email_key') {
                     return res.status(400).json({ message: 'Cette adresse email est déjà utilisée par un autre propriétaire.' });
                 }
-                return res.status(400).json({ message: `Une donnée unique est déjà utilisée : ${error.detail || error.message}` });
+                return res.status(400).json({ message: 'Une donnée unique est déjà utilisée par un autre compte.' });
             }
             throw error; 
         }

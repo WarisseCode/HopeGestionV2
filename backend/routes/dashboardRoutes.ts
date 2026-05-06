@@ -26,20 +26,21 @@ router.get('/stats/gestionnaire', tenantGuard, async (req: AuthenticatedRequest,
             });
         }
 
-        const ownerFilter = isAdmin ? '1=1' : `owner_id IN (${validOwnerIds.join(',')})`;
-        const leaseFilter = isAdmin ? '1=1' : `l.owner_id IN (${validOwnerIds.join(',')})`;
+        const ownerFilter = isAdmin ? 'TRUE' : 'owner_id = ANY($1::int[])';
+        const leaseFilter = isAdmin ? 'TRUE' : 'l.owner_id = ANY($1::int[])';
+        const queryParams = isAdmin ? [] : [validOwnerIds];
 
         const [buildingsResult, lotsResult, occupiedResult, revenusResult, impayesResult, tenantsResult] = await Promise.all([
-            dbClient.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`),
-            dbClient.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`),
-            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`),
+            dbClient.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`, queryParams),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`, queryParams),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`, queryParams),
             dbClient.query(`
                 SELECT COALESCE(SUM(montant), 0) as total
                 FROM payments
                 WHERE ${ownerFilter}
                 AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
                 AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
-            `),
+            `, queryParams),
             dbClient.query(`
                 SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
                 FROM leases l
@@ -50,8 +51,8 @@ router.get('/stats/gestionnaire', tenantGuard, async (req: AuthenticatedRequest,
                     AND EXTRACT(MONTH FROM p.date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
                     AND EXTRACT(YEAR FROM p.date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
                 )
-            `),
-            dbClient.query(`SELECT COUNT(DISTINCT tenant_id) FROM leases WHERE statut = 'actif' AND ${ownerFilter}`)
+            `, queryParams),
+            dbClient.query(`SELECT COUNT(DISTINCT tenant_id) FROM leases WHERE statut = 'actif' AND ${ownerFilter}`, queryParams)
         ]);
 
         const totalBiens = parseInt(buildingsResult.rows[0].count, 10);
@@ -89,20 +90,21 @@ router.get('/stats/manager', tenantGuard, async (req: AuthenticatedRequest, res:
             });
         }
 
-        const ownerFilter = isAdmin ? '1=1' : `owner_id IN (${validOwnerIds.join(',')})`;
-        const leaseFilter = isAdmin ? '1=1' : `l.owner_id IN (${validOwnerIds.join(',')})`;
+        const ownerFilter = isAdmin ? 'TRUE' : 'owner_id = ANY($1::int[])';
+        const leaseFilter = isAdmin ? 'TRUE' : 'l.owner_id = ANY($1::int[])';
+        const queryParams = isAdmin ? [] : [validOwnerIds];
 
         const [buildingsResult, lotsResult, occupiedResult, revenusResult, impayesResult, tenantsResult] = await Promise.all([
-            dbClient.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`),
-            dbClient.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`),
-            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`),
+            dbClient.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`, queryParams),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`, queryParams),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`, queryParams),
             dbClient.query(`
                 SELECT COALESCE(SUM(montant), 0) as total
                 FROM payments
                 WHERE ${ownerFilter}
                 AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
                 AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
-            `),
+            `, queryParams),
             dbClient.query(`
                 SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
                 FROM leases l
@@ -113,8 +115,8 @@ router.get('/stats/manager', tenantGuard, async (req: AuthenticatedRequest, res:
                     AND EXTRACT(MONTH FROM p.date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
                     AND EXTRACT(YEAR FROM p.date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
                 )
-            `),
-            dbClient.query(`SELECT COUNT(DISTINCT tenant_id) FROM leases WHERE statut = 'actif' AND ${ownerFilter}`)
+            `, queryParams),
+            dbClient.query(`SELECT COUNT(DISTINCT tenant_id) FROM leases WHERE statut = 'actif' AND ${ownerFilter}`, queryParams)
         ]);
 
         const totalBiens = parseInt(buildingsResult.rows[0].count, 10);

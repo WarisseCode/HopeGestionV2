@@ -155,10 +155,13 @@ app.use((req, res, next) => {
     next();
 });
 
-// Servir les fichiers uploadés avec CORS
+// Servir les fichiers uploadés avec CORS restreint (mêmes origins que l'API)
 app.use('/uploads', (req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+    }
+    res.header('Cross-Origin-Resource-Policy', 'same-site');
     next();
 }, express.static(path.join(__dirname, '../uploads')));
 

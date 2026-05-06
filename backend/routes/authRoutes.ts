@@ -401,7 +401,7 @@ router.post('/login', async (req, res) => {
             userAgent: (req.headers['user-agent'] as string) || 'unknown'
         });
 
-        console.log(`✅ Successful login for ${email} from IP: ${req.ip}`);
+        console.log(`✅ Successful login for userId:${user.id} from IP: ${req.ip}`);
 
         res.json({
             message: 'Connexion réussie.',
@@ -894,9 +894,6 @@ router.put('/profile', verifyToken, async (req: any, res) => {
     const userId = req.user.id;
 
     try {
-        // Debug: Log incoming data
-        console.log('[PUT /profile] Received body:', JSON.stringify(req.body, null, 2));
-        
         // Validation basique
         if (!email) return res.status(400).json({ message: 'Email requis.' });
 
@@ -933,7 +930,10 @@ router.put('/profile', verifyToken, async (req: any, res) => {
  * GET /test-email
  * Route temporaire de diagnostic email pour la production
  */
-router.get('/test-email', async (req: Request, res: Response) => {
+router.get('/test-email', protect, async (req: Request, res: Response) => {
+    if (!['admin', 'super_admin'].includes((req as any).userRole || '')) {
+        return res.status(403).json({ message: 'Accès refusé. Réservé aux administrateurs.' });
+    }
     const config = {
         EMAIL_HOST: process.env.EMAIL_HOST || '(non défini)',
         EMAIL_PORT: process.env.EMAIL_PORT || '(non défini)',
@@ -1043,8 +1043,8 @@ router.post('/invite-user', verifyToken, async (req: any, res) => {
         const userEmail = email || `invite_${telephone.replace(/[^0-9]/g, '')}@hopegestion.local`;
 
         // 1. Créer le compte utilisateur en statut "invited"
-        // On met un hash impossible pour le password temporairement.
-        const tempHash = '$2b$10$INVALIDHASHForInvitedUserOnlyXXXXXXXXXXXXXXXXXXXXX'; 
+        // Hash aléatoire non-devinable : l'utilisateur doit définir son mot de passe via l'invitation.
+        const tempHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
         
         // Check duplicate
         const check = await pool.query('SELECT id FROM users WHERE email = $1 OR telephone = $2', [userEmail, telephone]);
@@ -1096,8 +1096,8 @@ router.post('/invite-user', verifyToken, async (req: any, res) => {
         }
 
     } catch (error: any) {
-        console.error('Erreur invitation:', error.message, error.stack);
-        res.status(500).json({ message: `Erreur serveur: ${error.message}` });
+        console.error('Erreur invitation:', error.message);
+        res.status(500).json({ message: 'Erreur interne du serveur.' });
     }
 });
 
@@ -1174,9 +1174,11 @@ router.post('/create-guest', verifyToken, async (req: any, res) => {
         if (!telephone) return res.status(400).json({ message: 'Le numéro de téléphone est requis.' });
 
         // 1. Generate unique Guest Key
-        // Format: GUEST-XXXX-YYYY (Random hex)
-        const randomPart = crypto.randomBytes(4).toString('hex').toUpperCase();
-        const accessKey = `GUEST-${randomPart}`;
+        // Format: GUEST-XXXXXXXXXXXX (Random hex, 6 bytes = 12 chars)
+        // rawKey is shown to the user once; hashedKey is stored in DB (SHA-256)
+        const randomPart = crypto.randomBytes(6).toString('hex').toUpperCase();
+        const rawKey = `GUEST-${randomPart}`;
+        const hashedKey = crypto.createHash('sha256').update(rawKey).digest('hex');
 
         // 2. Calculate Expiration
         const days = durationDays || 7; // Default 1 week
@@ -1184,8 +1186,8 @@ router.post('/create-guest', verifyToken, async (req: any, res) => {
 
         // 3. Create User (Guest)
         // We use a dummy email/password since they are not used for login
-        const dummyEmail = `${accessKey}@guest.local`;
-        const dummyHash = '$2b$10$GUESTACCESSHASHONLYXXXXXXXXXXXXXXXXXXXXX'; 
+        const dummyEmail = `${rawKey}@guest.local`;
+        const dummyHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
 
         const client = await pool.connect();
         try {
@@ -1216,7 +1218,7 @@ router.post('/create-guest', verifyToken, async (req: any, res) => {
                 `INSERT INTO users (email, password_hash, nom, user_type, role, telephone, statut, access_key, access_key_expires_at, is_guest, agency_id) 
                  VALUES ($1, $2, TRIM($3 || ' ' || $4), 'guest', $5, $6, 'actif', $7, $8, true, $9) 
                  RETURNING id`,
-                [dummyEmail, dummyHash, nom, prenom || '', guestRole, telephone, accessKey, expiresAt, agencyId]
+                [dummyEmail, dummyHash, nom, prenom || '', guestRole, telephone, hashedKey, expiresAt, agencyId]
             );
             const guestId = insertRes.rows[0].id;
 
@@ -1347,14 +1349,14 @@ router.post('/create-guest', verifyToken, async (req: any, res) => {
                 action: 'CREATE_GUEST',
                 entityType: 'USER',
                 entityId: guestId.toString(),
-                details: { accessKey, expiresAt, agencyId, role: guestRole },
+                details: { accessKeyHash: hashedKey.substring(0, 8) + '...', expiresAt, agencyId, role: guestRole },
                 ipAddress: req.ip || 'unknown',
                 userAgent: (req.headers['user-agent'] as string) || 'unknown'
             });
 
             res.status(201).json({
                 message: 'Accès invité créé',
-                accessKey,
+                accessKey: rawKey,
                 expiresAt,
                 guestId,
                 role: guestRole
@@ -1385,12 +1387,13 @@ router.post('/login-with-key', async (req, res) => {
     try {
         if (!accessKey) return res.status(400).json({ message: 'Clé d\'accès requise.' });
 
-        // 1. Find the guest user by access key
+        // 1. Find the guest user by access key (compare SHA-256 hashes)
+        const hashedInputKey = crypto.createHash('sha256').update(accessKey).digest('hex');
         const userResult = await pool.query(
-            `SELECT id, nom, role, access_key_expires_at, is_guest, statut 
-             FROM users 
+            `SELECT id, nom, role, access_key_expires_at, is_guest, statut
+             FROM users
              WHERE access_key = $1`,
-            [accessKey]
+            [hashedInputKey]
         );
 
         if (userResult.rows.length === 0) {
@@ -1571,7 +1574,7 @@ router.post('/forgot-password', async (req, res) => {
             userAgent: (req.headers['user-agent'] as string) || 'unknown'
         });
 
-        console.log(`✅ Password reset token generated for ${user.email} from IP: ${req.ip}`);
+        console.log(`✅ Password reset token generated for userId:${user.id} from IP: ${req.ip}`);
 
         res.status(200).json({ 
             message: 'Si un compte existe avec cet email, un lien de réinitialisation a été envoyé.' 
@@ -1686,7 +1689,7 @@ router.post('/reset-password', async (req, res) => {
             userAgent: (req.headers['user-agent'] as string) || 'unknown'
         });
 
-        console.log(`✅ Password successfully reset for user ${user.email} from IP: ${req.ip}`);
+        console.log(`✅ Password successfully reset for userId:${user.id} from IP: ${req.ip}`);
 
         res.status(200).json({ 
             message: 'Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.' 

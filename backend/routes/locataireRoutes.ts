@@ -54,14 +54,16 @@ router.get('/', protect, permissions.canRead('locataires'), tenantGuard, async (
         `;
 
         // Filtrage explicite par owner — indispensable quand BYPASSRLS est actif
-        if (!isAdmin && validOwnerIds.length > 0) {
-            query += ` AND t.owner_id IN (${validOwnerIds.join(',')})`;
-        } else if (!isAdmin) {
-            query += ` AND 1=0`;
-        }
-
         const params: any[] = [];
         let paramIndex = 1;
+
+        if (!isAdmin && validOwnerIds.length > 0) {
+            query += ` AND t.owner_id = ANY($${paramIndex}::int[])`;
+            params.push(validOwnerIds);
+            paramIndex++;
+        } else if (!isAdmin) {
+            query += ` AND FALSE`;
+        }
 
         if (type) {
             query += ` AND t.type = $${paramIndex}`;

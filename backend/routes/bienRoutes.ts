@@ -25,10 +25,12 @@ router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: 
         const isAdmin = (req as any).userRole === 'admin';
 
         let ownerFilter = '';
+        let queryParams: any[] = [];
         if (!isAdmin && validOwnerIds.length > 0) {
-            ownerFilter = `WHERE b.owner_id IN (${validOwnerIds.join(',')})`;
+            ownerFilter = 'WHERE b.owner_id = ANY($1::int[])';
+            queryParams = [validOwnerIds];
         } else if (!isAdmin) {
-            ownerFilter = 'WHERE 1=0';
+            ownerFilter = 'WHERE FALSE';
         }
 
         const query = `
@@ -50,7 +52,7 @@ router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: 
              ORDER BY b.created_at DESC
         `;
 
-        const result = await dbClient.query(query);
+        const result = await dbClient.query(query, queryParams);
 
         const immeublesAvecOccupation = result.rows.map((immeuble: any) => {
             const totalLots = parseInt(immeuble.nb_lots) || 0;
@@ -92,10 +94,12 @@ router.get('/lots', permissions.canRead('biens'), tenantGuard, async (req: Authe
         const isAdmin = (req as any).userRole === 'admin';
 
         let ownerFilter = '';
+        let queryParams: any[] = [];
         if (!isAdmin && validOwnerIds.length > 0) {
-            ownerFilter = `AND l.owner_id IN (${validOwnerIds.join(',')})`;
+            ownerFilter = 'AND l.owner_id = ANY($1::int[])';
+            queryParams = [validOwnerIds];
         } else if (!isAdmin) {
-            ownerFilter = 'AND 1=0';
+            ownerFilter = 'AND FALSE';
         }
 
         const query = `
@@ -113,7 +117,7 @@ router.get('/lots', permissions.canRead('biens'), tenantGuard, async (req: Authe
              ORDER BY l.created_at DESC
         `;
 
-        const result = await dbClient.query(query);
+        const result = await dbClient.query(query, queryParams);
 
         const lots = result.rows.map((lot: any) => ({
             ...lot,

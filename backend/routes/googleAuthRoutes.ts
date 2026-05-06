@@ -127,7 +127,7 @@ router.post('/google', async (req: Request, res: Response) => {
         );
 
         // 5. Return response
-        console.log(`✅ Google OAuth ${isNewUser ? 'registration' : 'login'} for ${email} from IP: ${req.ip}`);
+        console.log(`✅ Google OAuth ${isNewUser ? 'registration' : 'login'} for userId:${userId} from IP: ${req.ip}`);
 
         res.json({
             message: isNewUser ? 'Compte créé avec succès.' : 'Connexion réussie.',
@@ -229,7 +229,7 @@ router.patch('/complete-profile', async (req: Request, res: Response) => {
             userAgent: (req.headers['user-agent'] as string) || 'unknown'
         });
 
-        console.log(`✅ Profile completed for user ${user.email}: ${userType}`);
+        console.log(`✅ Profile completed for userId:${user.id}: ${userType}`);
 
         res.json({
             message: 'Profil complété avec succès.',

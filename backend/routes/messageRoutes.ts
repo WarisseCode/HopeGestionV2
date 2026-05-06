@@ -71,7 +71,7 @@ router.post('/', protect, async (req: any, res) => {
                         );
                     } else if (channel === 'sms') {
                         // SMS via Twilio REST (à implémenter si besoin — placeholder)
-                        console.log(`[SMS] → ${recipient.telephone}: ${content}`);
+                        console.log(`[SMS] → userId:${recipient.id} (canal sms)`);
                     }
                 }
             } catch (sendError) {
