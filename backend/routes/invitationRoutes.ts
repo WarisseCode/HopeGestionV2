@@ -4,6 +4,7 @@ import pool from '../db/database';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { protect } from '../middleware/authMiddleware';
+import { validatePassword } from '../utils/passwordUtils';
 
 const router = Router();
 
@@ -92,8 +93,9 @@ router.post('/:token/accept', async (req: Request, res: Response) => {
   if (!nom || !telephone || !password) {
     return res.status(400).json({ error: 'Nom, téléphone et mot de passe sont requis' });
   }
-  if (password.length < 8) {
-    return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 8 caractères' });
+  const pwdCheck = validatePassword(password);
+  if (!pwdCheck.isValid) {
+    return res.status(400).json({ error: pwdCheck.message });
   }
 
   const client = await pool.connect();

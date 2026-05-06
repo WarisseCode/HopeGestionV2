@@ -48,15 +48,14 @@ import { runMigrations } from './scripts/runMigrations';
 pool.connect()
     .then(async client => {
         console.log('Successfully connected to PostgreSQL!');
-        client.release(); 
-        // Exécuter les migrations automatiques (idempotentes)
+        client.release();
         await runMigrations();
-        // Seed Super Admin on first startup
         await seedSuperAdmin();
+        startServer();
     })
     .catch(err => {
-        console.error('Warning: Error connecting to PostgreSQL:', err.stack);
-        console.log('Continuing to start server without database connection...');
+        console.error('❌ Impossible de se connecter à PostgreSQL:', err.message);
+        process.exit(1);
     });
 
 // ========================================
@@ -412,19 +411,21 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // 🚀 SERVER STARTUP
 // ========================================
 import { CronService } from './services/CronService';
-CronService.init();
 
-app.listen(PORT, () => {
-    console.log('========================================');
-    console.log('🔒 SECURITY FEATURES ENABLED:');
-    console.log('   ✅ JWT_SECRET: 32+ characters');
-    console.log('   ✅ Rate Limiting: Active');
-    console.log('   ✅ Helmet Headers: CSP, HSTS, XSS');
-    console.log('   ✅ CORS: Whitelist mode');
-    console.log('   ✅ SQL Injection: Parameterized queries');
-    console.log('   ✅ Password Policy: 8+ chars, complexity');
-    console.log('========================================');
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log('========================================');
-});
+function startServer() {
+    CronService.init();
+    app.listen(PORT, () => {
+        console.log('========================================');
+        console.log('🔒 SECURITY FEATURES ENABLED:');
+        console.log('   ✅ JWT_SECRET: 32+ characters');
+        console.log('   ✅ Rate Limiting: Active');
+        console.log('   ✅ Helmet Headers: CSP, HSTS, XSS');
+        console.log('   ✅ CORS: Whitelist mode');
+        console.log('   ✅ SQL Injection: Parameterized queries');
+        console.log('   ✅ Password Policy: 8+ chars, complexity');
+        console.log('========================================');
+        console.log(`🚀 Server running on port ${PORT}`);
+        console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+        console.log('========================================');
+    });
+}

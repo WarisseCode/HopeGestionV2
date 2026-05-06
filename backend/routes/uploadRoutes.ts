@@ -8,7 +8,7 @@
 import { Router, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs-extra';
-import { upload } from '../middleware/uploadMiddleware';
+import { upload, verifyMagicBytes } from '../middleware/uploadMiddleware';
 import { uploadToSpaces } from '../services/spacesUploadService';
 
 const router = Router();
@@ -45,7 +45,7 @@ const resolveFolder = (req: Request, file: Express.Multer.File): string => {
  * Accepte un ou plusieurs fichiers dans n'importe quel champ (upload.any()).
  * Renvoie la liste des URLs accessibles.
  */
-router.post('/', upload.any(), async (req: Request, res: Response) => {
+router.post('/', upload.any(), verifyMagicBytes, async (req: Request, res: Response) => {
     try {
         const files = req.files as Express.Multer.File[];
 
