@@ -791,6 +791,26 @@ const MIGRATIONS: Migration[] = [
             CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
             CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);
         `
+    },
+    {
+        name: '040_public_read_policies',
+        // Sans ces policies PERMISSIVE, publicRoutes.ts (sans contexte owner)
+        // déclenche get_current_owner_id() qui lève une exception → 500 → page publique vide.
+        sql: `
+            -- Policy PERMISSIVE : lecture publique des lots libres/vacants/disponibles
+            DROP POLICY IF EXISTS public_read_libre_lots ON lots;
+            CREATE POLICY public_read_libre_lots ON lots
+                AS PERMISSIVE
+                FOR SELECT
+                USING (LOWER(statut) IN ('libre', 'vacant', 'disponible'));
+
+            -- Policy PERMISSIVE : lecture publique des immeubles actifs/libres/disponibles
+            DROP POLICY IF EXISTS public_read_actif_buildings ON buildings;
+            CREATE POLICY public_read_actif_buildings ON buildings
+                AS PERMISSIVE
+                FOR SELECT
+                USING (LOWER(statut) IN ('actif', 'libre', 'disponible'));
+        `
     }
 ];
 

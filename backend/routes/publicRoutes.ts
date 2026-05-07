@@ -7,9 +7,15 @@ const router = Router();
 
 // GET /api/public/lots - Get all available lots AND buildings for public display
 router.get('/lots', async (req: Request, res: Response) => {
+    // Utiliser un client dédié pour définir le contexte RLS sentinel (-1 = aucun owner réel).
+    // Les policies PERMISSIVE public_read_libre_lots / public_read_actif_buildings autorisent
+    // la lecture publique des données libres/actives sans exposer les données privées.
+    const client = await pool.connect();
     try {
+        await client.query("SELECT set_config('app.current_owner_id', '-1', true)");
+
         // 1. Récupérer les lots libres de tous les immeubles non inactifs
-        const lotsResult = await pool.query(`
+        const lotsResult = await client.query(`
             SELECT
                 l.id,
                 l.ref_lot,
@@ -29,13 +35,12 @@ router.get('/lots', async (req: Request, res: Response) => {
                 b.longitude
             FROM lots l
             JOIN buildings b ON l.building_id = b.id
-            WHERE LOWER(l.statut) IN ('libre', 'vacant')
-              AND LOWER(b.statut) NOT IN ('inactif', 'archive', 'supprime')
+            WHERE LOWER(l.statut) IN ('libre', 'vacant', 'disponible')
             ORDER BY l.id DESC
         `);
 
         // 2. Récupérer les immeubles actifs ou libres (entiers à louer/visiter)
-        const buildingsResult = await pool.query(`
+        const buildingsResult = await client.query(`
             SELECT
                 b.id,
                 b.nom as titre,
@@ -54,7 +59,6 @@ router.get('/lots', async (req: Request, res: Response) => {
                 b.latitude,
                 b.longitude
             FROM buildings b
-            WHERE LOWER(b.statut) IN ('actif', 'libre', 'disponible')
             ORDER BY b.id DESC
         `);
         
@@ -121,18 +125,23 @@ router.get('/lots', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error fetching public lots:', error);
         res.status(500).json({ message: 'Erreur serveur' });
+    } finally {
+        client.release();
     }
 });
 
 // GET /api/public/lots/:id - Get single lot details for reservation page
 router.get('/lots/:id', async (req: Request, res: Response) => {
+    const client = await pool.connect();
     try {
+        await client.query("SELECT set_config('app.current_owner_id', '-1', true)");
+
         const id = req.params.id || '';
-        
+
         if (!id) {
             return res.status(400).json({ message: 'ID requis' });
         }
-        
+
         const isBuilding = id.startsWith('b-');
         const dbId = isBuilding ? parseInt(id.replace('b-', '')) : parseInt(id);
 
@@ -141,7 +150,7 @@ router.get('/lots/:id', async (req: Request, res: Response) => {
         }
 
         if (isBuilding) {
-            const buildingResult = await pool.query(`
+            const buildingResult = await client.query(`
                 SELECT b.*, o.name as proprietaire_nom
                 FROM buildings b
                 LEFT JOIN owners o ON b.owner_id = o.id
@@ -165,7 +174,7 @@ router.get('/lots/:id', async (req: Request, res: Response) => {
                 type: building.type || 'Immeuble',
                 description: building.nom || building.description || 'Immeuble complet',
                 surface: 0,
-                loyer: 0, // Un immeuble n'a pas forcément de loyer global directement visible à ce niveau sans lots
+                loyer: 0,
                 ville: building.ville || 'Abidjan',
                 quartier: building.quartier || '',
                 adresse: building.adresse || '',
@@ -179,8 +188,8 @@ router.get('/lots/:id', async (req: Request, res: Response) => {
         }
 
         // --- LOT EXISTANT ---
-        const result = await pool.query(`
-            SELECT 
+        const result = await client.query(`
+            SELECT
                 l.id,
                 l.ref_lot,
                 l.type,
@@ -203,18 +212,18 @@ router.get('/lots/:id', async (req: Request, res: Response) => {
             LEFT JOIN owners o ON b.owner_id = o.id
             WHERE l.id = $1
         `, [dbId]);
-        
+
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Lot introuvable' });
         }
-        
+
         const lot = result.rows[0];
         let imageUrl = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80';
         if (lot.photos && lot.photos.length > 0) {
             const photos = Array.isArray(lot.photos) ? lot.photos : [lot.photos];
             if (photos[0]) imageUrl = photos[0];
         }
-        
+
         res.json({
             id: lot.id,
             ref_lot: lot.ref_lot,
@@ -235,6 +244,8 @@ router.get('/lots/:id', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error fetching public lot:', error);
         res.status(500).json({ message: 'Erreur serveur' });
+    } finally {
+        client.release();
     }
 });
 
