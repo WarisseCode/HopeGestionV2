@@ -578,55 +578,42 @@ router.post('/refresh', async (req, res) => {
         return res.status(400).json({ message: 'Refresh token manquant.' });
     }
 
-    const client = await pool.connect();
     try {
         const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-        await client.query('BEGIN');
-
-        // FOR UPDATE : verrouille la ligne pour éviter la race condition
-        // si deux requêtes arrivent simultanément avec le même refresh token
-        const result = await client.query(
-            `SELECT rt.*, u.role, u.user_type
-             FROM refresh_tokens rt
-             JOIN users u ON rt.user_id = u.id
-             WHERE rt.token_hash = $1
+        // UPDATE ... RETURNING est atomique en PostgreSQL : si deux requêtes arrivent
+        // simultanément avec le même token, une seule trouvera revoked_at IS NULL et réussira.
+        // Pas besoin de transaction explicite ni de SELECT FOR UPDATE.
+        const result = await pool.query(
+            `UPDATE refresh_tokens rt
+             SET revoked_at = NOW()
+             FROM users u
+             WHERE u.id = rt.user_id
+               AND rt.token_hash = $1
                AND rt.revoked_at IS NULL
                AND rt.expires_at > NOW()
-             FOR UPDATE`,
+             RETURNING rt.user_id, u.role, u.user_type`,
             [tokenHash]
         );
 
         if (result.rows.length === 0) {
-            await client.query('ROLLBACK');
             return res.status(401).json({ message: 'Refresh token invalide ou expiré.' });
         }
 
         const stored = result.rows[0];
 
-        // Révoquer l'ancien refresh token (rotation)
-        await client.query(
-            `UPDATE refresh_tokens SET revoked_at = NOW() WHERE id = $1`,
-            [stored.id]
-        );
-
-        // Émettre une nouvelle paire de tokens dans la même transaction
+        // Émettre une nouvelle paire de tokens (la révocation est déjà commitée)
         const { accessToken, refreshToken: newRefreshToken } = await issueTokenPair(
             stored.user_id,
             stored.role,
             stored.user_type || 'gestionnaire'
         );
 
-        await client.query('COMMIT');
-
         res.json({ token: accessToken, refreshToken: newRefreshToken });
 
     } catch (error) {
-        await client.query('ROLLBACK');
         console.error('Erreur refresh token:', error);
         res.status(500).json({ message: 'Erreur serveur lors du rafraîchissement.' });
-    } finally {
-        client.release();
     }
 });
 
