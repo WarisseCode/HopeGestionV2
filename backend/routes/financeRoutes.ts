@@ -31,7 +31,7 @@ const SELECT_PAYMENTS_FIELDS = `
 
 // GET /api/finances - Liste des paiements
 // [SÉCURITÉ] owner_id = resolvedOwnerId — buildOwnerWhereClause + pool.query supprimés (C-4)
-router.get('/', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -93,7 +93,7 @@ router.get('/', permissions.canRead('finances'), tenantGuard, async (req: Authen
 
 // POST /api/finances - Enregistrer un paiement
 // [SÉCURITÉ] Vérification que le bail appartient à resolvedOwnerId avant INSERT
-router.post('/', permissions.canWrite('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', permissions.canWrite('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -172,7 +172,7 @@ router.post('/', permissions.canWrite('finances'), tenantGuard, async (req: Auth
 
 // GET /api/finances/stats - Statistiques (accepte ?month=X&year=Y, défaut: mois courant)
 // [SÉCURITÉ] Filtre owner_id = resolvedOwnerId sur toutes les requêtes — pool.query supprimé
-router.get('/stats', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/stats', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -222,7 +222,7 @@ router.get('/stats', permissions.canRead('finances'), tenantGuard, async (req: A
 
 // GET /api/finances/stats/monthly - Revenus/Dépenses par mois (pour graphiques)
 // [SÉCURITÉ] owner_id = resolvedOwnerId — buildOwnerWhereClause + pool.query supprimés
-router.get('/stats/monthly', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/stats/monthly', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -282,7 +282,7 @@ router.get('/stats/monthly', permissions.canRead('finances'), tenantGuard, async
 
 // GET /api/finances/stats/building/:id - Statistiques détaillées par immeuble
 // [SÉCURITÉ] Vérifie que l'immeuble appartient à resolvedOwnerId avant toute requête (IDOR)
-router.get('/stats/building/:id', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/stats/building/:id', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -349,7 +349,7 @@ router.get('/stats/building/:id', permissions.canRead('finances'), tenantGuard, 
 
 // GET /api/finances/export/excel - Exportation Excel des paiements
 // [SÉCURITÉ] owner_id = resolvedOwnerId — buildOwnerWhereClause + pool.query supprimés
-router.get('/export/excel', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/export/excel', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -427,7 +427,7 @@ router.get('/export/excel', permissions.canRead('finances'), tenantGuard, async 
 
 // POST /api/finances/generate-schedules - Générer les échéances (Admin/Gest)
 // ⚠️ FinanceService utilise pool en interne — audit du service à faire séparément (hors scope P-4)
-router.post('/generate-schedules', permissions.canWrite('finances'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/generate-schedules', permissions.canWrite('finance'), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { month, year } = req.body;
         const targetMonth = month ? parseInt(month) : new Date().getMonth() + 1;
@@ -442,7 +442,7 @@ router.post('/generate-schedules', permissions.canWrite('finances'), async (req:
 
 // GET /api/finances/schedules - Liste des échéances avec infos locataire
 // [SÉCURITÉ] l.owner_id = resolvedOwnerId — ownerIds.join(',') interpolé supprimé + pool.query supprimé
-router.get('/schedules', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/schedules', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -510,7 +510,7 @@ router.get('/schedules', permissions.canRead('finances'), tenantGuard, async (re
 
 // PUT /api/finances/schedules/:id/pay - Marquer une échéance comme payée
 // [SÉCURITÉ] Vérification ownership du schedule + tenantGuard + dbClient pour la transaction
-router.put('/schedules/:id/pay', permissions.canWrite('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.put('/schedules/:id/pay', permissions.canWrite('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {

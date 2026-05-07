@@ -24,7 +24,7 @@ router.use(protect);
 router.use(tenantGuard);
 
 // GET /api/expenses - List expenses
-router.get('/', permissions.canRead('finances'), async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', permissions.canRead('finance'), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { building_id, category, start_date, end_date } = req.query;
@@ -85,7 +85,7 @@ router.get('/categories', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // POST /api/expenses - Create expense (with optional proof upload)
-router.post('/', permissions.canWrite('finances'), upload.single('proof'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', permissions.canWrite('finance'), upload.single('proof'), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const resolvedOwnerId = (req as any).resolvedOwnerId;
@@ -146,7 +146,7 @@ router.post('/', permissions.canWrite('finances'), upload.single('proof'), async
 });
 
 // DELETE /api/expenses/:id
-router.delete('/:id', permissions.canWrite('finances'), async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', permissions.canWrite('finance'), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;

@@ -14,7 +14,7 @@ router.use(protect);
 
 // GET /api/tax/settings — Get fiscal settings for the active tenant
 // [SÉCURITÉ] ownerId résolu via tenantGuard — jamais depuis req.params
-router.get('/settings', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/settings', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -35,7 +35,7 @@ router.get('/settings', permissions.canRead('finances'), tenantGuard, async (req
 
 // POST /api/tax/settings — Save fiscal settings for the active tenant
 // [SÉCURITÉ] owner_id depuis resolvedOwnerId — jamais depuis req.body
-router.post('/settings', permissions.canWrite('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/settings', permissions.canWrite('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -63,7 +63,7 @@ router.post('/settings', permissions.canWrite('finances'), tenantGuard, async (r
 
 // GET /api/tax/report/:year — Generate fiscal report for the active tenant
 // [SÉCURITÉ] ownerId résolu via tenantGuard — jamais depuis req.params
-router.get('/report/:year', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/report/:year', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {

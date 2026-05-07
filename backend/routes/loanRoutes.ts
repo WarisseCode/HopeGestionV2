@@ -15,7 +15,7 @@ router.use(protect);
 
 // GET /api/loans - List loans for the active tenant
 // [SÉCURITÉ] owner_id depuis resolvedOwnerId — req.query.owner_id supprimé (IDOR)
-router.get('/', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -40,7 +40,7 @@ router.get('/', permissions.canRead('finances'), tenantGuard, async (req: Authen
 
 // GET /api/loans/:id - Details & Schedule
 // [SÉCURITÉ] Vérification loans.owner_id = resolvedOwnerId — empêche l'IDOR cross-tenant
-router.get('/:id', permissions.canRead('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:id', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -69,7 +69,7 @@ router.get('/:id', permissions.canRead('finances'), tenantGuard, async (req: Aut
 
 // POST /api/loans - Create loan & generate schedule
 // [SÉCURITÉ] owner_id depuis resolvedOwnerId — req.body.owner_id supprimé (IDOR)
-router.post('/', permissions.canWrite('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', permissions.canWrite('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -152,7 +152,7 @@ router.post('/', permissions.canWrite('finances'), tenantGuard, async (req: Auth
 
 // PUT /api/loans/:id/close - Close/Complete a loan
 // [SÉCURITÉ] Vérification loans.owner_id = resolvedOwnerId avant clôture
-router.put('/:id/close', permissions.canWrite('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id/close', permissions.canWrite('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -192,7 +192,7 @@ router.put('/:id/close', permissions.canWrite('finances'), tenantGuard, async (r
 
 // PUT /api/loans/:id/installment/:paymentId/pay - Mark an installment as paid
 // [SÉCURITÉ] Vérification loans.owner_id = resolvedOwnerId avant tout traitement
-router.put('/:id/installment/:paymentId/pay', permissions.canWrite('finances'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id/installment/:paymentId/pay', permissions.canWrite('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {

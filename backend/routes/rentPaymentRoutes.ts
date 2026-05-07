@@ -343,7 +343,7 @@ router.get('/receipt/:transactionId', async (req: AuthenticatedRequest, res: Res
  * GET /api/rent-payments/admin/transactions
  * List online payment transactions (filtered by owner for gestionnaire)
  */
-router.get('/admin/transactions', permissions.canRead('finances'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/admin/transactions', permissions.canRead('finance'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const ownerIds = (req as any).ownerIds;
         let ownerFilter = '1=1';
@@ -412,7 +412,7 @@ router.get('/admin/transactions', permissions.canRead('finances'), filterByOwner
  * GET /api/rent-payments/admin/stats
  * KPIs for online payments (filtered by owner for gestionnaire)
  */
-router.get('/admin/stats', permissions.canRead('finances'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/admin/stats', permissions.canRead('finance'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const ownerIds = (req as any).ownerIds;
         let ownerFilter = '1=1';
