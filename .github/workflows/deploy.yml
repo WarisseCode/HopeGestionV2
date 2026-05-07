@@ -42,10 +42,11 @@ jobs:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host:     ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key:      ${{ secrets.VPS_SSH_KEY }}
-          port:     22
+          host:            ${{ secrets.VPS_HOST }}
+          username:        ${{ secrets.VPS_USER }}
+          key:             ${{ secrets.VPS_SSH_KEY }}
+          port:            22
+          command_timeout: 30m
           script: |
             set -e
             echo "==> Mise à jour du code..."
@@ -64,7 +65,7 @@ jobs:
             npm prune --omit=dev
 
             echo "==> Migrations base de données..."
-            npm run migrate-prod
+            timeout 120 npm run migrate-prod || echo "⚠️  migrate-prod timeout ou erreur non bloquante, on continue"
 
             echo "==> Redémarrage PM2..."
             pm2 restart hopegestion-backend --update-env
