@@ -10,7 +10,7 @@ import SkeletonLoader from '../ui/SkeletonLoader';
 
 interface PropertyCardProps {
   property: PublicProperty;
-  onViewDetails: (id: number) => void;
+  onViewDetails: (id: string | number) => void;
 }
 
 const PropertyCard: React.FC<PropertyCardProps> = ({ property, onViewDetails }) => {
@@ -204,7 +204,7 @@ const PropertyCarousel: React.FC = () => {
     setIndex(prev => prev - 1);
   };
 
-  const handleViewDetails = (id: number) => {
+  const handleViewDetails = (id: string | number) => {
     navigate(`/biens-disponibles?property=${id}`);
   };
 
