@@ -23,15 +23,16 @@ import {
 import Card from '../components/ui/Card';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    AreaChart, 
-    Area, 
-    PieChart, 
-    Pie, 
-    Cell, 
-    XAxis, 
-    YAxis, 
-    CartesianGrid, 
-    Tooltip, 
+    AreaChart,
+    Area,
+    PieChart,
+    Pie,
+    Cell,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
     ResponsiveContainer
 } from 'recharts';
 import { useUser } from '../contexts/UserContext';
@@ -454,24 +455,29 @@ const GestionnaireDashboard: React.FC = () => {
                         <AreaChart data={revenusData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="colorRevenusGest" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#0d9488" stopOpacity={0.3}/>
-                                    <stop offset="95%" stopColor="#0d9488" stopOpacity={0}/>
+                                    <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.45}/>
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.04}/>
                                 </linearGradient>
                                 <linearGradient id="colorDepensesGest" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3}/>
-                                    <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
+                                    <stop offset="5%"  stopColor="#06b6d4" stopOpacity={0.45}/>
+                                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.04}/>
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
-                            <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                            <Tooltip 
-                                contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}}
-                                formatter={(value: any) => [`${value?.toLocaleString() ?? 0} FCFA`, '']}
-                                labelStyle={{color: '#64748b', marginBottom: '0.5rem'}}
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
+                            <Tooltip
+                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)' }}
+                                formatter={(value: any) => [`${Number(value).toLocaleString('fr-FR')} FCFA`]}
+                                labelStyle={{ color: '#64748b', marginBottom: '0.4rem', fontWeight: 600 }}
                             />
-                            <Area type="monotone" dataKey="revenus" stroke="#0d9488" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenusGest)" name="Revenus" />
-                            <Area type="monotone" dataKey="depenses" stroke="#ec4899" strokeWidth={3} fillOpacity={1} fill="url(#colorDepensesGest)" name="Dépenses" />
+                            <Legend
+                                iconType="circle"
+                                iconSize={9}
+                                wrapperStyle={{ paddingTop: '14px', fontSize: '12px', color: '#64748b' }}
+                            />
+                            <Area type="monotone" dataKey="revenus"  name="Revenus"  stroke="#3b82f6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRevenusGest)"  dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+                            <Area type="monotone" dataKey="depenses" name="Dépenses" stroke="#06b6d4" strokeWidth={2.5} fillOpacity={1} fill="url(#colorDepensesGest)" dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
                         </AreaChart>
                         </ResponsiveContainer>
                     </div>

@@ -13,7 +13,7 @@ import Card from '../components/ui/Card';
 import { motion } from 'framer-motion';
 import {
     AreaChart, Area, PieChart, Pie, Cell,
-    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+    XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { useUser } from '../contexts/UserContext';
 import { getToken } from '../api/authApi';
@@ -158,33 +158,31 @@ const ProprietaireDashboard: React.FC = () => {
                                     <h3 className="font-bold text-base-content">Performance Financière</h3>
                                     <p className="text-xs text-base-content/50 mt-0.5">Évolution des revenus locatifs</p>
                                 </div>
-                                <div className="flex items-center gap-3 text-xs text-base-content/40">
-                                    <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-teal-500 rounded-full inline-block" />Revenus</span>
-                                    <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-orange-400 rounded-full inline-block" />Dépenses</span>
-                                </div>
                             </div>
                             <div className="h-[260px]">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id="gradRev" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%"  stopColor="#0d9488" stopOpacity={0.25} />
-                                                <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
+                                                <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.45} />
+                                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.04} />
                                             </linearGradient>
                                             <linearGradient id="gradDep" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%"  stopColor="#fb923c" stopOpacity={0.2} />
-                                                <stop offset="95%" stopColor="#fb923c" stopOpacity={0} />
+                                                <stop offset="5%"  stopColor="#06b6d4" stopOpacity={0.45} />
+                                                <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.04} />
                                             </linearGradient>
                                         </defs>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} dy={8} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
                                         <Tooltip
                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontSize: 12 }}
                                             formatter={(val: any) => [`${Number(val).toLocaleString('fr-FR')} FCFA`]}
+                                            labelStyle={{ fontWeight: 600, color: '#64748b' }}
                                         />
-                                        <Area type="monotone" dataKey="revenus"  stroke="#0d9488" strokeWidth={2.5} fill="url(#gradRev)" name="Revenus" />
-                                        <Area type="monotone" dataKey="depenses" stroke="#fb923c" strokeWidth={2}   fill="url(#gradDep)" name="Dépenses" />
+                                        <Legend iconType="circle" iconSize={8} wrapperStyle={{ paddingTop: '12px', fontSize: '11px', color: '#64748b' }} />
+                                        <Area type="monotone" dataKey="revenus"  name="Revenus"  stroke="#3b82f6" strokeWidth={2.5} fillOpacity={1} fill="url(#gradRev)"  dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+                                        <Area type="monotone" dataKey="depenses" name="Dépenses" stroke="#06b6d4" strokeWidth={2.5} fillOpacity={1} fill="url(#gradDep)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </div>
