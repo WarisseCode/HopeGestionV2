@@ -50,7 +50,8 @@ jobs:
             set -e
             echo "==> Mise à jour du code..."
             cd /var/www/hopegestion
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
 
             echo "==> Installation dépendances backend..."
             cd /var/www/hopegestion/backend
