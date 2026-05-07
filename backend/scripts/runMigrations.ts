@@ -811,6 +811,17 @@ const MIGRATIONS: Migration[] = [
                 FOR SELECT
                 USING (LOWER(statut) IN ('actif', 'libre', 'disponible'));
         `
+    },
+    {
+        name: '041_gestionnaire_finance_write',
+        // Le gestionnaire doit pouvoir générer les appels de loyer et créer des écritures.
+        // La permission_matrix avait can_write = FALSE pour (gestionnaire, finance),
+        // ce qui bloquait POST /finances/generate-schedules avec "Accès refusé".
+        sql: `
+            UPDATE permission_matrix
+            SET can_write = TRUE
+            WHERE role = 'gestionnaire' AND module = 'finance';
+        `
     }
 ];
 
