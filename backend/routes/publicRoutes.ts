@@ -8,9 +8,9 @@ const router = Router();
 // GET /api/public/lots - Get all available lots AND buildings for public display
 router.get('/lots', async (req: Request, res: Response) => {
     try {
-        // 1. Récupérer les lots libres
+        // 1. Récupérer les lots libres de tous les immeubles non inactifs
         const lotsResult = await pool.query(`
-            SELECT 
+            SELECT
                 l.id,
                 l.ref_lot,
                 l.type,
@@ -30,18 +30,18 @@ router.get('/lots', async (req: Request, res: Response) => {
             FROM lots l
             JOIN buildings b ON l.building_id = b.id
             WHERE LOWER(l.statut) IN ('libre', 'vacant')
+              AND LOWER(b.statut) NOT IN ('inactif', 'archive', 'supprime')
             ORDER BY l.id DESC
         `);
 
-        // 2. Récupérer les immeubles (s'ils n'ont pas de lots ou simplement tous les immeubles actifs)
-        // On considère qu'un bâtiment entier peut être loué ou affiché.
+        // 2. Récupérer les immeubles actifs ou libres (entiers à louer/visiter)
         const buildingsResult = await pool.query(`
-            SELECT 
+            SELECT
                 b.id,
                 b.nom as titre,
                 b.type,
                 b.description,
-                0 as surface, /* on pourrait l'ajouter plus tard */
+                0 as surface,
                 0 as loyer_mensuel,
                 b.total_lots as nb_pieces,
                 'entier' as etage,
@@ -54,7 +54,7 @@ router.get('/lots', async (req: Request, res: Response) => {
                 b.latitude,
                 b.longitude
             FROM buildings b
-            WHERE b.statut = 'actif'
+            WHERE LOWER(b.statut) IN ('actif', 'libre', 'disponible')
             ORDER BY b.id DESC
         `);
         
