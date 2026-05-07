@@ -40,14 +40,15 @@ router.get('/lots', async (req: Request, res: Response) => {
         `);
 
         // 2. Récupérer les immeubles actifs ou libres (entiers à louer/visiter)
+        // surface = somme des surfaces des lots libres ; loyer = loyer minimum non nul
         const buildingsResult = await client.query(`
             SELECT
                 b.id,
                 b.nom as titre,
                 b.type,
                 b.description,
-                0 as surface,
-                0 as loyer_mensuel,
+                COALESCE(SUM(l.surface), 0) as surface,
+                COALESCE(MIN(CASE WHEN l.loyer_mensuel > 0 THEN l.loyer_mensuel END), 0) as loyer_mensuel,
                 b.total_lots as nb_pieces,
                 'entier' as etage,
                 b.statut,
@@ -59,6 +60,11 @@ router.get('/lots', async (req: Request, res: Response) => {
                 b.latitude,
                 b.longitude
             FROM buildings b
+            LEFT JOIN lots l ON l.building_id = b.id
+                AND LOWER(l.statut) IN ('libre', 'vacant', 'disponible')
+            GROUP BY b.id, b.nom, b.type, b.description, b.total_lots,
+                     b.statut, b.photos, b.adresse, b.ville, b.quartier,
+                     b.latitude, b.longitude
             ORDER BY b.id DESC
         `);
         

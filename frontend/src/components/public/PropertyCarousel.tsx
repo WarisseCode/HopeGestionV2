@@ -53,10 +53,17 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onViewDetails }) 
         
         <div className="absolute bottom-3 left-3">
           <div className="bg-base-100/95 backdrop-blur-sm px-4 py-2 rounded-xl shadow-lg">
-            <span className="text-lg font-extrabold text-primary">
-              {formatPrice(property.loyer)}
-            </span>
-            <span className="text-xs text-base-content/70 ml-1">FCFA/mois</span>
+            {property.loyer > 0 ? (
+              <>
+                {property.isBuilding && <span className="text-xs text-base-content/60 block leading-none mb-0.5">À partir de</span>}
+                <span className="text-lg font-extrabold text-primary">
+                  {formatPrice(property.loyer)}
+                </span>
+                <span className="text-xs text-base-content/70 ml-1">FCFA/mois</span>
+              </>
+            ) : (
+              <span className="text-sm font-semibold text-base-content/60">Sur demande</span>
+            )}
           </div>
         </div>
       </div>
@@ -73,17 +80,21 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onViewDetails }) 
         </div>
         
         <div className="flex items-center gap-4 text-sm text-base-content/70">
-          <div className="flex items-center gap-1">
-            <Maximize2 size={14} />
-            <span>{property.surface} m²</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Home size={14} />
-            <span>{property.pieces} pièces</span>
-          </div>
+          {property.surface > 0 && (
+            <div className="flex items-center gap-1">
+              <Maximize2 size={14} />
+              <span>{property.surface} m²</span>
+            </div>
+          )}
+          {property.pieces > 0 && (
+            <div className="flex items-center gap-1">
+              <Home size={14} />
+              <span>{property.pieces} pièce{property.pieces > 1 ? 's' : ''}</span>
+            </div>
+          )}
           {property.chambres > 0 && (
             <div className="flex items-center gap-1">
-              <span>🛏️</span>
+              <Home size={14} />
               <span>{property.chambres} ch.</span>
             </div>
           )}

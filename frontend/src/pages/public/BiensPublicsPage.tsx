@@ -504,8 +504,15 @@ const BiensPublicsPage: React.FC = () => {
                   {/* Price */}
                   <div className="absolute bottom-3 left-3">
                     <div className="bg-base-100/95 backdrop-blur px-4 py-2 rounded-xl">
-                      <span className="text-xl font-extrabold text-primary">{formatPrice(property.loyer)}</span>
-                      <span className="text-xs text-base-content/70 ml-1">FCFA/mois</span>
+                      {property.loyer > 0 ? (
+                        <>
+                          {property.isBuilding && <span className="text-xs text-base-content/60 block leading-none mb-0.5">À partir de</span>}
+                          <span className="text-xl font-extrabold text-primary">{formatPrice(property.loyer)}</span>
+                          <span className="text-xs text-base-content/70 ml-1">FCFA/mois</span>
+                        </>
+                      ) : (
+                        <span className="text-sm font-semibold text-base-content/60">Sur demande</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -527,17 +534,21 @@ const BiensPublicsPage: React.FC = () => {
                   
                   {/* Specs */}
                   <div className="flex items-center gap-4 text-sm text-base-content/70 mb-4">
-                    <div className="flex items-center gap-1">
-                      <Maximize2 size={14} />
-                      <span>{property.surface} m²</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Home size={14} />
-                      <span>{property.pieces} pièces</span>
-                    </div>
+                    {property.surface > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Maximize2 size={14} />
+                        <span>{property.surface} m²</span>
+                      </div>
+                    )}
+                    {property.pieces > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Home size={14} />
+                        <span>{property.pieces} pièce{property.pieces > 1 ? 's' : ''}</span>
+                      </div>
+                    )}
                     {property.chambres > 0 && (
                       <div className="flex items-center gap-1">
-                        <span>🛏️</span>
+                        <Home size={14} />
                         <span>{property.chambres} ch.</span>
                       </div>
                     )}
@@ -691,10 +702,17 @@ const BiensPublicsPage: React.FC = () => {
               <div className="p-6 max-h-96 overflow-y-auto">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <span className="text-3xl font-extrabold text-primary">
-                      {formatPrice(selectedProperty.loyer)}
-                    </span>
-                    <span className="text-base-content/60 ml-1">FCFA / mois</span>
+                    {selectedProperty.loyer > 0 ? (
+                      <>
+                        {selectedProperty.isBuilding && <span className="text-xs text-base-content/60 block">À partir de</span>}
+                        <span className="text-3xl font-extrabold text-primary">
+                          {formatPrice(selectedProperty.loyer)}
+                        </span>
+                        <span className="text-base-content/60 ml-1">FCFA / mois</span>
+                      </>
+                    ) : (
+                      <span className="text-xl font-semibold text-base-content/60">Prix sur demande</span>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button className="btn btn-circle btn-ghost">
@@ -710,7 +728,7 @@ const BiensPublicsPage: React.FC = () => {
                 <div className="grid grid-cols-4 gap-4 mb-6">
                   <div className="text-center p-4 bg-base-200 rounded-xl">
                     <Maximize2 size={24} className="mx-auto mb-2 text-primary" />
-                    <div className="font-bold">{selectedProperty.surface} m²</div>
+                    <div className="font-bold">{selectedProperty.surface > 0 ? `${selectedProperty.surface} m²` : 'N/C'}</div>
                     <div className="text-xs text-base-content/60">Surface</div>
                   </div>
                   <div className="text-center p-4 bg-base-200 rounded-xl">

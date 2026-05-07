@@ -6,17 +6,24 @@ import Apartment2 from '../assets/properties/apartment-2.png';
 import Villa1 from '../assets/properties/villa-1.png';
 
 export interface PublicProperty {
-  id: number;
+  id: number | string;
+  originalId?: number;
+  isBuilding?: boolean;
+  ref_lot?: string;
   titre: string;
-  type: 'Appartement' | 'Villa' | 'Studio' | 'Boutique' | 'Bureau' | 'Maison';
+  type: string;
   ville: string;
   quartier: string;
+  adresse?: string;
+  immeuble?: string;
   loyer: number;
   surface: number;
   pieces: number;
   chambres: number;
   sallesBain: number;
+  etage?: string;
   image: string;
+  photos?: string[];
   disponible: boolean;
   dateDisponibilite?: string;
   description: string;
