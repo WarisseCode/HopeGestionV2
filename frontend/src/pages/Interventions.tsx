@@ -178,18 +178,33 @@ const Interventions: React.FC = () => {
     try {
       const token = getToken();
       const headers = { 'Authorization': `Bearer ${token}` };
-      
+
       const [ticketsRes, providersRes, lotsRes, contractsRes] = await Promise.all([
         fetch(`${API_URL}/tickets`, { headers }),
         fetch(`${API_URL}/providers`, { headers }),
-        fetch(`${API_URL}/lots`, { headers }),
+        fetch(`${API_URL}/biens/lots`, { headers }),
         fetch(`${API_URL}/service-contracts`, { headers }),
       ]);
 
-      if (ticketsRes.ok) setTickets(await ticketsRes.json());
-      if (providersRes.ok) setProviders(await providersRes.json());
-      if (lotsRes.ok) setLots(await lotsRes.json());
-      if (contractsRes.ok) setContracts(await contractsRes.json());
+      // tickets et providers retournent une réponse paginée { data: [], total, ... }
+      if (ticketsRes.ok) {
+        const result = await ticketsRes.json();
+        setTickets(Array.isArray(result) ? result : (result.data ?? []));
+      }
+      if (providersRes.ok) {
+        const result = await providersRes.json();
+        setProviders(Array.isArray(result) ? result : (result.data ?? []));
+      }
+      // lots retourne { lots: [] }
+      if (lotsRes.ok) {
+        const result = await lotsRes.json();
+        setLots(Array.isArray(result) ? result : (result.lots ?? []));
+      }
+      // service-contracts retourne un tableau direct
+      if (contractsRes.ok) {
+        const result = await contractsRes.json();
+        setContracts(Array.isArray(result) ? result : []);
+      }
     } catch (e) {
       console.error(e);
       toast.error("Erreur chargement données");
