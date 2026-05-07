@@ -186,9 +186,7 @@ const Finances: React.FC = () => {
   };
 
   const [generating, setGenerating] = useState(false);
-
-
-
+  const [schedulesKey, setSchedulesKey] = useState(0);
 
   const [showGenerateModal, setShowGenerateModal] = useState(false);
 
@@ -197,7 +195,8 @@ const Finances: React.FC = () => {
           setGenerating(true);
           const result = await financeApi.generateSchedules();
           toast.success(`${result.details.generated} échéances générées avec succès`);
-          fetchData(); 
+          fetchData();
+          setSchedulesKey(k => k + 1); // Force FinanceSchedules à recharger ses données
           setActiveTab('echeances');
           setShowGenerateModal(false);
       } catch (error: any) {
@@ -487,7 +486,7 @@ const Finances: React.FC = () => {
                 </>
             )}
 
-            {activeTab === 'echeances' && <FinanceSchedules month={selectedMonth} year={selectedYear} />}
+            {activeTab === 'echeances' && <FinanceSchedules key={schedulesKey} month={selectedMonth} year={selectedYear} />}
             {activeTab === 'en_ligne' && <FinanceOnlinePayments month={selectedMonth} year={selectedYear} />}
             {activeTab === 'depenses' && <FinanceExpenses />}
             {activeTab === 'prets' && <FinanceLoans />}
