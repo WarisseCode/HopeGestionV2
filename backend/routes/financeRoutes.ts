@@ -441,17 +441,27 @@ router.post('/generate-schedules', permissions.canWrite('finance'), async (req: 
 });
 
 // GET /api/finances/schedules - Liste des échéances avec infos locataire
-// [SÉCURITÉ] l.owner_id = resolvedOwnerId — ownerIds.join(',') interpolé supprimé + pool.query supprimé
+// [SÉCURITÉ] Filtre par owner via ANY($1::int[]) — supporte proprietaire (1 owner) et gestionnaire (N owners)
 router.get('/schedules', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
     try {
         const { month, year } = req.query;
         const targetMonth = month ? parseInt(month as string) : new Date().getMonth() + 1;
         const targetYear = year ? parseInt(year as string) : new Date().getFullYear();
 
-        // [RLS] dbClient filtre automatiquement via get_current_owner_id()
-        // WHERE l.owner_id = $1 reste en défense en profondeur
+        // Construire la liste effective des owner_ids à filtrer.
+        // resolvedOwnerId peut être null pour un gestionnaire multi-owner (tenantGuard ne le définit
+        // que si un seul owner ou si owner_id explicite dans body/query).
+        const effectiveOwnerIds: number[] = ownerId != null
+            ? [ownerId]
+            : validOwnerIds;
+
+        if (effectiveOwnerIds.length === 0) {
+            return res.json([]);
+        }
+
         const result = await dbClient.query(`
             SELECT
                 ps.id,
@@ -495,11 +505,11 @@ router.get('/schedules', permissions.canRead('finance'), tenantGuard, async (req
             JOIN leases l ON ps.lease_id = l.id
             JOIN tenants t ON l.tenant_id = t.id
             LEFT JOIN lots lo ON l.lot_id = lo.id
-            WHERE l.owner_id = $1
+            WHERE l.owner_id = ANY($1::int[])
             AND EXTRACT(MONTH FROM ps.due_date) = $2
             AND EXTRACT(YEAR FROM ps.due_date) = $3
             ORDER BY ps.due_date ASC, t.nom ASC
-        `, [ownerId, targetMonth, targetYear]);
+        `, [effectiveOwnerIds, targetMonth, targetYear]);
 
         res.json(result.rows);
     } catch (error) {
@@ -513,18 +523,25 @@ router.get('/schedules', permissions.canRead('finance'), tenantGuard, async (req
 router.put('/schedules/:id/pay', permissions.canWrite('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
     try {
         await dbClient.query('BEGIN');
         const { id } = req.params;
         const { payment_method, reference } = req.body;
+
+        const effectiveOwnerIds: number[] = ownerId != null ? [ownerId] : validOwnerIds;
+        if (effectiveOwnerIds.length === 0) {
+            await dbClient.query('ROLLBACK');
+            return res.status(403).json({ message: 'Aucun propriétaire associé à ce compte.' });
+        }
 
         // [SÉCURITÉ] Vérifie que l'échéance appartient à cet owner — empêche l'IDOR cross-tenant
         const scheduleRes = await dbClient.query(
             `SELECT ps.*, l.tenant_id, l.owner_id
              FROM payment_schedules ps
              JOIN leases l ON ps.lease_id = l.id
-             WHERE ps.id = $1 AND l.owner_id = $2`,
-            [id, ownerId]
+             WHERE ps.id = $1 AND l.owner_id = ANY($2::int[])`,
+            [id, effectiveOwnerIds]
         );
         if (scheduleRes.rows.length === 0) {
             await dbClient.query('ROLLBACK');
