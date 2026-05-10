@@ -822,6 +822,22 @@ const MIGRATIONS: Migration[] = [
             SET can_write = TRUE
             WHERE role = 'gestionnaire' AND module = 'finance';
         `
+    },
+    {
+        name: '042_cleanup_welcome_notif_duplicates',
+        // migration_notifications.sql insérait une notif "Bienvenue" à chaque déploiement
+        // car ON CONFLICT DO NOTHING ne fonctionne pas sans contrainte UNIQUE.
+        // On supprime tous les doublons en ne conservant que la 1ère occurrence par user.
+        sql: `
+            DELETE FROM notifications
+            WHERE title = 'Bienvenue sur HopeGestion'
+              AND id NOT IN (
+                  SELECT MIN(id)
+                  FROM notifications
+                  WHERE title = 'Bienvenue sur HopeGestion'
+                  GROUP BY user_id
+              );
+        `
     }
 ];
 

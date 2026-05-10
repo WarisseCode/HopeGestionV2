@@ -16,8 +16,6 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
 
--- Insert some demo notifications for existing users
-INSERT INTO notifications (user_id, type, title, message)
-SELECT id, 'info', 'Bienvenue sur HopeGestion', 'Votre espace est configuré avec succès.'
-FROM users
-ON CONFLICT DO NOTHING;
+-- Note: ne pas insérer de notifications de bienvenue ici.
+-- La migration tourne à chaque déploiement ; sans UNIQUE sur (user_id, title),
+-- l'INSERT créerait un doublon à chaque redémarrage du serveur.
