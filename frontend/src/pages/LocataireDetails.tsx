@@ -16,6 +16,7 @@ import Modal from '../components/ui/Modal';
 import LocataireForm from '../components/locataires/LocataireForm';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { useUser } from '../contexts/UserContext';
 
 const tabs = [
   { id: 'profil', label: 'Profil', icon: User },
@@ -28,6 +29,8 @@ const tabs = [
 const LocataireDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useUser();
+  const canWrite = !['proprietaire', 'locataire'].includes(user?.userType || '');
   const [activeTab, setActiveTab] = useState('profil');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -160,9 +163,11 @@ const LocataireDetails: React.FC = () => {
             <Button variant="ghost" size="sm" onClick={handleCall} className="bg-teal-50 text-teal-600 hover:bg-teal-100">
               <Phone size={16} className="mr-1" /> Appeler
             </Button>
-            <Button variant="primary" size="sm" onClick={() => setShowEditModal(true)}>
-              <Edit3 size={16} className="mr-1" /> Modifier
-            </Button>
+            {canWrite && (
+              <Button variant="primary" size="sm" onClick={() => setShowEditModal(true)}>
+                <Edit3 size={16} className="mr-1" /> Modifier
+              </Button>
+            )}
           </div>
         </div>
       </Card>

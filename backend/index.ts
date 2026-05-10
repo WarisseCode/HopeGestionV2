@@ -90,14 +90,17 @@ app.use(helmet({
 }));
 
 // 2. Rate Limiting
+// 1000 req/15min ≈ 66 req/min : suffisant pour une SPA avec polling de notifications
+// et plusieurs appels API au chargement de page, sans ouvrir la porte aux scrapers.
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200,
+    max: 1000,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Trop de requêtes, réessayez dans 15 minutes.' },
 });
 
+// Auth strict : 20 tentatives/15min pour bloquer le brute-force sur /login
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 20,
