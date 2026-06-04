@@ -69,6 +69,18 @@ const getPlaceholderImage = (id: number): string => {
   return PLACEHOLDER_IMAGES[index];
 };
 
+const LOT_STATUT_CONFIG: Record<string, { label: string; badge: string; pill: string; dot: string }> = {
+  libre:       { label: 'Libre',       badge: 'bg-green-500',  pill: 'bg-green-100 text-green-700',  dot: 'bg-green-500'  },
+  loue:        { label: 'Loué',        badge: 'bg-teal-500',   pill: 'bg-teal-100 text-teal-700',   dot: 'bg-teal-500'   },
+  occupe:      { label: 'Loué',        badge: 'bg-teal-500',   pill: 'bg-teal-100 text-teal-700',   dot: 'bg-teal-500'   },
+  reserve:     { label: 'Réservé',     badge: 'bg-amber-500',  pill: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500'  },
+  vendu:       { label: 'Vendu',       badge: 'bg-blue-500',   pill: 'bg-blue-100 text-blue-700',   dot: 'bg-blue-500'   },
+  hors_service:{ label: 'Hors service',badge: 'bg-gray-400',   pill: 'bg-gray-100 text-gray-500',   dot: 'bg-gray-400'   },
+};
+
+const getLotStatut = (statut?: string) =>
+  LOT_STATUT_CONFIG[statut?.toLowerCase() ?? ''] ?? LOT_STATUT_CONFIG['libre'];
+
 const Biens: React.FC = () => {
   const { user } = useUser();
   const canWrite = !['proprietaire', 'locataire'].includes(user?.userType || '');
@@ -728,18 +740,6 @@ const Biens: React.FC = () => {
                       <div key={immeuble.id} className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden hover:shadow-xl transition-all group">
                         <div className="h-48 bg-base-300 relative overflow-hidden">
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
-                          <div className="absolute top-4 right-4 z-20 flex gap-1.5">
-                            {immeuble.etatOccupation && (
-                              <span className={`badge border-none text-white font-semibold text-xs ${
-                                immeuble.etatOccupation === 'Complet' ? 'bg-teal-600' :
-                                immeuble.etatOccupation === 'En location' ? 'bg-blue-500' :
-                                immeuble.etatOccupation === 'Vide' ? 'bg-gray-500' : 'bg-indigo-500'
-                              }`}>{immeuble.etatOccupation}</span>
-                            )}
-                            <span className={`badge border-none text-white font-bold ${immeuble.statut?.toLowerCase() === 'actif' ? 'bg-green-500' : 'bg-orange-500'}`}>
-                              {immeuble.statut === 'actif' ? 'Actif' : immeuble.statut === 'inactif' ? 'Inactif' : (immeuble.statut || 'Actif')}
-                            </span>
-                          </div>
                           <div
                             className="absolute inset-0 z-30 cursor-zoom-in"
                             onClick={(e) => {
@@ -880,11 +880,11 @@ const Biens: React.FC = () => {
                             alt={`${lot.reference} — ${lot.immeuble || ''}`}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
-                          <span className={`absolute top-3 right-3 z-20 badge border-none text-white font-bold ${
-                            lot.statut === 'libre' ? 'bg-green-500' : 'bg-teal-500'
-                          }`}>
-                            {lot.statut || 'libre'}
-                          </span>
+                          {(() => { const s = getLotStatut(lot.statut); return (
+                            <span className={`absolute top-3 right-3 z-20 badge border-none text-white font-bold ${s.badge}`}>
+                              {s.label}
+                            </span>
+                          ); })()}
                         </div>
                         <div className="p-4 flex-1 flex flex-col">
                           <h3 className="font-bold text-base-content/90 text-lg truncate mb-1">{lot.reference}</h3>
@@ -943,20 +943,12 @@ const Biens: React.FC = () => {
                               <td className="font-bold text-base-content/90">{lot.reference}</td>
                               <td className="text-base-content/70 hidden md:table-cell">{lot.immeuble}</td>
                               <td>
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                                  lot.statut === 'libre' ? 'bg-green-100 text-green-700' :
-                                  lot.statut === 'occupe' || lot.statut === 'occupé' || lot.statut === 'loue' ? 'bg-teal-100 text-teal-700' : 
-                                  lot.statut === 'vendu' ? 'bg-teal-100 text-teal-700' :
-                                  'bg-orange-100 text-orange-700'
-                                }`}>
-                                  <span className={`w-1.5 h-1.5 rounded-full ${
-                                    lot.statut === 'libre' ? 'bg-green-500' :
-                                    lot.statut === 'occupe' || lot.statut === 'occupé' || lot.statut === 'loue' ? 'bg-teal-500' : 
-                                    lot.statut === 'vendu' ? 'bg-teal-500' :
-                                    'bg-orange-500'
-                                  }`}></span>
-                                  {lot.statut || 'libre'}
-                                </span>
+                                {(() => { const s = getLotStatut(lot.statut); return (
+                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${s.pill}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`}></span>
+                                    {s.label}
+                                  </span>
+                                ); })()}
                               </td>
                               <td className="font-mono font-medium text-base-content/80 hidden sm:table-cell">
                                   {lot.type === 'Vente' || lot.prix_vente ? (
@@ -1061,16 +1053,6 @@ const Biens: React.FC = () => {
                 />
                 <div className="absolute bottom-4 left-5 z-20 text-white">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`badge border-none text-white text-xs font-bold ${detailImmeuble.statut?.toLowerCase() === 'actif' ? 'bg-green-500' : 'bg-orange-500'}`}>
-                      {detailImmeuble.statut === 'actif' ? 'Actif' : detailImmeuble.statut === 'inactif' ? 'Inactif' : (detailImmeuble.statut || 'Actif')}
-                    </span>
-                    {detailImmeuble.etatOccupation && (
-                      <span className={`badge border-none text-white text-xs font-semibold ${
-                        detailImmeuble.etatOccupation === 'Complet' ? 'bg-teal-600' :
-                        detailImmeuble.etatOccupation === 'En location' ? 'bg-blue-500' :
-                        detailImmeuble.etatOccupation === 'Vide' ? 'bg-gray-500' : 'bg-indigo-500'
-                      }`}>{detailImmeuble.etatOccupation}</span>
-                    )}
                     <span className="badge badge-ghost bg-white/20 text-white border-none text-xs">{detailImmeuble.type}</span>
                   </div>
                   <h2 className="text-2xl font-extrabold">{detailImmeuble.nom}</h2>
@@ -1180,14 +1162,11 @@ const Biens: React.FC = () => {
                           <span className="font-mono text-xs text-base-content/60">
                             {lot.loyer ? `${lot.loyer.toLocaleString()} FCFA/mois` : lot.prix_vente ? `${lot.prix_vente.toLocaleString()} FCFA` : '—'}
                           </span>
-                          <span className={`badge badge-xs border-none font-bold ${
-                            ['loue','occupe','occupé'].includes(lot.statut?.toLowerCase() || '') ? 'bg-teal-100 text-teal-700' :
-                            lot.statut?.toLowerCase() === 'libre' ? 'bg-green-100 text-green-700' :
-                            lot.statut?.toLowerCase() === 'vendu' ? 'bg-blue-100 text-blue-700' :
-                            'bg-orange-100 text-orange-700'
-                          }`}>
-                            {lot.statut || 'libre'}
-                          </span>
+                          {(() => { const s = getLotStatut(lot.statut); return (
+                            <span className={`badge badge-xs border-none font-bold ${s.pill}`}>
+                              {s.label}
+                            </span>
+                          ); })()}
                         </div>
                       </div>
                     ))}
