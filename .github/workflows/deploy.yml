@@ -13,6 +13,8 @@ jobs:
       - name: Deploy
         run: |
           set -e
+          export HOME=/root
+          export PM2_HOME=/root/.pm2
           cd /var/www/hopegestion
           git fetch origin main && git reset --hard origin/main
 
