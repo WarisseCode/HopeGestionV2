@@ -7,42 +7,30 @@ on:
 jobs:
   deploy:
     name: Build & Deploy
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
-      # ── 1. Checkout ──────────────────────────────────────────────────────────
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # ── 2. Vérification build Frontend (CI) ─────────────────────────────────
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install & build frontend
-        working-directory: frontend
-        env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+      - name: Deploy
         run: |
+          set -e
+          cd /var/www/hopegestion
+          git fetch origin main && git reset --hard origin/main
+
+          # ── Backend ──
+          cd /var/www/hopegestion/backend
+          rm -rf dist
           npm ci
           npm run build
+          npm prune --omit=dev
+          timeout 120 npm run migrate-prod || echo "migrate-prod non bloquant"
+          pm2 restart hopegestion-backend --update-env && pm2 save
 
-      # ── 3. Vérification build Backend (CI) ──────────────────────────────────
-      - name: Install & build backend
-        working-directory: backend
-        run: |
+          # ── Frontend ──
+          cd /var/www/hopegestion/frontend
           npm ci
-          npm run build
+          rm -rf node_modules/.vite
+          source .env && npm run build
 
-      # ── 4. Déclencher le déploiement via webhook HTTPS (sans SSH) ───────────
-      - name: Deploy to VPS
-        run: |
-          curl -X POST https://hopegestion.com/api/deploy \
-            -H "x-deploy-token: ${{ secrets.DEPLOY_TOKEN }}" \
-            --max-time 30 \
-            --fail \
-            --show-error
+          # ── Nginx ──
+          nginx -t && systemctl reload nginx
+          echo "✅ Déploiement terminé"
