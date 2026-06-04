@@ -751,9 +751,13 @@ const Biens: React.FC = () => {
                         <div className="p-5">
                           <div className="grid grid-cols-2 gap-4 mb-4">
                             <div className="p-3 bg-base-200 rounded-xl">
-                              <p className="text-xs text-base-content/50 font-bold uppercase">Lots</p>
+                              <p className="text-xs text-base-content/50 font-bold uppercase">Lots occupés</p>
                               <p className="font-bold text-base-content/90 text-lg">
-                                {immeuble.nbLots || 0}
+                                {(() => {
+                                  const buildingLots = lots.filter(l => l.building_id === immeuble.id);
+                                  const occupied = buildingLots.filter(l => ['loue','occupe','occupé','vendu'].includes(l.statut?.toLowerCase() || '')).length;
+                                  return <><span className="text-primary">{occupied}</span><span className="text-base-content/40 text-base font-medium">/{buildingLots.length || immeuble.nbLots || 0}</span></>;
+                                })()}
                               </p>
                             </div>
                             <div className="p-3 bg-base-200 rounded-xl">
