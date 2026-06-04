@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Wrench, Plus, Eye, Trash2, Calendar, Phone, FileText, 
+import {
+  Wrench, Plus, Eye, Trash2, Calendar, Phone, FileText,
   CheckCircle, AlertCircle, Search, Users, XCircle, Download,
   Filter, Clock, PauseCircle, CheckCheck, Archive, Camera, Image,
-  Building, Home, RefreshCw
+  Building, Home, RefreshCw, ArrowLeft
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -379,6 +379,85 @@ const Interventions: React.FC = () => {
     );
   };
 
+  if (showCreateModal) {
+    return (
+      <div className="p-6 md:p-8 space-y-6 max-w-[1800px] mx-auto">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setShowCreateModal(false)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
+            <ArrowLeft size={20} />
+            <span className="text-sm font-medium">Retour aux interventions</span>
+          </button>
+          <div className="h-5 w-px bg-base-300" />
+          <h1 className="text-xl font-bold text-base-content/90">Nouvelle Demande d'Intervention</h1>
+        </div>
+        <Card className="p-6">
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold mb-1">Bien / Lot *</label>
+                <select className="w-full border rounded-lg p-2" value={ticketForm.lot_id} onChange={e => setTicketForm({...ticketForm, lot_id: e.target.value})}>
+                  <option value="">Sélectionner un lot...</option>
+                  {lots.map(l => (<option key={l.id} value={l.id}>{l.building_name} - {l.ref_lot}</option>))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-bold mb-1">Catégorie *</label>
+                <select className="w-full border rounded-lg p-2" value={ticketForm.category} onChange={e => setTicketForm({...ticketForm, category: e.target.value})}>
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">Type d'intervention *</label>
+              <input type="text" className="w-full border rounded-lg p-2" placeholder="Ex: Fuite d'eau, Coupure électrique..." value={ticketForm.type} onChange={e => setTicketForm({...ticketForm, type: e.target.value})} list="intervention-types" />
+              <datalist id="intervention-types">
+                {(CATEGORY_EXAMPLES[ticketForm.category as keyof typeof CATEGORY_EXAMPLES] || []).map(ex => (<option key={ex} value={ex} />))}
+              </datalist>
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">Description *</label>
+              <textarea className="w-full border rounded-lg p-2" rows={3} placeholder="Décrivez le problème en détail..." value={ticketForm.description} onChange={e => setTicketForm({...ticketForm, description: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">Urgence</label>
+              <div className="flex gap-2">
+                {['Basse', 'Moyenne', 'Haute', 'Urgente'].map(u => (
+                  <label key={u} className={`flex-1 text-center py-2 px-3 rounded-lg border cursor-pointer transition-all ${ticketForm.urgency === u ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-base-200'}`}>
+                    <input type="radio" name="urgency" value={u} checked={ticketForm.urgency === u} onChange={e => setTicketForm({...ticketForm, urgency: e.target.value, priorite: e.target.value})} className="sr-only" />
+                    {u}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Demandeur" value={ticketForm.requester_name} onChange={e => setTicketForm({...ticketForm, requester_name: e.target.value})} placeholder="Nom du demandeur" />
+              <Input label="Téléphone" value={ticketForm.requester_phone} onChange={e => setTicketForm({...ticketForm, requester_phone: e.target.value})} placeholder="+229 00 00 00 00" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-2">Photos (avant intervention)</label>
+              <div className="flex flex-wrap gap-2">
+                {ticketForm.photos_before.map((p, i) => (
+                  <div key={i} className="relative w-20 h-20">
+                    <img src={p} alt="" className="w-full h-full object-cover rounded-lg" />
+                    <button onClick={() => setTicketForm(prev => ({...prev, photos_before: prev.photos_before.filter((_, idx) => idx !== i)}))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><XCircle size={14} /></button>
+                  </div>
+                ))}
+                <button onClick={() => photoInputRef.current?.click()} className="w-20 h-20 border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-base-content/50 hover:border-primary hover:text-primary transition-all">
+                  <Camera size={20} /><span className="text-xs">Photo</span>
+                </button>
+                <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handlePhotoUpload(e, 'before')} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button variant="ghost" onClick={() => setShowCreateModal(false)}>Annuler</Button>
+              <Button onClick={handleCreateTicket}>Créer la demande</Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 md:p-8 space-y-6 max-w-[1800px] mx-auto">
       {/* Header */}
@@ -576,116 +655,6 @@ const Interventions: React.FC = () => {
           )}
         </div>
       </Card>
-
-      {/* Create Ticket Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold">Nouvelle Demande d'Intervention</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowCreateModal(false)}><XCircle /></Button>
-            </div>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold mb-1">Bien / Lot *</label>
-                  <select 
-                    className="w-full border rounded-lg p-2" 
-                    value={ticketForm.lot_id} 
-                    onChange={e => setTicketForm({...ticketForm, lot_id: e.target.value})}
-                  >
-                    <option value="">Sélectionner un lot...</option>
-                    {lots.map(l => (
-                      <option key={l.id} value={l.id}>{l.building_name} - {l.ref_lot}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold mb-1">Catégorie *</label>
-                  <select 
-                    className="w-full border rounded-lg p-2" 
-                    value={ticketForm.category} 
-                    onChange={e => setTicketForm({...ticketForm, category: e.target.value})}
-                  >
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-bold mb-1">Type d'intervention *</label>
-                <input 
-                  type="text" 
-                  className="w-full border rounded-lg p-2" 
-                  placeholder="Ex: Fuite d'eau, Coupure électrique..."
-                  value={ticketForm.type} 
-                  onChange={e => setTicketForm({...ticketForm, type: e.target.value})}
-                  list="intervention-types"
-                />
-                <datalist id="intervention-types">
-                  {(CATEGORY_EXAMPLES[ticketForm.category as keyof typeof CATEGORY_EXAMPLES] || []).map(ex => (
-                    <option key={ex} value={ex} />
-                  ))}
-                </datalist>
-              </div>
-              <div>
-                <label className="block text-sm font-bold mb-1">Description *</label>
-                <textarea 
-                  className="w-full border rounded-lg p-2" 
-                  rows={3}
-                  placeholder="Décrivez le problème en détail..."
-                  value={ticketForm.description} 
-                  onChange={e => setTicketForm({...ticketForm, description: e.target.value})}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold mb-1">Urgence</label>
-                  <div className="flex gap-2">
-                    {['Basse', 'Moyenne', 'Haute', 'Urgente'].map(u => (
-                      <label key={u} className={`flex-1 text-center py-2 px-3 rounded-lg border cursor-pointer transition-all ${ticketForm.urgency === u ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-base-200'}`}>
-                        <input type="radio" name="urgency" value={u} checked={ticketForm.urgency === u} onChange={e => setTicketForm({...ticketForm, urgency: e.target.value, priorite: e.target.value})} className="sr-only" />
-                        {u}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Input label="Demandeur" value={ticketForm.requester_name} onChange={e => setTicketForm({...ticketForm, requester_name: e.target.value})} placeholder="Nom du demandeur" />
-                <Input label="Téléphone" value={ticketForm.requester_phone} onChange={e => setTicketForm({...ticketForm, requester_phone: e.target.value})} placeholder="+229 00 00 00 00" />
-              </div>
-              <div>
-                <label className="block text-sm font-bold mb-2">Photos (avant intervention)</label>
-                <div className="flex flex-wrap gap-2">
-                  {ticketForm.photos_before.map((p, i) => (
-                    <div key={i} className="relative w-20 h-20">
-                      <img src={p} alt="" className="w-full h-full object-cover rounded-lg" />
-                      <button 
-                        onClick={() => setTicketForm(prev => ({...prev, photos_before: prev.photos_before.filter((_, idx) => idx !== i)}))}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
-                      >
-                        <XCircle size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  <button 
-                    onClick={() => photoInputRef.current?.click()}
-                    className="w-20 h-20 border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-base-content/50 hover:border-primary hover:text-primary transition-all"
-                  >
-                    <Camera size={20} />
-                    <span className="text-xs">Photo</span>
-                  </button>
-                  <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handlePhotoUpload(e, 'before')} />
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button variant="ghost" onClick={() => setShowCreateModal(false)}>Annuler</Button>
-                <Button onClick={handleCreateTicket}>Créer la demande</Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
 
       {/* Assign Modal */}
       {showAssignModal && selectedTicket && (

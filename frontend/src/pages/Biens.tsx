@@ -1,14 +1,15 @@
 // frontend/src/pages/Biens.tsx
 // Version améliorée avec recherche fonctionnelle, filtres, pagination et skeleton loaders
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { 
-  Building2, 
-  Home, 
-  Plus, 
-  Edit3, 
-  Trash2, 
+import {
+  Building2,
+  Home,
+  Plus,
+  Edit3,
+  Trash2,
   MapPin,
   ArrowRight,
+  ArrowLeft,
   LayoutGrid,
   List,
   X,
@@ -86,16 +87,14 @@ const Biens: React.FC = () => {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Modal states
-  const [showImmeubleModal, setShowImmeubleModal] = useState(false);
-  const [showLotModal, setShowLotModal] = useState(false);
+  // Formulaire pleine page (null = liste, 'immeuble'/'lot'/'assignment' = formulaire inline)
+  const [formView, setFormView] = useState<null | 'immeuble' | 'lot' | 'assignment'>(null);
   const [editingImmeuble, setEditingImmeuble] = useState<Partial<Immeuble>>({
     nom: '', type: 'Immeuble', adresse: '', ville: '', pays: 'Bénin', description: '', owner_id: 0, photo: ''
   });
   const [editingLot, setEditingLot] = useState<Partial<Lot>>({
     reference: '', type: 'Appartement', building_id: 0, etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: ''
   });
-  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [activeAssignmentLot, setActiveAssignmentLot] = useState<Lot | null>(null);
 
   const [gallerySelectedBuilding, setGallerySelectedBuilding] = useState<Immeuble | null>(null);
@@ -290,7 +289,6 @@ const Biens: React.FC = () => {
 
       const savedImmeuble = await saveImmeuble(finalData);
       setSuccess('Immeuble enregistré avec succès');
-      setShowImmeubleModal(false);
       setEditingImmeuble({ nom: '', type: 'Immeuble', adresse: '', ville: '', pays: 'Bénin', description: '', owner_id: 0, photo: '' });
       fetchData();
       return savedImmeuble;
@@ -407,8 +405,125 @@ const Biens: React.FC = () => {
     );
   }, [immeubles, immeubleFilters]);
 
+  const backButton = (label: string) => (
+    <div className="flex items-center gap-4 mb-6">
+      <button onClick={() => setFormView(null)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
+        <ArrowLeft size={20} />
+        <span className="text-sm font-medium">{label}</span>
+      </button>
+      <div className="h-5 w-px bg-base-300" />
+    </div>
+  );
+
+  if (formView === 'immeuble') {
+    return (
+      <div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setFormView(null)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
+            <ArrowLeft size={20} />
+            <span className="text-sm font-medium">Retour au parc immobilier</span>
+          </button>
+          <div className="h-5 w-px bg-base-300" />
+          <h1 className="text-xl font-bold text-base-content/90">
+            {editingImmeuble.id ? "Modifier l'Immeuble" : 'Nouvel Immeuble'}
+          </h1>
+        </div>
+        {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
+        {success && <Alert variant="success" onClose={() => setSuccess(null)}>{success}</Alert>}
+        <ImmeubleForm
+          immeuble={editingImmeuble}
+          proprietaires={proprietaires}
+          gestionnaires={users}
+          onSave={async (data) => {
+            const saved = await handleSaveImmeuble(data);
+            if (saved) setFormView(null);
+          }}
+          onSaveAndAddLots={async (data) => {
+            const saved = await handleSaveImmeuble(data);
+            if (saved?.id) {
+              setActiveTab('lots');
+              setEditingLot({ reference: '', type: 'Appartement', building_id: saved.id, etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: '' });
+              setFormView('lot');
+            }
+          }}
+          onCancel={() => setFormView(null)}
+        />
+      </div>
+    );
+  }
+
+  if (formView === 'lot') {
+    return (
+      <div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setFormView(null)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
+            <ArrowLeft size={20} />
+            <span className="text-sm font-medium">Retour au parc immobilier</span>
+          </button>
+          <div className="h-5 w-px bg-base-300" />
+          <h1 className="text-xl font-bold text-base-content/90">
+            {editingLot.id ? 'Modifier le Lot' : 'Nouveau Lot'}
+          </h1>
+        </div>
+        {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
+        {success && <Alert variant="success" onClose={() => setSuccess(null)}>{success}</Alert>}
+        <LotForm
+          lot={editingLot}
+          immeubles={immeubles}
+          onSave={async (data) => {
+            await saveLot(data);
+            await fetchData();
+            setFormView(null);
+            setSuccess('Lot enregistré avec succès');
+          }}
+          onStatusChange={async (data, newStatus) => {
+            if (newStatus === 'loue' || newStatus === 'vendu' || newStatus === 'reserve') {
+              setEditingLot(data as Lot);
+              setActiveAssignmentLot(data as Lot);
+              setFormView('assignment');
+            } else {
+              await saveLot({ ...data, statut: newStatus });
+              await fetchData();
+              setFormView(null);
+              setSuccess(`Statut du lot modifié: ${newStatus}`);
+            }
+          }}
+          onCancel={() => setFormView(null)}
+          loading={loading}
+        />
+      </div>
+    );
+  }
+
+  if (formView === 'assignment') {
+    return (
+      <div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setFormView(null)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
+            <ArrowLeft size={20} />
+            <span className="text-sm font-medium">Retour au parc immobilier</span>
+          </button>
+          <div className="h-5 w-px bg-base-300" />
+          <h1 className="text-xl font-bold text-base-content/90">Nouvelle Affectation</h1>
+        </div>
+        {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
+        {activeAssignmentLot && (
+          <AssignmentForm
+            lot={activeAssignmentLot}
+            onSuccess={async () => {
+              await fetchData();
+              setFormView(null);
+              setSuccess('Affectation réussie ! Contrat généré.');
+            }}
+            onCancel={() => setFormView(null)}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
-    <motion.div 
+    <motion.div
       className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto"
       variants={containerVariants}
       initial="hidden"
@@ -453,10 +568,10 @@ const Biens: React.FC = () => {
                     }
                     if (activeTab === 'immeubles') {
                       setEditingImmeuble({ nom: '', type: 'Immeuble', adresse: '', ville: '', pays: 'Bénin', description: '', owner_id: 0, photo: '' });
-                      setShowImmeubleModal(true);
+                      setFormView('immeuble');
                     } else {
                       setEditingLot({ reference: '', type: 'Appartement', building_id: 0, etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: '' });
-                      setShowLotModal(true);
+                      setFormView('lot');
                     }
                   }}
                 >
@@ -595,7 +710,7 @@ const Biens: React.FC = () => {
                         title="Aucun immeuble trouvé"
                         description="Il n'y a aucun immeuble qui correspond à vos critères de recherche. Modifiez vos filtres ou ajoutez un nouvel immeuble."
                         actionLabel={canWrite ? "Ajouter un immeuble" : undefined}
-                        onAction={canWrite ? () => setShowImmeubleModal(true) : undefined}
+                        onAction={canWrite ? () => setFormView('immeuble') : undefined}
                         className="mt-6"
                     />
                   ) : (
@@ -643,7 +758,7 @@ const Biens: React.FC = () => {
                           <div className="flex justify-between items-center pt-2 border-t border-base-200">
                             <div className="flex gap-1">
                               {canWrite && <button
-                                onClick={() => { setEditingImmeuble(immeuble); setShowImmeubleModal(true); }}
+                                onClick={() => { setEditingImmeuble(immeuble); setFormView('immeuble'); }}
                                 className="btn btn-ghost btn-xs btn-square"
                               >
                                 <Edit3 size={14} />
@@ -709,7 +824,7 @@ const Biens: React.FC = () => {
                             </td>
                             <td className="pr-6 text-right">
                               <div className="flex justify-end gap-1">
-                                {canWrite && <button onClick={() => { setEditingImmeuble(immeuble); setShowImmeubleModal(true); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
+                                {canWrite && <button onClick={() => { setEditingImmeuble(immeuble); setFormView('immeuble'); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
                                 {canWrite && <button onClick={() => handleDeleteImmeuble(immeuble.id)} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>}
                               </div>
                             </td>
@@ -734,7 +849,7 @@ const Biens: React.FC = () => {
                       <div
                         key={lot.id}
                         className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden hover:shadow-xl transition-all group flex flex-col"
-                        onClick={canWrite ? () => { setEditingLot(lot); setShowLotModal(true); } : undefined}
+                        onClick={canWrite ? () => { setEditingLot(lot); setFormView('lot'); } : undefined}
                       >
                         <div className="h-40 bg-base-300 relative overflow-hidden shrink-0">
                           <img 
@@ -759,7 +874,7 @@ const Biens: React.FC = () => {
                                 {lot.loyer?.toLocaleString()} <small>FCFA</small>
                               </span>
                               <div className="flex gap-1">
-                                {canWrite && <button onClick={(e) => { e.stopPropagation(); setEditingLot(lot); setShowLotModal(true); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
+                                {canWrite && <button onClick={(e) => { e.stopPropagation(); setEditingLot(lot); setFormView('lot'); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
                               </div>
                             </div>
                           </div>
@@ -792,7 +907,7 @@ const Biens: React.FC = () => {
                           </tr>
                         ) : (
                           (paginatedData as Lot[]).map((lot) => (
-                            <tr key={lot.id} className="hover:bg-base-200/50 transition-colors group cursor-pointer" onClick={canWrite ? () => { setEditingLot(lot); setShowLotModal(true); } : undefined}>
+                            <tr key={lot.id} className="hover:bg-base-200/50 transition-colors group cursor-pointer" onClick={canWrite ? () => { setEditingLot(lot); setFormView('lot'); } : undefined}>
                               <td className="pl-6">
                                   <div className="avatar h-10 w-16 rounded cursor-pointer overflow-hidden relative shadow-sm">
                                       <img 
@@ -835,7 +950,7 @@ const Biens: React.FC = () => {
                                         e.stopPropagation();
                                         setEditingLot(lot);
                                         setActiveAssignmentLot(lot);
-                                        setShowAssignmentModal(true);
+                                        setFormView('assignment');
                                       }}
                                       className="btn btn-ghost btn-xs btn-square text-primary tooltip tooltip-left"
                                       data-tip="Affecter (Louer/Vendre)"
@@ -843,7 +958,7 @@ const Biens: React.FC = () => {
                                       <UserPlus size={14} />
                                     </button>
                                   )}
-                                  {canWrite && <button onClick={(e) => { e.stopPropagation(); setEditingLot(lot); setShowLotModal(true); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
+                                  {canWrite && <button onClick={(e) => { e.stopPropagation(); setEditingLot(lot); setFormView('lot'); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
                                   {canWrite && <button onClick={(e) => { e.stopPropagation(); handleDeleteLot(lot.id); }} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>}
                                 </div>
                               </td>
@@ -894,101 +1009,6 @@ const Biens: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Immeuble Modal - Nouveau formulaire avec onglets */}
-      <Modal
-        isOpen={showImmeubleModal}
-        onClose={() => setShowImmeubleModal(false)}
-        title={editingImmeuble.id ? 'Modifier Immeuble' : 'Nouvel Immeuble'}
-        size="xl"
-      >
-        <div className="min-h-[500px]">
-          <ImmeubleForm
-            immeuble={editingImmeuble}
-            proprietaires={proprietaires}
-            gestionnaires={users}
-            onSave={async (data) => {
-              await handleSaveImmeuble(data);
-            }}
-            onSaveAndAddLots={async (data) => {
-              const savedImmeuble = await handleSaveImmeuble(data);
-              
-              if (savedImmeuble && savedImmeuble.id) {
-                setActiveTab('lots');
-                setEditingLot({ 
-                  reference: '', type: 'Appartement', 
-                  building_id: savedImmeuble.id, 
-                  etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: '' 
-                });
-                // Short timeout just to allow modal transition
-                setTimeout(() => setShowLotModal(true), 100);
-              }
-            }}
-            onCancel={() => setShowImmeubleModal(false)}
-          />
-
-        </div>
-      </Modal>
-
-      {/* Lot Modal - Nouveau formulaire avec onglets */}
-      <Modal
-        isOpen={showLotModal}
-        onClose={() => setShowLotModal(false)}
-        title={editingLot.id ? 'Modifier Lot' : 'Nouveau Lot'}
-        size="xl"
-      >
-        <div className="min-h-[500px]">
-          <LotForm
-            lot={editingLot}
-            immeubles={immeubles}
-            onSave={async (data) => {
-              await saveLot(data);
-              await fetchData();
-              setShowLotModal(false);
-              setSuccess('Lot enregistré avec succès');
-            }}
-            onStatusChange={async (data, newStatus) => {
-              if (newStatus === 'loue' || newStatus === 'vendu' || newStatus === 'reserve') {
-                // Open Assignment Form instead of direct save
-                setShowLotModal(false); // Close edit modal
-                setEditingLot(data as Lot); // Ensure data is current
-                setActiveAssignmentLot(data as Lot); // Set for assignment
-                setShowAssignmentModal(true);
-              } else {
-                // Direct update for other statuses (e.g. hors_service)
-                await saveLot({ ...data, statut: newStatus });
-                await fetchData();
-                setShowLotModal(false);
-                setSuccess(`Statut du lot modifié: ${newStatus}`);
-              }
-            }}
-            onCancel={() => setShowLotModal(false)}
-            loading={loading}
-          />
-        </div>
-      </Modal>
-
-      {/* Assignment Modal */}
-      <Modal
-        isOpen={showAssignmentModal}
-        onClose={() => setShowAssignmentModal(false)}
-        title="Nouvelle Affectation"
-        size="xl"
-      >
-        {activeAssignmentLot && (
-          <div className="min-h-[500px]">
-            <AssignmentForm
-              lot={activeAssignmentLot}
-              onSuccess={async () => {
-                 await fetchData();
-                 setShowAssignmentModal(false);
-                 setSuccess('Affectation réussie ! Contrat généré.');
-              }}
-              onCancel={() => setShowAssignmentModal(false)}
-            />
-          </div>
-        )}
-      </Modal>
 
       {/* Gallery Modal */}
       <Modal

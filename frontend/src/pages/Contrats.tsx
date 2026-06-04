@@ -21,6 +21,7 @@ import {
   Banknote,
   ExternalLink,
   Phone,
+  ArrowLeft,
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -254,6 +255,81 @@ const Contrats: React.FC = () => {
     visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
   };
   const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
+
+  if (showCreateModal) {
+    return (
+      <div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setShowCreateModal(false)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
+            <ArrowLeft size={20} />
+            <span className="text-sm font-medium">Retour aux contrats</span>
+          </button>
+          <div className="h-5 w-px bg-base-300" />
+          <h1 className="text-xl font-bold text-base-content/90">Nouveau contrat</h1>
+        </div>
+        <Card className="p-6">
+          <form id="create-contrat-form" onSubmit={handleCreateSubmit} className="space-y-5">
+            <div className="flex gap-3">
+              {(['location', 'vente'] as TypeContrat[]).map(type => (
+                <button key={type} type="button" onClick={() => setCreateForm(f => ({ ...f, type_contrat: type }))}
+                  className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all capitalize ${createForm.type_contrat === type ? 'border-primary bg-primary/10 text-primary' : 'border-base-300 text-base-content/50 hover:border-base-400'}`}>
+                  {type === 'location' ? 'Bail de location' : 'Contrat de vente'}
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <label htmlFor="form-tenant" className="text-sm font-semibold text-base-content/70">
+                  {createForm.type_contrat === 'vente' ? 'Acheteur' : 'Locataire'} <span className="text-error">*</span>
+                </label>
+                <select id="form-tenant" required className="select select-bordered w-full" value={createForm.tenant_id || ''} onChange={e => setCreateForm(f => ({ ...f, tenant_id: Number(e.target.value) }))}>
+                  <option value="">Sélectionner…</option>
+                  {locataires.map(l => (<option key={l.id} value={l.id}>{l.nom} {l.prenoms}</option>))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="form-lot" className="text-sm font-semibold text-base-content/70">Bien (lot) <span className="text-error">*</span></label>
+                <select id="form-lot" required className="select select-bordered w-full" value={createForm.lot_id || ''} onChange={e => { const lotId = Number(e.target.value); const lot = lots.find(l => l.id === lotId); setCreateForm(f => ({ ...f, lot_id: lotId, owner_id: lot?.owner_id ?? f.owner_id })); }}>
+                  <option value="">Sélectionner…</option>
+                  {lots.length === 0 && <option disabled>Aucun lot trouvé</option>}
+                  {lots.map(l => { const dispo = ['libre', 'disponible'].includes(l.statut?.toLowerCase()); return (<option key={l.id} value={l.id} disabled={!dispo}>{l.reference} — {l.immeuble}{!dispo ? ` (${l.statut})` : ''}</option>); })}
+                </select>
+              </div>
+              <Input label="Date de début" required type="date" value={createForm.date_debut} onChange={e => setCreateForm(f => ({ ...f, date_debut: e.target.value }))} />
+              <Input label="Date de fin" type="date" value={createForm.date_fin as string} onChange={e => setCreateForm(f => ({ ...f, date_fin: e.target.value }))} />
+              <Input label="Durée (mois)" type="number" min={1} value={createForm.duree_contrat ?? ''} onChange={e => setCreateForm(f => ({ ...f, duree_contrat: Number(e.target.value) }))} />
+              <div className="flex flex-col gap-1">
+                <label htmlFor="form-devise" className="text-sm font-semibold text-base-content/70">Devise</label>
+                <select id="form-devise" className="select select-bordered w-full" value={createForm.devise} onChange={e => setCreateForm(f => ({ ...f, devise: e.target.value }))}>
+                  <option value="XOF">XOF (FCFA)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="USD">USD ($)</option>
+                </select>
+              </div>
+              {createForm.type_contrat === 'location' && (
+                <Input label="Loyer mensuel" required type="number" min={0} value={createForm.loyer_mensuel || ''} onChange={e => setCreateForm(f => ({ ...f, loyer_mensuel: Number(e.target.value) }))} endIcon={<span className="text-xs text-base-content/40">{createForm.devise}</span>} />
+              )}
+              {createForm.type_contrat === 'vente' && (
+                <Input label="Prix de vente" required type="number" min={0} value={createForm.prix_vente || ''} onChange={e => setCreateForm(f => ({ ...f, prix_vente: Number(e.target.value) }))} endIcon={<span className="text-xs text-base-content/40">{createForm.devise}</span>} />
+              )}
+              <Input label="Caution" type="number" min={0} value={createForm.caution || ''} onChange={e => setCreateForm(f => ({ ...f, caution: Number(e.target.value) }))} endIcon={<span className="text-xs text-base-content/40">{createForm.devise}</span>} />
+              <Input label="Avance" type="number" min={0} value={createForm.avance || ''} onChange={e => setCreateForm(f => ({ ...f, avance: Number(e.target.value) }))} endIcon={<span className="text-xs text-base-content/40">{createForm.devise}</span>} />
+              {createForm.type_contrat === 'location' && (
+                <Input label="Charges mensuelles" type="number" min={0} value={createForm.charges_mensuelles || ''} onChange={e => setCreateForm(f => ({ ...f, charges_mensuelles: Number(e.target.value) }))} endIcon={<span className="text-xs text-base-content/40">{createForm.devise}</span>} />
+              )}
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button variant="ghost" type="button" onClick={() => setShowCreateModal(false)}>Annuler</Button>
+              <Button variant="primary" type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending ? <Loader2 size={16} className="animate-spin mr-2" /> : <Plus size={16} className="mr-2" />}
+                Créer le contrat
+              </Button>
+            </div>
+          </form>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -590,203 +666,6 @@ const Contrats: React.FC = () => {
         </Card>
       </motion.div>
     </motion.div>
-
-    {/* ── Modal création contrat ── */}
-    <Modal
-      isOpen={showCreateModal}
-      onClose={() => setShowCreateModal(false)}
-      title="Nouveau contrat"
-      size="lg"
-      footer={
-        <>
-          <Button variant="ghost" type="button" onClick={() => setShowCreateModal(false)}>
-            Annuler
-          </Button>
-          <Button
-            variant="primary"
-            type="submit"
-            form="create-contrat-form"
-            disabled={createMutation.isPending}
-          >
-            {createMutation.isPending ? <Loader2 size={16} className="animate-spin mr-2" /> : <Plus size={16} className="mr-2" />}
-            Créer le contrat
-          </Button>
-        </>
-      }
-    >
-      <form id="create-contrat-form" onSubmit={handleCreateSubmit} className="space-y-5">
-        {/* Type de contrat */}
-        <div className="flex gap-3">
-          {(['location', 'vente'] as TypeContrat[]).map(type => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => setCreateForm(f => ({ ...f, type_contrat: type }))}
-              className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all capitalize ${
-                createForm.type_contrat === type
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-base-300 text-base-content/50 hover:border-base-400'
-              }`}
-            >
-              {type === 'location' ? 'Bail de location' : 'Contrat de vente'}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Locataire / Acheteur */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="form-tenant" className="text-sm font-semibold text-base-content/70">
-              {createForm.type_contrat === 'vente' ? 'Acheteur' : 'Locataire'} <span className="text-error">*</span>
-            </label>
-            <select
-              id="form-tenant"
-              required
-              className="select select-bordered w-full"
-              value={createForm.tenant_id || ''}
-              onChange={e => setCreateForm(f => ({ ...f, tenant_id: Number(e.target.value) }))}
-            >
-              <option value="">Sélectionner…</option>
-              {locataires.map(l => (
-                <option key={l.id} value={l.id}>
-                  {l.nom} {l.prenoms}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Bien / Lot */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="form-lot" className="text-sm font-semibold text-base-content/70">
-              Bien (lot) <span className="text-error">*</span>
-            </label>
-            <select
-              id="form-lot"
-              required
-              className="select select-bordered w-full"
-              value={createForm.lot_id || ''}
-              onChange={e => {
-                const lotId = Number(e.target.value);
-                const lot = lots.find(l => l.id === lotId);
-                setCreateForm(f => ({ ...f, lot_id: lotId, owner_id: lot?.owner_id ?? f.owner_id }));
-              }}
-            >
-              <option value="">Sélectionner…</option>
-              {lots.length === 0 && (
-                <option disabled>Aucun lot trouvé</option>
-              )}
-              {lots.map(l => {
-                const dispo = ['libre', 'disponible'].includes(l.statut?.toLowerCase());
-                return (
-                  <option key={l.id} value={l.id} disabled={!dispo}>
-                    {l.reference} — {l.immeuble}{!dispo ? ` (${l.statut})` : ''}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-
-          {/* Date début */}
-          <Input
-            label="Date de début"
-            required
-            type="date"
-            value={createForm.date_debut}
-            onChange={e => setCreateForm(f => ({ ...f, date_debut: e.target.value }))}
-          />
-
-          {/* Date fin */}
-          <Input
-            label="Date de fin"
-            type="date"
-            value={createForm.date_fin as string}
-            onChange={e => setCreateForm(f => ({ ...f, date_fin: e.target.value }))}
-          />
-
-          {/* Durée */}
-          <Input
-            label="Durée (mois)"
-            type="number"
-            min={1}
-            value={createForm.duree_contrat ?? ''}
-            onChange={e => setCreateForm(f => ({ ...f, duree_contrat: Number(e.target.value) }))}
-          />
-
-          {/* Devise */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="form-devise" className="text-sm font-semibold text-base-content/70">Devise</label>
-            <select
-              id="form-devise"
-              className="select select-bordered w-full"
-              value={createForm.devise}
-              onChange={e => setCreateForm(f => ({ ...f, devise: e.target.value }))}
-            >
-              <option value="XOF">XOF (FCFA)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="USD">USD ($)</option>
-            </select>
-          </div>
-
-          {/* Loyer — location uniquement */}
-          {createForm.type_contrat === 'location' && (
-            <Input
-              label="Loyer mensuel"
-              required
-              type="number"
-              min={0}
-              value={createForm.loyer_mensuel || ''}
-              onChange={e => setCreateForm(f => ({ ...f, loyer_mensuel: Number(e.target.value) }))}
-              endIcon={<span className="text-xs text-base-content/40">{createForm.devise}</span>}
-            />
-          )}
-
-          {/* Prix de vente — vente uniquement */}
-          {createForm.type_contrat === 'vente' && (
-            <Input
-              label="Prix de vente"
-              required
-              type="number"
-              min={0}
-              value={createForm.prix_vente || ''}
-              onChange={e => setCreateForm(f => ({ ...f, prix_vente: Number(e.target.value) }))}
-              endIcon={<span className="text-xs text-base-content/40">{createForm.devise}</span>}
-            />
-          )}
-
-          {/* Caution */}
-          <Input
-            label="Caution"
-            type="number"
-            min={0}
-            value={createForm.caution || ''}
-            onChange={e => setCreateForm(f => ({ ...f, caution: Number(e.target.value) }))}
-            endIcon={<span className="text-xs text-base-content/40">{createForm.devise}</span>}
-          />
-
-          {/* Avance */}
-          <Input
-            label="Avance"
-            type="number"
-            min={0}
-            value={createForm.avance || ''}
-            onChange={e => setCreateForm(f => ({ ...f, avance: Number(e.target.value) }))}
-            endIcon={<span className="text-xs text-base-content/40">{createForm.devise}</span>}
-          />
-
-          {/* Charges — location uniquement */}
-          {createForm.type_contrat === 'location' && (
-            <Input
-              label="Charges mensuelles"
-              type="number"
-              min={0}
-              value={createForm.charges_mensuelles || ''}
-              onChange={e => setCreateForm(f => ({ ...f, charges_mensuelles: Number(e.target.value) }))}
-              endIcon={<span className="text-xs text-base-content/40">{createForm.devise}</span>}
-            />
-          )}
-        </div>
-      </form>
-    </Modal>
 
     {/* ── Modal détail contrat ── */}
 

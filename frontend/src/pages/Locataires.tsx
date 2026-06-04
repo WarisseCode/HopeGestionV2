@@ -7,7 +7,7 @@ import { getProprietaires } from '../api/accountApi';
 import { getSubscriptionStatus } from '../api/subscriptionApi';
 import type { Locataire } from '../api/locataireApi';
 import type { SubscriptionStatus } from '../api/subscriptionApi';
-import { 
+import {
   Users,
   UserPlus,
   Phone,
@@ -28,7 +28,8 @@ import {
   LayoutGrid,
   List,
   X,
-  Send
+  Send,
+  ArrowLeft
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../components/ui/Button';
@@ -338,8 +339,45 @@ const Locataires: React.FC = () => {
     </div>
   );
 
+  if (showModal) {
+    return (
+      <div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setShowModal(false)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
+            <ArrowLeft size={20} />
+            <span className="text-sm font-medium">Retour aux locataires</span>
+          </button>
+          <div className="h-5 w-px bg-base-300" />
+          <h1 className="text-xl font-bold text-base-content/90">
+            {locataireForm.typeProfil === 'Acheteur' ? 'Nouvel Acheteur' : 'Nouveau Locataire'}
+          </h1>
+        </div>
+        {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
+        <LocataireForm
+          locataire={{ type: locataireForm.typeProfil as any }}
+          proprietaires={proprietaires.map(p => ({ id: p.id, nom: p.nom, prenom: p.prenom }))}
+          onSave={async (data) => {
+            try {
+              setError(null);
+              if (!data.nom || !data.telephone_principal) {
+                throw new Error('Nom et téléphone sont requis');
+              }
+              await createLocataire(data);
+              setSuccess('Profil créé avec succès');
+              setShowModal(false);
+              fetchData();
+            } catch (err: any) {
+              setError(err.message);
+            }
+          }}
+          onCancel={() => setShowModal(false)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <motion.div 
+    <motion.div
       className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto"
       variants={containerVariants}
       initial="hidden"
@@ -739,41 +777,6 @@ const Locataires: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Create/Edit Modal */}
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={locataireForm.typeProfil === 'Acheteur' ? 'Nouvel Acheteur' : 'Nouveau Locataire'}
-        size="xl"
-      >
-        <LocataireForm
-          locataire={{
-            type: locataireForm.typeProfil as any
-          }}
-          proprietaires={proprietaires.map(p => ({ id: p.id, nom: p.nom, prenom: p.prenom }))}
-          onSave={async (data) => {
-            try {
-              setError(null);
-              if (!data.nom || !data.telephone_principal) {
-                throw new Error('Nom et téléphone sont requis');
-              }
-              await createLocataire(data);
-              setSuccess('Profil créé avec succès');
-              setShowModal(false);
-              setLocataireForm({
-                typeProfil: 'Locataire', nom: '', prenoms: '', telephonePrincipal: '', telephoneSecondaire: '',
-                email: '', nationalite: 'Béninoise', typePiece: 'CNI', numeroPiece: '', dateExpiration: '',
-                modePaiement: 'Mobile Money', acompte: 0, avance: 0
-              });
-              fetchData();
-            } catch (err: any) {
-              setError(err.message);
-            }
-          }}
-          onCancel={() => setShowModal(false)}
-        />
-      </Modal>
 
       {/* Invitation Link Modal */}
       <InvitationLinkModal
