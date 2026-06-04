@@ -95,11 +95,16 @@ const LocationForm: React.FC<LocationFormProps> = ({
     label: `${l.prenoms ?? ''} ${l.nom ?? ''}`.trim() || `Locataire #${l.id}`,
   })), [locataires]);
 
-  const lotOptions = useMemo(() => lots.map(l => ({
-    value: l.id,
-    label: `${l.ref_lot ?? `Lot #${l.id}`} — ${l.immeuble ?? ''} (${l.statut ?? ''})`,
-    disabled: l.statut !== 'libre' && l.id !== initialData?.lot_id,
-  })), [lots, initialData?.lot_id]);
+  const lotOptions = useMemo(() => lots.map(l => {
+    // Le backend retourne ref_lot sous l'alias "reference" (bienRoutes.ts l.ref_lot as reference)
+    const ref = l.reference
+      || (l.type ? `${l.type}${l.etage ? ` · Ét.${l.etage}` : ''}` : `Lot #${l.id}`);
+    return {
+      value: l.id,
+      label: `${ref} — ${l.immeuble ?? ''} (${l.statut ?? ''})`,
+      disabled: l.statut !== 'libre' && l.id !== initialData?.lot_id,
+    };
+  }), [lots, initialData?.lot_id]);
 
   const ownerOptions = useMemo(() => owners.map(o => ({
     value: o.id,
