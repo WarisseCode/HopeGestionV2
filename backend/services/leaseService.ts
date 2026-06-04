@@ -13,6 +13,8 @@ export class LeaseService {
             SELECT
                 l.id,
                 l.reference_bail,
+                l.lot_id,
+                l.tenant_id,
                 l.date_debut,
                 l.date_fin,
                 l.loyer_actuel as loyer_mensuel,
