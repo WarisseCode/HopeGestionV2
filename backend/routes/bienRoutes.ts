@@ -55,9 +55,13 @@ router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: 
         const result = await dbClient.query(query, queryParams);
 
         const immeublesAvecOccupation = result.rows.map((immeuble: any) => {
-            const totalLots = parseInt(immeuble.nb_lots) || 0;
-            const lotsOccupes = parseInt(immeuble.lots_occupes) || 0;
-            const occupation = totalLots > 0 ? Math.round((lotsOccupes / totalLots) * 100) : 0;
+            // total_lots = capacité déclarée par l'utilisateur sur l'immeuble
+            // nb_lots    = COUNT(l.id), nombre de lots physiquement créés en DB
+            const declaredTotal = parseInt(immeuble.total_lots) || 0;
+            const createdLots   = parseInt(immeuble.nb_lots) || 0;
+            const totalLots     = declaredTotal || createdLots;
+            const lotsOccupes   = parseInt(immeuble.lots_occupes) || 0;
+            const occupation    = totalLots > 0 ? Math.round((lotsOccupes / totalLots) * 100) : 0;
 
             const ownerLabel = immeuble.owner_type === 'individual'
                 ? `${immeuble.owner_name} ${immeuble.owner_first_name || ''}`.trim()
