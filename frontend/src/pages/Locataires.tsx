@@ -42,6 +42,7 @@ import FilterPanel from '../components/ui/FilterPanel';
 import type { FilterConfig, FilterValues } from '../components/ui/FilterPanel';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
 import LocataireForm from '../components/locataires/LocataireForm';
+import Alert from '../components/ui/Alert';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import EmptyState from '../components/ui/EmptyState';
 import InvitationLinkModal from '../components/ui/InvitationLinkModal';
