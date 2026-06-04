@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, Plus, Search, Filter, AlertTriangle, FileText, Check, XCircle, Pen, DollarSign, X, RefreshCw, MoreHorizontal } from 'lucide-react';
+import { Eye, Plus, Search, Filter, AlertTriangle, FileText, Check, XCircle, Pen, DollarSign, X, RefreshCw, MoreHorizontal, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import LocationForm from '../components/locations/LocationForm';
 import locationApi from '../api/locationApi';
@@ -243,6 +243,37 @@ const Locations: React.FC = () => {
         );
     }
 
+    // Formulaire pleine page (remplace la liste quand actif)
+    if (showAddModal) {
+        return (
+            <div className="p-6 space-y-6">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => { setShowAddModal(false); setIsEditing(false); setSelectedLocation(null); }}
+                        className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition"
+                    >
+                        <ArrowLeft size={20} />
+                        <span className="text-sm font-medium">Retour aux locations</span>
+                    </button>
+                    <div className="h-5 w-px bg-base-300" />
+                    <h1 className="text-xl font-bold text-base-content/90">
+                        {isEditing ? 'Modifier le Bail' : 'Nouveau Bail'}
+                    </h1>
+                </div>
+                {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
+                <LocationForm
+                    onSubmit={handleCreate}
+                    onCancel={() => { setShowAddModal(false); setIsEditing(false); setSelectedLocation(null); }}
+                    locataires={locataires}
+                    lots={lots}
+                    owners={owners}
+                    loading={loading}
+                    initialData={isEditing ? selectedLocation || undefined : undefined}
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="p-6 space-y-6">
             {/* Header */}
@@ -464,42 +495,6 @@ const Locations: React.FC = () => {
                     </table>
                 </div>
             </div>
-
-            {/* Add Modal */}
-            <AnimatePresence>
-                {showAddModal && (
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-                    >
-                        <motion.div 
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-base-100 rounded-xl shadow-xl w-full max-w-[95%] md:max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
-                        >
-                            <div className="p-6 border-b sticky top-0 bg-base-100 z-10 flex justify-between items-center">
-                                <h3 className="text-xl font-bold">{isEditing ? 'Modifier le Bail' : 'Nouveau Bail'}</h3>
-                                <button onClick={() => { setShowAddModal(false); setIsEditing(false); }} className="text-base-content/50 hover:text-base-content/70 transition">
-                                    <XCircle size={24} />
-                                </button>
-                            </div>
-                            
-                            <LocationForm 
-                                onSubmit={handleCreate}
-                                onCancel={() => { setShowAddModal(false); setIsEditing(false); }}
-                                locataires={locataires}
-                                lots={lots}
-                                owners={owners}
-                                loading={loading}
-                                initialData={isEditing ? selectedLocation || undefined : undefined}
-                            />
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
 
             {/* Detail Modal */}
             <AnimatePresence>
