@@ -41,6 +41,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getImmeubles, getLots, saveImmeuble, saveLot, deleteImmeuble, deleteLot } from '../api/bienApi';
 import { getSubscriptionStatus } from '../api/subscriptionApi';
 import type { Immeuble, Lot } from '../api/bienApi';
+import { locationApi } from '../api/locationApi';
+import type { Location as BailLocation } from '../api/locationApi';
 import type { SubscriptionStatus } from '../api/subscriptionApi';
 import { getProprietaires, accountApi } from '../api/accountApi';
 import type { Proprietaire, Utilisateur } from '../api/accountApi';
@@ -92,6 +94,7 @@ const Biens: React.FC = () => {
   // Data states
   const [immeubles, setImmeubles] = useState<Immeuble[]>([]);
   const [lots, setLots] = useState<Lot[]>([]);
+  const [locations, setLocations] = useState<BailLocation[]>([]);
   const [proprietaires, setProprietaires] = useState<Proprietaire[]>([]);
   const [users, setUsers] = useState<Utilisateur[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,6 +122,7 @@ const Biens: React.FC = () => {
   const [gallerySelectedBuilding, setGallerySelectedBuilding] = useState<Immeuble | null>(null);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [detailImmeuble, setDetailImmeuble] = useState<Immeuble | null>(null);
+  const [detailLot, setDetailLot] = useState<Lot | null>(null);
 
   // Confirm Modal State
   const [confirmConfig, setConfirmConfig] = useState<{
@@ -204,9 +208,10 @@ const Biens: React.FC = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [immeublesData, lotsData, propsData, usersData, subStatus] = await Promise.all([
+      const [immeublesData, lotsData, locationsData, propsData, usersData, subStatus] = await Promise.all([
         getImmeubles(),
         getLots(),
+        locationApi.getLocations().catch(() => [] as BailLocation[]),
         getProprietaires(),
         accountApi.getUsers(),
         getSubscriptionStatus().catch(err => {
@@ -216,6 +221,7 @@ const Biens: React.FC = () => {
       ]);
       setImmeubles(immeublesData);
       setLots(lotsData);
+      setLocations(locationsData);
       setProprietaires(propsData);
       setUsers(usersData);
       if (subStatus) setSubscriptionStatus(subStatus);
@@ -871,12 +877,12 @@ const Biens: React.FC = () => {
                     (paginatedData as Lot[]).map((lot) => (
                       <div
                         key={lot.id}
-                        className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden hover:shadow-xl transition-all group flex flex-col"
-                        onClick={canWrite ? () => { setEditingLot(lot); setFormView('lot'); } : undefined}
+                        className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden hover:shadow-xl transition-all group flex flex-col cursor-pointer"
+                        onClick={() => setDetailLot(lot)}
                       >
                         <div className="h-40 bg-base-300 relative overflow-hidden shrink-0">
-                          <img 
-                            src={lot.photos && lot.photos.length > 0 ? lot.photos[0] : getPlaceholderImage(lot.id)} 
+                          <img
+                            src={lot.photos && lot.photos.length > 0 ? lot.photos[0] : getPlaceholderImage(lot.id)}
                             alt={`${lot.reference} — ${lot.immeuble || ''}`}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
@@ -897,7 +903,7 @@ const Biens: React.FC = () => {
                                 {lot.loyer?.toLocaleString()} <small>FCFA</small>
                               </span>
                               <div className="flex gap-1">
-                                {canWrite && <button onClick={(e) => { e.stopPropagation(); setEditingLot(lot); setFormView('lot'); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
+                                {canWrite && <button onClick={(e) => { e.stopPropagation(); setEditingLot(lot); setFormView('lot'); }} className="btn btn-ghost btn-xs btn-square" title="Modifier"><Edit3 size={14} /></button>}
                               </div>
                             </div>
                           </div>
@@ -930,7 +936,7 @@ const Biens: React.FC = () => {
                           </tr>
                         ) : (
                           (paginatedData as Lot[]).map((lot) => (
-                            <tr key={lot.id} className="hover:bg-base-200/50 transition-colors group cursor-pointer" onClick={canWrite ? () => { setEditingLot(lot); setFormView('lot'); } : undefined}>
+                            <tr key={lot.id} className="hover:bg-base-200/50 transition-colors group cursor-pointer" onClick={() => setDetailLot(lot)}>
                               <td className="pl-6">
                                   <div className="avatar h-10 w-16 rounded cursor-pointer overflow-hidden relative shadow-sm">
                                       <img 
@@ -1181,6 +1187,116 @@ const Biens: React.FC = () => {
                   <Button variant="primary" onClick={() => { setEditingImmeuble(detailImmeuble); setDetailImmeuble(null); setFormView('immeuble'); }}>
                     <Edit3 size={14} className="mr-2"/>Modifier
                   </Button>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
+
+      {/* ── Modal Détail Lot ── */}
+      <Modal
+        isOpen={!!detailLot}
+        onClose={() => setDetailLot(null)}
+        title=""
+        size="md"
+      >
+        {detailLot && (() => {
+          const s = getLotStatut(detailLot.statut);
+          const bail = locations.find(l => l.lot_id === detailLot.id && ['actif', 'signe'].includes(l.statut));
+          return (
+            <div className="space-y-0 -mt-6 -mx-1">
+              {/* Hero */}
+              <div className="relative h-48 rounded-t-2xl overflow-hidden mb-5">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent z-10" />
+                <img
+                  src={detailLot.photos && detailLot.photos.length > 0 ? detailLot.photos[0] : getPlaceholderImage(detailLot.id)}
+                  alt={detailLot.reference}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-4 left-5 z-20 text-white">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`badge border-none text-white text-xs font-bold ${s.badge}`}>{s.label}</span>
+                    <span className="badge badge-ghost bg-white/20 text-white border-none text-xs">{detailLot.type}</span>
+                  </div>
+                  <h2 className="text-xl font-extrabold">{detailLot.reference}</h2>
+                  <p className="text-sm opacity-80 flex items-center gap-1 mt-0.5">
+                    <Building2 size={13}/> {detailLot.immeuble}
+                    {detailLot.etage && <span className="opacity-60"> · Étage {detailLot.etage}</span>}
+                    {detailLot.bloc && <span className="opacity-60"> · Bloc {detailLot.bloc}</span>}
+                  </p>
+                </div>
+              </div>
+
+              {/* Métriques */}
+              <div className="grid grid-cols-3 gap-3 mb-5 px-1">
+                {[
+                  { label: 'Surface', value: detailLot.superficie ? `${detailLot.superficie} m²` : '—' },
+                  { label: 'Pièces', value: detailLot.nbPieces || '—' },
+                  { label: 'Loyer', value: detailLot.loyer ? `${detailLot.loyer.toLocaleString()} FCFA` : '—' },
+                  { label: 'Charges', value: detailLot.charges ? `${detailLot.charges.toLocaleString()} FCFA` : '—' },
+                  { label: 'Caution', value: detailLot.caution ? `${detailLot.caution.toLocaleString()} FCFA` : '—' },
+                  { label: 'Avance', value: detailLot.avance ? `${detailLot.avance} mois` : '—' },
+                ].map(m => (
+                  <div key={m.label} className="bg-base-200/60 rounded-xl p-3 text-center">
+                    <p className="text-xs font-semibold text-base-content/50 uppercase mb-1">{m.label}</p>
+                    <p className="font-bold text-base-content/90 text-sm">{m.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Locataire */}
+              <div className="px-1 mb-5">
+                <p className="text-xs font-bold text-base-content/50 uppercase mb-2 flex items-center gap-1.5"><Users size={13}/>Locataire</p>
+                {bail ? (
+                  <div className="flex items-center gap-4 p-4 bg-base-200/60 rounded-xl">
+                    <div className="avatar w-12 h-12 rounded-full overflow-hidden shrink-0 bg-base-300">
+                      {bail.locataire_photo
+                        ? <img src={bail.locataire_photo} alt="" className="w-full h-full object-cover" />
+                        : <div className="w-full h-full flex items-center justify-center text-base-content/40"><User size={22}/></div>
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-base-content/90 truncate">{bail.locataire_nom} {bail.locataire_prenoms}</p>
+                      {bail.locataire_telephone && (
+                        <p className="text-sm text-base-content/60 flex items-center gap-1 mt-0.5"><Phone size={12}/>{bail.locataire_telephone}</p>
+                      )}
+                      <p className="text-xs text-base-content/40 mt-1">
+                        Depuis le {new Date(bail.date_debut).toLocaleDateString('fr-FR')}
+                        {bail.date_fin && ` · jusqu'au ${new Date(bail.date_fin).toLocaleDateString('fr-FR')}`}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 p-4 bg-base-200/40 rounded-xl text-base-content/40">
+                    <User size={20}/>
+                    <span className="text-sm">Aucun locataire actuellement</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              {detailLot.description && (
+                <div className="px-1 mb-5">
+                  <p className="text-xs font-bold text-base-content/50 uppercase mb-2 flex items-center gap-1.5"><Info size={13}/>Description</p>
+                  <p className="text-sm text-base-content/70 leading-relaxed bg-base-200/40 rounded-xl p-3">{detailLot.description}</p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex justify-between items-center pt-5 px-1 border-t border-base-200">
+                <Button variant="ghost" onClick={() => setDetailLot(null)}>Fermer</Button>
+                {canWrite && (
+                  <div className="flex gap-2">
+                    {detailLot.statut === 'libre' && (
+                      <Button variant="outline" size="sm" onClick={() => { setActiveAssignmentLot(detailLot); setEditingLot(detailLot); setDetailLot(null); setFormView('assignment'); }}>
+                        <UserPlus size={14} className="mr-1.5"/>Affecter
+                      </Button>
+                    )}
+                    <Button variant="primary" onClick={() => { setEditingLot(detailLot); setDetailLot(null); setFormView('lot'); }}>
+                      <Edit3 size={14} className="mr-1.5"/>Modifier
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
