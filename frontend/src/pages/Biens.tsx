@@ -1289,7 +1289,7 @@ const Biens: React.FC = () => {
                 {canWrite && (
                   <div className="flex gap-2">
                     {detailLot.statut === 'libre' && (
-                      <Button variant="outline" size="sm" onClick={() => { setActiveAssignmentLot(detailLot); setEditingLot(detailLot); setDetailLot(null); setFormView('assignment'); }}>
+                      <Button variant="ghost" size="sm" onClick={() => { setActiveAssignmentLot(detailLot); setEditingLot(detailLot); setDetailLot(null); setFormView('assignment'); }}>
                         <UserPlus size={14} className="mr-1.5"/>Affecter
                       </Button>
                     )}
