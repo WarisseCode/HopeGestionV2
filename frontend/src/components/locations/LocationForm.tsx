@@ -404,21 +404,28 @@ const LocationForm: React.FC<LocationFormProps> = ({
 
                     {/* Propriétaire */}
                     {owners.length > 1 ? (
-                      <Select
-                        label="Propriétaire concerné"
-                        required
-                        searchable
-                        placeholder="Sélectionner le propriétaire…"
-                        options={ownerOptions}
-                        value={form.owner_id || ''}
-                        onChange={e => {
-                          set('owner_id', parseInt(e.target.value) || 0);
-                          touch('owner_id');
-                        }}
-                        error={getErr('owner_id')}
-                        disabled={isEditing}
-                        startIcon={<Building2 size={16} />}
-                      />
+                      <div>
+                        <Select
+                          label="Propriétaire concerné"
+                          required
+                          searchable
+                          placeholder="Sélectionner le propriétaire…"
+                          options={ownerOptions}
+                          value={form.owner_id || ''}
+                          onChange={e => {
+                            set('owner_id', parseInt(e.target.value) || 0);
+                            touch('owner_id');
+                          }}
+                          error={getErr('owner_id')}
+                          disabled={isEditing || (!!form.lot_id && !!selectedLot?.owner_id)}
+                          startIcon={<Building2 size={16} />}
+                        />
+                        {!!form.lot_id && !!selectedLot?.owner_id && (
+                          <p className="text-xs text-base-content/50 mt-1 ml-1">
+                            Défini automatiquement par le lot sélectionné
+                          </p>
+                        )}
+                      </div>
                     ) : owners.length === 1 ? (
                       <div className="flex items-center gap-3 p-4 bg-base-200/60 rounded-xl border border-base-300">
                         <Building2 size={18} className="text-primary/60 flex-shrink-0" />
