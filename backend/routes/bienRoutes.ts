@@ -42,7 +42,7 @@ router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: 
                 o.name as owner_name, o.first_name as owner_first_name, o.type as owner_type,
                 g.nom as gestionnaire_name,
                 COUNT(l.id) as nb_lots,
-                COUNT(CASE WHEN l.statut = 'occupe' THEN 1 END) as lots_occupes
+                COUNT(CASE WHEN l.statut IN ('loue', 'occupe', 'reserve') THEN 1 END) as lots_occupes
              FROM buildings b
              LEFT JOIN lots l ON l.building_id = b.id
              LEFT JOIN owners o ON b.owner_id = o.id
@@ -67,7 +67,7 @@ router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: 
                 ? `${immeuble.owner_name} ${immeuble.owner_first_name || ''}`.trim()
                 : immeuble.owner_name;
 
-            const statut = totalLots === 0 ? 'Vide'
+            const etatOccupation = totalLots === 0 ? 'Vide'
                 : lotsOccupes === totalLots ? 'Complet'
                 : lotsOccupes > 0 ? 'En location'
                 : 'Disponible';
@@ -77,7 +77,7 @@ router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: 
                 nbLots: totalLots,
                 lotsOccupes,
                 occupation,
-                statut,
+                etatOccupation,
                 proprietaire: ownerLabel
             };
         });
@@ -130,7 +130,7 @@ router.get('/lots', permissions.canRead('biens'), tenantGuard, async (req: Authe
             charges: parseFloat(lot.charges) || 0,
             caution: parseFloat(lot.caution) || 0,
             prix_vente: lot.prix_vente ? parseFloat(lot.prix_vente) : null,
-            nbPieces: parseInt(lot.nbpieces || lot.nbPieces) || 0,
+            nbPieces: parseInt(lot.nbPieces) || 0,
             avance: parseInt(lot.avance) || 1,
             photos: lot.photos || []
         }));
@@ -285,8 +285,11 @@ router.delete('/immeubles/:id', permissions.canWrite('biens'), tenantGuard, asyn
     const immeubleId = parseInt(req.params.id || '0', 10);
 
     try {
-        // [PATTERN RLS] - Simple suppression : la base bloquera ou simulera "0 rows affected"
-        // pour ceux essayants de supprimer l'ID de qqn d'autre !
+        const lotsCheck = await dbClient.query('SELECT COUNT(*) as count FROM lots WHERE building_id = $1', [immeubleId]);
+        if (parseInt(lotsCheck.rows[0].count) > 0) {
+            return res.status(409).json({ message: `Impossible de supprimer : ${lotsCheck.rows[0].count} lot(s) sont rattachés à cet immeuble. Supprimez-les d'abord.` });
+        }
+
         const result = await dbClient.query('DELETE FROM buildings WHERE id = $1 RETURNING id', [immeubleId]);
         
         if (result.rowCount === 0) {

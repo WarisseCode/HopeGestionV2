@@ -43,7 +43,6 @@ import Alertes from './pages/Alertes';
 import MobileMoney from './pages/MobileMoney';
 import Quittances from './pages/Quittances';
 import Proprietaires from './pages/Proprietaires';
-import LotsPage from './pages/LotsPage';
 import Documents from './pages/Documents';
 import DelegationsPage from './pages/DelegationsPage';
 import LocataireDetails from './pages/LocataireDetails';

@@ -14,6 +14,7 @@ export interface Immeuble {
   nbLots: number;
   occupation: number;
   statut: string;
+  etatOccupation?: string;
   photo?: string | null;
   description?: string;
   proprietaire?: string;

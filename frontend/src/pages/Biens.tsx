@@ -148,8 +148,8 @@ const Biens: React.FC = () => {
       type: 'select',
       label: 'Statut',
       options: [
-        { value: 'Actif', label: 'Actif' },
-        { value: 'Inactif', label: 'Inactif' },
+        { value: 'actif', label: 'Actif' },
+        { value: 'inactif', label: 'Inactif' },
       ]
     }
   ];
@@ -173,8 +173,10 @@ const Biens: React.FC = () => {
       label: 'Statut',
       options: [
         { value: 'libre', label: 'Libre' },
-        { value: 'occupe', label: 'Occupé' },
+        { value: 'loue', label: 'Loué' },
         { value: 'reserve', label: 'Réservé' },
+        { value: 'vendu', label: 'Vendu' },
+        { value: 'hors_service', label: 'Hors service' },
       ]
     },
     {
@@ -726,9 +728,18 @@ const Biens: React.FC = () => {
                       <div key={immeuble.id} className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden hover:shadow-xl transition-all group">
                         <div className="h-48 bg-base-300 relative overflow-hidden">
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
-                          <span className={`absolute top-4 right-4 z-20 badge border-none text-white font-bold ${immeuble.statut === 'Actif' ? 'bg-green-500' : 'bg-orange-500'}`}>
-                            {immeuble.statut || 'Actif'}
-                          </span>
+                          <div className="absolute top-4 right-4 z-20 flex gap-1.5">
+                            {immeuble.etatOccupation && (
+                              <span className={`badge border-none text-white font-semibold text-xs ${
+                                immeuble.etatOccupation === 'Complet' ? 'bg-teal-600' :
+                                immeuble.etatOccupation === 'En location' ? 'bg-blue-500' :
+                                immeuble.etatOccupation === 'Vide' ? 'bg-gray-500' : 'bg-indigo-500'
+                              }`}>{immeuble.etatOccupation}</span>
+                            )}
+                            <span className={`badge border-none text-white font-bold ${immeuble.statut?.toLowerCase() === 'actif' ? 'bg-green-500' : 'bg-orange-500'}`}>
+                              {immeuble.statut === 'actif' ? 'Actif' : immeuble.statut === 'inactif' ? 'Inactif' : (immeuble.statut || 'Actif')}
+                            </span>
+                          </div>
                           <div
                             className="absolute inset-0 z-30 cursor-zoom-in"
                             onClick={(e) => {
@@ -1031,10 +1042,12 @@ const Biens: React.FC = () => {
       >
         {detailImmeuble && (() => {
           const buildingLots = lots.filter(l => l.building_id === detailImmeuble.id);
-          const lotsActifs = buildingLots.filter(l => ['loue', 'occupé', 'occupe', 'vendu'].includes(l.statut?.toLowerCase() || ''));
-          const lotsLibres = buildingLots.filter(l => ['libre', 'disponible'].includes(l.statut?.toLowerCase() || ''));
+          const lotsActifs = buildingLots.filter(l => ['loue', 'occupe', 'reserve'].includes(l.statut?.toLowerCase() || ''));
+          const lotsLibres = buildingLots.filter(l => l.statut?.toLowerCase() === 'libre');
           const lotsReserves = buildingLots.filter(l => l.statut?.toLowerCase() === 'reserve');
-          const tauxOccupation = buildingLots.length > 0 ? Math.round((lotsActifs.length / buildingLots.length) * 100) : 0;
+          // Dénominateur = total déclaré si disponible, sinon count des lots créés
+          const totalCapacite = detailImmeuble.total_lots || buildingLots.length;
+          const tauxOccupation = totalCapacite > 0 ? Math.round((lotsActifs.length / totalCapacite) * 100) : 0;
 
           return (
             <div className="space-y-0 -mt-6 -mx-1">
@@ -1048,9 +1061,16 @@ const Biens: React.FC = () => {
                 />
                 <div className="absolute bottom-4 left-5 z-20 text-white">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`badge border-none text-white text-xs font-bold ${detailImmeuble.statut === 'Actif' ? 'bg-green-500' : 'bg-orange-500'}`}>
-                      {detailImmeuble.statut || 'Actif'}
+                    <span className={`badge border-none text-white text-xs font-bold ${detailImmeuble.statut?.toLowerCase() === 'actif' ? 'bg-green-500' : 'bg-orange-500'}`}>
+                      {detailImmeuble.statut === 'actif' ? 'Actif' : detailImmeuble.statut === 'inactif' ? 'Inactif' : (detailImmeuble.statut || 'Actif')}
                     </span>
+                    {detailImmeuble.etatOccupation && (
+                      <span className={`badge border-none text-white text-xs font-semibold ${
+                        detailImmeuble.etatOccupation === 'Complet' ? 'bg-teal-600' :
+                        detailImmeuble.etatOccupation === 'En location' ? 'bg-blue-500' :
+                        detailImmeuble.etatOccupation === 'Vide' ? 'bg-gray-500' : 'bg-indigo-500'
+                      }`}>{detailImmeuble.etatOccupation}</span>
+                    )}
                     <span className="badge badge-ghost bg-white/20 text-white border-none text-xs">{detailImmeuble.type}</span>
                   </div>
                   <h2 className="text-2xl font-extrabold">{detailImmeuble.nom}</h2>
@@ -1080,7 +1100,7 @@ const Biens: React.FC = () => {
               {/* Stats lots */}
               <div className="grid grid-cols-4 gap-3 mb-5">
                 {[
-                  { label: 'Total Lots', value: buildingLots.length, color: 'bg-base-200', text: 'text-base-content' },
+                  { label: 'Total Lots', value: totalCapacite, color: 'bg-base-200', text: 'text-base-content' },
                   { label: 'Occupés', value: lotsActifs.length, color: 'bg-teal-50', text: 'text-teal-700' },
                   { label: 'Libres', value: lotsLibres.length, color: 'bg-green-50', text: 'text-green-700' },
                   { label: 'Réservés', value: lotsReserves.length, color: 'bg-orange-50', text: 'text-orange-700' },

@@ -894,6 +894,30 @@ const MIGRATIONS: Migration[] = [
                 END IF;
             END $$;
         `
+    },
+    {
+        name: '046_cleanup_orphan_columns',
+        // nbpieces (lots) : ajoutée en migration 21 comme fallback de nb_pieces, jamais utilisée
+        //   en écriture — le backend écrit toujours nb_pieces. Double lecture fragile supprimée.
+        // user_id (buildings) : résidu d'une ancienne architecture, remplacé par owner_id partout.
+        sql: `
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'lots' AND column_name = 'nbpieces'
+                ) THEN
+                    ALTER TABLE lots DROP COLUMN nbpieces;
+                END IF;
+
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'buildings' AND column_name = 'user_id'
+                ) THEN
+                    ALTER TABLE buildings DROP COLUMN user_id;
+                END IF;
+            END $$;
+        `
     }
 ];
 
