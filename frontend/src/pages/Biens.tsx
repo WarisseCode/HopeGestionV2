@@ -15,7 +15,14 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  UserPlus
+  UserPlus,
+  Layers,
+  User,
+  Users,
+  BarChart2,
+  Info,
+  Phone,
+  Globe,
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -99,6 +106,7 @@ const Biens: React.FC = () => {
 
   const [gallerySelectedBuilding, setGallerySelectedBuilding] = useState<Immeuble | null>(null);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
+  const [detailImmeuble, setDetailImmeuble] = useState<Immeuble | null>(null);
 
   // Confirm Modal State
   const [confirmConfig, setConfirmConfig] = useState<{
@@ -770,7 +778,7 @@ const Biens: React.FC = () => {
                                 <Trash2 size={14} />
                               </button>}
                             </div>
-                            <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/5">
+                            <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/5" onClick={() => setDetailImmeuble(immeuble)}>
                               Détails <ArrowRight size={16} className="ml-1" />
                             </Button>
                           </div>
@@ -1009,6 +1017,173 @@ const Biens: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Modal Détail Immeuble ── */}
+      <Modal
+        isOpen={!!detailImmeuble}
+        onClose={() => setDetailImmeuble(null)}
+        title=""
+        size="lg"
+      >
+        {detailImmeuble && (() => {
+          const buildingLots = lots.filter(l => l.building_id === detailImmeuble.id);
+          const lotsActifs = buildingLots.filter(l => ['loue', 'occupé', 'occupe', 'vendu'].includes(l.statut?.toLowerCase() || ''));
+          const lotsLibres = buildingLots.filter(l => ['libre', 'disponible'].includes(l.statut?.toLowerCase() || ''));
+          const lotsReserves = buildingLots.filter(l => l.statut?.toLowerCase() === 'reserve');
+          const tauxOccupation = buildingLots.length > 0 ? Math.round((lotsActifs.length / buildingLots.length) * 100) : 0;
+
+          return (
+            <div className="space-y-0 -mt-6 -mx-1">
+              {/* Image hero */}
+              <div className="relative h-56 rounded-t-2xl overflow-hidden mb-5">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent z-10" />
+                <img
+                  src={detailImmeuble.photo || getPlaceholderImage(detailImmeuble.id)}
+                  alt={detailImmeuble.nom}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-4 left-5 z-20 text-white">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`badge border-none text-white text-xs font-bold ${detailImmeuble.statut === 'Actif' ? 'bg-green-500' : 'bg-orange-500'}`}>
+                      {detailImmeuble.statut || 'Actif'}
+                    </span>
+                    <span className="badge badge-ghost bg-white/20 text-white border-none text-xs">{detailImmeuble.type}</span>
+                  </div>
+                  <h2 className="text-2xl font-extrabold">{detailImmeuble.nom}</h2>
+                  <p className="text-sm opacity-80 flex items-center gap-1 mt-0.5">
+                    <MapPin size={13}/> {[detailImmeuble.quartier, detailImmeuble.ville, detailImmeuble.pays].filter(Boolean).join(', ')}
+                  </p>
+                </div>
+                {detailImmeuble.photos && detailImmeuble.photos.length > 1 && (
+                  <button
+                    onClick={() => { setGallerySelectedBuilding(detailImmeuble); setShowGalleryModal(true); }}
+                    className="absolute bottom-4 right-5 z-20 btn btn-xs btn-ghost bg-white/20 text-white border-none hover:bg-white/30"
+                  >
+                    +{detailImmeuble.photos.length} photos
+                  </button>
+                )}
+              </div>
+
+              {/* Taux d'occupation */}
+              <div className="px-1 mb-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-semibold text-base-content/70 flex items-center gap-1.5"><BarChart2 size={14}/>Taux d'occupation</span>
+                  <span className="text-sm font-bold text-primary">{tauxOccupation}%</span>
+                </div>
+                <progress className="progress progress-primary w-full h-2" value={tauxOccupation} max={100} />
+              </div>
+
+              {/* Stats lots */}
+              <div className="grid grid-cols-4 gap-3 mb-5">
+                {[
+                  { label: 'Total Lots', value: buildingLots.length, color: 'bg-base-200', text: 'text-base-content' },
+                  { label: 'Occupés', value: lotsActifs.length, color: 'bg-teal-50', text: 'text-teal-700' },
+                  { label: 'Libres', value: lotsLibres.length, color: 'bg-green-50', text: 'text-green-700' },
+                  { label: 'Réservés', value: lotsReserves.length, color: 'bg-orange-50', text: 'text-orange-700' },
+                ].map(stat => (
+                  <div key={stat.label} className={`${stat.color} rounded-xl p-3 text-center`}>
+                    <p className={`text-2xl font-extrabold ${stat.text}`}>{stat.value}</p>
+                    <p className="text-xs font-semibold text-base-content/50 mt-0.5">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Infos */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                {detailImmeuble.proprietaire && (
+                  <div className="flex items-start gap-3 p-3 bg-base-100 border border-base-200 rounded-xl">
+                    <div className="p-2 bg-primary/10 rounded-lg"><User size={15} className="text-primary"/></div>
+                    <div>
+                      <p className="text-xs font-bold text-base-content/50 uppercase">Propriétaire</p>
+                      <p className="font-semibold text-base-content/90 text-sm">{detailImmeuble.proprietaire}</p>
+                    </div>
+                  </div>
+                )}
+                {(detailImmeuble.gestionnaire || detailImmeuble.gestionnaire_name) && (
+                  <div className="flex items-start gap-3 p-3 bg-base-100 border border-base-200 rounded-xl">
+                    <div className="p-2 bg-secondary/10 rounded-lg"><Users size={15} className="text-secondary"/></div>
+                    <div>
+                      <p className="text-xs font-bold text-base-content/50 uppercase">Gestionnaire</p>
+                      <p className="font-semibold text-base-content/90 text-sm">{detailImmeuble.gestionnaire_name || detailImmeuble.gestionnaire}</p>
+                    </div>
+                  </div>
+                )}
+                {detailImmeuble.adresse && (
+                  <div className="flex items-start gap-3 p-3 bg-base-100 border border-base-200 rounded-xl">
+                    <div className="p-2 bg-base-300 rounded-lg"><MapPin size={15} className="text-base-content/60"/></div>
+                    <div>
+                      <p className="text-xs font-bold text-base-content/50 uppercase">Adresse</p>
+                      <p className="font-semibold text-base-content/90 text-sm">{detailImmeuble.adresse}</p>
+                    </div>
+                  </div>
+                )}
+                {detailImmeuble.nombre_etages && (
+                  <div className="flex items-start gap-3 p-3 bg-base-100 border border-base-200 rounded-xl">
+                    <div className="p-2 bg-base-300 rounded-lg"><Layers size={15} className="text-base-content/60"/></div>
+                    <div>
+                      <p className="text-xs font-bold text-base-content/50 uppercase">Nombre d'étages</p>
+                      <p className="font-semibold text-base-content/90 text-sm">{detailImmeuble.nombre_etages}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              {detailImmeuble.description && (
+                <div className="flex items-start gap-3 p-3 bg-base-100 border border-base-200 rounded-xl mb-5">
+                  <div className="p-2 bg-base-300 rounded-lg shrink-0"><Info size={15} className="text-base-content/60"/></div>
+                  <div>
+                    <p className="text-xs font-bold text-base-content/50 uppercase mb-1">Description</p>
+                    <p className="text-sm text-base-content/70 leading-relaxed">{detailImmeuble.description}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Liste des lots */}
+              {buildingLots.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-base-content/50 uppercase mb-2 flex items-center gap-1.5"><Home size={13}/>Lots de cet immeuble</p>
+                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                    {buildingLots.map(lot => (
+                      <div key={lot.id} className="flex items-center justify-between p-2.5 bg-base-200/60 rounded-xl text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-base-content/80">{lot.reference}</span>
+                          <span className="text-base-content/50">·</span>
+                          <span className="text-base-content/60">{lot.type}</span>
+                          {lot.etage && <span className="text-xs text-base-content/40">Étage {lot.etage}</span>}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-xs text-base-content/60">
+                            {lot.loyer ? `${lot.loyer.toLocaleString()} FCFA/mois` : lot.prix_vente ? `${lot.prix_vente.toLocaleString()} FCFA` : '—'}
+                          </span>
+                          <span className={`badge badge-xs border-none font-bold ${
+                            ['loue','occupe','occupé'].includes(lot.statut?.toLowerCase() || '') ? 'bg-teal-100 text-teal-700' :
+                            lot.statut?.toLowerCase() === 'libre' ? 'bg-green-100 text-green-700' :
+                            lot.statut?.toLowerCase() === 'vendu' ? 'bg-blue-100 text-blue-700' :
+                            'bg-orange-100 text-orange-700'
+                          }`}>
+                            {lot.statut || 'libre'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex justify-between items-center pt-5 mt-2 border-t border-base-200">
+                <Button variant="ghost" onClick={() => setDetailImmeuble(null)}>Fermer</Button>
+                {canWrite && (
+                  <Button variant="primary" onClick={() => { setEditingImmeuble(detailImmeuble); setDetailImmeuble(null); setFormView('immeuble'); }}>
+                    <Edit3 size={14} className="mr-2"/>Modifier
+                  </Button>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
 
       {/* Gallery Modal */}
       <Modal
