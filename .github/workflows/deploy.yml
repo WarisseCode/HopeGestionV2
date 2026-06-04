@@ -1,4 +1,4 @@
-name: Deploy to OVH VPS
+name: Deploy to VPS
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ── 2. Build Frontend ────────────────────────────────────────────────────
+      # ── 2. Vérification build Frontend (CI) ─────────────────────────────────
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -31,53 +31,18 @@ jobs:
           npm ci
           npm run build
 
-      # ── 3. Build Backend ─────────────────────────────────────────────────────
+      # ── 3. Vérification build Backend (CI) ──────────────────────────────────
       - name: Install & build backend
         working-directory: backend
         run: |
           npm ci
           npm run build
 
-      # ── 4. Deploy via SSH ────────────────────────────────────────────────────
+      # ── 4. Déclencher le déploiement via webhook HTTPS (sans SSH) ───────────
       - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host:            ${{ secrets.VPS_HOST }}
-          username:        ${{ secrets.VPS_USER }}
-          key:             ${{ secrets.VPS_SSH_KEY }}
-          port:            22
-          command_timeout: 30m
-          script: |
-            set -e
-            echo "==> Mise à jour du code..."
-            cd /var/www/hopegestion
-            git fetch origin main
-            git reset --hard origin/main
-
-            echo "==> Installation dépendances backend..."
-            cd /var/www/hopegestion/backend
-            npm ci
-
-            echo "==> Build backend..."
-            npm run build
-
-            echo "==> Suppression devDependencies..."
-            npm prune --omit=dev
-
-            echo "==> Migrations base de données..."
-            timeout 120 npm run migrate-prod || echo "⚠️  migrate-prod timeout ou erreur non bloquante, on continue"
-
-            echo "==> Redémarrage PM2..."
-            pm2 restart hopegestion-backend --update-env
-            pm2 save
-
-            echo "==> Build frontend..."
-            cd /var/www/hopegestion/frontend
-            npm ci
-            rm -rf node_modules/.vite
-            VITE_API_URL=${{ secrets.VITE_API_URL }} VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }} npm run build
-
-            echo "==> Rechargement nginx..."
-            sudo nginx -t && sudo systemctl reload nginx
-
-            echo "✅ Déploiement terminé !"
+        run: |
+          curl -X POST https://hopegestion.com/api/deploy \
+            -H "x-deploy-token: ${{ secrets.DEPLOY_TOKEN }}" \
+            --max-time 30 \
+            --fail \
+            --show-error

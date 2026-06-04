@@ -286,6 +286,10 @@ app.use('/api/subscriptions', subscriptionRoutes); // Mix of public (plans) and 
 import fedapayWebhookRoutes from './routes/fedapayWebhookRoutes';
 app.use('/api/webhooks/fedapay', fedapayWebhookRoutes);
 
+// Webhook de déploiement (GitHub Actions → HTTPS, sans SSH)
+import deployRoutes from './routes/deployRoutes';
+app.use('/api/deploy', deployRoutes);
+
 // Routes Rent Payments (Paiement en ligne des loyers)
 import rentPaymentRoutes from './routes/rentPaymentRoutes';
 app.use('/api/rent-payments', protect, rentPaymentRoutes);
