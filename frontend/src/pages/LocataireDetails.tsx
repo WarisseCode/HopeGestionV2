@@ -243,8 +243,6 @@ const LocataireDetails: React.FC = () => {
                 <h3 className="font-bold text-base-content/90 mb-4 flex items-center gap-2"><Wallet size={18} /> Finances</h3>
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between items-center"><span className="text-base-content/60">Mode paiement</span><span className="font-medium">{locataire.mode_paiement_preferentiel || '-'}</span></div>
-                  <div className="flex justify-between items-center"><span className="text-base-content/60">Caution</span><span className="font-medium">{locataire.caution ? `${locataire.caution.toLocaleString()} F` : '-'}</span></div>
-                  <div className="flex justify-between items-center"><span className="text-base-content/60">Avance</span><span className="font-medium">{locataire.avance ? `${locataire.avance.toLocaleString()} F` : '-'}</span></div>
                   <div className="flex justify-between items-center"><span className="text-base-content/60">Échelonné</span><span className="font-medium">{locataire.paiement_echelonne ? 'Oui' : 'Non'}</span></div>
                 </div>
               </Card>

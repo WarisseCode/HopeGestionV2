@@ -854,6 +854,46 @@ const MIGRATIONS: Migration[] = [
             ON subscriptions(user_id)
             WHERE status IN ('active', 'pending_payment');
         `
+    },
+    {
+        name: '044_fix_phone_varchar',
+        // subscription_payments.phone_number était VARCHAR(20) : trop court pour
+        // les nouveaux numéros béninois à 10 chiffres (+229 01 96 00 01 02 = 19 chars)
+        sql: `
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'subscription_payments'
+                      AND column_name = 'phone_number'
+                      AND character_maximum_length <= 20
+                ) THEN
+                    ALTER TABLE subscription_payments ALTER COLUMN phone_number TYPE VARCHAR(30);
+                END IF;
+            END $$;
+        `
+    },
+    {
+        name: '045_remove_caution_avance_tenants',
+        // caution et avance n'ont de sens qu'au niveau du bail (leases) et du bien (lots).
+        // Retrait du formulaire locataire côté UI → on nettoie aussi le schéma.
+        sql: `
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'tenants' AND column_name = 'caution'
+                ) THEN
+                    ALTER TABLE tenants DROP COLUMN caution;
+                END IF;
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'tenants' AND column_name = 'avance'
+                ) THEN
+                    ALTER TABLE tenants DROP COLUMN avance;
+                END IF;
+            END $$;
+        `
     }
 ];
 

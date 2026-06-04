@@ -6,30 +6,42 @@ interface Country {
   code: string;
   name: string;
   dialCode: string;
+  nationalDigits: number; // expected national number length
 }
 
 const countries: Country[] = [
-  { code: 'BJ', name: 'Bénin', dialCode: '+229' },
-  { code: 'TG', name: 'Togo', dialCode: '+228' },
-  { code: 'CI', name: 'Côte d\'Ivoire', dialCode: '+225' },
-  { code: 'SN', name: 'Sénégal', dialCode: '+221' },
-  { code: 'ML', name: 'Mali', dialCode: '+223' },
-  { code: 'BF', name: 'Burkina Faso', dialCode: '+226' },
-  { code: 'NE', name: 'Niger', dialCode: '+227' },
-  { code: 'GN', name: 'Guinée', dialCode: '+224' },
-  { code: 'CM', name: 'Cameroun', dialCode: '+237' },
-  { code: 'GA', name: 'Gabon', dialCode: '+241' },
-  { code: 'CG', name: 'Congo', dialCode: '+242' },
-  { code: 'CD', name: 'RD Congo', dialCode: '+243' },
-  { code: 'MA', name: 'Maroc', dialCode: '+212' },
-  { code: 'DZ', name: 'Algérie', dialCode: '+213' },
-  { code: 'TN', name: 'Tunisie', dialCode: '+216' },
-  { code: 'FR', name: 'France', dialCode: '+33' },
-  { code: 'BE', name: 'Belgique', dialCode: '+32' },
-  { code: 'CH', name: 'Suisse', dialCode: '+41' },
-  { code: 'CA', name: 'Canada', dialCode: '+1' },
-  { code: 'US', name: 'États-Unis', dialCode: '+1' },
+  { code: 'BJ', name: 'Bénin',        dialCode: '+229', nationalDigits: 10 }, // passage à 10 chiffres avril 2024
+  { code: 'TG', name: 'Togo',         dialCode: '+228', nationalDigits: 8  },
+  { code: 'CI', name: 'Côte d\'Ivoire', dialCode: '+225', nationalDigits: 10 },
+  { code: 'SN', name: 'Sénégal',      dialCode: '+221', nationalDigits: 9  },
+  { code: 'ML', name: 'Mali',         dialCode: '+223', nationalDigits: 8  },
+  { code: 'BF', name: 'Burkina Faso', dialCode: '+226', nationalDigits: 8  },
+  { code: 'NE', name: 'Niger',        dialCode: '+227', nationalDigits: 8  },
+  { code: 'GN', name: 'Guinée',       dialCode: '+224', nationalDigits: 9  },
+  { code: 'CM', name: 'Cameroun',     dialCode: '+237', nationalDigits: 9  },
+  { code: 'GA', name: 'Gabon',        dialCode: '+241', nationalDigits: 8  },
+  { code: 'CG', name: 'Congo',        dialCode: '+242', nationalDigits: 9  },
+  { code: 'CD', name: 'RD Congo',     dialCode: '+243', nationalDigits: 9  },
+  { code: 'MA', name: 'Maroc',        dialCode: '+212', nationalDigits: 9  },
+  { code: 'DZ', name: 'Algérie',      dialCode: '+213', nationalDigits: 9  },
+  { code: 'TN', name: 'Tunisie',      dialCode: '+216', nationalDigits: 8  },
+  { code: 'FR', name: 'France',       dialCode: '+33',  nationalDigits: 9  },
+  { code: 'BE', name: 'Belgique',     dialCode: '+32',  nationalDigits: 9  },
+  { code: 'CH', name: 'Suisse',       dialCode: '+41',  nationalDigits: 9  },
+  { code: 'CA', name: 'Canada',       dialCode: '+1',   nationalDigits: 10 },
+  { code: 'US', name: 'États-Unis',   dialCode: '+1',   nationalDigits: 10 },
 ];
+
+// Génère un placeholder groupé par 2 : 8 → "00 00 00 00", 10 → "00 00 00 00 00"
+const buildPlaceholder = (digits: number): string => {
+  const groups: string[] = [];
+  let rem = digits;
+  while (rem > 0) {
+    groups.push('0'.repeat(Math.min(2, rem)));
+    rem -= 2;
+  }
+  return groups.join(' ');
+};
 
 // Helper function to get flag image URL
 const getFlagUrl = (countryCode: string) => 
@@ -138,7 +150,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
             name={name}
             value={nationalNumber}
             onChange={handlePhoneChange}
-            placeholder="00 00 00 00"
+            placeholder={buildPlaceholder(selectedCountry.nationalDigits)}
             className="w-full py-2.5 px-3 bg-transparent border-0 focus:ring-0 focus:outline-none text-base-content placeholder-base-content/50"
             required={required}
           />

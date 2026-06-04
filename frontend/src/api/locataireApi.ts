@@ -23,8 +23,6 @@ export interface Locataire {
     // Module IV new fields
     adresse_actuelle?: string;
     date_expiration_piece?: string;
-    caution?: number;
-    avance?: number;
     paiement_echelonne?: boolean;
     owner_id?: number;
     // Display fields from LATERAL JOIN

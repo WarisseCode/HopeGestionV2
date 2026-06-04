@@ -139,7 +139,7 @@ const Locataires: React.FC = () => {
   const [locataireForm, setLocataireForm] = useState({
     typeProfil: 'Locataire', nom: '', prenoms: '', telephonePrincipal: '', telephoneSecondaire: '',
     email: '', nationalite: 'Béninoise', typePiece: 'CNI', numeroPiece: '', dateExpiration: '',
-    modePaiement: 'Mobile Money', acompte: 0, avance: 0
+    modePaiement: 'Mobile Money', acompte: 0
   });
 
   // Filter configs
@@ -266,7 +266,7 @@ const Locataires: React.FC = () => {
       setLocataireForm({
         typeProfil: 'Locataire', nom: '', prenoms: '', telephonePrincipal: '', telephoneSecondaire: '',
         email: '', nationalite: 'Béninoise', typePiece: 'CNI', numeroPiece: '', dateExpiration: '',
-        modePaiement: 'Mobile Money', acompte: 0, avance: 0
+        modePaiement: 'Mobile Money', acompte: 0
       });
       fetchData();
     } catch (err: any) {

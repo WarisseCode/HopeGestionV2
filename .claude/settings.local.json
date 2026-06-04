@@ -34,7 +34,11 @@
       "Bash(git commit -m 'fix\\(ci\\): git fetch + reset --hard pour éviter les conflits de fichiers locaux sur le VPS *)",
       "Bash(git commit -m 'fix\\(ci\\): augmenter command_timeout à 30m et sécuriser migrate-prod *)",
       "Bash(git commit -m 'feat\\(login\\): supprimer la connexion par clé d'\\\\''accès invité *)",
-      "Bash(xargs ls -la)"
+      "Bash(xargs ls -la)",
+      "Bash(git commit *)",
+      "Bash(Get-ChildItem -Path \"d:\\\\Hope GImmo\\\\HopeGestionV2\" -Recurse -Directory)",
+      "Bash(Select-Object -First 20)",
+      "Bash(Format-Table FullName)"
     ]
   }
 }

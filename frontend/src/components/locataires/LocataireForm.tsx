@@ -5,7 +5,7 @@ import {
   User, FileText, Wallet, ShieldCheck,
   Mail, MapPin, Calendar, CreditCard,
   ArrowLeft, ArrowRight, Save, Check,
-  Info, Banknote, Smartphone, HandCoins,
+  Info, Smartphone, HandCoins,
   Building2, ChevronRight
 } from 'lucide-react';
 import Button from '../ui/Button';
@@ -99,8 +99,10 @@ const validateField = (field: string, value: any): string => {
       return !value?.trim() ? 'Le nom de famille est requis' : '';
     case 'prenoms':
       return !value?.trim() ? 'Les prénoms sont requis' : '';
-    case 'telephone_principal':
-      return !value ? 'Le téléphone principal (WhatsApp) est requis' : '';
+    case 'telephone_principal': {
+      const digits = (value || '').replace(/\D/g, '');
+      return digits.length < 8 ? 'Le téléphone principal (WhatsApp) est requis' : '';
+    }
     case 'email':
       if (!value?.trim()) return '';
       return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? 'Adresse email invalide' : '';
@@ -143,8 +145,6 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
     photo_piece_url: '',
     photo_profil_url: '',
     mode_paiement_preferentiel: 'Mobile Money',
-    caution: 0,
-    avance: 0,
     paiement_echelonne: false,
     statut: 'Actif' as const,
   }), []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -219,7 +219,7 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
   const isStep0Valid = (): boolean => {
     const basicValid = !!formData.nom?.trim()
       && !!formData.prenoms?.trim()
-      && !!formData.telephone_principal;
+      && (formData.telephone_principal || '').replace(/\D/g, '').length >= 8;
     const ownerValid = proprietaires.length <= 1 || !!formData.owner_id;
     return basicValid && ownerValid;
   };
@@ -651,26 +651,6 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
                   </div>
                 </div>
 
-                {/* Caution + Avance */}
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    label="Caution (FCFA)"
-                    type="number"
-                    value={formData.caution || 0}
-                    onChange={e => handleChange('caution', parseFloat(e.target.value) || 0)}
-                    startIcon={<Banknote size={16} />}
-                    helperText="Dépôt de garantie"
-                  />
-                  <Input
-                    label="Avance (FCFA)"
-                    type="number"
-                    value={formData.avance || 0}
-                    onChange={e => handleChange('avance', parseFloat(e.target.value) || 0)}
-                    startIcon={<Banknote size={16} />}
-                    helperText="Mois payés en avance"
-                  />
-                </div>
-
                 {/* Paiement échelonné — toggle card */}
                 <div
                   role="checkbox"
@@ -766,24 +746,6 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
                     ))}
                   </div>
 
-                  {/* Finances row (only if set) */}
-                  {(formData.caution > 0 || formData.avance > 0) && (
-                    <div className="px-4 py-3 border-t border-base-300 flex items-center gap-1.5 text-sm">
-                      <Banknote size={14} className="text-base-content/40" />
-                      <span className="text-base-content/60">Finances :</span>
-                      {formData.caution > 0 && (
-                        <span className="font-medium">
-                          Caution {formData.caution.toLocaleString()} FCFA
-                        </span>
-                      )}
-                      {formData.caution > 0 && formData.avance > 0 && <span>·</span>}
-                      {formData.avance > 0 && (
-                        <span className="font-medium">
-                          Avance {formData.avance.toLocaleString()} FCFA
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 {/* Retourner corriger un champ */}

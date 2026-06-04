@@ -142,7 +142,7 @@ router.post('/', protect, permissions.canWrite('locataires'), checkTenantLimit, 
             nom, prenoms, email, telephone_principal, telephone_secondaire,
             nationalite, type_piece, numero_piece, type, mode_paiement_preferentiel,
             adresse_actuelle, date_expiration_piece, photo_profil_url, photo_piece_url,
-            caution, avance, paiement_echelonne
+            paiement_echelonne
         } = req.body;
 
         const cleanEmail = email && email.trim() !== '' ? email : null;
@@ -171,14 +171,14 @@ router.post('/', protect, permissions.canWrite('locataires'), checkTenantLimit, 
                 owner_id, nom, prenoms, email, telephone_principal, telephone_secondaire,
                 nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel,
                 adresse_actuelle, date_expiration_piece, photo_profil_url, photo_piece_url,
-                caution, avance, paiement_echelonne, invitation_code
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Actif', $11, $12, $13, $14, $15, $16, $17, $18, $19) 
+                paiement_echelonne, invitation_code
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Actif', $11, $12, $13, $14, $15, $16, $17)
             RETURNING id, invitation_code`,
             [
                 strictOwnerId, nom, prenoms, cleanEmail, telephone_principal, cleanStartPhone2,
                 nationalite, type_piece, numero_piece, type || 'Locataire', mode_paiement_preferentiel,
                 cleanAddress, cleanExpDate, cleanPhotoProfil, cleanPhotoPiece,
-                caution || 0, avance || 0, paiement_echelonne || false,
+                paiement_echelonne || false,
                 invitationCode
             ]
         );
@@ -219,7 +219,7 @@ router.put('/:id', protect, tenantGuard, async (req: any, res) => {
             nom, prenoms, email, telephone_principal, telephone_secondaire,
             nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel,
             adresse_actuelle, date_expiration_piece, photo_profil_url, photo_piece_url,
-            caution, avance, paiement_echelonne
+            paiement_echelonne
         } = req.body;
 
         const cleanEmail = email && typeof email === 'string' && email.trim() !== '' ? email : null;
@@ -233,18 +233,18 @@ router.put('/:id', protect, tenantGuard, async (req: any, res) => {
             nom, prenoms, cleanEmail, telephone_principal, cleanPhone2,
             nationalite, type_piece, numero_piece, type, statut, mode_paiement_preferentiel,
             cleanAddress, cleanExpDate, cleanPhotoProfil, cleanPhotoPiece,
-            caution || 0, avance || 0, paiement_echelonne || false,
+            paiement_echelonne || false,
             tenantId
         ];
 
         const result = await dbClient.query(
-            `UPDATE tenants SET 
-                nom = $1, prenoms = $2, email = $3, telephone_principal = $4, 
-                telephone_secondaire = $5, nationalite = $6, type_piece = $7, 
+            `UPDATE tenants SET
+                nom = $1, prenoms = $2, email = $3, telephone_principal = $4,
+                telephone_secondaire = $5, nationalite = $6, type_piece = $7,
                 numero_piece = $8, type = $9, statut = $10, mode_paiement_preferentiel = $11,
                 adresse_actuelle = $12, date_expiration_piece = $13, photo_profil_url = $14, photo_piece_url = $15,
-                caution = $16, avance = $17, paiement_echelonne = $18
-             WHERE id = $19 RETURNING id`,
+                paiement_echelonne = $16
+             WHERE id = $17 RETURNING id`,
             queryParams
         );
 
