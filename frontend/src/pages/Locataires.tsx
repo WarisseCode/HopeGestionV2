@@ -257,8 +257,7 @@ const Locataires: React.FC = () => {
         numero_piece: locataireForm.numeroPiece || null,
         date_expiration: locataireForm.dateExpiration || null,
         mode_paiement: locataireForm.modePaiement,
-        acompte: locataireForm.acompte || 0,
-        avance: locataireForm.avance || 0
+        acompte: locataireForm.acompte || 0
       };
       await createLocataire(dataToSave);
       toast.success('Profil créé avec succès');
