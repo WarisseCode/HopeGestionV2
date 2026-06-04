@@ -8,8 +8,8 @@ import pool from '../db/database';
 export async function getUserSubscriptionDetails(userId: number) {
     try {
         const result = await pool.query(
-            `SELECT 
-                s.id as subscription_id, 
+            `SELECT
+                s.id as subscription_id,
                 s.status,
                 sp.name as plan_name,
                 sp.max_properties,
@@ -17,8 +17,10 @@ export async function getUserSubscriptionDetails(userId: number) {
                 sp.features
              FROM subscriptions s
              JOIN plans sp ON s.plan_id = sp.id
-             WHERE s.user_id = $1 AND s.status = 'active'
-             ORDER BY s.created_at DESC
+             WHERE s.user_id = $1
+               AND s.status = 'active'
+               AND (s.end_date IS NULL OR s.end_date > NOW())
+             ORDER BY s.end_date DESC NULLS LAST
              LIMIT 1`,
             [userId]
         );

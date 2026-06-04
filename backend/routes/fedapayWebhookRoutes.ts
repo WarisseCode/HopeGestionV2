@@ -190,14 +190,18 @@ async function handleTransactionApproved(
         const subscriptionId = subscriptionResult.rows[0]?.id;
 
         // 3. Update payment record
+        // PostgreSQL n'accepte pas ORDER BY/LIMIT dans un UPDATE direct → sous-requête
         await client.query(
-            `UPDATE subscription_payments 
-             SET status = 'approved', 
+            `UPDATE subscription_payments
+             SET status = 'approved',
                  transaction_reference = $1,
                  updated_at = NOW()
-             WHERE user_id = $2 AND status = 'pending'
-             ORDER BY created_at DESC
-             LIMIT 1`,
+             WHERE id = (
+                 SELECT id FROM subscription_payments
+                 WHERE user_id = $2 AND status = 'pending'
+                 ORDER BY created_at DESC
+                 LIMIT 1
+             )`,
             [String(transactionId), userId]
         );
 
@@ -243,10 +247,10 @@ async function handleTransactionFailed(
     eventName: string
 ) {
     const context = 'TRANSACTION_FAILED';
-    
+
     const transactionId = webhook.object.id;
     const userId = metadata.userId;
-    
+
     log.info(context, `Processing failed/cancelled transaction`, {
         transactionId,
         userId,
@@ -255,31 +259,46 @@ async function handleTransactionFailed(
 
     if (!userId) return;
 
-    // Update payment record to failed
-    await pool.query(
-        `UPDATE subscription_payments 
-         SET status = 'failed', 
-             transaction_reference = $1,
-             updated_at = NOW()
-         WHERE user_id = $2 AND status = 'pending'
-         ORDER BY created_at DESC
-         LIMIT 1`,
-        [String(transactionId), userId]
-    );
+    // Les deux UPDATE doivent être atomiques : si l'un échoue, l'autre est rollbacké
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
 
-    // Update subscription to failed
-    await pool.query(
-        `UPDATE subscriptions 
-         SET status = 'failed', updated_at = NOW()
-         WHERE user_id = $1 AND status = 'pending_payment'`,
-        [userId]
-    );
+        // PostgreSQL n'accepte pas ORDER BY/LIMIT dans un UPDATE direct → sous-requête
+        await client.query(
+            `UPDATE subscription_payments
+             SET status = 'failed',
+                 transaction_reference = $1,
+                 updated_at = NOW()
+             WHERE id = (
+                 SELECT id FROM subscription_payments
+                 WHERE user_id = $2 AND status = 'pending'
+                 ORDER BY created_at DESC
+                 LIMIT 1
+             )`,
+            [String(transactionId), userId]
+        );
 
-    // Notify user
-    const message = eventName === 'transaction.canceled' 
+        await client.query(
+            `UPDATE subscriptions
+             SET status = 'failed', updated_at = NOW()
+             WHERE user_id = $1 AND status = 'pending_payment'`,
+            [userId]
+        );
+
+        await client.query('COMMIT');
+    } catch (err) {
+        await client.query('ROLLBACK');
+        log.error(context, 'Failed to update failed transaction in DB', err);
+        throw err;
+    } finally {
+        client.release();
+    }
+
+    const message = eventName === 'transaction.canceled'
         ? 'Vous avez annulé le paiement de votre abonnement.'
         : 'Le paiement de votre abonnement a échoué. Veuillez réessayer.';
-    
+
     await NotificationService.send(
         userId,
         '❌ Paiement Non Abouti',

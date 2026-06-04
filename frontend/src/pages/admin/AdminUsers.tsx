@@ -232,6 +232,7 @@ const AdminUsers: React.FC = () => {
           <table className="table w-full">
             <thead>
               <tr className="text-xs uppercase tracking-wider">
+                <th className="w-12">ID</th>
                 <th>Utilisateur</th>
                 <th>Rôle</th>
                 <th>Statut</th>
@@ -245,12 +246,12 @@ const AdminUsers: React.FC = () => {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={7}><div className="h-10 bg-base-200 rounded animate-pulse" /></td>
+                    <td colSpan={8}><div className="h-10 bg-base-200 rounded animate-pulse" /></td>
                   </tr>
                 ))
               ) : paginatedUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-base-content/60">
+                  <td colSpan={8} className="text-center py-12 text-base-content/60">
                     Aucun utilisateur trouvé
                   </td>
                 </tr>
@@ -263,6 +264,9 @@ const AdminUsers: React.FC = () => {
                     transition={{ delay: index * 0.02 }}
                     className="hover:bg-base-200/50 transition-colors"
                   >
+                    {/* ID */}
+                    <td className="text-xs font-mono text-base-content/40">#{user.id}</td>
+
                     {/* User Info */}
                     <td>
                       <div className="flex items-center gap-3">

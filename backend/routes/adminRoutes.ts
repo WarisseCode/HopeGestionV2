@@ -495,25 +495,56 @@ router.get('/finances', async (req: AuthenticatedRequest, res: Response) => {
 // ==============================================
 router.get('/subscriptions', async (req: AuthenticatedRequest, res: Response) => {
     try {
-        // Get all plans
-        const plansRes = await pool.query('SELECT * FROM subscription_plans ORDER BY price ASC');
-
-        // Get active subscriptions with user info
-        const subsRes = await pool.query(`
-            SELECT 
-                us.id, us.user_id, us.plan_id, us.status, us.starts_at, us.expires_at, us.notes,
-                u.nom as user_name, u.email as user_email,
-                sp.name as plan_name, sp.price as plan_price
-            FROM user_subscriptions us
-            JOIN users u ON u.id = us.user_id
-            JOIN subscription_plans sp ON sp.id = us.plan_id
-            ORDER BY us.created_at DESC
+        // Retourne les plans en aliasant les colonnes pour correspondre au frontend AdminSubscriptions.tsx
+        const plansRes = await pool.query(`
+            SELECT
+                p.id,
+                CASE p.name
+                    WHEN 'free'       THEN 'Gratuit'
+                    WHEN 'pro'        THEN 'Pro'
+                    WHEN 'enterprise' THEN 'Enterprise'
+                    ELSE p.display_name
+                END AS name,
+                '' AS description,
+                p.price,
+                'FCFA' AS currency,
+                COALESCE(p.duration_months, 1) * 30 AS duration_days,
+                p.max_properties,
+                p.max_tenants AS max_lots,
+                -1 AS max_users,
+                p.features,
+                p.is_active
+            FROM plans p
+            WHERE p.is_active = true
+            ORDER BY p.price ASC
         `);
 
-        // Count per plan
+        // Abonnements actifs avec infos utilisateur et plan
+        const subsRes = await pool.query(`
+            SELECT
+                s.id, s.user_id, s.plan_id, s.status,
+                s.start_date AS starts_at,
+                s.end_date   AS expires_at,
+                u.nom   AS user_name,
+                u.email AS user_email,
+                CASE p.name
+                    WHEN 'free'       THEN 'Gratuit'
+                    WHEN 'pro'        THEN 'Pro'
+                    WHEN 'enterprise' THEN 'Enterprise'
+                    ELSE p.display_name
+                END AS plan_name,
+                p.price AS plan_price
+            FROM subscriptions s
+            JOIN users u ON u.id = s.user_id
+            JOIN plans  p ON p.id = s.plan_id
+            ORDER BY s.created_at DESC
+        `);
+
+        // Nombre d'abonnés actifs par plan
         const countPerPlan = await pool.query(`
-            SELECT plan_id, COUNT(*) as count 
-            FROM user_subscriptions WHERE status = 'active' 
+            SELECT plan_id, COUNT(*) AS count
+            FROM subscriptions
+            WHERE status = 'active' AND (end_date IS NULL OR end_date > NOW())
             GROUP BY plan_id
         `);
 
@@ -531,36 +562,58 @@ router.get('/subscriptions', async (req: AuthenticatedRequest, res: Response) =>
 
 // Assign a plan to a user
 router.post('/subscriptions/assign', async (req: AuthenticatedRequest, res: Response) => {
-    const { userId, planId, durationDays } = req.body;
+    const { userId, planId } = req.body;
 
     try {
         if (!userId || !planId) {
             return res.status(400).json({ message: 'userId et planId requis.' });
         }
 
-        // Get plan details for default duration
-        const planRes = await pool.query('SELECT * FROM subscription_plans WHERE id = $1', [planId]);
+        const planRes = await pool.query('SELECT * FROM plans WHERE id = $1', [planId]);
         if (planRes.rows.length === 0) {
             return res.status(404).json({ message: 'Plan introuvable.' });
         }
         const plan = planRes.rows[0];
-        const days = durationDays || plan.duration_days;
-        const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
-        // Cancel any existing active subscription
-        await pool.query(
-            "UPDATE user_subscriptions SET status = 'cancelled', cancelled_at = NOW() WHERE user_id = $1 AND status = 'active'",
-            [userId]
-        );
+        // Pour le plan Free, end_date = NULL (pas d'expiration)
+        const durationMonths: number = plan.duration_months || 1;
+        const endDate: Date | null = plan.price === 0 ? null : new Date(Date.now() + durationMonths * 30 * 24 * 60 * 60 * 1000);
 
-        // Create new subscription
-        await pool.query(
-            `INSERT INTO user_subscriptions (user_id, plan_id, status, starts_at, expires_at) 
-             VALUES ($1, $2, 'active', NOW(), $3)`,
-            [userId, planId, expiresAt]
-        );
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
 
-        res.json({ message: `Plan "${plan.name}" attribué avec succès. Expire le ${expiresAt.toLocaleDateString('fr-FR')}.` });
+            // Annuler tout abonnement actif ou en attente existant
+            await client.query(
+                `UPDATE subscriptions
+                 SET status = 'cancelled', cancelled_at = NOW(), updated_at = NOW()
+                 WHERE user_id = $1 AND status IN ('active', 'pending_payment')`,
+                [userId]
+            );
+
+            // Créer le nouvel abonnement actif
+            await client.query(
+                `INSERT INTO subscriptions (user_id, plan_id, status, start_date, end_date)
+                 VALUES ($1, $2, 'active', NOW(), $3)`,
+                [userId, planId, endDate]
+            );
+
+            // Mettre à jour le plan courant sur l'utilisateur
+            await client.query(
+                'UPDATE users SET current_plan_id = $1 WHERE id = $2',
+                [planId, userId]
+            );
+
+            await client.query('COMMIT');
+        } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+        } finally {
+            client.release();
+        }
+
+        const expireLabel = endDate ? `Expire le ${endDate.toLocaleDateString('fr-FR')}.` : 'Sans expiration.';
+        res.json({ message: `Plan "${plan.display_name}" attribué avec succès. ${expireLabel}` });
 
     } catch (error: any) {
         console.error('Error assigning subscription:', error);
@@ -573,7 +626,9 @@ router.post('/subscriptions/:id/cancel', async (req: AuthenticatedRequest, res: 
     const { id } = req.params;
     try {
         await pool.query(
-            "UPDATE user_subscriptions SET status = 'cancelled', cancelled_at = NOW() WHERE id = $1",
+            `UPDATE subscriptions
+             SET status = 'cancelled', cancelled_at = NOW(), updated_at = NOW()
+             WHERE id = $1`,
             [id]
         );
         res.json({ message: 'Abonnement annulé.' });

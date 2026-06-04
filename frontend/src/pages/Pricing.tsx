@@ -362,7 +362,7 @@ const Pricing: React.FC = () => {
                             <div className="space-y-4 mb-6">
                                 <div>
                                     <label className="text-sm font-bold text-base-content/80 block mb-2">Opérateur</label>
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-2 gap-2">
                                         {OPERATORS.map(op => (
                                             <button
                                                 key={op.id}
@@ -387,7 +387,7 @@ const Pricing: React.FC = () => {
                                     </label>
                                     <input
                                         type="tel"
-                                        placeholder="Ex: 97000000"
+                                        placeholder="Ex: 0197000000"
                                         value={paymentData.phone_number}
                                         onChange={e => setPaymentData({ ...paymentData, phone_number: e.target.value })}
                                         className="w-full p-4 border-2 border-base-300 rounded-xl focus:border-teal-500 outline-none transition"

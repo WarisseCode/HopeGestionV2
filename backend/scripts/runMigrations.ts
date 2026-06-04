@@ -838,6 +838,22 @@ const MIGRATIONS: Migration[] = [
                   GROUP BY user_id
               );
         `
+    },
+    {
+        name: '043_fix_subscription_schema',
+        sql: `
+            -- Colonne manquante dans subscription_payments (crash silencieux du webhook FedaPay)
+            ALTER TABLE subscription_payments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+            -- Colonne cancelled_at pour tracer les annulations d'abonnements
+            ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP NULL;
+
+            -- Index UNIQUE partiel : un seul abonnement actif ou en attente par utilisateur.
+            -- Requis pour que le ON CONFLICT du webhook fonctionne correctement.
+            CREATE UNIQUE INDEX IF NOT EXISTS unique_active_subscription_per_user
+            ON subscriptions(user_id)
+            WHERE status IN ('active', 'pending_payment');
+        `
     }
 ];
 

@@ -30,8 +30,10 @@ router.get('/status', protect, async (req: AuthenticatedRequest, res) => {
             `SELECT s.*, p.name as plan_name, p.display_name, p.max_properties, p.max_tenants, p.features
              FROM subscriptions s
              JOIN plans p ON s.plan_id = p.id
-             WHERE s.user_id = $1 AND s.status = 'active'
-             ORDER BY s.end_date DESC NULLS FIRST
+             WHERE s.user_id = $1
+               AND s.status = 'active'
+               AND (s.end_date IS NULL OR s.end_date > NOW())
+             ORDER BY s.end_date DESC NULLS LAST
              LIMIT 1`,
             [userId]
         );
@@ -130,18 +132,42 @@ router.post('/subscribe', protect, async (req: AuthenticatedRequest, res) => {
         // Free plan = no payment needed
         if (plan.price === 0 || plan.name === 'free') {
             log.info(context, 'Activating free plan directly', { userId });
-            
-            await pool.query(
-                `INSERT INTO subscriptions (user_id, plan_id, status, start_date, end_date)
-                 VALUES ($1, $2, 'active', NOW(), NULL)
-                 ON CONFLICT DO NOTHING`,
-                [userId, plan_id]
-            );
-            await pool.query(`UPDATE users SET current_plan_id = $1 WHERE id = $2`, [plan_id, userId]);
-            
-            return res.json({ 
-                success: true, 
-                message: "Plan Gratuit activé", 
+
+            const freeClient = await pool.connect();
+            try {
+                await freeClient.query('BEGIN');
+
+                // Annuler tout abonnement actif ou pending avant d'insérer le Free,
+                // sinon l'index UNIQUE partiel rejetterait l'insert.
+                await freeClient.query(
+                    `UPDATE subscriptions
+                     SET status = 'cancelled', cancelled_at = NOW(), updated_at = NOW()
+                     WHERE user_id = $1 AND status IN ('active', 'pending_payment')`,
+                    [userId]
+                );
+
+                await freeClient.query(
+                    `INSERT INTO subscriptions (user_id, plan_id, status, start_date, end_date)
+                     VALUES ($1, $2, 'active', NOW(), NULL)`,
+                    [userId, plan_id]
+                );
+
+                await freeClient.query(
+                    `UPDATE users SET current_plan_id = $1 WHERE id = $2`,
+                    [plan_id, userId]
+                );
+
+                await freeClient.query('COMMIT');
+            } catch (err) {
+                await freeClient.query('ROLLBACK');
+                throw err;
+            } finally {
+                freeClient.release();
+            }
+
+            return res.json({
+                success: true,
+                message: "Plan Gratuit activé",
                 plan: plan,
                 redirect: false
             });
