@@ -176,33 +176,27 @@ const Interventions: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const token = getToken();
-      const headers = { 'Authorization': `Bearer ${token}` };
-
-      const [ticketsRes, providersRes, lotsRes, contractsRes] = await Promise.all([
-        fetch(`${API_URL}/tickets`, { headers }),
-        fetch(`${API_URL}/providers`, { headers }),
-        fetch(`${API_URL}/biens/lots`, { headers }),
-        fetch(`${API_URL}/service-contracts`, { headers }),
+      const [ticketsResult, providersResult, lotsResult, contractsResult] = await Promise.allSettled([
+        apiCall<any>(`${API_URL}/tickets`),
+        apiCall<any>(`${API_URL}/providers`),
+        apiCall<any>(`${API_URL}/biens/lots`),
+        apiCall<any>(`${API_URL}/service-contracts`),
       ]);
 
-      // tickets et providers retournent une réponse paginée { data: [], total, ... }
-      if (ticketsRes.ok) {
-        const result = await ticketsRes.json();
+      if (ticketsResult.status === 'fulfilled') {
+        const result = ticketsResult.value;
         setTickets(Array.isArray(result) ? result : (result.data ?? []));
       }
-      if (providersRes.ok) {
-        const result = await providersRes.json();
+      if (providersResult.status === 'fulfilled') {
+        const result = providersResult.value;
         setProviders(Array.isArray(result) ? result : (result.data ?? []));
       }
-      // lots retourne { lots: [] }
-      if (lotsRes.ok) {
-        const result = await lotsRes.json();
+      if (lotsResult.status === 'fulfilled') {
+        const result = lotsResult.value;
         setLots(Array.isArray(result) ? result : (result.lots ?? []));
       }
-      // service-contracts retourne un tableau direct
-      if (contractsRes.ok) {
-        const result = await contractsRes.json();
+      if (contractsResult.status === 'fulfilled') {
+        const result = contractsResult.value;
         setContracts(Array.isArray(result) ? result : []);
       }
     } catch (e) {
