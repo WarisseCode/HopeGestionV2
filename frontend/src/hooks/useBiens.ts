@@ -273,7 +273,7 @@ export function useBiens() {
   return {
     // ── Data
     canWrite, immeubles, lots, locations, proprietaires, users,
-    loading, error, success, subscriptionStatus, isLimitReached,
+    loading, error, setError, success, setSuccess, subscriptionStatus, isLimitReached,
 
     // ── Search / filter / pagination
     searchQuery, setSearchQuery,
