@@ -327,44 +327,45 @@ router.get('/kpi', tenantGuard, async (req: AuthenticatedRequest, res: Response)
             });
         }
 
-        const ownerFilter = isAdmin ? '1=1' : `owner_id IN (${validOwnerIds.join(',')})`;
-        const leaseFilter = isAdmin ? '1=1' : `l.owner_id IN (${validOwnerIds.join(',')})`;
-        const lotFilter = isAdmin ? 'TRUE' : `l.owner_id IN (${validOwnerIds.join(',')})`;
+        // Paramètre tableau pour ANY() — chaque query.() étant indépendant, $1 peut être réutilisé
+        const p = isAdmin ? [] as any[] : [validOwnerIds];
+        const wO  = isAdmin ? 'TRUE' : 'owner_id = ANY($1::int[])';
+        const wOL = isAdmin ? 'TRUE' : 'l.owner_id = ANY($1::int[])';
 
         const [
             buildingsResult, lotsResult, occupiedResult, freeResult, reservedResult,
             loyersEncaissesResult, loyersAttendusResult, contratsResult, plaintesResult, recouvrementResult
         ] = await Promise.all([
-            dbClient.query(`SELECT COUNT(*) FROM buildings WHERE ${ownerFilter}`),
-            dbClient.query(`SELECT COUNT(*) FROM lots WHERE ${ownerFilter}`),
-            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${ownerFilter}`),
-            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'disponible' AND ${ownerFilter}`),
-            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'reserve' AND ${ownerFilter}`),
+            dbClient.query(`SELECT COUNT(*) FROM buildings WHERE ${wO}`, p),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE ${wO}`, p),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${wO}`, p),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'disponible' AND ${wO}`, p),
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'reserve' AND ${wO}`, p),
             dbClient.query(`
                 SELECT COALESCE(SUM(montant), 0) as total
                 FROM payments
-                WHERE type = 'Loyer' AND ${ownerFilter}
+                WHERE type = 'Loyer' AND ${wO}
                 AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
                 AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
                 AND statut = 'valide'
-            `),
-            dbClient.query(`SELECT COALESCE(SUM(loyer_actuel), 0) as total FROM leases WHERE statut = 'actif' AND ${ownerFilter}`),
-            dbClient.query(`SELECT COUNT(*) FROM leases WHERE statut = 'actif' AND ${ownerFilter}`),
+            `, p),
+            dbClient.query(`SELECT COALESCE(SUM(loyer_actuel), 0) as total FROM leases WHERE statut = 'actif' AND ${wO}`, p),
+            dbClient.query(`SELECT COUNT(*) FROM leases WHERE statut = 'actif' AND ${wO}`, p),
             dbClient.query(`
                 SELECT COUNT(*) FROM tickets t
                 JOIN lots l ON t.lot_id = l.id
-                WHERE t.statut = 'ouvert' AND ${lotFilter}
-            `),
+                WHERE t.statut = 'ouvert' AND ${wOL}
+            `, p),
             dbClient.query(`
                 SELECT COALESCE(SUM(l.loyer_actuel), 0) as total
                 FROM leases l
-                WHERE l.statut = 'actif' AND ${leaseFilter}
+                WHERE l.statut = 'actif' AND ${wOL}
                 AND NOT EXISTS (
                     SELECT 1 FROM payments p
                     WHERE p.lease_id = l.id AND p.type = 'Loyer' AND p.statut = 'valide'
                     AND p.date_paiement >= DATE_TRUNC('month', CURRENT_DATE)
                 )
-            `)
+            `, p),
         ]);
 
         const totalBiens = parseInt(buildingsResult.rows[0].count, 10);
@@ -448,7 +449,8 @@ router.get('/chart-data', tenantGuard, async (req: AuthenticatedRequest, res: Re
             default:    interval = '6 months';
         }
 
-        const ownerFilter = isAdmin ? '1=1' : (validOwnerIds.length > 0 ? `owner_id IN (${validOwnerIds.join(',')})` : '1=0');
+        const p = isAdmin || validOwnerIds.length === 0 ? [] as any[] : [validOwnerIds];
+        const ownerFilter = isAdmin ? 'TRUE' : validOwnerIds.length > 0 ? 'owner_id = ANY($1::int[])' : 'FALSE';
 
         const revenusResult = await dbClient.query(`
             SELECT
@@ -460,7 +462,7 @@ router.get('/chart-data', tenantGuard, async (req: AuthenticatedRequest, res: Re
             AND statut = 'valide' AND ${ownerFilter}
             GROUP BY TO_CHAR(date_paiement, 'Mon'), EXTRACT(MONTH FROM date_paiement)
             ORDER BY month_num
-        `);
+        `, p);
 
         const depensesResult = await dbClient.query(`
             SELECT
@@ -472,7 +474,7 @@ router.get('/chart-data', tenantGuard, async (req: AuthenticatedRequest, res: Re
             AND ${ownerFilter}
             GROUP BY TO_CHAR(date_expense, 'Mon'), EXTRACT(MONTH FROM date_expense)
             ORDER BY month_num
-        `);
+        `, p);
 
         const monthNames: { [key: number]: string } = {
             1: 'Jan', 2: 'Fév', 3: 'Mar', 4: 'Avr', 5: 'Mai', 6: 'Juin',
@@ -525,9 +527,10 @@ router.get('/activity', tenantGuard, async (req: AuthenticatedRequest, res: Resp
     const isAdmin = req.userRole === 'admin';
 
     try {
-        let paymentWhere = '1=1';
-        let leaseWhere = '1=1';
-        let ticketWhere = '1=1';
+        let paymentWhere = 'TRUE';
+        let leaseWhere = 'TRUE';
+        let ticketWhere = 'TRUE';
+        let activityParams: any[] = [];
 
         if (req.userRole === 'locataire') {
             const userResult = await dbClient.query('SELECT email FROM users WHERE id = $1', [req.userId]);
@@ -541,16 +544,17 @@ router.get('/activity', tenantGuard, async (req: AuthenticatedRequest, res: Resp
             if (leaseResult.rows.length === 0) return res.json({ activities: [] });
 
             const leaseIds = leaseResult.rows.map((r: any) => r.id);
-            paymentWhere = `p.lease_id IN (${leaseIds.join(',')})`;
-            leaseWhere = `l.id IN (${leaseIds.join(',')})`;
-            ticketWhere = `l.id IN (${leaseIds.join(',')})`;
+            paymentWhere = `p.lease_id = ANY($1::int[])`;
+            leaseWhere = `l.id = ANY($1::int[])`;
+            ticketWhere = `l.id = ANY($1::int[])`;
+            activityParams = [leaseIds];
 
         } else if (!isAdmin) {
             if (validOwnerIds.length === 0) return res.json({ activities: [] });
-            const ownerList = validOwnerIds.join(',');
-            paymentWhere = `p.owner_id IN (${ownerList})`;
-            leaseWhere = `l.owner_id IN (${ownerList})`;
-            ticketWhere = `l.owner_id IN (${ownerList})`;
+            paymentWhere = `p.owner_id = ANY($1::int[])`;
+            leaseWhere = `l.owner_id = ANY($1::int[])`;
+            ticketWhere = `l.owner_id = ANY($1::int[])`;
+            activityParams = [validOwnerIds];
         }
 
         const [payments, leases, tickets] = await Promise.all([
@@ -563,7 +567,7 @@ router.get('/activity', tenantGuard, async (req: AuthenticatedRequest, res: Resp
                 JOIN tenants t ON l.tenant_id = t.id
                 WHERE ${paymentWhere}
                 ORDER BY p.created_at DESC LIMIT 5
-            `),
+            `, activityParams),
             dbClient.query(`
                 SELECT l.id, 'contract' as type, 'Nouveau bail' as title,
                     CONCAT(lo.ref_lot, ' - ', t.prenoms, ' ', t.nom) as description,
@@ -573,7 +577,7 @@ router.get('/activity', tenantGuard, async (req: AuthenticatedRequest, res: Resp
                 JOIN lots lo ON l.lot_id = lo.id
                 WHERE ${leaseWhere}
                 ORDER BY l.created_at DESC LIMIT 5
-            `),
+            `, activityParams),
             dbClient.query(`
                 SELECT t.id, 'intervention' as type, CONCAT('Ticket: ', t.titre) as title,
                     t.description as description, t.created_at as created_at
@@ -581,7 +585,7 @@ router.get('/activity', tenantGuard, async (req: AuthenticatedRequest, res: Resp
                 JOIN leases l ON t.lease_id = l.id
                 WHERE ${ticketWhere}
                 ORDER BY t.created_at DESC LIMIT 5
-            `).catch(() => ({ rows: [] }))
+            `, activityParams).catch(() => ({ rows: [] }))
         ]);
 
         const allActivities = [...payments.rows, ...leases.rows, ...tickets.rows]
@@ -607,7 +611,8 @@ router.get('/featured-properties', tenantGuard, async (req: AuthenticatedRequest
             return res.json({ properties: [] });
         }
 
-        const whereClause = isAdmin ? '1=1' : `b.owner_id IN (${validOwnerIds.join(',')})`;
+        const fpParams = isAdmin ? [] : [validOwnerIds];
+        const whereClause = isAdmin ? 'TRUE' : 'b.owner_id = ANY($1::int[])';
 
         const result = await dbClient.query(`
             SELECT
@@ -621,7 +626,7 @@ router.get('/featured-properties', tenantGuard, async (req: AuthenticatedRequest
             GROUP BY b.id
             ORDER BY occupied_units DESC, total_units DESC
             LIMIT 4
-        `);
+        `, fpParams);
 
         const properties = result.rows.map((row: any) => ({
             id: row.id,

@@ -145,16 +145,16 @@ export const checkPermission = (permission: string) => {
 /**
  * Helper function pour construire une clause WHERE avec owner_id
  */
-export const buildOwnerWhereClause = (ownerIds: number[] | null): string => {
+// Retourne { clause, params } pour usage sécurisé avec requêtes paramétrées.
+// Passer params comme argument de dbClient.query() — clause contient $1 si non-admin.
+export const buildOwnerWhereClause = (ownerIds: number[] | null): { clause: string; params: any[] } => {
     if (ownerIds === null) {
-        return '1=1'; // Pas de filtre (admin/manager)
+        return { clause: 'TRUE', params: [] };
     }
-    
     if (ownerIds.length === 0) {
-        return '1=0'; // Aucun accès
+        return { clause: 'FALSE', params: [] };
     }
-    
-    return `owner_id IN (${ownerIds.join(',')})`;
+    return { clause: 'owner_id = ANY($1::int[])', params: [ownerIds] };
 };
 
 export default {
