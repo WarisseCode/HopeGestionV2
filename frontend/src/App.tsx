@@ -200,10 +200,10 @@ const App: React.FC = () => {
                           <Route path="locations/:id" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<LocationDetails />} />} />
                           <Route path="reservations" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<ReservationsList />} />} />
                           <Route path="inventories" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoriesList />} />} />
-                          <Route path="inventaires" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoriesList />} />} />
+                          <Route path="inventaires" element={<Navigate to="/dashboard/inventories" replace />} />
                           {/* Routes d'écriture — gestionnaire uniquement */}
                           <Route path="inventories/new" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<InventoryForm />} />} />
-                          <Route path="inventaires/new" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<InventoryForm />} />} />
+                          <Route path="inventaires/new" element={<Navigate to="/dashboard/inventories/new" replace />} />
                           <Route path="inventories/:id/edit" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<InventoryForm />} />} />
                           {/* Routes de consultation — gestionnaire + proprietaire (lecture) */}
                           <Route path="inventories/:id" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoryDetails />} />} />
@@ -226,13 +226,9 @@ const App: React.FC = () => {
                           <Route path="paiements-loyer" element={<RouteProtection allowedUserTypes={['locataire']} children={<TenantPayments />} />} />
                           <Route path="abonnement" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Pricing />} />} />
                           <Route path="proprietaires" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<Proprietaires />} />} />
-                          <Route path="locataire" element={<LocataireDashboard />} />
                           <Route path="locataire/*" element={<LocataireDashboard />} />
-                          <Route path="proprietaire" element={<ProprietaireDashboard />} />
                           <Route path="proprietaire/*" element={<ProprietaireDashboard />} />
-                          <Route path="gestionnaire" element={<GestionnaireDashboard />} />
                           <Route path="gestionnaire/*" element={<GestionnaireDashboard />} />
-                          <Route path="manager" element={<GestionnaireDashboard />} />
                           <Route path="manager/*" element={<GestionnaireDashboard />} />
                         </Routes>
                       </Suspense>

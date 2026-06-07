@@ -20,7 +20,7 @@ const router = Router();
 
 // Pour que les routes aient accès à la DB (Méthode simple pour le MVP)
 import pool from '../db/database';
-import { JWT_SECRET, REFRESH_TOKEN_SECRET, ACCESS_TOKEN_EXPIRES_IN, REFRESH_TOKEN_EXPIRES_IN } from '../config/config';
+import { JWT_SECRET, ACCESS_TOKEN_EXPIRES_IN, REFRESH_TOKEN_EXPIRES_IN } from '../config/config';
 
 // Durée du refresh token en ms (pour l'expiration en DB)
 const REFRESH_TOKEN_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours

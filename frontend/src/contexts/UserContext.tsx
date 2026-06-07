@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { getProfile, getToken } from '../api/authApi';
+import { apiCall } from '../utils/apiUtils';
 import { API_URL as BASE_URL } from '../config';
 
 // Types
@@ -109,22 +110,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const fetchStats = async () => {
     if (!user) return;
-    
     try {
-      const token = getToken();
-      if (!token) return;
-
-      const response = await fetch(`${BASE_URL}/dashboard/stats/${user.userType}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data.stats);
-      }
+      const data = await apiCall<{ stats: DashboardStats }>(`${BASE_URL}/dashboard/stats/${user.userType}`);
+      setStats(data.stats);
     } catch (err) {
       console.error('Erreur lors de la récupération des stats:', err);
     }
