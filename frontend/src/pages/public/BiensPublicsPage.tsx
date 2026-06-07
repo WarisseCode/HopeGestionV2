@@ -22,7 +22,8 @@ import { useSearchParams, Link } from 'react-router-dom';
 import PublicLayout from '../../layout/PublicLayout';
 import Button from '../../components/ui/Button';
 import { useGeolocation } from '../../hooks/useGeolocation';
-import { API_BASE } from '../../config';
+import { API_URL } from '../../config';
+import { apiCall } from '../../utils/apiUtils';
 
 // Property interface matching API response
 
@@ -112,11 +113,8 @@ const BiensPublicsPage: React.FC = () => {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/public/lots`);
-        if (res.ok) {
-          const data = await res.json();
-          setProperties(data);
-        }
+        const data = await apiCall<any[]>(`${API_URL}/public/lots`);
+        setProperties(data);
       } catch (err) {
         console.error('Error fetching properties:', err);
       } finally {

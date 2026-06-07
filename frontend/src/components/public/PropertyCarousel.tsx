@@ -5,7 +5,8 @@ import { MapPin, Home, Maximize2, ChevronLeft, ChevronRight, ArrowRight } from '
 import { useNavigate } from 'react-router-dom';
 import type { PublicProperty } from '../../data/mockProperties';
 import Button from '../ui/Button';
-import { API_BASE } from '../../config';
+import { API_URL } from '../../config';
+import { apiCall } from '../../utils/apiUtils';
 import SkeletonLoader from '../ui/SkeletonLoader';
 
 interface PropertyCardProps {
@@ -126,13 +127,8 @@ const PropertyCarousel: React.FC = () => {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/public/lots`);
-        if (res.ok) {
-          const data = await res.json();
-          // Trier par les plus récents en premier (déjà fait par le backend normalement)
-          // On prend les 10 deniers biens pour le carousel d'accueil
-          setProperties(data.slice(0, 10));
-        }
+        const data = await apiCall<any[]>(`${API_URL}/public/lots`);
+        setProperties(data.slice(0, 10));
       } catch (err) {
         console.error('Error fetching properties:', err);
       } finally {

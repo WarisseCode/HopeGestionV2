@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { API_URL } from '../../config';
-import { getToken } from '../../api/authApi';
+import { apiCall } from '../../utils/apiUtils';
 
 interface AuditLog {
   id: number;
@@ -199,7 +199,6 @@ const AdminAuditLogs: React.FC = () => {
   const fetchLogs = async (p = page) => {
     setLoading(true);
     try {
-      const token = getToken();
       const params = new URLSearchParams();
       params.set('page', p.toString());
       params.set('limit', '30');
@@ -207,19 +206,14 @@ const AdminAuditLogs: React.FC = () => {
       if (actionFilter !== 'all') params.set('action', actionFilter);
       if (moduleFilter !== 'all') params.set('module', moduleFilter);
 
-      const response = await fetch(`${API_URL}/admin/audit-logs?${params}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setLogs(data.logs || []);
-        setTotal(data.total || 0);
-        setTotalPages(data.totalPages || 0);
-        setPage(data.page || 1);
-        if (data.filters) {
-          setAvailableActions(data.filters.actions || []);
-          setAvailableModules(data.filters.modules || []);
-        }
+      const data = await apiCall<{ logs: any[]; total: number; totalPages: number; page: number; filters?: { actions: string[]; modules: string[] } }>(`${API_URL}/admin/audit-logs?${params}`);
+      setLogs(data.logs || []);
+      setTotal(data.total || 0);
+      setTotalPages(data.totalPages || 0);
+      setPage(data.page || 1);
+      if (data.filters) {
+        setAvailableActions(data.filters.actions || []);
+        setAvailableModules(data.filters.modules || []);
       }
     } catch (error) {
       console.error('Error fetching audit logs:', error);

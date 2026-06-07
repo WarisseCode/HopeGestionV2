@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { API_URL } from '../../config';
+import { apiCall } from '../../utils/apiUtils';
 
 const PublicReservation: React.FC = () => {
     const { lotId } = useParams();
@@ -33,36 +34,32 @@ const PublicReservation: React.FC = () => {
             // Fetch real lot data from public API
             const fetchLot = async () => {
                 try {
-                    const res = await fetch(`${API_URL}/public/lots/${lotId}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        setLot({
-                            id: data.id,
-                            ref_lot: data.ref_lot,
-                            type: data.type,
-                            description: data.description,
-                            surface: data.surface,
-                            loyer_actuel: data.loyer,
-                            adresse: `${data.quartier}, ${data.ville}`,
-                            images: [data.image],
-                            coords: [data.latitude, data.longitude]
-                        });
-                    } else {
-                        // Fallback to mock data if lot not found
-                        setLot({
-                            id: lotId,
-                            ref_lot: 'DEMO-001',
-                            type: 'Appartement',
-                            description: 'Bien en prévisualisation',
-                            surface: 0,
-                            loyer_actuel: 0,
-                            adresse: 'Adresse non disponible',
-                            images: ['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80'],
-                            coords: [5.345, -4.024]
-                        });
-                    }
+                    const data = await apiCall<any>(`${API_URL}/public/lots/${lotId}`);
+                    setLot({
+                        id: data.id,
+                        ref_lot: data.ref_lot,
+                        type: data.type,
+                        description: data.description,
+                        surface: data.surface,
+                        loyer_actuel: data.loyer,
+                        adresse: `${data.quartier}, ${data.ville}`,
+                        images: [data.image],
+                        coords: [data.latitude, data.longitude]
+                    });
                 } catch (err) {
                     console.error('Error fetching lot:', err);
+                    // Fallback si lot introuvable
+                    setLot({
+                        id: lotId,
+                        ref_lot: 'DEMO-001',
+                        type: 'Appartement',
+                        description: 'Bien en prévisualisation',
+                        surface: 0,
+                        loyer_actuel: 0,
+                        adresse: 'Adresse non disponible',
+                        images: ['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80'],
+                        coords: [5.345, -4.024]
+                    });
                 }
             };
             fetchLot();
@@ -73,14 +70,10 @@ const PublicReservation: React.FC = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/reservations/public`, {
+            const data = await apiCall<{ reference: string }>(`${API_URL}/reservations/public`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message);
-            
             setReference(data.reference);
             setSuccess(true);
         } catch (err: any) {

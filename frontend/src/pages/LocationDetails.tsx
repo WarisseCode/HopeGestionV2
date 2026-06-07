@@ -10,6 +10,7 @@ import {
     RefreshCw, XCircle, Wallet
 } from 'lucide-react';
 import locationApi from '../api/locationApi';
+import { apiCall } from '../utils/apiUtils';
 import { API_URL } from '../config';
 import type { Location, PaymentScheduleItem } from '../api/locationApi';
 import Alert from '../components/ui/Alert';
@@ -61,12 +62,8 @@ const LocationDetails: React.FC = () => {
         
         try {
             setLoading(true);
-            const response = await fetch(`${API_URL}/paiements`, {
+            await apiCall(`${API_URL}/paiements`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('userToken')}`,
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                     lease_id: location.id,
                     montant: paymentAmount,
@@ -75,8 +72,6 @@ const LocationDetails: React.FC = () => {
                     schedule_id: selectedSchedule.id
                 })
             });
-            
-            if (!response.ok) throw new Error('Erreur enregistrement');
             
             setSuccess('Paiement enregistré !');
             setShowPaymentModal(false);

@@ -15,7 +15,7 @@ import {
   AlertTriangle,
   Eye
 } from 'lucide-react';
-import { getToken } from '../api/authApi';
+import { apiCall } from '../utils/apiUtils';
 import { API_URL } from '../config';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -57,21 +57,14 @@ const AuditLogsPage: React.FC = () => {
     const fetchLogs = async () => {
         setLoading(true);
         try {
-            const token = getToken();
             const queryParams = new URLSearchParams({
                 limit: LIMIT.toString(),
                 offset: (page * LIMIT).toString(),
             });
-            
+
             if (actionFilter) queryParams.append('action', actionFilter);
 
-            const response = await fetch(`${API_URL}/audit-logs?${queryParams.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (!response.ok) throw new Error('Erreur chargement logs');
-            
-            const data = await response.json();
+            const data = await apiCall<{ logs: AuditLog[] }>(`${API_URL}/audit-logs?${queryParams.toString()}`);
             setLogs(data.logs);
         } catch (err) {
             setError('Impossible de récupérer l\'historique.');

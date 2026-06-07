@@ -5,8 +5,8 @@ import {
     Calendar, MapPin, CheckCircle, XCircle, Clock, User, Phone, 
     ArrowRight, RefreshCw, Filter, ChevronDown, ExternalLink, Building
 } from 'lucide-react';
-import { getToken } from '../api/authApi';
-import { API_BASE } from '../config';
+import { apiCall } from '../utils/apiUtils';
+import { API_URL } from '../config';
 
 interface Reservation {
     id: number;
@@ -33,12 +33,7 @@ const ReservationsList: React.FC = () => {
     const loadReservations = async () => {
         setLoading(true);
         try {
-            const token = getToken();
-            const res = await fetch(`${API_BASE}/api/reservations`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!res.ok) throw new Error('Erreur chargement');
-            const data = await res.json();
+            const data = await apiCall<Reservation[]>(`${API_URL}/reservations`);
             setReservations(data);
         } catch (err) {
             console.error(err);
@@ -52,17 +47,11 @@ const ReservationsList: React.FC = () => {
     const handleValidate = async (id: number, action: 'accept' | 'refuse') => {
         setActionLoading(id);
         try {
-            const token = getToken();
             const newStatus = action === 'accept' ? 'actif' : 'refuse';
-            const res = await fetch(`${API_BASE}/api/reservations/${id}/validate`, {
+            await apiCall(`${API_URL}/reservations/${id}/validate`, {
                 method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({ statut: newStatus })
             });
-            if (!res.ok) throw new Error('Erreur validation');
             loadReservations();
         } catch (err) {
             alert('Erreur lors de la validation');
@@ -100,13 +89,8 @@ const ReservationsList: React.FC = () => {
         if (!transformingReservation) return;
         setTransformLoading(true);
         try {
-            const token = getToken();
-            const res = await fetch(`${API_BASE}/api/reservations/${transformingReservation.id}/transform`, {
+            const data = await apiCall<{ reference: string }>(`${API_URL}/reservations/${transformingReservation.id}/transform`, {
                 method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                     date_fin: transformData.date_fin || null,
                     caution: transformData.caution ? parseFloat(transformData.caution) : null,
@@ -114,9 +98,6 @@ const ReservationsList: React.FC = () => {
                     periodicite: transformData.periodicite
                 })
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || 'Erreur transformation');
-            
             alert(`✅ Réservation transformée en bail !\nNouvelle référence: ${data.reference}`);
             setTransformModalOpen(false);
             setTransformingReservation(null);

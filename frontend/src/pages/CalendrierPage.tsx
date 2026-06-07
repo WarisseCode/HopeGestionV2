@@ -12,7 +12,7 @@ import {
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input'; // Assuming Input exists
-import { getToken } from '../api/authApi';
+import { apiCall } from '../utils/apiUtils';
 import { API_URL } from '../config';
 import { toast } from 'react-hot-toast';
 
@@ -78,15 +78,8 @@ const CalendrierPage: React.FC = () => {
           end = format(currentDate, 'yyyy-MM-dd');
       }
       
-      const token = getToken();
-      const response = await fetch(`${API_URL}/calendar?start=${start}&end=${end}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if(response.ok) {
-          const data = await response.json();
-          setEvents(data.events);
-      }
+      const data = await apiCall<{ events: CalendarEvent[] }>(`${API_URL}/calendar?start=${start}&end=${end}`);
+      setEvents(data.events);
     } catch (err) {
       console.error(err);
       toast.error("Erreur chargement calendrier");
@@ -97,9 +90,8 @@ const CalendrierPage: React.FC = () => {
 
   const fetchSettings = async () => {
       try {
-          const token = getToken();
-          const res = await fetch(`${API_URL}/calendar/settings`, { headers: { 'Authorization': `Bearer ${token}` }});
-          if (res.ok) setSettings(await res.json());
+          const data = await apiCall<any>(`${API_URL}/calendar/settings`);
+          setSettings(data);
       } catch (e) {
           console.error(e);
       }
@@ -107,15 +99,9 @@ const CalendrierPage: React.FC = () => {
 
   const handleCreateEvent = async () => {
       try {
-          const token = getToken();
           const startDateTime = new Date(`${newEvent.date}T${newEvent.time}`);
-          
-          const res = await fetch(`${API_URL}/calendar/events`, {
+          await apiCall(`${API_URL}/calendar/events`, {
               method: 'POST',
-              headers: { 
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-              },
               body: JSON.stringify({
                   title: newEvent.title,
                   description: newEvent.description,
@@ -124,13 +110,10 @@ const CalendrierPage: React.FC = () => {
                   is_all_day: false
               })
           });
-
-          if (res.ok) {
-              toast.success("Événement créé");
-              setShowEventModal(false);
-              fetchEvents();
-              setNewEvent({ title: '', type: 'rdv', date: format(new Date(), 'yyyy-MM-dd'), time: '09:00', description: '' });
-          }
+          toast.success("Événement créé");
+          setShowEventModal(false);
+          fetchEvents();
+          setNewEvent({ title: '', type: 'rdv', date: format(new Date(), 'yyyy-MM-dd'), time: '09:00', description: '' });
       } catch (e) {
           toast.error("Erreur création");
       }
@@ -138,10 +121,8 @@ const CalendrierPage: React.FC = () => {
 
   const handleSaveSetting = async (setting: ReminderSetting) => {
       try {
-          const token = getToken();
-          await fetch(`${API_URL}/calendar/settings`, {
+          await apiCall(`${API_URL}/calendar/settings`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               body: JSON.stringify(setting)
           });
           toast.success("Réglage sauvegardé");

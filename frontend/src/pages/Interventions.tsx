@@ -15,7 +15,7 @@ import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { API_URL } from '../config';
-import { getToken } from '../api/authApi';
+import { apiCall } from '../utils/apiUtils';
 
 // Types
 interface Ticket {
@@ -265,10 +265,8 @@ const Interventions: React.FC = () => {
   const handleClose = async () => {
     if (!selectedTicket) return;
     try {
-      const token = getToken();
-      await fetch(`${API_URL}/tickets/${selectedTicket.id}/close`, {
+      await apiCall(`${API_URL}/tickets/${selectedTicket.id}/close`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(closeForm)
       });
       toast.success("Intervention clôturée");
@@ -282,10 +280,8 @@ const Interventions: React.FC = () => {
   const handleReschedule = async () => {
     if (!selectedTicket) return;
     try {
-      const token = getToken();
-      await fetch(`${API_URL}/tickets/${selectedTicket.id}/reschedule`, {
+      await apiCall(`${API_URL}/tickets/${selectedTicket.id}/reschedule`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(rescheduleForm)
       });
       toast.success("Reprogrammé");
@@ -309,10 +305,8 @@ const Interventions: React.FC = () => {
 
   const handleCreateContract = async () => {
     try {
-      const token = getToken();
-      await fetch(`${API_URL}/service-contracts`, {
+      await apiCall(`${API_URL}/service-contracts`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(contractForm)
       });
       toast.success("Contrat créé");

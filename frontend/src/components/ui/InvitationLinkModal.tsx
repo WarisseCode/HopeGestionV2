@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Copy, Check, Share2, Loader2, X, Send } from 'lucide-react';
 import { API_URL } from '../../config';
+import { apiCall } from '../../utils/apiUtils';
 
 interface InvitationLinkModalProps {
   isOpen: boolean;
@@ -30,27 +31,14 @@ const InvitationLinkModal: React.FC<InvitationLinkModalProps> = ({ isOpen, onClo
     setStep('generating');
 
     try {
-      const token = localStorage.getItem('userToken');
-      const r = await fetch(`${API_URL}/invitations`, {
+      const data = await apiCall<{ link: string }>(`${API_URL}/invitations`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({ type })
       });
-
-      const data = await r.json();
-      if (!r.ok) {
-        setError(data.error || 'Erreur lors de la création');
-        setStep('error');
-        return;
-      }
-
       setLink(data.link);
       setStep('link');
-    } catch {
-      setError('Erreur réseau. Veuillez réessayer.');
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors de la création');
       setStep('error');
     }
   };
