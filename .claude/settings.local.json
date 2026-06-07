@@ -38,7 +38,10 @@
       "Bash(git commit *)",
       "Bash(Get-ChildItem -Path \"d:\\\\Hope GImmo\\\\HopeGestionV2\" -Recurse -Directory)",
       "Bash(Select-Object -First 20)",
-      "Bash(Format-Table FullName)"
+      "Bash(Format-Table FullName)",
+      "PowerShell(Get-ChildItem \"d:\\\\Hope GImmo\\\\HopeGestionV2\\\\backend\" -MaxDepth 1 | Where-Object { !$_.PSIsContainer } | Select-Object Name, @{N='Ko';E={[math]::Round\\($_.Length/1KB,1\\)}} | Sort-Object Ko -Descending | Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem \"d:\\\\Hope GImmo\\\\HopeGestionV2\\\\backend\" | Where-Object { !$_.PSIsContainer } | Select-Object Name, @{N='Ko';E={[math]::Round\\($_.Length/1KB,1\\)}} | Sort-Object Ko -Descending | Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem \"d:\\\\Hope GImmo\\\\HopeGestionV2\\\\backend\\\\scripts\" | Select-Object Name, @{N='Ko';E={[math]::Round\\($_.Length/1KB,1\\)}} | Sort-Object Name | Format-Table -AutoSize)"
     ]
   }
 }
