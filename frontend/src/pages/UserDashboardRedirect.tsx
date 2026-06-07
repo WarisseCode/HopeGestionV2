@@ -1,51 +1,33 @@
 // frontend/src/pages/UserDashboardRedirect.tsx
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getProfile } from '../api/authApi';
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useUser } from '../contexts/UserContext';
 
 const UserDashboardRedirect: React.FC = () => {
-  const navigate = useNavigate();
+  const { user, loading } = useUser();
 
-  useEffect(() => {
-    const redirectUser = async () => {
-      try {
-        const profile = await getProfile();
-        const userType = profile.user.userType;
-        const isGuest = profile.user.isGuest || profile.user.role === 'guest'; // Check guest flag
-        const role = profile.user.role;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
-        if (role === 'admin' || userType === 'admin') {
-            navigate('/admin');
-        } else if (isGuest) {
-             // Guests access the issuer's dashboard (typically gestionnaire/proprietaire view)
-             // For now, default to gestionnaire dashboard as they are delegating access
-             navigate('/dashboard/gestionnaire'); 
-        } else if (userType === 'locataire') {
-          navigate('/dashboard/locataire');
-        } else if (userType === 'proprietaire') {
-          navigate('/dashboard/proprietaire');
-        } else if (userType === 'gestionnaire') {
-          navigate('/dashboard/gestionnaire');
-        } else if (userType === 'manager') {
-            navigate('/dashboard/manager');
-        } else {
-          // Pour les autres types d'utilisateurs, rediriger vers la page d'accueil pour éviter une boucle
-          navigate('/');
-        }
-      } catch (error) {
-        console.error('Erreur lors de la redirection:', error);
-        navigate('/login');
-      }
-    };
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
-    redirectUser();
-  }, [navigate]);
+  const isGuest = user.isGuest || user.role === 'guest';
 
-  return (
-    <div className="flex justify-center items-center h-screen">
-      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-    </div>
-  );
+  if (user.role === 'admin' || user.userType === 'admin') return <Navigate to="/admin" replace />;
+  if (isGuest) return <Navigate to="/dashboard/gestionnaire" replace />;
+  if (user.userType === 'locataire') return <Navigate to="/dashboard/locataire" replace />;
+  if (user.userType === 'proprietaire') return <Navigate to="/dashboard/proprietaire" replace />;
+  if (user.userType === 'gestionnaire') return <Navigate to="/dashboard/gestionnaire" replace />;
+  if (user.userType === 'manager') return <Navigate to="/dashboard/manager" replace />;
+
+  return <Navigate to="/" replace />;
 };
 
 export default UserDashboardRedirect;

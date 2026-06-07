@@ -1,77 +1,44 @@
 // frontend/src/components/RouteProtection.tsx
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { getProfile } from '../api/authApi';
-import { getToken } from '../api/authApi';
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useUser } from '../contexts/UserContext';
 
 interface RouteProtectionProps {
-  allowedUserTypes: string[]; // Types d'utilisateurs autorisés à accéder à cette route
+  allowedUserTypes: string[];
   children: React.ReactNode;
 }
 
 const RouteProtection: React.FC<RouteProtectionProps> = ({ allowedUserTypes, children }) => {
-  const [loading, setLoading] = useState(true);
-  const [hasAccess, setHasAccess] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    const checkAccess = async () => {
-      try {
-        // Vérifier si l'utilisateur est connecté
-        const token = getToken();
-        if (!token) {
-          navigate('/login');
-          return;
-        }
-
-        // Récupérer le profil de l'utilisateur
-        const profile = await getProfile();
-        let userType = profile.user.userType;
-        const userRole = profile.user.role;
-        
-        // GUEST HANDLING
-        const isGuest = profile.user.isGuest || profile.user.role === 'guest';
-        if (isGuest) {
-          userType = 'gestionnaire'; 
-        }
-
-        // Vérifier si l'utilisateur a accès à cette route
-        // "admin" role has access to EVERYTHING if allowedUserTypes includes 'admin'
-        if (allowedUserTypes.includes(userType) || (userRole === 'admin' && allowedUserTypes.includes('admin'))) {
-          setHasAccess(true);
-        } else {
-          // Rediriger vers l'espace approprié selon le type d'utilisateur
-          if (userType === 'locataire') {
-            navigate('/dashboard/locataire');
-          } else if (userType === 'proprietaire') {
-            navigate('/dashboard/proprietaire');
-          } else if (userType === 'gestionnaire') {
-            navigate('/dashboard/gestionnaire');
-          } else {
-            navigate('/dashboard');
-          }
-        }
-      } catch (error) {
-        console.error('Erreur lors de la vérification des autorisations:', error);
-        navigate('/login');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAccess();
-  }, [navigate, location.pathname]);
+  const { user, loading } = useUser();
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  return hasAccess ? <>{children}</> : null;
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  let userType = user.userType;
+  const isGuest = user.isGuest || user.role === 'guest';
+  if (isGuest) userType = 'gestionnaire';
+
+  if (allowedUserTypes.includes(userType) || (user.role === 'admin' && allowedUserTypes.includes('admin'))) {
+    return <>{children}</>;
+  }
+
+  // Rediriger vers l'espace approprié si l'accès est refusé
+  const redirectTo =
+    userType === 'locataire' ? '/dashboard/locataire' :
+    userType === 'proprietaire' ? '/dashboard/proprietaire' :
+    userType === 'gestionnaire' ? '/dashboard/gestionnaire' :
+    '/dashboard';
+
+  return <Navigate to={redirectTo} replace />;
 };
 
 export default RouteProtection;
