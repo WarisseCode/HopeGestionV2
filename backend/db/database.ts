@@ -1,37 +1,44 @@
 import { Pool, PoolConfig } from 'pg';
 import * as dotenv from 'dotenv';
-import * as fs from 'fs';
 
 dotenv.config();
 
-/**
- * Database configuration with SSL support for production
- */
+// Digital Ocean Basic PostgreSQL caps at 25 max_connections.
+// We claim at most 10 so other processes (migrations, admin) keep headroom.
+const POOL_MAX  = parseInt(process.env.DB_POOL_MAX  || '10');
+const POOL_MIN  = parseInt(process.env.DB_POOL_MIN  || '2');
+// Close idle connections after 30 s; abort acquire after 10 s.
+const POOL_IDLE_TIMEOUT_MS    = parseInt(process.env.DB_IDLE_TIMEOUT_MS    || '30000');
+const POOL_CONNECT_TIMEOUT_MS = parseInt(process.env.DB_CONNECT_TIMEOUT_MS || '10000');
+
+const POOL_SIZING: Partial<PoolConfig> = {
+    max:                    POOL_MAX,
+    min:                    POOL_MIN,
+    idleTimeoutMillis:      POOL_IDLE_TIMEOUT_MS,
+    connectionTimeoutMillis: POOL_CONNECT_TIMEOUT_MS,
+    allowExitOnIdle:        true,
+};
+
 const getDbConfig = (): PoolConfig => {
-    // If DATABASE_URL is provided (Digital Ocean format)
     if (process.env.DATABASE_URL) {
         return {
             connectionString: process.env.DATABASE_URL,
-            ssl: process.env.NODE_ENV === 'production' ? {
-                rejectUnauthorized: false // Digital Ocean requires this
-            } : false
+            ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+            ...POOL_SIZING,
         };
     }
 
-    // Fallback to individual environment variables
     const config: PoolConfig = {
-        user: process.env.DB_USER || 'postgres',
-        host: process.env.DB_HOST || 'localhost',
-        database: process.env.DB_NAME || 'hopegestion',
+        user:     process.env.DB_USER     || 'postgres',
+        host:     process.env.DB_HOST     || 'localhost',
+        database: process.env.DB_NAME     || 'hopegestion',
         password: process.env.DB_PASSWORD || '',
-        port: parseInt(process.env.DB_PORT || '5432'),
+        port:     parseInt(process.env.DB_PORT || '5432'),
+        ...POOL_SIZING,
     };
 
-    // Add SSL for production
     if (process.env.NODE_ENV === 'production') {
-        config.ssl = {
-            rejectUnauthorized: false
-        };
+        config.ssl = { rejectUnauthorized: false };
     }
 
     return config;
@@ -49,7 +56,7 @@ pool.query('SELECT NOW()', (err, res) => {
     if (err) {
         console.error('❌ Database connection failed:', err.message);
     } else {
-        console.log('✅ Database connected successfully at:', res.rows[0].now);
+        console.log(`✅ Database connected at ${res.rows[0].now} (pool min=${POOL_MIN} max=${POOL_MAX})`);
     }
 });
 
