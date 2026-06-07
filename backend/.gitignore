@@ -1,0 +1,34 @@
+# Compiled output — rebuilt by the deploy pipeline (npm run build)
+dist/
+build/
+
+# Environment — never commit secrets
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+server.log
+
+# Debug & temporary data files
+debug_*.txt
+debug_*.json
+*_dump.json
+*_dump.sql
+*.dump
+*_output.txt
+*_output.log
+*_result.txt
+*_results.json
+*_result.json
+diag.json
+check_output.txt
+data_notif.txt
+plans_result.txt
+subs_result.txt
+users_result.txt
+buildings_schema.txt
+
+# Node
+node_modules/
