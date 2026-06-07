@@ -65,7 +65,7 @@ describe('protect middleware', () => {
         expect(req.userRole).toBe('gestionnaire');
     });
 
-    it('rejette un token expiré (403)', async () => {
+    it('rejette un token expiré (401 — déclenche auto-refresh côté client)', async () => {
         const token = jwt.sign(
             { id: 1, role: 'gestionnaire' },
             JWT_SECRET,
@@ -78,7 +78,7 @@ describe('protect middleware', () => {
 
         await protect(req, res, next);
 
-        expect(res.status).toHaveBeenCalledWith(403);
+        expect(res.status).toHaveBeenCalledWith(401);
         expect(next).not.toHaveBeenCalled();
     });
 });

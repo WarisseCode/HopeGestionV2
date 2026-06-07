@@ -3,7 +3,7 @@
 
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from './authMiddleware';
-import { pool } from '../index';
+import pool from '../db/database';
 
 type PermissionAction = 'read' | 'write' | 'delete' | 'validate';
 
