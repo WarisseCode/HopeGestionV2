@@ -64,6 +64,7 @@ pool.connect()
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 // Note: Using PostgreSQL, no need for mongo-sanitize (MongoDB-specific)
 
 // 1. Security Headers (Helmet)
@@ -111,8 +112,9 @@ const authLimiter = rateLimit({
 });
 
 // 4. Body Parsing with size limits (prevent DoS)
-app.use(express.json({ limit: '10mb' })); 
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
 
 // 5. PostgreSQL Protection - Already secured via parameterized queries ($1, $2, etc.)
 // SQL injection is prevented by using pg library's parameterized queries

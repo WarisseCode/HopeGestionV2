@@ -117,6 +117,7 @@ const InvitationPage: React.FC = () => {
       const r = await fetch(`${API_URL}/invitations/${token}/accept`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Le navigateur reçoit le cookie httpOnly refreshToken
         body: JSON.stringify(body)
       });
 
@@ -128,7 +129,6 @@ const InvitationPage: React.FC = () => {
       }
 
       localStorage.setItem('userToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
       localStorage.setItem('userRole', data.user.role);
       localStorage.setItem('user', JSON.stringify(data.user));
       setStatus('success');

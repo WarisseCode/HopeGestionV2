@@ -3,13 +3,22 @@ import { Router, Request, Response } from 'express';
 import pool from '../db/database';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { protect } from '../middleware/authMiddleware';
 import { validatePassword } from '../utils/passwordUtils';
 
 const router = Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'refresh_secret';
+const REFRESH_TOKEN_MS = 7 * 24 * 60 * 60 * 1000;
+const REFRESH_COOKIE_NAME = 'refreshToken';
+const refreshCookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict' as const,
+    maxAge: REFRESH_TOKEN_MS,
+    path: '/api/auth',
+};
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // ─── POST /api/invitations ─────────────────────────────────────────────────
@@ -205,11 +214,19 @@ router.post('/:token/accept', async (req: Request, res: Response) => {
     await client.query('COMMIT');
 
     const accessToken = jwt.sign({ id: newUser.id, role: newUser.role }, JWT_SECRET, { expiresIn: '15m' });
-    const refreshToken = jwt.sign({ id: newUser.id, role: newUser.role }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
+    // Refresh token sécurisé : octets aléatoires hashés et stockés en DB (même pattern qu'authRoutes)
+    const rawRefresh = crypto.randomBytes(40).toString('hex');
+    const tokenHash  = crypto.createHash('sha256').update(rawRefresh).digest('hex');
+    const expiresAt  = new Date(Date.now() + REFRESH_TOKEN_MS);
+    await pool.query(
+        `INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
+        [newUser.id, tokenHash, expiresAt]
+    );
+
+    res.cookie(REFRESH_COOKIE_NAME, rawRefresh, refreshCookieOptions);
     return res.status(201).json({
       accessToken,
-      refreshToken,
       user: { id: newUser.id, nom: newUser.nom, email: newUser.email, telephone: newUser.telephone, role: newUser.role }
     });
   } catch (err: any) {

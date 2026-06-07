@@ -25,6 +25,17 @@ import { JWT_SECRET, ACCESS_TOKEN_EXPIRES_IN, REFRESH_TOKEN_EXPIRES_IN } from '.
 // Durée du refresh token en ms (pour l'expiration en DB)
 const REFRESH_TOKEN_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours
 
+// Options du cookie httpOnly pour le refresh token.
+// path='/api/auth' → le navigateur ne l'envoie qu'aux endpoints d'auth, jamais aux autres routes.
+const REFRESH_COOKIE_NAME = 'refreshToken';
+const refreshCookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict' as const,
+    maxAge: REFRESH_TOKEN_MS,
+    path: '/api/auth',
+};
+
 /**
  * Génère un access token + refresh token pour un utilisateur.
  * Stocke le refresh token (hashé) en base de données.
@@ -403,10 +414,10 @@ router.post('/login', async (req, res) => {
 
         console.log(`✅ Successful login for userId:${utilisateur.id} from IP: ${req.ip}`);
 
+        res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions);
         res.json({
             message: 'Connexion réussie.',
             token: accessToken,
-            refreshToken,
             role: utilisateur.role,
             userId: utilisateur.id
         });
@@ -465,10 +476,10 @@ router.post('/verify-email', async (req, res) => {
             user.user_type || 'gestionnaire'
         );
 
+        res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions);
         res.status(200).json({
             message: 'Email vérifié avec succès.',
             token: accessToken,
-            refreshToken,
             role: user.role,
             userId: user.id
         });
@@ -572,7 +583,7 @@ router.post('/resend-otp', async (req, res) => {
 // ─── POST /api/auth/refresh ───────────────────────────────────────────────────
 // Échange un refresh token valide contre un nouvel access token (+ rotation du refresh token).
 router.post('/refresh', async (req, res) => {
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
 
     if (!refreshToken) {
         return res.status(400).json({ message: 'Refresh token manquant.' });
@@ -609,7 +620,8 @@ router.post('/refresh', async (req, res) => {
             stored.user_type || 'gestionnaire'
         );
 
-        res.json({ token: accessToken, refreshToken: newRefreshToken });
+        res.cookie(REFRESH_COOKIE_NAME, newRefreshToken, refreshCookieOptions);
+        res.json({ token: accessToken });
 
     } catch (error) {
         console.error('Erreur refresh token:', error);
@@ -639,7 +651,7 @@ router.post('/refresh', async (req, res) => {
 // ─── POST /api/auth/logout ────────────────────────────────────────────────────
 // Révoque le refresh token en base (invalide la session côté serveur).
 router.post('/logout', async (req, res) => {
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
 
     if (refreshToken) {
         try {
@@ -652,6 +664,14 @@ router.post('/logout', async (req, res) => {
             console.error('Erreur révocation refresh token:', err);
         }
     }
+
+    // Effacer le cookie côté navigateur (mêmes options que lors de la pose sauf maxAge)
+    res.clearCookie(REFRESH_COOKIE_NAME, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/api/auth',
+    });
 
     // Réponse toujours 200 : même si le token était inconnu, la déconnexion est réussie côté client
     res.json({ message: 'Déconnexion réussie.' });
