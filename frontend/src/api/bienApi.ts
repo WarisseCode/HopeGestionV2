@@ -1,67 +1,6 @@
 import { getToken } from './authApi';
 import { API_URL as BASE_URL } from '../config';
-
-const API_URL = `${BASE_URL}/biens`;
-
-// Interfaces pour les données de biens
-export interface Immeuble {
-  id: number;
-  nom: string;
-  type: string;
-  adresse: string;
-  ville: string;
-  pays: string;
-  nbLots: number;
-  occupation: number;
-  statut: string;
-  etatOccupation?: string;
-  photo?: string | null;
-  description?: string;
-  proprietaire?: string;
-  gestionnaire?: string;
-  // Nouveaux champs
-  owner_id?: number;
-  latitude?: number | null;
-  longitude?: number | null;
-  quartier?: string | null;
-  gestionnaire_id?: number | null;
-  gestionnaire_name?: string | null;
-  photos?: string[];
-  video_url?: string | null;
-  plan_masse_url?: string | null;
-  nombre_etages?: number;
-  total_lots?: number;
-}
-
-export interface Lot {
-  id: number;
-  reference: string;
-  type: string;
-  immeuble: string;
-  building_id?: number;
-  etage: string;
-  bloc?: string | null;
-  superficie: number;
-  nbPieces: number;
-  loyer: number;
-  charges: number;
-  statut: string;
-  description: string;
-  // Données locatives
-  periodicite?: string; // mensuel, trimestriel, annuel
-  caution?: number;
-  avance?: number; // nombre de mois
-  // Données de vente
-  prix_vente?: number | null;
-  modalite_vente?: string | null; // comptant, echelonne
-  duree_echelonnement?: number | null; // mois
-  // Médias
-  photos?: string[];
-  date_disponibilite?: string | null;
-  // Owner info
-  owner_id?: number;
-  owner_name?: string;
-}
+export type { Immeuble, Lot } from '@hopegestion/shared-types';
 
 // Fonction pour récupérer les immeubles
 export async function getImmeubles(): Promise<Immeuble[]> {

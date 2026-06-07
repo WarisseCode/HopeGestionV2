@@ -33,6 +33,10 @@
     // "noPropertyAccessFromIndexSignature": true,
 
     // Recommended Options
+    "baseUrl": ".",
+    "paths": {
+      "@hopegestion/shared-types": ["../shared/types/index.ts"]
+    },
     "strict": true,
     "esModuleInterop": true,
     "verbatimModuleSyntax": false,

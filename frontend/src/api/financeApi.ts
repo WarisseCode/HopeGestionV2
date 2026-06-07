@@ -3,70 +3,7 @@ import { getToken } from './authApi';
 
 import { API_URL } from '../config';
 
-// --- Interfaces ---
-
-export interface Payment {
-    id: number;
-    lease_id: number;
-    schedule_id?: number;
-    amount: number;
-    payment_date: string;
-    payment_method: string;
-    reference?: string;
-    type: string;
-    statut: string;
-    description?: string;
-    created_at: string;
-    reference_bail: string;
-    locataire_nom: string;
-    locataire_prenoms: string;
-    proprietaire_nom: string;
-}
-
-export interface Expense {
-    id: number;
-    building_id?: number;
-    lot_id?: number;
-    owner_id?: number;
-    category: string;
-    description?: string;
-    amount: number;
-    date_expense: string;
-    supplier_name?: string;
-    status: string;
-    proof_url?: string;
-    created_at: string;
-    building_name?: string;
-    ref_lot?: string;
-    category_label?: string;
-}
-
-export interface Loan {
-    id: number;
-    name: string;
-    amount: string; // numeric from PG comes as string often
-    interest_rate: string;
-    duration_months: number;
-    start_date: string;
-    end_date: string;
-    monthly_payment: string;
-    status: 'active' | 'paid' | 'cancelled';
-    owner_name?: string;
-    paid_installments?: number;
-    capital_repaid?: number;
-    schedule?: LoanSchedule[];
-}
-
-export interface LoanSchedule {
-    id: number;
-    loan_id: number;
-    due_date: string;
-    amount_total: string;
-    amount_principal: string;
-    amount_interest: string;
-    status: 'pending' | 'paid' | 'late';
-    payment_date?: string;
-}
+export type { Payment, Expense, Loan, LoanSchedule } from '@hopegestion/shared-types';
 
 export interface TaxSettings {
     owner_id: number;

@@ -1,46 +1,7 @@
 // frontend/src/api/locataireApi.ts
 import { API_URL as BASE_URL } from '../config';
 import { getToken } from './authApi';
-
-export interface Locataire {
-    id: number;
-    nom: string;
-    prenoms: string;
-    email?: string;
-    telephone_principal: string;
-    telephone_secondaire?: string;
-    nationalite?: string;
-    type_piece?: string;
-    numero_piece?: string;
-    photo_piece_url?: string;
-    photo_profil_url?: string;
-    invitation_code?: string;
-    type: 'Locataire' | 'Acheteur' | 'Prospect';
-    statut: 'Actif' | 'Inactif' | 'Expiré' | 'Archivé' | 'En attente' | 'Rejeté';
-    mode_paiement_preferentiel?: string;
-    active_leases?: number; // count from SQL
-    created_at?: string;
-    // Module IV new fields
-    adresse_actuelle?: string;
-    date_expiration_piece?: string;
-    paiement_echelonne?: boolean;
-    owner_id?: number;
-    // Display fields from LATERAL JOIN
-    lot_nom?: string;      // Active lot reference
-    loyer_actuel?: number; // Active rent amount
-    active_lease_id?: number;
-    bail_statut?: string;
-    // Legacy aliases (for backward compatibility)
-    lot?: string;
-    loyer?: number;
-    paiementEcheance?: boolean;
-}
-
-export interface LocataireDetails {
-    locataire: Locataire;
-    baux: any[]; // On pourra affiner le type Bail plus tard
-    paiements: any[];
-}
+export type { Locataire, LocataireDetails } from '@hopegestion/shared-types';
 
 const API_URL = `${BASE_URL}/locataires`;
 
