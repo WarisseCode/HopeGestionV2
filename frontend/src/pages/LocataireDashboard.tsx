@@ -29,7 +29,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import toast from 'react-hot-toast';
 
-import { getToken } from '../api/authApi';
+import { apiCall } from '../utils/apiUtils';
 import { API_URL } from '../config';
 
 const LocataireDashboard: React.FC = () => {
@@ -39,13 +39,8 @@ const LocataireDashboard: React.FC = () => {
 
   React.useEffect(() => {
     const fetchActivities = async () => {
-        const token = getToken();
-        if (!token) return;
         try {
-            const res = await fetch(`${API_URL}/dashboard/activity`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
+            const data = await apiCall<{ activities: any[] }>(`${API_URL}/dashboard/activity`);
             if (data.activities) {
                 const mapped = data.activities.map((a: any) => ({
                      id: a.id,
