@@ -1,12 +1,34 @@
 import express, { Response } from 'express';
+import { body, param } from 'express-validator';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import { validate } from '../middleware/validate';
 import { parsePagination, paginate } from '../utils/pagination';
 
 const router = express.Router();
+
+// email : checkFalsy => une chaîne vide (formulaire) est traitée comme absente.
+const providerCreateRules = [
+    body('name').notEmpty().withMessage('Le nom est obligatoire').bail().isString().isLength({ max: 150 }).withMessage('Nom trop long'),
+    body('specialty').optional({ nullable: true }).isString().isLength({ max: 100 }).withMessage('Spécialité invalide'),
+    body('contact_name').optional({ nullable: true }).isString().isLength({ max: 150 }).withMessage('Contact invalide'),
+    body('phone').optional({ nullable: true }).isString().isLength({ max: 40 }).withMessage('Téléphone invalide'),
+    body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Email invalide'),
+    body('address').optional({ nullable: true }).isString().isLength({ max: 255 }).withMessage('Adresse trop longue'),
+];
+const providerUpdateRules = [
+    param('id').isInt({ min: 1 }).withMessage('Identifiant invalide'),
+    body('name').optional({ nullable: true }).isString().isLength({ max: 150 }).withMessage('Nom trop long'),
+    body('specialty').optional({ nullable: true }).isString().isLength({ max: 100 }).withMessage('Spécialité invalide'),
+    body('contact_name').optional({ nullable: true }).isString().isLength({ max: 150 }).withMessage('Contact invalide'),
+    body('phone').optional({ nullable: true }).isString().isLength({ max: 40 }).withMessage('Téléphone invalide'),
+    body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Email invalide'),
+    body('address').optional({ nullable: true }).isString().isLength({ max: 255 }).withMessage('Adresse trop longue'),
+    body('status').optional({ nullable: true }).isIn(['active', 'inactive']).withMessage('Statut invalide'),
+];
 
 // Protect all routes with auth check and RLS context
 router.use(protect);
@@ -91,7 +113,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // POST /api/providers
-router.post('/', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', validate(providerCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const resolvedOwnerId = (req as any).resolvedOwnerId;
@@ -110,7 +132,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // PUT /api/providers/:id
-router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id', validate(providerUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { name, specialty, contact_name, phone, email, address, status } = req.body;

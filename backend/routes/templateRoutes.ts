@@ -1,10 +1,24 @@
 // backend/routes/templateRoutes.ts
 import { Router, Response } from 'express';
+import { body, param } from 'express-validator';
 import { pool } from '../index'; // Use the shared pool from index
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
+import { validate } from '../middleware/validate';
 
 const router = Router();
+
+const templateCreateRules = [
+    body('name').notEmpty().withMessage('Le nom est obligatoire').bail().isString().isLength({ max: 150 }).withMessage('Nom trop long'),
+    body('type').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Type invalide'),
+    body('content').optional({ nullable: true }).isString().withMessage('Contenu invalide'),
+];
+const templateUpdateRules = [
+    param('id').isInt({ min: 1 }).withMessage('Identifiant invalide'),
+    body('name').optional({ nullable: true }).isString().isLength({ max: 150 }).withMessage('Nom trop long'),
+    body('type').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Type invalide'),
+    body('content').optional({ nullable: true }).isString().withMessage('Contenu invalide'),
+];
 
 // GET /api/templates - List
 router.get('/', permissions.canRead('documents'), async (req: AuthenticatedRequest, res: Response) => {
@@ -31,7 +45,7 @@ router.get('/:id', permissions.canRead('documents'), async (req: AuthenticatedRe
 });
 
 // POST /api/templates - Create
-router.post('/', permissions.canWrite('documents'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', permissions.canWrite('documents'), validate(templateCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { name, type, content } = req.body;
         const result = await pool.query(
@@ -46,7 +60,7 @@ router.post('/', permissions.canWrite('documents'), async (req: AuthenticatedReq
 });
 
 // PUT /api/templates/:id - Update
-router.put('/:id', permissions.canWrite('documents'), async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id', permissions.canWrite('documents'), validate(templateUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { id } = req.params;
         const { name, type, content } = req.body;

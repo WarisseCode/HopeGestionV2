@@ -1,12 +1,35 @@
-import express from 'express';
+import express, { Response } from 'express';
+import { body, param } from 'express-validator';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 import { protect } from '../middleware/authMiddleware';
 // [RLS] Isolation garantie par PostgreSQL Row-Level Security via tenantGuard.
 import { tenantGuard } from '../middleware/tenantGuard';
+import { validate } from '../middleware/validate';
 
 const router = express.Router();
+
+// title obligatoire ; le reste optionnel mais typé (cost_monthly >= 0, dates ISO).
+const contractCreateRules = [
+    body('title').notEmpty().withMessage('Le titre est obligatoire').bail().isString().isLength({ max: 200 }).withMessage('Titre trop long'),
+    body('provider_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('provider_id invalide'),
+    body('description').optional({ nullable: true }).isString().isLength({ max: 2000 }).withMessage('Description trop longue'),
+    body('cost_monthly').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Coût invalide'),
+    body('start_date').optional({ nullable: true }).isISO8601().withMessage('Date de début invalide (ISO 8601)'),
+    body('end_date').optional({ nullable: true }).isISO8601().withMessage('Date de fin invalide (ISO 8601)'),
+    body('status').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Statut invalide'),
+];
+const contractUpdateRules = [
+    param('id').isInt({ min: 1 }).withMessage('Identifiant invalide'),
+    body('title').optional({ nullable: true }).isString().isLength({ max: 200 }).withMessage('Titre trop long'),
+    body('provider_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('provider_id invalide'),
+    body('description').optional({ nullable: true }).isString().isLength({ max: 2000 }).withMessage('Description trop longue'),
+    body('cost_monthly').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Coût invalide'),
+    body('start_date').optional({ nullable: true }).isISO8601().withMessage('Date de début invalide (ISO 8601)'),
+    body('end_date').optional({ nullable: true }).isISO8601().withMessage('Date de fin invalide (ISO 8601)'),
+    body('status').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Statut invalide'),
+];
 
 // [RLS] Contrats globaux (owner_id IS NULL) supprimés.
 // Tout contrat doit appartenir à un owner.
@@ -30,7 +53,7 @@ router.get('/', protect, tenantGuard, async (req: any, res) => {
 });
 
 // POST /api/service-contracts
-router.post('/', protect, tenantGuard, async (req: any, res) => {
+router.post('/', protect, tenantGuard, validate(contractCreateRules), async (req: any, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const resolvedOwnerId = (req as any).resolvedOwnerId;
@@ -49,7 +72,7 @@ router.post('/', protect, tenantGuard, async (req: any, res) => {
 });
 
 // PUT /api/service-contracts/:id
-router.put('/:id', protect, tenantGuard, async (req: any, res) => {
+router.put('/:id', protect, tenantGuard, validate(contractUpdateRules), async (req: any, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { provider_id, title, description, cost_monthly, start_date, end_date, status } = req.body;

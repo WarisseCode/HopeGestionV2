@@ -1,11 +1,61 @@
 import express, { Response } from 'express';
+import { body, param } from 'express-validator';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import { validate } from '../middleware/validate';
 
 const router = express.Router();
+
+// edl_inspections.id et edl_items.id sont SERIAL (int) — cf. migration 049.
+const edlIdParam = param('id').isInt({ min: 1 }).withMessage('Identifiant EDL invalide');
+
+const edlCreateRules = [
+    body('lot_id').notEmpty().withMessage('lot_id est obligatoire').bail().isInt({ min: 1 }).withMessage('lot_id invalide'),
+    body('type_edl').notEmpty().withMessage('type_edl est obligatoire').bail().isString().isLength({ max: 30 }).withMessage('type_edl invalide'),
+    body('date_realisation').optional({ nullable: true }).isISO8601().withMessage('Date invalide (ISO 8601)'),
+    body('location_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('location_id invalide'),
+    body('locataire_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('locataire_id invalide'),
+    body('locataire_name').optional({ nullable: true }).isString().isLength({ max: 200 }).withMessage('Nom locataire invalide'),
+    body('locataire_present').optional({ nullable: true }).isBoolean().withMessage('locataire_present doit être un booléen'),
+    body('commentaires').optional({ nullable: true }).isString().isLength({ max: 2000 }).withMessage('Commentaires trop longs'),
+    body('parent_edl_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('parent_edl_id invalide'),
+];
+const edlItemCreateRules = [
+    edlIdParam,
+    body('piece').notEmpty().withMessage('piece est obligatoire').bail().isString().isLength({ max: 100 }).withMessage('piece invalide'),
+    body('nom').notEmpty().withMessage('nom est obligatoire').bail().isString().isLength({ max: 200 }).withMessage('nom invalide'),
+    body('etat').notEmpty().withMessage('etat est obligatoire').bail().isString().isLength({ max: 50 }).withMessage('etat invalide'),
+    body('inventory_item_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('inventory_item_id invalide'),
+    body('categorie').optional({ nullable: true }).isString().isLength({ max: 100 }).withMessage('catégorie invalide'),
+    body('description').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('description trop longue'),
+    body('quantite').optional({ nullable: true }).isInt({ min: 0 }).withMessage('quantité invalide'),
+    body('observation').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('observation trop longue'),
+    body('photos').optional({ nullable: true }).isArray().withMessage('photos doit être un tableau'),
+];
+const edlItemUpdateRules = [
+    edlIdParam,
+    param('itemId').isInt({ min: 1 }).withMessage('Identifiant item invalide'),
+    body('etat').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('etat invalide'),
+    body('quantite').optional({ nullable: true }).isInt({ min: 0 }).withMessage('quantité invalide'),
+    body('observation').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('observation trop longue'),
+    body('photos').optional({ nullable: true }).isArray().withMessage('photos doit être un tableau'),
+];
+const edlItemDeleteRules = [
+    edlIdParam,
+    param('itemId').isInt({ min: 1 }).withMessage('Identifiant item invalide'),
+];
+const edlSignRules = [
+    edlIdParam,
+    body('signatures').exists({ checkNull: true }).withMessage('signatures requis'),
+];
+const edlUpdateRules = [
+    edlIdParam,
+    body('statut').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('statut invalide'),
+    body('commentaires').optional({ nullable: true }).isString().isLength({ max: 2000 }).withMessage('Commentaires trop longs'),
+];
 
 // Protect all routes with auth check and RLS context
 router.use(protect);
@@ -101,7 +151,7 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
 // ============================================
 // POST /api/edl - Créer un nouvel état des lieux
 // ============================================
-router.post('/', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', validate(edlCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const resolvedOwnerId = (req as any).resolvedOwnerId;
@@ -156,7 +206,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
 // ============================================
 // POST /api/edl/:id/items - Ajouter/Modifier des items
 // ============================================
-router.post('/:id/items', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/items', validate(edlItemCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
@@ -207,7 +257,7 @@ router.post('/:id/items', async (req: AuthenticatedRequest, res: Response) => {
 // ============================================
 // PUT /api/edl/:id/items/:itemId - Modifier un item
 // ============================================
-router.put('/:id/items/:itemId', async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id/items/:itemId', validate(edlItemUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id, itemId } = req.params;
@@ -250,7 +300,7 @@ router.put('/:id/items/:itemId', async (req: AuthenticatedRequest, res: Response
 // ============================================
 // DELETE /api/edl/:id/items/:itemId - Supprimer un item
 // ============================================
-router.delete('/:id/items/:itemId', async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id/items/:itemId', validate(edlItemDeleteRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id, itemId } = req.params;
@@ -274,7 +324,7 @@ router.delete('/:id/items/:itemId', async (req: AuthenticatedRequest, res: Respo
 // ============================================
 // PUT /api/edl/:id/sign - Enregistrer les signatures
 // ============================================
-router.put('/:id/sign', async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id/sign', validate(edlSignRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
@@ -306,7 +356,7 @@ router.put('/:id/sign', async (req: AuthenticatedRequest, res: Response) => {
 // ============================================
 // PUT /api/edl/:id - Mettre à jour un EDL (statut, commentaires)
 // ============================================
-router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id', validate(edlUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;

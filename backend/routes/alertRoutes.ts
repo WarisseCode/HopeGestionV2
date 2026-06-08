@@ -1,8 +1,16 @@
 import { Router, Response } from 'express';
+import { param } from 'express-validator';
 import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
+import { validate } from '../middleware/validate';
 import pool from '../db/database';
 
 const router = Router();
+
+// L'id d'alerte est un identifiant composite (ex. "late_5", "exp_3"), PAS un entier.
+// On le valide donc en string non vide bornée.
+const dismissRules = [
+    param('id').isString().trim().notEmpty().withMessage('Identifiant d\'alerte requis').isLength({ max: 100 }).withMessage('Identifiant invalide'),
+];
 
 // Helper : récupère l'ownerId lié à l'utilisateur courant (si 'owner')
 async function getOwnerIdForUser(userId: number): Promise<number | null> {
@@ -171,7 +179,7 @@ router.get('/', protect, async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // POST /api/alertes/:id/dismiss — Ignorer une alerte
-router.post('/:id/dismiss', protect, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/dismiss', protect, validate(dismissRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const userId = req.userId!;
         const alertId = req.params.id;

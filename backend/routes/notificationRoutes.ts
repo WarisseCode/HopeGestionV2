@@ -1,10 +1,23 @@
 
-import express from 'express';
+import express, { Response } from 'express';
+import { body, param } from 'express-validator';
 import { NotificationService } from '../services/notificationService';
 import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
+import { validate } from '../middleware/validate';
 import pool from '../db/database';
 
 const router = express.Router();
+
+const notifIdParam = [param('id').isInt({ min: 1 }).withMessage('Identifiant invalide')];
+const testNotifRules = [
+    body('type').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Type invalide'),
+    body('message').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('Message invalide'),
+    body('whatsapp').optional({ nullable: true }).isBoolean().withMessage('whatsapp doit être un booléen'),
+];
+// settings = tableau d'objets de préférences ; le handler itère dessus → on exige un array.
+const notifSettingsRules = [
+    body('settings').isArray().withMessage('settings doit être un tableau'),
+];
 
 // GET /api/notifications - List all notifications for current user
 router.get('/', protect, async (req: AuthenticatedRequest, res) => {
@@ -34,7 +47,7 @@ router.get('/', protect, async (req: AuthenticatedRequest, res) => {
 });
 
 // PUT /api/notifications/:id/read - Mark as read
-router.put('/:id/read', protect, async (req: AuthenticatedRequest, res) => {
+router.put('/:id/read', protect, validate(notifIdParam), async (req: AuthenticatedRequest, res: Response) => {
     try {
         await NotificationService.markAsRead(parseInt(req.params.id || '0'));
         res.json({ success: true });
@@ -55,7 +68,7 @@ router.put('/read-all', protect, async (req: AuthenticatedRequest, res) => {
 });
 
 // POST /api/notifications/test - Trigger a test notification (Demo purpose)
-router.post('/test', protect, async (req: AuthenticatedRequest, res) => {
+router.post('/test', protect, validate(testNotifRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { type, message } = req.body;
         await NotificationService.send(
@@ -94,7 +107,7 @@ router.get('/settings', protect, async (req: AuthenticatedRequest, res) => {
 });
 
 // PUT /api/notifications/settings - Update or create settings
-router.put('/settings', protect, async (req: AuthenticatedRequest, res) => {
+router.put('/settings', protect, validate(notifSettingsRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const userId = req.userId;
         const { settings } = req.body; // Array of { alert_type, channel_email, channel_whatsapp, channel_sms }

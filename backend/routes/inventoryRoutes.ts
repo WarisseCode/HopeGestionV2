@@ -1,11 +1,52 @@
 import express, { Response } from 'express';
+import { body, param } from 'express-validator';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import { validate } from '../middleware/validate';
 
 const router = express.Router();
+
+// PK SERIAL (convention de l'app — entités lots/buildings également en int).
+const invIdParam = param('id').isInt({ min: 1 }).withMessage('Identifiant inventaire invalide');
+
+const inventoryCreateRules = [
+    body('entity_type').notEmpty().withMessage('entity_type est obligatoire').bail().isString().isLength({ max: 30 }).withMessage('entity_type invalide'),
+    body('entity_id').notEmpty().withMessage('entity_id est obligatoire').bail().isInt({ min: 1 }).withMessage('entity_id invalide'),
+    body('type_inventaire').notEmpty().withMessage('type_inventaire est obligatoire').bail().isString().isLength({ max: 30 }).withMessage('type_inventaire invalide'),
+    body('date_realisation').optional({ nullable: true }).isISO8601().withMessage('Date invalide (ISO 8601)'),
+    body('commentaires').optional({ nullable: true }).isString().isLength({ max: 2000 }).withMessage('Commentaires trop longs'),
+];
+const inventoryItemCreateRules = [
+    invIdParam,
+    body('categorie').notEmpty().withMessage('categorie est obligatoire').bail().isString().isLength({ max: 100 }).withMessage('categorie invalide'),
+    body('nom').notEmpty().withMessage('nom est obligatoire').bail().isString().isLength({ max: 200 }).withMessage('nom invalide'),
+    body('etat').notEmpty().withMessage('etat est obligatoire').bail().isString().isLength({ max: 50 }).withMessage('etat invalide'),
+    body('quantite').optional({ nullable: true }).isInt({ min: 0 }).withMessage('quantité invalide'),
+    body('description').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('description trop longue'),
+    body('observation').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('observation trop longue'),
+    body('photos').optional({ nullable: true }).isArray().withMessage('photos doit être un tableau'),
+];
+const inventoryItemUpdateRules = [
+    invIdParam,
+    param('itemId').isInt({ min: 1 }).withMessage('Identifiant item invalide'),
+    body('etat').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('etat invalide'),
+    body('quantite').optional({ nullable: true }).isInt({ min: 0 }).withMessage('quantité invalide'),
+    body('description').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('description trop longue'),
+    body('observation').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('observation trop longue'),
+    body('photos').optional({ nullable: true }).isArray().withMessage('photos doit être un tableau'),
+];
+const inventoryItemDeleteRules = [
+    invIdParam,
+    param('itemId').isInt({ min: 1 }).withMessage('Identifiant item invalide'),
+];
+const inventoryUpdateRules = [
+    invIdParam,
+    body('statut').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('statut invalide'),
+    body('commentaires').optional({ nullable: true }).isString().isLength({ max: 2000 }).withMessage('Commentaires trop longs'),
+];
 
 // Protect all routes
 router.use(protect);
@@ -81,13 +122,13 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // POST /api/inventories - Create new inventory header
-router.post('/', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', validate(inventoryCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const resolvedOwnerId = (req as any).resolvedOwnerId;
-        
-        const { 
-            entity_type, 
+
+        const {
+            entity_type,
             entity_id, 
             date_realisation, 
             type_inventaire,
@@ -119,7 +160,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // POST /api/inventories/:id/items - Add item(s)
-router.post('/:id/items', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/items', validate(inventoryItemCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
@@ -157,7 +198,7 @@ router.post('/:id/items', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // PUT /api/inventories/:id/items/:itemId - Update item
-router.put('/:id/items/:itemId', async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id/items/:itemId', validate(inventoryItemUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id, itemId } = req.params;
@@ -200,7 +241,7 @@ router.put('/:id/items/:itemId', async (req: AuthenticatedRequest, res: Response
 });
 
 // DELETE /api/inventories/:id/items/:itemId - Delete item
-router.delete('/:id/items/:itemId', async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id/items/:itemId', validate(inventoryItemDeleteRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id, itemId } = req.params;
@@ -222,7 +263,7 @@ router.delete('/:id/items/:itemId', async (req: AuthenticatedRequest, res: Respo
 });
 
 // PUT /api/inventories/:id - Update header/status
-router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id', validate(inventoryUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;

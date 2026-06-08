@@ -1,4 +1,5 @@
-import express from 'express';
+import express, { Response } from 'express';
+import { body, param } from 'express-validator';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
@@ -7,8 +8,32 @@ import { checkTenantLimit } from '../middleware/subscriptionLimits';
 import { AuditService } from '../services/AuditService';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import { validate } from '../middleware/validate';
 
 const router = express.Router();
+
+// Création : nom/prénoms/téléphone obligatoires (clé d'identité + dédup) ;
+// email validé en format si fourni (checkFalsy => '' traité comme absent).
+const tenantCreateRules = [
+    body('nom').notEmpty().withMessage('Le nom est obligatoire').bail().isString().isLength({ max: 150 }).withMessage('Nom trop long'),
+    body('prenoms').notEmpty().withMessage('Les prénoms sont obligatoires').bail().isString().isLength({ max: 150 }).withMessage('Prénoms trop longs'),
+    body('telephone_principal').notEmpty().withMessage('Le téléphone principal est obligatoire').bail().isString().isLength({ max: 40 }).withMessage('Téléphone invalide'),
+    body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Email invalide'),
+    body('telephone_secondaire').optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 40 }).withMessage('Téléphone secondaire invalide'),
+    body('type').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Type invalide'),
+    body('numero_piece').optional({ nullable: true }).isString().isLength({ max: 100 }).withMessage('Numéro de pièce invalide'),
+    body('paiement_echelonne').optional({ nullable: true }).isBoolean().withMessage('paiement_echelonne doit être un booléen'),
+];
+// Mise à jour : tout optionnel mais typé + format email + :id entier.
+const tenantUpdateRules = [
+    param('id').isInt({ min: 1 }).withMessage('Identifiant invalide'),
+    body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Email invalide'),
+    body('nom').optional({ nullable: true }).isString().isLength({ max: 150 }).withMessage('Nom trop long'),
+    body('prenoms').optional({ nullable: true }).isString().isLength({ max: 150 }).withMessage('Prénoms trop longs'),
+    body('telephone_principal').optional({ nullable: true }).isString().isLength({ max: 40 }).withMessage('Téléphone invalide'),
+    body('paiement_echelonne').optional({ nullable: true }).isBoolean().withMessage('paiement_echelonne doit être un booléen'),
+];
+const tenantIdParam = [param('id').isInt({ min: 1 }).withMessage('Identifiant invalide')];
 
 // [RLS] Filtrage automatique par tenant via PostgreSQL Row-Level Security
 // Anciens helpers getManagedOwnerIds et getManagedOwnerId supprimés car redondants.
@@ -133,7 +158,7 @@ router.get('/:id', protect, tenantGuard, async (req: any, res) => {
 });
 
 // POST /api/locataires - Création
-router.post('/', protect, permissions.canWrite('locataires'), checkTenantLimit, tenantGuard, async (req: any, res) => {
+router.post('/', protect, permissions.canWrite('locataires'), checkTenantLimit, tenantGuard, validate(tenantCreateRules), async (req: any, res: Response) => {
     const dbClient = (req as any).dbClient;
     const strictOwnerId = (req as any).resolvedOwnerId;
 
@@ -210,7 +235,7 @@ router.post('/', protect, permissions.canWrite('locataires'), checkTenantLimit, 
 });
 
 // PUT /api/locataires/:id - Modification
-router.put('/:id', protect, tenantGuard, async (req: any, res) => {
+router.put('/:id', protect, tenantGuard, validate(tenantUpdateRules), async (req: any, res: Response) => {
     const dbClient = (req as any).dbClient;
     const tenantId = parseInt(req.params.id, 10);
 
@@ -272,7 +297,7 @@ router.put('/:id', protect, tenantGuard, async (req: any, res) => {
 });
 
 // DELETE /api/locataires/:id - Archivage
-router.delete('/:id', protect, tenantGuard, async (req: any, res) => {
+router.delete('/:id', protect, tenantGuard, validate(tenantIdParam), async (req: any, res: Response) => {
     const dbClient = (req as any).dbClient;
     const tenantId = parseInt(req.params.id, 10);
 
@@ -302,7 +327,7 @@ router.delete('/:id', protect, tenantGuard, async (req: any, res) => {
 });
 
 // POST /api/locataires/:id/approve - Valider une demande
-router.post('/:id/approve', protect, tenantGuard, async (req: any, res) => {
+router.post('/:id/approve', protect, tenantGuard, validate(tenantIdParam), async (req: any, res: Response) => {
     const dbClient = (req as any).dbClient;
     const tenantId = parseInt(req.params.id, 10);
 
@@ -336,7 +361,7 @@ router.post('/:id/approve', protect, tenantGuard, async (req: any, res) => {
 });
 
 // POST /api/locataires/:id/reject - Refuser une demande
-router.post('/:id/reject', protect, tenantGuard, async (req: any, res) => {
+router.post('/:id/reject', protect, tenantGuard, validate(tenantIdParam), async (req: any, res: Response) => {
     const dbClient = (req as any).dbClient;
     const tenantId = parseInt(req.params.id, 10);
 
