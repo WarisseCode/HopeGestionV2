@@ -1,6 +1,8 @@
 import type { CreateLocationData } from '../api/locationApi';
 
-export const statutBadge = (statut: string): string => {
+// statut optionnel : l'impl gère déjà undefined (optional chaining + fallback),
+// et certains appelants passent un statut potentiellement absent (ex. tickets).
+export const statutBadge = (statut?: string): string => {
   const map: Record<string, string> = {
     actif:    'badge-success',
     signe:    'badge-info',
@@ -11,7 +13,7 @@ export const statutBadge = (statut: string): string => {
     ouvert:   'badge-warning',
     ferme:    'badge-neutral',
   };
-  return map[statut?.toLowerCase()] ?? 'badge-ghost';
+  return map[statut?.toLowerCase() ?? ''] ?? 'badge-ghost';
 };
 
 export const formatMontant = (n: number): string => {
