@@ -135,10 +135,12 @@ router.post('/', permissions.canWrite('finance'), tenantGuard, validate(paiement
                     }
                     
                     const updateRes = await dbClient.query(
-                        `UPDATE payment_schedules 
-                         SET amount_paid = $1, 
-                             statut = $2, 
-                             date_reglement_final = CASE WHEN $2 = 'paye' THEN CURRENT_DATE ELSE date_reglement_final END
+                        // $2::text sur la comparaison : sans le cast, $2 est déduit varchar
+                        // (colonne statut) ET text (littéral 'paye') → 42P08. Le cast tranche.
+                        `UPDATE payment_schedules
+                         SET amount_paid = $1,
+                             statut = $2,
+                             date_reglement_final = CASE WHEN $2::text = 'paye' THEN CURRENT_DATE ELSE date_reglement_final END
                          WHERE id = $3
                          RETURNING id`,
                         [newPaid, newStatus, schedule_id]
