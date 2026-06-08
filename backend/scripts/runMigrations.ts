@@ -1,7 +1,20 @@
 // backend/scripts/runMigrations.ts
-// Ce script s'exécute AUTOMATIQUEMENT au démarrage du backend (index.ts).
-// Chaque migration est idempotente : peut tourner plusieurs fois sans erreur.
-// Les migrations déjà exécutées sont tracées dans la table `migrations_log`.
+//
+// ARCHITECTURE BASE DE DONNÉES
+// ─────────────────────────────────────────────────────────────────────────────
+// Deux étapes pour un environnement complet :
+//
+//   1. backend/db/init.sql  — crée les 7 tables de base (users, buildings, lots,
+//      tenants, leases, payments, tickets).  À exécuter UNE FOIS manuellement sur
+//      une base fraîche : psql $DATABASE_URL -f backend/db/init.sql
+//
+//   2. Ce fichier (runMigrations.ts) — applique toutes les migrations incrémentales
+//      au-dessus de ces 7 tables.  S'exécute AUTOMATIQUEMENT à chaque démarrage
+//      du backend (index.ts).  Chaque migration est idempotente (IF NOT EXISTS /
+//      ON CONFLICT) et tracée dans la table `migrations_log`.
+//
+// Note : les anciens fichiers SQL de _archive/ ont été consolidés ici.
+// ─────────────────────────────────────────────────────────────────────────────
 
 import pool from '../db/database';
 
@@ -915,6 +928,352 @@ const MIGRATIONS: Migration[] = [
                     WHERE table_name = 'buildings' AND column_name = 'user_id'
                 ) THEN
                     ALTER TABLE buildings DROP COLUMN user_id;
+                END IF;
+            END $$;
+        `
+    },
+    {
+        name: '047_expenses_tables',
+        // expenses et expense_categories étaient créées par _archive/migration_finance.sql
+        // et _archive/create_finance_tables.sql — jamais intégrées dans ce runner.
+        // Sans elles, expenseRoutes, depenseRoutes, taxRoutes et FinanceService échouent.
+        // On complète aussi mobile_money_transactions avec les colonnes currency + expense_id.
+        sql: `
+            CREATE TABLE IF NOT EXISTS expenses (
+                id SERIAL PRIMARY KEY,
+                building_id INTEGER REFERENCES buildings(id) ON DELETE SET NULL,
+                lot_id INTEGER REFERENCES lots(id) ON DELETE SET NULL,
+                owner_id INTEGER REFERENCES owners(id) ON DELETE SET NULL,
+                category VARCHAR(100) NOT NULL,
+                description TEXT,
+                amount NUMERIC(15, 2) NOT NULL,
+                date_expense DATE DEFAULT CURRENT_DATE,
+                supplier_name VARCHAR(255),
+                status VARCHAR(50) DEFAULT 'paye',
+                proof_url TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_expenses_owner ON expenses(owner_id);
+            CREATE INDEX IF NOT EXISTS idx_expenses_building ON expenses(building_id);
+            CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date_expense);
+
+            CREATE TABLE IF NOT EXISTS expense_categories (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) NOT NULL UNIQUE,
+                is_deductible BOOLEAN DEFAULT TRUE,
+                description TEXT
+            );
+            INSERT INTO expense_categories (name, is_deductible) VALUES
+                ('Travaux / Entretien', true),
+                ('Assurance Immeuble', true),
+                ('Assurance PNO', true),
+                ('Taxe Foncière', true),
+                ('Frais de Gestion', true),
+                ('Frais Juridiques', true),
+                ('Frais Bancaires', true),
+                ('Eau / Electricité (Partie Commune)', true),
+                ('Gardiennage', true),
+                ('Autre', false)
+            ON CONFLICT (name) DO NOTHING;
+
+            -- Colonnes ajoutées dans create_finance_tables mais absentes du runner
+            ALTER TABLE mobile_money_transactions ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'XOF';
+            ALTER TABLE mobile_money_transactions ADD COLUMN IF NOT EXISTS expense_id INTEGER REFERENCES expenses(id) ON DELETE SET NULL;
+            ALTER TABLE mobile_money_transactions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+        `
+    },
+    {
+        name: '048_subscriptions_legacy',
+        // plans, subscriptions, subscription_payments viennent de _archive/12_create_subscriptions.sql.
+        // Les migrations 043 et 044 (déjà dans le runner) ALTER ces tables — elles échouent
+        // silencieusement sur une installation fraîche car les tables n'existent pas encore.
+        sql: `
+            CREATE TABLE IF NOT EXISTS plans (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(50) NOT NULL UNIQUE,
+                display_name VARCHAR(100),
+                price DECIMAL(12, 2) NOT NULL DEFAULT 0,
+                duration_months INTEGER DEFAULT 1,
+                max_properties INTEGER DEFAULT 5,
+                max_tenants INTEGER DEFAULT 10,
+                features JSONB DEFAULT '[]'::jsonb,
+                is_active BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            INSERT INTO plans (name, display_name, price, duration_months, max_properties, max_tenants, features) VALUES
+                ('free',       'Gratuit',         0,     0, 3,  5,  '["Gestion basique", "3 biens max", "5 locataires max"]'),
+                ('pro',        'Professionnel', 15000,   1, 20, 50, '["Gestion illimitée", "20 biens", "50 locataires", "Rapports avancés", "Support prioritaire"]'),
+                ('enterprise', 'Entreprise',    50000,   1, -1, -1, '["Biens illimités", "Locataires illimités", "API Access", "Multi-agences", "Support dédié"]')
+            ON CONFLICT (name) DO NOTHING;
+
+            CREATE TABLE IF NOT EXISTS subscriptions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                plan_id INTEGER REFERENCES plans(id) ON DELETE SET NULL,
+                status VARCHAR(50) DEFAULT 'active',
+                start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                end_date TIMESTAMP,
+                cancelled_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
+            CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
+
+            CREATE TABLE IF NOT EXISTS subscription_payments (
+                id SERIAL PRIMARY KEY,
+                subscription_id INTEGER REFERENCES subscriptions(id) ON DELETE CASCADE,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                plan_id INTEGER REFERENCES plans(id) ON DELETE SET NULL,
+                amount DECIMAL(12, 2) NOT NULL,
+                operator VARCHAR(50),
+                phone_number VARCHAR(30),
+                transaction_reference VARCHAR(100),
+                status VARCHAR(50) DEFAULT 'pending',
+                payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_subscription_payments_user ON subscription_payments(user_id);
+
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'current_plan_id') THEN
+                    ALTER TABLE users ADD COLUMN current_plan_id INTEGER REFERENCES plans(id) DEFAULT 1;
+                END IF;
+            END $$;
+
+            -- Index unique partiel requis par migration 043 (webhook FedaPay)
+            CREATE UNIQUE INDEX IF NOT EXISTS unique_active_subscription_per_user
+            ON subscriptions(user_id)
+            WHERE status IN ('active', 'pending_payment');
+        `
+    },
+    {
+        name: '049_edl_tables',
+        // Tables du module État des Lieux — de _archive/create_edl_tables.sql.
+        // Correction : la FK d'origine pointait sur 'baux' (ancien nom) → remplacée par 'leases'.
+        sql: `
+            CREATE TABLE IF NOT EXISTS edl_inspections (
+                id SERIAL PRIMARY KEY,
+                ref_edl VARCHAR(50) UNIQUE NOT NULL,
+                lot_id INTEGER REFERENCES lots(id) ON DELETE CASCADE,
+                location_id INTEGER REFERENCES leases(id) ON DELETE SET NULL,
+                type_edl VARCHAR(20) NOT NULL CHECK (type_edl IN ('entree', 'sortie', 'intermediaire')),
+                date_realisation TIMESTAMP NOT NULL DEFAULT NOW(),
+                agent_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                agent_name VARCHAR(255),
+                locataire_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                locataire_name VARCHAR(255),
+                locataire_present BOOLEAN DEFAULT true,
+                statut VARCHAR(20) DEFAULT 'brouillon' CHECK (statut IN ('brouillon', 'signe', 'cloture', 'archive')),
+                commentaires TEXT,
+                signatures_json JSONB DEFAULT '{}'::jsonb,
+                parent_edl_id INTEGER REFERENCES edl_inspections(id) ON DELETE SET NULL,
+                validated_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_edl_lot ON edl_inspections(lot_id);
+            CREATE INDEX IF NOT EXISTS idx_edl_location ON edl_inspections(location_id);
+            CREATE INDEX IF NOT EXISTS idx_edl_type ON edl_inspections(type_edl);
+            CREATE INDEX IF NOT EXISTS idx_edl_statut ON edl_inspections(statut);
+            CREATE INDEX IF NOT EXISTS idx_edl_parent ON edl_inspections(parent_edl_id);
+
+            CREATE TABLE IF NOT EXISTS edl_items (
+                id SERIAL PRIMARY KEY,
+                edl_id INTEGER REFERENCES edl_inspections(id) ON DELETE CASCADE,
+                inventory_item_id INTEGER,
+                piece VARCHAR(100) NOT NULL,
+                categorie VARCHAR(100),
+                nom VARCHAR(255) NOT NULL,
+                description TEXT,
+                etat VARCHAR(20) NOT NULL CHECK (etat IN ('neuf', 'bon', 'usager', 'mauvais', 'hs')),
+                quantite INTEGER DEFAULT 1,
+                observation TEXT,
+                photos JSONB DEFAULT '[]'::jsonb,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_edl_items_edl ON edl_items(edl_id);
+            CREATE INDEX IF NOT EXISTS idx_edl_items_piece ON edl_items(piece);
+
+            CREATE SEQUENCE IF NOT EXISTS edl_ref_seq START 1;
+
+            CREATE OR REPLACE FUNCTION update_edl_updated_at()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                NEW.updated_at = NOW();
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+
+            DROP TRIGGER IF EXISTS trigger_edl_inspections_updated_at ON edl_inspections;
+            CREATE TRIGGER trigger_edl_inspections_updated_at
+                BEFORE UPDATE ON edl_inspections
+                FOR EACH ROW EXECUTE FUNCTION update_edl_updated_at();
+
+            DROP TRIGGER IF EXISTS trigger_edl_items_updated_at ON edl_items;
+            CREATE TRIGGER trigger_edl_items_updated_at
+                BEFORE UPDATE ON edl_items
+                FOR EACH ROW EXECUTE FUNCTION update_edl_updated_at();
+        `
+    },
+    {
+        name: '050_loans_tax_tables',
+        // loans, loan_payments, tax_settings — de _archive/create_finance_tables.sql.
+        // Utilisées par loanRoutes.ts et taxRoutes.ts.
+        sql: `
+            CREATE TABLE IF NOT EXISTS loans (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                amount NUMERIC(15, 2) NOT NULL,
+                interest_rate NUMERIC(5, 2),
+                duration_months INTEGER NOT NULL,
+                start_date DATE NOT NULL,
+                end_date DATE,
+                monthly_payment NUMERIC(15, 2),
+                payment_day INTEGER DEFAULT 5,
+                owner_id INTEGER REFERENCES owners(id) ON DELETE SET NULL,
+                building_id INTEGER REFERENCES buildings(id) ON DELETE SET NULL,
+                status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'paid', 'cancelled')),
+                description TEXT,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_loans_owner ON loans(owner_id);
+
+            CREATE TABLE IF NOT EXISTS loan_payments (
+                id SERIAL PRIMARY KEY,
+                loan_id INTEGER REFERENCES loans(id) ON DELETE CASCADE,
+                due_date DATE NOT NULL,
+                payment_date DATE,
+                amount_total NUMERIC(15, 2) NOT NULL,
+                amount_principal NUMERIC(15, 2),
+                amount_interest NUMERIC(15, 2),
+                amount_insurance NUMERIC(15, 2) DEFAULT 0,
+                status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'late', 'missed')),
+                transaction_ref VARCHAR(100),
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_loan_payments_loan ON loan_payments(loan_id);
+            CREATE INDEX IF NOT EXISTS idx_loan_payments_status ON loan_payments(status);
+            CREATE INDEX IF NOT EXISTS idx_loan_payments_date ON loan_payments(due_date);
+
+            CREATE TABLE IF NOT EXISTS tax_settings (
+                id SERIAL PRIMARY KEY,
+                owner_id INTEGER REFERENCES owners(id) ON DELETE CASCADE,
+                country VARCHAR(100) DEFAULT 'Côte d''Ivoire',
+                fiscal_regime VARCHAR(100),
+                tax_rate NUMERIC(5, 2),
+                vat_subject BOOLEAN DEFAULT FALSE,
+                rental_tax_rate NUMERIC(5, 2) DEFAULT 0,
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        `
+    },
+    {
+        name: '051_calendar_tables',
+        // calendar_events et reminder_settings — de _archive/create_calendar_tables.sql.
+        // Utilisées par calendarRoutes.ts et CronService.ts.
+        sql: `
+            CREATE TABLE IF NOT EXISTS calendar_events (
+                id SERIAL PRIMARY KEY,
+                user_id INT NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                start_date TIMESTAMP NOT NULL,
+                end_date TIMESTAMP,
+                type VARCHAR(50) DEFAULT 'event',
+                entity_type VARCHAR(50),
+                entity_id INT,
+                is_all_day BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_calendar_events_user ON calendar_events(user_id);
+            CREATE INDEX IF NOT EXISTS idx_calendar_events_type ON calendar_events(type);
+            CREATE INDEX IF NOT EXISTS idx_calendar_events_start ON calendar_events(start_date);
+
+            CREATE TABLE IF NOT EXISTS reminder_settings (
+                id SERIAL PRIMARY KEY,
+                user_id INT NOT NULL,
+                event_type VARCHAR(50) NOT NULL,
+                delay_days INT NOT NULL,
+                channel VARCHAR(20) NOT NULL,
+                active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `
+    },
+    {
+        name: '052_providers_service_contracts',
+        // providers, service_contracts — de _archive/create_intervention_tables.sql.
+        // Utilisées par providerRoutes.ts et serviceContractRoutes.ts.
+        // Ajoute aussi les colonnes manquantes sur tickets (category, provider_id, urgency, etc.)
+        sql: `
+            CREATE TABLE IF NOT EXISTS providers (
+                id SERIAL PRIMARY KEY,
+                owner_id INT DEFAULT NULL,
+                name VARCHAR(255) NOT NULL,
+                specialty VARCHAR(100),
+                contact_name VARCHAR(255),
+                phone VARCHAR(50),
+                email VARCHAR(255),
+                address TEXT,
+                status VARCHAR(50) DEFAULT 'active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_providers_owner ON providers(owner_id);
+            CREATE INDEX IF NOT EXISTS idx_providers_status ON providers(status);
+
+            CREATE TABLE IF NOT EXISTS service_contracts (
+                id SERIAL PRIMARY KEY,
+                provider_id INT REFERENCES providers(id) ON DELETE SET NULL,
+                owner_id INT,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                cost_monthly DECIMAL(10, 2) DEFAULT 0,
+                start_date DATE,
+                end_date DATE,
+                status VARCHAR(50) DEFAULT 'active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tickets' AND column_name='category') THEN
+                    ALTER TABLE tickets ADD COLUMN category VARCHAR(100);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tickets' AND column_name='provider_id') THEN
+                    ALTER TABLE tickets ADD COLUMN provider_id INT REFERENCES providers(id) ON DELETE SET NULL;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tickets' AND column_name='cost_estimated') THEN
+                    ALTER TABLE tickets ADD COLUMN cost_estimated DECIMAL(10, 2) DEFAULT 0;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tickets' AND column_name='cost_real') THEN
+                    ALTER TABLE tickets ADD COLUMN cost_real DECIMAL(10, 2) DEFAULT 0;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tickets' AND column_name='photos_before') THEN
+                    ALTER TABLE tickets ADD COLUMN photos_before JSONB DEFAULT '[]'::jsonb;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tickets' AND column_name='photos_after') THEN
+                    ALTER TABLE tickets ADD COLUMN photos_after JSONB DEFAULT '[]'::jsonb;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tickets' AND column_name='urgency') THEN
+                    ALTER TABLE tickets ADD COLUMN urgency VARCHAR(50) DEFAULT 'normal';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tickets' AND column_name='requester_name') THEN
+                    ALTER TABLE tickets ADD COLUMN requester_name VARCHAR(255);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tickets' AND column_name='requester_phone') THEN
+                    ALTER TABLE tickets ADD COLUMN requester_phone VARCHAR(50);
                 END IF;
             END $$;
         `
