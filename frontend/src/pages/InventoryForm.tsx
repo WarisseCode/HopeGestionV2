@@ -94,11 +94,13 @@ const InventoryForm: React.FC = () => {
   useEffect(() => {
     const token = getToken();
     const headers = { Authorization: `Bearer ${token}` };
+    // Les routes biens sont montées sous /api/biens et renvoient un objet enveloppe
+    // ({ immeubles } / { lots }), d'où le déballage ci-dessous vers des tableaux.
     Promise.all([
-      fetch(`${API_URL}/buildings`, { headers }).then(r => r.ok ? r.json() : []),
-      fetch(`${API_URL}/lots`,      { headers }).then(r => r.ok ? r.json() : []),
+      fetch(`${API_URL}/biens/immeubles`, { headers }).then(r => r.ok ? r.json() : {}),
+      fetch(`${API_URL}/biens/lots`,      { headers }).then(r => r.ok ? r.json() : {}),
     ])
-      .then(([b, l]) => { setBuildings(b); setLots(l); })
+      .then(([b, l]: [any, any]) => { setBuildings(b.immeubles || []); setLots(l.lots || []); })
       .catch(() => {})
       .finally(() => setLoadingEntities(false));
   }, []);
