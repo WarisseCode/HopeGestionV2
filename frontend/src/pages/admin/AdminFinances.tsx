@@ -19,7 +19,7 @@ import {
 } from 'recharts';
 import { motion } from 'framer-motion';
 import { API_URL } from '../../config';
-import { getToken } from '../../api/authApi';
+import { apiCall } from '../../utils/apiUtils';
 
 interface FinanceData {
   revenue: { total: number; volume: number };
@@ -34,14 +34,8 @@ const AdminFinances: React.FC = () => {
   const fetchFinances = async () => {
     setLoading(true);
     try {
-      const token = getToken();
-      const response = await fetch(`${API_URL}/admin/finances`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setFinances(data);
-      }
+      const data = await apiCall<FinanceData>(`${API_URL}/admin/finances`);
+      setFinances(data);
     } catch (error) {
       console.error('Error fetching finances:', error);
     } finally {

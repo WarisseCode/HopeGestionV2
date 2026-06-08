@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { API_URL } from '../../config';
-import { getToken } from '../../api/authApi';
+import { apiCall } from '../../utils/apiUtils';
 
 interface Agency {
   id: number;
@@ -42,18 +42,11 @@ const AdminAgencies: React.FC = () => {
   const loadAgencies = async () => {
     setLoading(true);
     try {
-      const token = getToken();
-      const response = await fetch(`${API_URL}/admin/agencies`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAgencies(data.agencies || []);
-      } else {
-        setAgencies([]);
-      }
+      const data = await apiCall<{ agencies: Agency[] }>(`${API_URL}/admin/agencies`);
+      setAgencies(data.agencies || []);
     } catch (error) {
       console.error('Error loading agencies:', error);
+      setAgencies([]);
     } finally {
       setLoading(false);
     }

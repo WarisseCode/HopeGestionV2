@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { API_URL } from '../../config';
-import { getToken } from '../../api/authApi';
+import { apiCall } from '../../utils/apiUtils';
 import toast from 'react-hot-toast';
 
 interface PlatformSettings {
@@ -60,16 +60,10 @@ const AdminSettings: React.FC = () => {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const token = getToken();
-      const response = await fetch(`${API_URL}/admin/settings`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.platform) setPlatform(data.platform);
-        if (data.email) setEmail(data.email);
-        if (data.system) setSystem(data.system);
-      }
+      const data = await apiCall<{ platform?: PlatformSettings; email?: EmailConfig; system?: SystemInfo }>(`${API_URL}/admin/settings`);
+      if (data.platform) setPlatform(data.platform);
+      if (data.email) setEmail(data.email);
+      if (data.system) setSystem(data.system);
     } catch (error) {
       console.error('Error fetching settings:', error);
     } finally {
@@ -82,10 +76,8 @@ const AdminSettings: React.FC = () => {
   const saveSettings = async () => {
     setSaving(true);
     try {
-      const token = getToken();
-      const response = await fetch(`${API_URL}/admin/settings`, {
+      const data = await apiCall<{ message: string }>(`${API_URL}/admin/settings`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           settings: {
             platform_name: platform.name,
@@ -98,14 +90,9 @@ const AdminSettings: React.FC = () => {
           }
         }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        toast.success(data.message);
-      } else {
-        toast.error(data.message || 'Erreur');
-      }
-    } catch (error) {
-      toast.error('Erreur réseau');
+      toast.success(data.message);
+    } catch (error: any) {
+      toast.error(error.message || 'Erreur réseau');
     } finally {
       setSaving(false);
     }

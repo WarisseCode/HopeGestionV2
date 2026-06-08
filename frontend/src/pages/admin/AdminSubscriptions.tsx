@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_URL } from '../../config';
-import { getToken } from '../../api/authApi';
+import { apiCall } from '../../utils/apiUtils';
 import toast from 'react-hot-toast';
 
 interface Plan {
@@ -70,16 +70,10 @@ const AdminSubscriptions: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const token = getToken();
-      const response = await fetch(`${API_URL}/admin/subscriptions`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setPlans(data.plans || []);
-        setSubscriptions(data.subscriptions || []);
-        setStats(data.stats || []);
-      }
+      const data = await apiCall<{ plans: Plan[]; subscriptions: Subscription[]; stats: any[] }>(`${API_URL}/admin/subscriptions`);
+      setPlans(data.plans || []);
+      setSubscriptions(data.subscriptions || []);
+      setStats(data.stats || []);
     } catch (error) {
       console.error('Error fetching subscriptions:', error);
     } finally {
@@ -101,43 +95,29 @@ const AdminSubscriptions: React.FC = () => {
     }
 
     try {
-      const token = getToken();
-      const response = await fetch(`${API_URL}/admin/subscriptions/assign`, {
+      const data = await apiCall<{ message: string }>(`${API_URL}/admin/subscriptions/assign`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: parseInt(assignUserId), planId: parseInt(assignPlanId) }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        toast.success(data.message);
-        setShowAssignModal(false);
-        setAssignUserId('');
-        setAssignPlanId('');
-        fetchData();
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      toast.error('Erreur réseau');
+      toast.success(data.message);
+      setShowAssignModal(false);
+      setAssignUserId('');
+      setAssignPlanId('');
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || 'Erreur réseau');
     }
   };
 
   const handleCancel = async (subId: number) => {
     if (!confirm('Annuler cet abonnement ?')) return;
     try {
-      const token = getToken();
-      const response = await fetch(`${API_URL}/admin/subscriptions/${subId}/cancel`, {
+      const data = await apiCall<{ message: string }>(`${API_URL}/admin/subscriptions/${subId}/cancel`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
       });
-      const data = await response.json();
-      if (response.ok) {
-        toast.success(data.message);
-        fetchData();
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
+      toast.success(data.message);
+      fetchData();
+    } catch (error: any) {
       toast.error('Erreur réseau');
     }
   };
