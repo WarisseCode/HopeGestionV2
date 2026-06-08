@@ -1,17 +1,11 @@
 // frontend/src/pages/admin/AdminUsers.tsx
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Search, 
-  UserPlus, 
-  ShieldCheck, 
-  UserX, 
-  KeyRound, 
+import React, { useState, useEffect } from 'react';
+import {
+  Search,
+  ShieldCheck,
+  UserX,
   Trash2,
-  Filter,
-  Download,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
   MoreHorizontal,
   CheckCircle,
   XCircle,
@@ -25,8 +19,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_URL } from '../../config';
-import { getToken } from '../../api/authApi';
+import { apiCall } from '../../utils/apiUtils';
 import toast from 'react-hot-toast';
+import Table, { type Column } from '../../components/ui/Table';
 
 interface User {
   id: number;
@@ -43,8 +38,6 @@ interface User {
   avatar_url?: string;
   is_guest?: boolean;
 }
-
-const ITEMS_PER_PAGE = 12;
 
 const ROLE_CONFIG: Record<string, { label: string; color: string }> = {
   admin: { label: 'Admin', color: 'badge-error' },
@@ -65,7 +58,6 @@ const AdminUsers: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [verifiedFilter, setVerifiedFilter] = useState('all');
   const [providerFilter, setProviderFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [actionMenuId, setActionMenuId] = useState<number | null>(null);
@@ -75,7 +67,6 @@ const AdminUsers: React.FC = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const token = getToken();
       const params = new URLSearchParams();
       if (searchQuery) params.set('search', searchQuery);
       if (roleFilter !== 'all') params.set('role', roleFilter);
@@ -83,14 +74,9 @@ const AdminUsers: React.FC = () => {
       if (verifiedFilter !== 'all') params.set('verified', verifiedFilter);
       if (providerFilter !== 'all') params.set('provider', providerFilter);
 
-      const response = await fetch(`${API_URL}/admin/users?${params}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users || []);
-        setTotal(data.total || 0);
-      }
+      const data = await apiCall<{ users: any[]; total: number }>(`${API_URL}/admin/users?${params}`);
+      setUsers(data.users || []);
+      setTotal(data.total || 0);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Erreur lors du chargement des utilisateurs');
@@ -101,31 +87,17 @@ const AdminUsers: React.FC = () => {
 
   useEffect(() => { fetchUsers(); }, [searchQuery, roleFilter, statusFilter, verifiedFilter, providerFilter]);
 
-  const paginatedUsers = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return users.slice(start, start + ITEMS_PER_PAGE);
-  }, [users, currentPage]);
-
-  const totalPages = Math.ceil(users.length / ITEMS_PER_PAGE);
-
   const executeAction = async (userId: number, action: string, value?: string) => {
     try {
-      const token = getToken();
-      const response = await fetch(`${API_URL}/admin/users/${userId}/action`, {
+      const data = await apiCall<{ message: string }>(`${API_URL}/admin/users/${userId}/action`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, value }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        toast.success(data.message);
-        fetchUsers();
-        setActionMenuId(null);
-      } else {
-        toast.error(data.message || 'Erreur');
-      }
-    } catch (error) {
-      toast.error('Erreur réseau');
+      toast.success(data.message);
+      fetchUsers();
+      setActionMenuId(null);
+    } catch (error: any) {
+      toast.error(error.message || 'Erreur réseau');
     }
   };
 
@@ -146,6 +118,136 @@ const AdminUsers: React.FC = () => {
     if (provider === 'google') return <span aria-label="Google"><Globe size={14} className="text-teal-500" /></span>;
     return <span aria-label="Email"><Mail size={14} className="text-base-content/60" /></span>;
   };
+
+  // Colonnes du tableau utilisateurs. Le composant Table gère skeleton, état vide,
+  // tri (via sortAccessor) et pagination client (pageSize) — la page ne décrit
+  // plus que le rendu de chaque cellule + sa logique d'action.
+  const columns: Column<User>[] = [
+    {
+      key: 'id', header: 'ID', width: 'w-12',
+      className: 'text-xs font-mono text-base-content/40',
+      sortAccessor: (u) => u.id,
+      render: (u) => `#${u.id}`,
+    },
+    {
+      key: 'user', header: 'Utilisateur',
+      sortAccessor: (u) => u.nom ?? '',
+      render: (u) => (
+        <div className="flex items-center gap-3">
+          <div className="avatar placeholder">
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold
+              ${u.statut === 'actif' ? 'bg-primary/10 text-primary' : 'bg-base-300 text-base-content/60'}`}>
+              {u.avatar_url ? (
+                <img src={u.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
+              ) : (
+                u.nom?.substring(0, 2).toUpperCase() || '??'
+              )}
+            </div>
+          </div>
+          <div>
+            <p className="font-medium text-sm leading-tight">{u.nom || 'Sans nom'}</p>
+            <p className="text-xs text-base-content/50 truncate max-w-[200px]">{u.email}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'role', header: 'Rôle',
+      sortAccessor: (u) => u.role,
+      render: (u) => getRoleBadge(u.role),
+    },
+    {
+      key: 'statut', header: 'Statut',
+      sortAccessor: (u) => u.statut,
+      render: (u) => (
+        <span className={`badge badge-sm font-medium ${u.statut === 'actif' ? 'badge-success' : 'badge-error'}`}>
+          {u.statut === 'actif' ? 'Actif' : 'Suspendu'}
+        </span>
+      ),
+    },
+    {
+      key: 'verified', header: 'Vérifié',
+      sortAccessor: (u) => (u.is_verified ? 1 : 0),
+      render: (u) => u.is_verified
+        ? <CheckCircle size={18} className="text-emerald-500" />
+        : <XCircle size={18} className="text-red-400/50" />,
+    },
+    {
+      key: 'provider', header: 'Provider',
+      render: (u) => getProviderIcon(u.auth_provider),
+    },
+    {
+      key: 'created', header: 'Inscrit le',
+      className: 'text-xs text-base-content/60',
+      sortAccessor: (u) => new Date(u.created_at),
+      render: (u) => new Date(u.created_at).toLocaleDateString('fr-FR'),
+    },
+    {
+      key: 'actions', header: 'Actions', align: 'right',
+      className: 'relative', // ancre le menu dropdown positionné en absolute
+      render: (u) => (
+        <div className="dropdown dropdown-end">
+          <button
+            type="button"
+            onClick={() => setActionMenuId(actionMenuId === u.id ? null : u.id)}
+            className="btn btn-ghost btn-xs btn-square"
+            aria-label={`Actions pour ${u.nom || 'utilisateur'}`}
+          >
+            <MoreHorizontal size={16} />
+          </button>
+          {actionMenuId === u.id && (
+            <ul className="dropdown-content z-50 menu p-2 shadow-lg bg-base-100 rounded-xl w-56 border border-base-200 absolute right-0 top-8">
+              <li>
+                <button type="button" onClick={() => { setSelectedUser(u); setShowDetails(true); setActionMenuId(null); }}>
+                  <Eye size={14} /> Voir détails
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => { setShowRoleModal(u); setNewRole(u.role); setActionMenuId(null); }}>
+                  <Shield size={14} /> Changer le rôle
+                </button>
+              </li>
+              <div className="divider my-1" />
+              {u.is_verified ? (
+                <li>
+                  <button type="button" onClick={() => executeAction(u.id, 'unverify')} className="text-warning">
+                    <XCircle size={14} /> Retirer vérification
+                  </button>
+                </li>
+              ) : (
+                <li>
+                  <button type="button" onClick={() => executeAction(u.id, 'verify')} className="text-success">
+                    <CheckCircle size={14} /> Vérifier manuellement
+                  </button>
+                </li>
+              )}
+              {u.statut === 'actif' ? (
+                <li>
+                  <button type="button" onClick={() => executeAction(u.id, 'suspend')} className="text-warning">
+                    <UserX size={14} /> Suspendre
+                  </button>
+                </li>
+              ) : (
+                <li>
+                  <button type="button" onClick={() => executeAction(u.id, 'reactivate')} className="text-success">
+                    <ShieldCheck size={14} /> Réactiver
+                  </button>
+                </li>
+              )}
+              <div className="divider my-1" />
+              <li>
+                <button type="button" onClick={() => {
+                  if (confirm(`Supprimer définitivement ${u.nom} ?`)) executeAction(u.id, 'delete');
+                }} className="text-error">
+                  <Trash2 size={14} /> Supprimer
+                </button>
+              </li>
+            </ul>
+          )}
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -172,7 +274,7 @@ const AdminUsers: React.FC = () => {
               type="text"
               placeholder="Rechercher par nom, email, téléphone..."
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="input input-bordered input-sm w-full pl-9"
             />
           </div>
@@ -181,7 +283,7 @@ const AdminUsers: React.FC = () => {
           <select 
             className="select select-bordered select-sm"
             value={roleFilter}
-            onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => setRoleFilter(e.target.value)}
           >
             <option value="all">Tous les rôles</option>
             <option value="admin">Admin</option>
@@ -195,7 +297,7 @@ const AdminUsers: React.FC = () => {
           <select 
             className="select select-bordered select-sm"
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="all">Tous statuts</option>
             <option value="actif">Actif</option>
@@ -206,7 +308,7 @@ const AdminUsers: React.FC = () => {
           <select 
             className="select select-bordered select-sm"
             value={verifiedFilter}
-            onChange={(e) => { setVerifiedFilter(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => setVerifiedFilter(e.target.value)}
           >
             <option value="all">Vérification</option>
             <option value="true">✅ Vérifié</option>
@@ -217,7 +319,7 @@ const AdminUsers: React.FC = () => {
           <select 
             className="select select-bordered select-sm"
             value={providerFilter}
-            onChange={(e) => { setProviderFilter(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => setProviderFilter(e.target.value)}
           >
             <option value="all">Tous providers</option>
             <option value="local">📧 Email</option>
@@ -226,203 +328,16 @@ const AdminUsers: React.FC = () => {
         </div>
       </div>
 
-      {/* Users Table */}
-      <div className="bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="table w-full">
-            <thead>
-              <tr className="text-xs uppercase tracking-wider">
-                <th className="w-12">ID</th>
-                <th>Utilisateur</th>
-                <th>Rôle</th>
-                <th>Statut</th>
-                <th>Vérifié</th>
-                <th>Provider</th>
-                <th>Inscrit le</th>
-                <th className="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}>
-                    <td colSpan={8}><div className="h-10 bg-base-200 rounded animate-pulse" /></td>
-                  </tr>
-                ))
-              ) : paginatedUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-12 text-base-content/60">
-                    Aucun utilisateur trouvé
-                  </td>
-                </tr>
-              ) : (
-                paginatedUsers.map((user, index) => (
-                  <motion.tr
-                    key={user.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: index * 0.02 }}
-                    className="hover:bg-base-200/50 transition-colors"
-                  >
-                    {/* ID */}
-                    <td className="text-xs font-mono text-base-content/40">#{user.id}</td>
-
-                    {/* User Info */}
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <div className="avatar placeholder">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold
-                            ${user.statut === 'actif' ? 'bg-primary/10 text-primary' : 'bg-base-300 text-base-content/60'}`}>
-                            {user.avatar_url ? (
-                              <img src={user.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
-                            ) : (
-                              user.nom?.substring(0, 2).toUpperCase() || '??'
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm leading-tight">{user.nom || 'Sans nom'}</p>
-                          <p className="text-xs text-base-content/50 truncate max-w-[200px]">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Role */}
-                    <td>{getRoleBadge(user.role)}</td>
-
-                    {/* Status */}
-                    <td>
-                      <span className={`badge badge-sm font-medium ${
-                        user.statut === 'actif' ? 'badge-success' : 'badge-error'
-                      }`}>
-                        {user.statut === 'actif' ? 'Actif' : 'Suspendu'}
-                      </span>
-                    </td>
-
-                    {/* Verified */}
-                    <td>
-                      {user.is_verified ? (
-                        <CheckCircle size={18} className="text-emerald-500" />
-                      ) : (
-                        <XCircle size={18} className="text-red-400/50" />
-                      )}
-                    </td>
-
-                    {/* Provider */}
-                    <td>{getProviderIcon(user.auth_provider)}</td>
-
-                    {/* Date */}
-                    <td className="text-xs text-base-content/60">
-                      {new Date(user.created_at).toLocaleDateString('fr-FR')}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="text-right relative">
-                      <div className="dropdown dropdown-end">
-                        <button 
-                          onClick={() => setActionMenuId(actionMenuId === user.id ? null : user.id)}
-                          className="btn btn-ghost btn-xs btn-square"
-                        >
-                          <MoreHorizontal size={16} />
-                        </button>
-                        {actionMenuId === user.id && (
-                          <ul className="dropdown-content z-50 menu p-2 shadow-lg bg-base-100 rounded-xl w-56 border border-base-200 absolute right-0 top-8">
-                            <li>
-                              <button onClick={() => { setSelectedUser(user); setShowDetails(true); setActionMenuId(null); }}>
-                                <Eye size={14} /> Voir détails
-                              </button>
-                            </li>
-                            <li>
-                              <button onClick={() => { setShowRoleModal(user); setNewRole(user.role); setActionMenuId(null); }}>
-                                <Shield size={14} /> Changer le rôle
-                              </button>
-                            </li>
-                            <div className="divider my-1" />
-                            {user.is_verified ? (
-                              <li>
-                                <button onClick={() => executeAction(user.id, 'unverify')} className="text-warning">
-                                  <XCircle size={14} /> Retirer vérification
-                                </button>
-                              </li>
-                            ) : (
-                              <li>
-                                <button onClick={() => executeAction(user.id, 'verify')} className="text-success">
-                                  <CheckCircle size={14} /> Vérifier manuellement
-                                </button>
-                              </li>
-                            )}
-                            {user.statut === 'actif' ? (
-                              <li>
-                                <button onClick={() => executeAction(user.id, 'suspend')} className="text-warning">
-                                  <UserX size={14} /> Suspendre
-                                </button>
-                              </li>
-                            ) : (
-                              <li>
-                                <button onClick={() => executeAction(user.id, 'reactivate')} className="text-success">
-                                  <ShieldCheck size={14} /> Réactiver
-                                </button>
-                              </li>
-                            )}
-                            <div className="divider my-1" />
-                            <li>
-                              <button onClick={() => { 
-                                if (confirm(`Supprimer définitivement ${user.nom} ?`)) executeAction(user.id, 'delete');
-                              }} className="text-error">
-                                <Trash2 size={14} /> Supprimer
-                              </button>
-                            </li>
-                          </ul>
-                        )}
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-base-200">
-            <p className="text-sm text-base-content/50">
-              {users.length} résultats • Page {currentPage}/{totalPages}
-            </p>
-            <div className="flex gap-1">
-              <button 
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="btn btn-sm btn-ghost"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                const page = currentPage <= 3 ? i + 1 
-                  : currentPage >= totalPages - 2 ? totalPages - 4 + i 
-                  : currentPage - 2 + i;
-                if (page < 1 || page > totalPages) return null;
-                return (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`btn btn-sm ${currentPage === page ? 'btn-primary' : 'btn-ghost'}`}
-                  >
-                    {page}
-                  </button>
-                );
-              })}
-              <button 
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="btn btn-sm btn-ghost"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Users Table — skeleton, état vide, tri et pagination gérés par <Table> */}
+      <Table<User>
+        columns={columns}
+        data={users}
+        rowKey={(u) => u.id}
+        loading={loading}
+        pageSize={12}
+        emptyMessage="Aucun utilisateur trouvé"
+        defaultSort={{ key: 'created', direction: 'desc' }}
+      />
 
       {/* User Detail Modal */}
       <AnimatePresence>
