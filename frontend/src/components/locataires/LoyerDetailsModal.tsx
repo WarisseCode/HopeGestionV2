@@ -13,7 +13,12 @@ interface Props {
   onClose: () => void;
 }
 
-const formatF = (n?: number) => (n != null ? `${n.toLocaleString()} F` : '-');
+// PostgreSQL renvoie les numeric en chaîne → on convertit avant tout calcul/affichage,
+// sinon « 0 + "45000" » concatène au lieu d'additionner.
+const formatF = (n?: number | string) => {
+  const v = Number(n);
+  return Number.isFinite(v) && n != null && n !== '' ? `${v.toLocaleString()} F` : '-';
+};
 const formatDate = (d?: string) =>
   d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
@@ -43,7 +48,7 @@ const LoyerDetailsModal: React.FC<Props> = ({ locataireId, locataireName, isOpen
 
   // Agrégats affichés dans l'en-tête (recalculés côté client à partir des baux actifs)
   const actifs = baux.filter((b) => b.statut === 'actif');
-  const loyerTotal = actifs.reduce((sum, b) => sum + (b.loyer_actuel || 0), 0);
+  const loyerTotal = actifs.reduce((sum, b) => sum + (Number(b.loyer_actuel) || 0), 0);
   const paidCount = actifs.filter((b) => b.payment_status === 'paid').length;
 
   return (

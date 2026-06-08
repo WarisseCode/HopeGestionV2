@@ -39,11 +39,15 @@ const LocataireCard: React.FC<Props> = ({ person, onWhatsApp, onCall, onView }) 
   const paymentStatus = getPaymentStatus(person);
   const loyer = person.loyer_actuel || person.loyer;
 
+  // Postgres renvoie COUNT/numeric en chaîne → on convertit, sinon les comparaisons
+  // et additions ci-dessous se font sur des strings (lexicographique / concaténation).
+  const activeLeases = Number(person.active_leases ?? 0);
+  const leasesPaid = Number(person.leases_paid ?? 0);
   // multi = plusieurs baux actifs → on bascule sur l'affichage agrégé.
-  const multi = (person.active_leases ?? 0) > 1;
-  const hasLodging = (person.active_leases ?? 0) > 0 || !!loyer;
-  const loyerAffiche = multi ? person.loyer_total : loyer;
-  const tousAJour = (person.leases_paid ?? 0) >= (person.active_leases ?? 0);
+  const multi = activeLeases > 1;
+  const hasLodging = activeLeases > 0 || !!loyer;
+  const loyerAffiche = Number(multi ? person.loyer_total : loyer) || 0;
+  const tousAJour = leasesPaid >= activeLeases;
 
   const openModal = () => setModalOpen(true);
 
@@ -87,7 +91,7 @@ const LocataireCard: React.FC<Props> = ({ person, onWhatsApp, onCall, onView }) 
             <Home size={14} /> {multi ? 'Logements' : 'Logement'}
           </span>
           <span className="font-semibold text-base-content/90 flex items-center gap-1">
-            {multi ? `${person.active_leases} logements` : (person.lot_nom || person.lot || '-')}
+            {multi ? `${activeLeases} logements` : (person.lot_nom || person.lot || '-')}
             {hasLodging && <ChevronRight size={14} className="text-base-content/30" />}
           </span>
         </CardRow>
@@ -112,7 +116,7 @@ const LocataireCard: React.FC<Props> = ({ person, onWhatsApp, onCall, onView }) 
                 <span className={`text-xs font-bold px-2 py-1 rounded-full ${
                   tousAJour ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
                 }`}>
-                  {person.leases_paid ?? 0}/{person.active_leases} à jour
+                  {leasesPaid}/{activeLeases} à jour
                 </span>
               ) : (
                 <PaymentStatusBadge status={paymentStatus} />
