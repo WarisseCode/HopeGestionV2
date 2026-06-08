@@ -1,9 +1,27 @@
-import express from 'express';
+import express, { Response } from 'express';
+import { body, param } from 'express-validator';
 import pool from '../db/database';
 import { protect } from '../middleware/authMiddleware';
+import { validate } from '../middleware/validate';
 import { addMonths, startOfMonth, setDate, isAfter, isBefore, parseISO, max, min } from 'date-fns';
 
 const router = express.Router();
+
+const eventCreateRules = [
+    body('title').notEmpty().withMessage('Le titre est obligatoire').bail().isString().isLength({ max: 200 }).withMessage('Titre trop long'),
+    body('start_date').notEmpty().withMessage('La date de début est obligatoire').bail().isISO8601().withMessage('Date invalide (ISO 8601)'),
+    body('end_date').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('Date de fin invalide'),
+    body('description').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('Description trop longue'),
+    body('type').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Type invalide'),
+    body('is_all_day').optional({ nullable: true }).isBoolean().withMessage('is_all_day doit être un booléen'),
+];
+const eventIdParam = [param('id').isInt({ min: 1 }).withMessage('Identifiant invalide')];
+const reminderSettingsRules = [
+    body('event_type').notEmpty().withMessage('event_type est obligatoire').bail().isString().isLength({ max: 50 }).withMessage('event_type invalide'),
+    body('delay_days').optional({ nullable: true }).isInt({ min: 0 }).withMessage('delay_days invalide'),
+    body('channel').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Canal invalide'),
+    body('active').optional({ nullable: true }).isBoolean().withMessage('active doit être un booléen'),
+];
 
 /**
  * Helper: Récupérer l'ID propriétaire géré
@@ -162,7 +180,7 @@ router.get('/', protect, async (req: any, res) => {
 
 
 // POST /api/calendar/events
-router.post('/events', protect, async (req: any, res) => {
+router.post('/events', protect, validate(eventCreateRules), async (req: any, res: Response) => {
     try {
         const { title, description, start_date, end_date, type, is_all_day } = req.body;
         const result = await pool.query(
@@ -178,7 +196,7 @@ router.post('/events', protect, async (req: any, res) => {
 });
 
 // DELETE /api/calendar/events/:id
-router.delete('/events/:id', protect, async (req: any, res) => {
+router.delete('/events/:id', protect, validate(eventIdParam), async (req: any, res: Response) => {
     try {
         await pool.query('DELETE FROM calendar_events WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]);
         res.json({ message: 'Événement supprimé' });
@@ -198,7 +216,7 @@ router.get('/settings', protect, async (req: any, res) => {
 });
 
 // POST /api/calendar/settings
-router.post('/settings', protect, async (req: any, res) => {
+router.post('/settings', protect, validate(reminderSettingsRules), async (req: any, res: Response) => {
     try {
         const { event_type, delay_days, channel, active } = req.body;
         // Check if exists

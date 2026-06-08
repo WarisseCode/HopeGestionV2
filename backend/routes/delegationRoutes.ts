@@ -1,8 +1,17 @@
-import express from 'express';
+import express, { Response } from 'express';
+import { body, param } from 'express-validator';
 import pool from '../db/database';
 import { protect } from '../middleware/authMiddleware';
+import { validate } from '../middleware/validate';
 
 const router = express.Router();
+
+const delegationCreateRules = [
+  body('email').notEmpty().withMessage('Email requis').bail().isEmail().withMessage('Email invalide'),
+  body('role').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Rôle invalide'),
+  body('permissions').optional({ nullable: true }).isObject().withMessage('permissions doit être un objet'),
+];
+const delegationDeleteRules = [param('targetId').isInt({ min: 1 }).withMessage('Identifiant invalide')];
 
 /**
  * Récupère l'ID de l'organisation (owner_id) gérée par l'utilisateur connecté.
@@ -47,7 +56,7 @@ router.get('/', protect, async (req: any, res) => {
 
 
 // POST /api/delegations - Ajouter un membre par email
-router.post('/', protect, async (req: any, res) => {
+router.post('/', protect, validate(delegationCreateRules), async (req: any, res: Response) => {
   try {
     const userId = req.userId;
     const { email, role, permissions } = req.body;
@@ -124,7 +133,7 @@ router.post('/', protect, async (req: any, res) => {
 
 
 // DELETE /api/delegations/:userId - Retirer un membre
-router.delete('/:targetId', protect, async (req: any, res) => {
+router.delete('/:targetId', protect, validate(delegationDeleteRules), async (req: any, res: Response) => {
   try {
     const userId = req.userId;
     const targetId = parseInt(req.params.targetId);

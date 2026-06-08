@@ -1,13 +1,27 @@
 // backend/routes/invitationRoutes.ts
 import { Router, Request, Response } from 'express';
+import { body, param } from 'express-validator';
 import pool from '../db/database';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { protect } from '../middleware/authMiddleware';
+import { validate } from '../middleware/validate';
 import { validatePassword } from '../utils/passwordUtils';
 
 const router = Router();
+
+const createInviteRules = [
+    body('type').notEmpty().withMessage('Type requis').bail().isIn(['owner', 'tenant']).withMessage('Type invalide (owner, tenant)'),
+];
+// La force du mot de passe est validée par validatePassword() dans le handler.
+const acceptInviteRules = [
+    param('token').isString().trim().notEmpty().withMessage('Token requis').isLength({ max: 200 }).withMessage('Token invalide'),
+    body('nom').notEmpty().withMessage('Le nom est requis').bail().isString().isLength({ max: 150 }).withMessage('Nom invalide'),
+    body('telephone').notEmpty().withMessage('Le téléphone est requis').bail().isString().isLength({ max: 40 }).withMessage('Téléphone invalide'),
+    body('password').notEmpty().withMessage('Le mot de passe est requis').bail().isString().withMessage('Mot de passe invalide'),
+    body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Email invalide'),
+];
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 const REFRESH_TOKEN_MS = 7 * 24 * 60 * 60 * 1000;
@@ -24,15 +38,12 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 // ─── POST /api/invitations ─────────────────────────────────────────────────
 // Génère un lien d'invitation — aucun formulaire requis côté gestionnaire.
 // L'entité (owner ou tenant) est créée à l'acceptation par le destinataire.
-router.post('/', protect, async (req: Request, res: Response) => {
+router.post('/', protect, validate(createInviteRules), async (req: Request, res: Response) => {
   const { type } = req.body;
   const gestionnaire_id = (req as any).user?.id;
 
   if (!gestionnaire_id) {
     return res.status(401).json({ error: 'Non autorisé' });
-  }
-  if (!type || !['owner', 'tenant'].includes(type)) {
-    return res.status(400).json({ error: 'Type invalide. Valeurs acceptées : owner, tenant' });
   }
 
   try {
@@ -95,13 +106,10 @@ router.get('/validate/:token', async (req: Request, res: Response) => {
 // ─── POST /api/invitations/:token/accept ──────────────────────────────────
 // Route publique — le destinataire remplit le formulaire complet.
 // Crée l'entité (owner ou tenant) + le compte utilisateur en une transaction.
-router.post('/:token/accept', async (req: Request, res: Response) => {
+router.post('/:token/accept', validate(acceptInviteRules), async (req: Request, res: Response) => {
   const { token } = req.params;
   const { nom, prenoms, telephone, email, adresse, ville, type_proprietaire, password } = req.body;
 
-  if (!nom || !telephone || !password) {
-    return res.status(400).json({ error: 'Nom, téléphone et mot de passe sont requis' });
-  }
   const pwdCheck = validatePassword(password);
   if (!pwdCheck.isValid) {
     return res.status(400).json({ error: pwdCheck.message });

@@ -1,10 +1,21 @@
-import express from 'express';
+import express, { Response } from 'express';
+import { body } from 'express-validator';
 import pool from '../db/database';
 import { protect } from '../middleware/authMiddleware';
 import { WhatsAppService } from '../services/WhatsAppService';
 import EmailService from '../services/EmailService';
+import { validate } from '../middleware/validate';
 
 const router = express.Router();
+
+// .trim().notEmpty() rejette aussi un contenu composé uniquement d'espaces.
+const messageCreateRules = [
+    body('content').trim().notEmpty().withMessage('Le contenu du message est requis').bail().isLength({ max: 5000 }).withMessage('Message trop long'),
+    body('recipient_id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('recipient_id invalide'),
+    body('context_id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('context_id invalide'),
+    body('context_type').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('context_type invalide'),
+    body('channel').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Canal invalide'),
+];
 
 // GET /api/messages?context_type=task&context_id=1
 // [SÉCURITÉ] Filtre sender_id/recipient_id = req.userId — empêche l'IDOR via context_id
@@ -34,14 +45,10 @@ router.get('/', protect, async (req: any, res) => {
 
 // POST /api/messages
 // Enregistre le message en DB et l'envoie via le canal choisi (whatsapp, sms, email, internal).
-router.post('/', protect, async (req: any, res) => {
+router.post('/', protect, validate(messageCreateRules), async (req: any, res: Response) => {
     try {
         const { recipient_id, context_type, context_id, channel, content, attachments } = req.body;
         const sender_id = req.userId;
-
-        if (!content || !content.trim()) {
-            return res.status(400).json({ message: 'Le contenu du message est requis.' });
-        }
 
         // 1. Sauvegarder en DB
         const result = await pool.query(

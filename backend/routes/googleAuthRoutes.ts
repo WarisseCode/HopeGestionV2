@@ -1,13 +1,24 @@
 // backend/routes/googleAuthRoutes.ts
 
 import { Router, Request, Response } from 'express';
+import { body } from 'express-validator';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import pool from '../db/database';
 import { AuditService } from '../services/AuditService';
 import { JWT_SECRET } from '../config/config';
+import { validate } from '../middleware/validate';
 
 const router = Router();
+
+const googleLoginRules = [
+    body('credential').notEmpty().withMessage('Google credential requis').bail().isString().withMessage('credential invalide'),
+];
+const completeProfileRules = [
+    body('userId').notEmpty().withMessage('UserID requis').bail().isInt({ min: 1 }).withMessage('userId invalide'),
+    body('userType').notEmpty().withMessage('Type de compte requis').bail().isIn(['gestionnaire', 'proprietaire', 'locataire']).withMessage('Type de compte invalide'),
+    body('telephone').notEmpty().withMessage('Téléphone requis').bail().isString().isLength({ max: 40 }).withMessage('Téléphone invalide'),
+];
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
@@ -16,12 +27,8 @@ const client = new OAuth2Client(GOOGLE_CLIENT_ID);
  * POST /api/auth/google
  * Authenticate user with Google OAuth token
  */
-router.post('/google', async (req: Request, res: Response) => {
+router.post('/google', validate(googleLoginRules), async (req: Request, res: Response) => {
     const { credential } = req.body;
-
-    if (!credential) {
-        return res.status(400).json({ message: 'Google credential requis.' });
-    }
 
     try {
         // 1. Verify Google token
@@ -162,26 +169,11 @@ router.post('/google', async (req: Request, res: Response) => {
  * PATCH /api/auth/complete-profile
  * Complete user profile after Google OAuth
  */
-router.patch('/complete-profile', async (req: Request, res: Response) => {
+router.patch('/complete-profile', validate(completeProfileRules), async (req: Request, res: Response) => {
     const { userId, userType, telephone } = req.body;
 
     try {
-        // 1. Validation
-        if (!userId || !userType || !telephone) {
-            return res.status(400).json({ 
-                message: 'UserID, type de compte et téléphone requis.' 
-            });
-        }
-
-        // Validate userType
-        const validTypes = ['gestionnaire', 'proprietaire', 'locataire'];
-        if (!validTypes.includes(userType)) {
-            return res.status(400).json({ 
-                message: 'Type de compte invalide.' 
-            });
-        }
-
-        // Validate phone
+        // Validate phone (format strict via regex, au-delà de la présence)
         const cleanPhone = telephone.replace(/[^\d+]/g, '');
         const phoneRegex = /^(\+|00)?[1-9]\d{8,14}$/;
         if (!phoneRegex.test(cleanPhone)) {

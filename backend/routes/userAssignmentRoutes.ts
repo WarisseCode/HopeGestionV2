@@ -3,19 +3,36 @@
 // Les opérations d'écriture sont réservées au rôle super_admin.
 
 import { Router } from 'express';
+import { body, param } from 'express-validator';
 import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 import pool from '../db/database';
 import { Response } from 'express';
+import { validate } from '../middleware/validate';
 
 const router = Router();
 
 router.use(protect);
 
+const bulkAssignRules = [
+    param('userId').isInt({ min: 1 }).withMessage('Identifiant utilisateur invalide'),
+    body('assignments').isArray().withMessage('assignments doit être un tableau'),
+];
+const createAssignRules = [
+    body('user_id').notEmpty().withMessage('user_id est obligatoire').bail().isInt({ min: 1 }).withMessage('user_id invalide'),
+    body('owner_id').notEmpty().withMessage('owner_id est obligatoire').bail().isInt({ min: 1 }).withMessage('owner_id invalide'),
+    body('role').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Rôle invalide'),
+    body('permissions').optional({ nullable: true }).isObject().withMessage('permissions doit être un objet'),
+];
+const deleteAssignRules = [
+    param('userId').isInt({ min: 1 }).withMessage('Identifiant utilisateur invalide'),
+    param('ownerId').isInt({ min: 1 }).withMessage('Identifiant propriétaire invalide'),
+];
+
 // PUT /api/user-assignments/bulk/:userId
 // Bulk update assignments for a user with granular permissions
 // [SÉCURITÉ] Réservé super_admin — opération privilégiée (modifie les droits d'accès)
 // NOTE: This route MUST be defined BEFORE /:userId to avoid path conflicts
-router.put('/bulk/:userId', async (req: AuthenticatedRequest, res: Response) => {
+router.put('/bulk/:userId', validate(bulkAssignRules), async (req: AuthenticatedRequest, res: Response) => {
     if (req.userRole !== 'super_admin') {
         return res.status(403).json({ message: 'Accès refusé. Réservé super_admin.' });
     }
@@ -158,7 +175,7 @@ router.get('/:userId', async (req: AuthenticatedRequest, res: Response) => {
 // POST /api/user-assignments
 // Assign a user to an owner with permissions
 // [SÉCURITÉ] Réservé super_admin
-router.post('/', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', validate(createAssignRules), async (req: AuthenticatedRequest, res: Response) => {
     if (req.userRole !== 'super_admin') {
         return res.status(403).json({ message: 'Accès refusé. Réservé super_admin.' });
     }
@@ -205,7 +222,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
 // DELETE /api/user-assignments/:userId/:ownerId
 // Remove an assignment (soft delete)
 // [SÉCURITÉ] Réservé super_admin
-router.delete('/:userId/:ownerId', async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:userId/:ownerId', validate(deleteAssignRules), async (req: AuthenticatedRequest, res: Response) => {
     if (req.userRole !== 'super_admin') {
         return res.status(403).json({ message: 'Accès refusé. Réservé super_admin.' });
     }
