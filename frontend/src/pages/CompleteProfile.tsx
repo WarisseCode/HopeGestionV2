@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Building2, Home, Key, Phone, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { API_URL } from '../config';
+import { apiCall } from '../utils/apiUtils';
 
 const CompleteProfile: React.FC = () => {
     const navigate = useNavigate();
@@ -33,30 +34,13 @@ const CompleteProfile: React.FC = () => {
         console.log('CompleteProfile - Using userId:', tokenPayload.id);
 
         try {
-            const response = await fetch(`${API_URL}/auth/complete-profile`, {
+            const data = await apiCall<{ token: string }>(`${API_URL}/auth/complete-profile`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: tokenPayload.id,
-                    userType,
-                    telephone
-                }),
+                body: JSON.stringify({ userId: tokenPayload.id, userType, telephone }),
             });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                // Update token with new role
-                localStorage.setItem('userToken', data.token);
-                
-                // Dispatch auth-change event
-                window.dispatchEvent(new Event('auth-change'));
-
-                // Force full page reload to ensure token is properly recognized
-                window.location.href = '/dashboard';
-            } else {
-                setError(data.message || 'Erreur lors de la complétion du profil');
-            }
+            localStorage.setItem('userToken', data.token);
+            window.dispatchEvent(new Event('auth-change'));
+            window.location.href = '/dashboard';
         } catch (err) {
             setError('Impossible de contacter le serveur');
         } finally {

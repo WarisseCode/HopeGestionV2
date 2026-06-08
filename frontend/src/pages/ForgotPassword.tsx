@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle, Info, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { API_URL } from '../config';
+import { apiCall } from '../utils/apiUtils';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 
@@ -20,19 +21,11 @@ const ForgotPassword: React.FC = () => {
         setLoading(true);
 
         try {
-            const response = await fetch(`${API_URL}/auth/forgot-password`, {
+            await apiCall(`${API_URL}/auth/forgot-password`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email }),
             });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                setSubmitted(true);
-            } else {
-                setError(data.message || 'Une erreur est survenue');
-            }
+            setSubmitted(true);
         } catch (err) {
             setError('Impossible de contacter le serveur. Vérifiez votre connexion.');
         } finally {

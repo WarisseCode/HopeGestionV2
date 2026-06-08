@@ -4,6 +4,7 @@ import { Lock, User, Check, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import { API_URL } from '../config';
+import { apiCall } from '../utils/apiUtils';
 
 const AcceptInvite: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -45,18 +46,10 @@ const AcceptInvite: React.FC = () => {
         setLoading(true);
 
         try {
-            const response = await fetch(`${API_URL}/auth/accept-invite`, {
+            const data = await apiCall<{ message: string }>(`${API_URL}/auth/accept-invite`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, password, nom, prenom })
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || "Une erreur est survenue.");
-            }
-
             setSuccess(data.message);
             
             // Redirect to login after 3 seconds

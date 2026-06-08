@@ -5,6 +5,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { API_URL } from '../config';
+import { apiCall } from '../utils/apiUtils';
 
 const ResetPassword: React.FC = () => {
     const { token } = useParams<{ token: string }>();
@@ -23,9 +24,7 @@ const ResetPassword: React.FC = () => {
     useEffect(() => {
         const validateToken = async () => {
             try {
-                const response = await fetch(`${API_URL}/auth/validate-reset-token/${token}`);
-                const data = await response.json();
-                
+                const data = await apiCall<{ valid: boolean; message: string }>(`${API_URL}/auth/validate-reset-token/${token}`);
                 setTokenValid(data.valid);
                 if (!data.valid) {
                     setError(data.message || 'Token invalide');
@@ -83,20 +82,12 @@ const ResetPassword: React.FC = () => {
         setLoading(true);
 
         try {
-            const response = await fetch(`${API_URL}/auth/reset-password`, {
+            await apiCall(`${API_URL}/auth/reset-password`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, newPassword }),
             });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                setSuccess(true);
-                setTimeout(() => navigate('/login'), 3000);
-            } else {
-                setError(data.message || 'Erreur lors de la réinitialisation');
-            }
+            setSuccess(true);
+            setTimeout(() => navigate('/login'), 3000);
         } catch (err) {
             setError('Impossible de contacter le serveur');
         } finally {
