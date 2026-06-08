@@ -1,5 +1,6 @@
 // backend/routes/reservationRoutes.ts
 import { Router, Request, Response } from 'express';
+import { body, param } from 'express-validator';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans les routes protégées.
 // Les routes publiques peuvent l'utiliser sous exception, sinon req.dbClient garanti l'isolation RLS.
 import pool from '../db/database';
@@ -8,10 +9,37 @@ import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 // [RLS] filterByOwner et buildOwnerWhereClause supprimés.
 // Isolation garantie par PostgreSQL Row-Level Security via tenantGuard.
 import { tenantGuard } from '../middleware/tenantGuard';
+import { validate } from '../middleware/validate';
 
 dotenv.config();
 
 const router = Router();
+
+// /public est NON authentifiée (la plus exposée) → validation importante.
+// lot_id est un identifiant composite STRING (ex. "b-5" pour un immeuble), pas un int.
+const publicReservationRules = [
+    body('lot_id').notEmpty().withMessage('Le lot est obligatoire').bail().isString().isLength({ max: 50 }).withMessage('Lot invalide'),
+    body('nom').notEmpty().withMessage('Le nom est obligatoire').bail().isString().isLength({ max: 150 }).withMessage('Nom invalide'),
+    body('telephone').notEmpty().withMessage('Le téléphone est obligatoire').bail().isString().isLength({ max: 40 }).withMessage('Téléphone invalide'),
+    body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Email invalide'),
+    body('prenoms').optional({ nullable: true }).isString().isLength({ max: 150 }).withMessage('Prénoms invalides'),
+    body('date_debut').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('Date invalide'),
+    body('type_projet').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Type de projet invalide'),
+    body('message').optional({ nullable: true }).isString().isLength({ max: 2000 }).withMessage('Message trop long'),
+];
+const reservationIdParam = param('id').isInt({ min: 1 }).withMessage('Identifiant invalide');
+const validateReservationRules = [
+    reservationIdParam,
+    body('statut').notEmpty().withMessage('Statut requis').bail().isIn(['actif', 'refuse']).withMessage('Statut invalide'),
+    body('commentaire').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('Commentaire trop long'),
+];
+const transformReservationRules = [
+    reservationIdParam,
+    body('date_fin').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('Date invalide'),
+    body('caution').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Caution invalide'),
+    body('avance').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Avance invalide'),
+    body('periodicite').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Périodicité invalide'),
+];
 
 // --- PUBLIC ROUTES (No Auth) ---
 
@@ -20,22 +48,18 @@ const router = Router();
 // owner_id déduit depuis building_id ou lot_id via DB.
 // Jamais fourni par le client externe.
 // POST /api/reservations/public - Créer une demande de réservation (Visiteur)
-router.post('/public', async (req: Request, res: Response) => {
+router.post('/public', validate(publicReservationRules), async (req: Request, res: Response) => {
     try {
-        const { 
-            lot_id, 
-            nom, 
-            prenoms, 
-            email, 
-            telephone, 
-            date_debut, 
+        const {
+            lot_id,
+            nom,
+            prenoms,
+            email,
+            telephone,
+            date_debut,
             message,
             type_projet // 'location' or 'achat'
         } = req.body;
-
-        if (!lot_id || !nom || !telephone) {
-            return res.status(400).json({ message: 'Champs obligatoires manquants (Lot, Nom, Téléphone)' });
-        }
 
         // 1. Get Lot or Building & Owner Info
         const lotIdStr = String(lot_id);
@@ -150,15 +174,11 @@ router.get('/', tenantGuard, async (req: AuthenticatedRequest, res: Response) =>
 });
 
 // POST /api/reservations/:id/validate - Validate or refuse a reservation (with owner check via RLS)
-router.post('/:id/validate', tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/validate', tenantGuard, validate(validateReservationRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
         const { statut, commentaire } = req.body;
-        
-        if (!['actif', 'refuse'].includes(statut)) {
-            return res.status(400).json({ message: 'Statut invalide' });
-        }
 
         // [RLS] Filtrage automatique par tenant
         // Update reservation status and return lot_id
@@ -188,7 +208,7 @@ router.post('/:id/validate', tenantGuard, async (req: AuthenticatedRequest, res:
 });
 
 // POST /api/reservations/:id/transform - Transform validated reservation into lease
-router.post('/:id/transform', tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/transform', tenantGuard, validate(transformReservationRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     try {
         const { id } = req.params;

@@ -1,10 +1,40 @@
 // backend/routes/compteRoutes.ts
 import { Router, Response } from 'express';
+import { body, param } from 'express-validator';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import db from '../db/database';
 import { AuditService } from '../services/AuditService';
+import { validate } from '../middleware/validate';
 
 const router = Router();
+
+const compteIdParam = param('id').isInt({ min: 1 }).withMessage('Identifiant invalide');
+// name géré à la main (name || company_name) — on formalise téléphone + format email.
+const ownerCreateRules = [
+    body('phone').notEmpty().withMessage('Le téléphone est obligatoire').bail().isString().isLength({ max: 40 }).withMessage('Téléphone invalide'),
+    body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Email invalide'),
+    body('type').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Type invalide'),
+];
+const ownerUpdateRules = [
+    compteIdParam,
+    body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Email invalide'),
+    body('phone').optional({ nullable: true }).isString().isLength({ max: 40 }).withMessage('Téléphone invalide'),
+];
+const userSaveRules = [
+    body('id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('id invalide'),
+    body('nom').notEmpty().withMessage('Le nom est obligatoire').bail().isString().isLength({ max: 150 }).withMessage('Nom invalide'),
+    body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Email invalide'),
+    body('role').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Rôle invalide'),
+    body('mot_de_passe').optional({ nullable: true, checkFalsy: true }).isLength({ min: 6 }).withMessage('Mot de passe trop court (min 6)'),
+];
+// modules/niveauAcces sont déréférencés (modules.finances…) → doivent être des objets.
+const autorisationRules = [
+    body('utilisateur').notEmpty().withMessage('utilisateur est obligatoire').bail().isInt({ min: 1 }).withMessage('utilisateur invalide'),
+    body('proprietaire').notEmpty().withMessage('proprietaire est obligatoire').bail().isInt({ min: 1 }).withMessage('proprietaire invalide'),
+    body('modules').isObject().withMessage('modules doit être un objet'),
+    body('niveauAcces').isObject().withMessage('niveauAcces doit être un objet'),
+    body('role').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Rôle invalide'),
+];
 
 // GET /api/compte/proprietaires : Récupérer la liste des propriétaires
 router.get('/proprietaires', async (req: AuthenticatedRequest, res: Response) => {
@@ -128,7 +158,7 @@ router.get('/autorisations', async (req: AuthenticatedRequest, res: Response) =>
 });
 
 // POST /api/compte/proprietaires : Créer ou mettre à jour un propriétaire
-router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/proprietaires', validate(ownerCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     // Autoriser Admin, Gestionnaire ET Propriétaire à créer
     if (!['admin', 'gestionnaire', 'manager', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
@@ -214,7 +244,7 @@ router.post('/proprietaires', async (req: AuthenticatedRequest, res: Response) =
 });
 
 // PUT /api/compte/proprietaires/:id : Modifier un propriétaire
-router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.put('/proprietaires/:id', validate(ownerUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
     // Autoriser Admin, Gestionnaire ET Propriétaire à modifier (si c'est le sien)
     if (!['admin', 'gestionnaire', 'manager', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
@@ -328,7 +358,7 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
 });
 
 // POST /api/compte/utilisateurs : Créer ou mettre à jour un utilisateur
-router.post('/utilisateurs', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/utilisateurs', validate(userSaveRules), async (req: AuthenticatedRequest, res: Response) => {
     if (!['admin', 'gestionnaire', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
@@ -372,7 +402,7 @@ router.post('/utilisateurs', async (req: AuthenticatedRequest, res: Response) =>
 });
 
 // POST /api/compte/autorisations : Créer ou mettre à jour une autorisation
-router.post('/autorisations', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/autorisations', validate(autorisationRules), async (req: AuthenticatedRequest, res: Response) => {
     if (req.userRole !== 'admin') {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
@@ -420,7 +450,7 @@ router.post('/autorisations', async (req: AuthenticatedRequest, res: Response) =
 });
 
 // DELETE /api/compte/proprietaires/:id : Soft delete (désactiver) un propriétaire
-router.delete('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/proprietaires/:id', validate([compteIdParam]), async (req: AuthenticatedRequest, res: Response) => {
     if (!['admin', 'gestionnaire', 'manager'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
@@ -444,7 +474,7 @@ router.delete('/proprietaires/:id', async (req: AuthenticatedRequest, res: Respo
 });
 
 // PATCH /api/compte/utilisateurs/:id/suspend : Soft delete (suspendre) un utilisateur
-router.patch('/utilisateurs/:id/suspend', async (req: AuthenticatedRequest, res: Response) => {
+router.patch('/utilisateurs/:id/suspend', validate([compteIdParam]), async (req: AuthenticatedRequest, res: Response) => {
     if (!['admin', 'gestionnaire', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
@@ -468,7 +498,7 @@ router.patch('/utilisateurs/:id/suspend', async (req: AuthenticatedRequest, res:
 });
 
 // DELETE /api/compte/utilisateurs/:id : HARD DELETE (supprimer définitivement)
-router.delete('/utilisateurs/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/utilisateurs/:id', validate([compteIdParam]), async (req: AuthenticatedRequest, res: Response) => {
     if (req.userRole !== 'admin') {
         // Only admin can hard delete, or maybe gestionnaire too? Let's restrict to admin/gestionnaire for now
         // Assuming user wants validation for hard delete
@@ -518,7 +548,7 @@ router.delete('/utilisateurs/:id', async (req: AuthenticatedRequest, res: Respon
 });
 
 // PATCH /api/compte/utilisateurs/:id/reactivate : Réactiver un utilisateur
-router.patch('/utilisateurs/:id/reactivate', async (req: AuthenticatedRequest, res: Response) => {
+router.patch('/utilisateurs/:id/reactivate', validate([compteIdParam]), async (req: AuthenticatedRequest, res: Response) => {
     if (!['admin', 'gestionnaire', 'proprietaire'].includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }

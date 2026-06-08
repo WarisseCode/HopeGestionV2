@@ -1,11 +1,39 @@
 // backend/routes/ownerRoutes.ts
 import { Router, Response } from 'express';
+import { body, param } from 'express-validator';
 import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 import { checkOwnerAccess } from '../middleware/ownerIsolation';
 import { checkAgencyLimit } from '../middleware/subscriptionLimits';
+import { validate } from '../middleware/validate';
 import db from '../db/database';
 
 const router = Router();
+
+const ownerIdParam = param('id').isInt({ min: 1 }).withMessage('Identifiant invalide');
+const ownerCreateRules = [
+    body('name').notEmpty().withMessage('Le nom est obligatoire').bail().isString().isLength({ max: 200 }).withMessage('Nom trop long'),
+    body('phone').notEmpty().withMessage('Le téléphone est obligatoire').bail().isString().isLength({ max: 40 }).withMessage('Téléphone invalide'),
+    body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Email invalide'),
+    body('type').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Type invalide'),
+    body('first_name').optional({ nullable: true }).isString().isLength({ max: 150 }).withMessage('Prénom invalide'),
+];
+const ownerUpdateRules = [
+    ownerIdParam,
+    body('name').optional({ nullable: true }).isString().isLength({ max: 200 }).withMessage('Nom trop long'),
+    body('phone').optional({ nullable: true }).isString().isLength({ max: 40 }).withMessage('Téléphone invalide'),
+    body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Email invalide'),
+];
+const ownerAssignUserRules = [
+    ownerIdParam,
+    body('user_id').notEmpty().withMessage('user_id est obligatoire').bail().isInt({ min: 1 }).withMessage('user_id invalide'),
+    body('role').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Rôle invalide'),
+    body('start_date').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('Date invalide'),
+    body('end_date').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('Date invalide'),
+];
+const ownerRemoveUserRules = [
+    ownerIdParam,
+    param('userId').isInt({ min: 1 }).withMessage('Identifiant utilisateur invalide'),
+];
 
 // GET /api/owners - Liste des propriétaires
 router.get('/', protect, async (req: AuthenticatedRequest, res: Response) => {
@@ -82,16 +110,12 @@ router.get('/:id', protect, checkOwnerAccess, async (req: AuthenticatedRequest, 
 });
 
 // POST /api/owners - Créer un nouveau propriétaire
-router.post('/', protect, checkAgencyLimit, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', protect, checkAgencyLimit, validate(ownerCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const {
             type, name, first_name, phone, phone_secondary, email,
             address, city, country, id_number, photo, mobile_money_number, management_mode
         } = req.body;
-
-        if (!name || !phone) {
-            return res.status(400).json({ success: false, message: 'Nom et téléphone sont obligatoires' });
-        }
 
         const existingResult = await db.query('SELECT id FROM owners WHERE phone = $1', [phone]);
         if (existingResult.rows.length > 0) {
@@ -134,7 +158,7 @@ router.post('/', protect, checkAgencyLimit, async (req: AuthenticatedRequest, re
 });
 
 // PUT /api/owners/:id - Modifier un propriétaire
-router.put('/:id', protect, checkOwnerAccess, async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id', protect, validate(ownerUpdateRules), checkOwnerAccess, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const ownerId = req.params.id;
         const {
@@ -159,7 +183,7 @@ router.put('/:id', protect, checkOwnerAccess, async (req: AuthenticatedRequest, 
 });
 
 // DELETE /api/owners/:id - Désactiver un propriétaire
-router.delete('/:id', protect, checkOwnerAccess, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', protect, validate([ownerIdParam]), checkOwnerAccess, async (req: AuthenticatedRequest, res: Response) => {
     try {
         await db.query('UPDATE owners SET is_active = FALSE WHERE id = $1', [req.params.id]);
         res.json({ success: true, message: 'Propriétaire désactivé avec succès' });
@@ -170,7 +194,7 @@ router.delete('/:id', protect, checkOwnerAccess, async (req: AuthenticatedReques
 });
 
 // POST /api/owners/:id/users - Affecter un utilisateur
-router.post('/:id/users', protect, checkOwnerAccess, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/users', protect, validate(ownerAssignUserRules), checkOwnerAccess, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const ownerId = req.params.id;
         const {
@@ -213,7 +237,7 @@ router.post('/:id/users', protect, checkOwnerAccess, async (req: AuthenticatedRe
 });
 
 // DELETE /api/owners/:id/users/:userId - Retirer un utilisateur
-router.delete('/:id/users/:userId', protect, checkOwnerAccess, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id/users/:userId', protect, validate(ownerRemoveUserRules), checkOwnerAccess, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { id: ownerId, userId } = req.params;
         await db.query(

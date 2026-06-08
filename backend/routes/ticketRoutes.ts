@@ -1,13 +1,47 @@
-import express from 'express';
+import express, { Response } from 'express';
+import { body, param } from 'express-validator';
 // Exception documentée — pool autorisé UNIQUEMENT pour les
 // routes locataires sans owner_id ou routes mixtes résolvant en aval le owner_id.
 // Pour le reste, (routes gestionnaires), utiliser absolument req.dbClient
 import pool from '../db/database';
 import { protect } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import { validate } from '../middleware/validate';
 import { parsePagination, paginate } from '../utils/pagination';
 
 const router = express.Router();
+
+const ticketIdParam = param('id').isInt({ min: 1 }).withMessage('Identifiant invalide');
+const ticketCreateRules = [
+    body('lot_id').notEmpty().withMessage("L'ID du lot est requis").bail().isInt({ min: 1 }).withMessage('lot_id invalide'),
+    body('type').optional({ nullable: true }).isString().isLength({ max: 200 }).withMessage('Type invalide'),
+    body('category').optional({ nullable: true }).isString().isLength({ max: 100 }).withMessage('Catégorie invalide'),
+    body('description').optional({ nullable: true }).isString().isLength({ max: 2000 }).withMessage('Description trop longue'),
+    body('priorite').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Priorité invalide'),
+    body('urgency').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Urgence invalide'),
+    body('requester_name').optional({ nullable: true }).isString().isLength({ max: 150 }).withMessage('Nom invalide'),
+    body('requester_phone').optional({ nullable: true }).isString().isLength({ max: 40 }).withMessage('Téléphone invalide'),
+    body('photos_before').optional({ nullable: true }).isArray().withMessage('photos_before doit être un tableau'),
+];
+const ticketUpdateRules = [
+    ticketIdParam,
+    body('provider_id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('provider_id invalide'),
+    body('scheduled_date').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('Date invalide'),
+    body('statut').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Statut invalide'),
+    body('cost_estimated').optional({ nullable: true, checkFalsy: true }).isFloat({ min: 0 }).withMessage('Coût invalide'),
+];
+const ticketRescheduleRules = [
+    ticketIdParam,
+    body('new_date').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('Date invalide'),
+    body('reason').optional({ nullable: true }).isString().isLength({ max: 500 }).withMessage('Motif trop long'),
+];
+const ticketCloseRules = [
+    ticketIdParam,
+    body('cost_real').optional({ nullable: true, checkFalsy: true }).isFloat({ min: 0 }).withMessage('Coût invalide'),
+    body('photos_after').optional({ nullable: true }).isArray().withMessage('photos_after doit être un tableau'),
+    body('comments').optional({ nullable: true }).isString().isLength({ max: 2000 }).withMessage('Commentaire trop long'),
+    body('actions_done').optional({ nullable: true }).isString().isLength({ max: 2000 }).withMessage('Actions trop longues'),
+];
 
 // GET /api/tickets?page=1&limit=20&statut=&priorite=&category=
 router.get('/', protect, tenantGuard, async (req: any, res) => {
@@ -99,15 +133,10 @@ router.get('/tenant', protect, async (req: any, res) => {
 // Sécurité : owner_id jamais fourni par le client — 
 // toujours résolu depuis la DB via lot_id.
 // POST /api/tickets
-router.post('/', protect, async (req: any, res) => {
+router.post('/', protect, validate(ticketCreateRules), async (req: any, res: Response) => {
     try {
         const { lot_id, type, category, description, priorite, urgency, photos_before, requester_name, requester_phone } = req.body;
-        const lotIdValue = lot_id && lot_id !== '' ? parseInt(lot_id, 10) : null;
-        
-        // Verification et déduction owner strict
-        if (!lotIdValue) {
-            return res.status(400).json({ message: 'L\'ID du lot est requis' });
-        }
+        const lotIdValue = parseInt(lot_id, 10);
 
         const lotRes = await pool.query(
             'SELECT owner_id FROM lots WHERE id = $1',
@@ -131,7 +160,7 @@ router.post('/', protect, async (req: any, res) => {
 });
 
 // PUT /api/tickets/:id (Assign/Update) (Gestionnaire)
-router.put('/:id', protect, tenantGuard, async (req: any, res) => {
+router.put('/:id', protect, tenantGuard, validate(ticketUpdateRules), async (req: any, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { provider_id, scheduled_date, statut, cost_estimated } = req.body;
@@ -163,7 +192,7 @@ router.put('/:id', protect, tenantGuard, async (req: any, res) => {
 });
 
 // POST /api/tickets/:id/reschedule (Gestionnaire)
-router.post('/:id/reschedule', protect, tenantGuard, async (req: any, res) => {
+router.post('/:id/reschedule', protect, tenantGuard, validate(ticketRescheduleRules), async (req: any, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { new_date, reason } = req.body;
@@ -190,7 +219,7 @@ router.post('/:id/reschedule', protect, tenantGuard, async (req: any, res) => {
 });
 
 // POST /api/tickets/:id/close (Gestionnaire)
-router.post('/:id/close', protect, tenantGuard, async (req: any, res) => {
+router.post('/:id/close', protect, tenantGuard, validate(ticketCloseRules), async (req: any, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { cost_real, photos_after, comments, actions_done } = req.body;

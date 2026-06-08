@@ -1,14 +1,43 @@
 // backend/routes/bienRoutes.ts
 import { Router, Response } from 'express';
+import { body, param } from 'express-validator';
 import * as dotenv from 'dotenv';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { checkPropertyLimit } from '../middleware/subscriptionLimits';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import { validate } from '../middleware/validate';
 
 dotenv.config();
 
 const router = Router();
+
+// POST = create OU update (id optionnel). Les formulaires envoient parfois "" pour
+// les champs vides → checkFalsy traite "" comme absent (pas d'échec isInt/isFloat).
+const immeubleRules = [
+    body('id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('id invalide'),
+    body('nom').notEmpty().withMessage('Le nom est obligatoire').bail().isString().isLength({ max: 200 }).withMessage('Nom trop long'),
+    body('type').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Type invalide'),
+    body('nombre_etages').optional({ nullable: true, checkFalsy: true }).isInt({ min: 0 }).withMessage("Nombre d'étages invalide"),
+    body('total_lots').optional({ nullable: true, checkFalsy: true }).isInt({ min: 0 }).withMessage('Total lots invalide'),
+    body('latitude').optional({ nullable: true, checkFalsy: true }).isFloat().withMessage('Latitude invalide'),
+    body('longitude').optional({ nullable: true, checkFalsy: true }).isFloat().withMessage('Longitude invalide'),
+    body('gestionnaire_id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('gestionnaire_id invalide'),
+    body('photos').optional({ nullable: true }).isArray().withMessage('photos doit être un tableau'),
+];
+const lotRules = [
+    body('id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('id invalide'),
+    body('building_id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('building_id invalide'),
+    body('reference').notEmpty().withMessage('La référence du lot est obligatoire').bail().isString().isLength({ max: 100 }).withMessage('Référence invalide'),
+    body('superficie').optional({ nullable: true, checkFalsy: true }).isFloat({ min: 0 }).withMessage('Superficie invalide'),
+    body('nbPieces').optional({ nullable: true, checkFalsy: true }).isInt({ min: 0 }).withMessage('Nombre de pièces invalide'),
+    body('loyer').optional({ nullable: true, checkFalsy: true }).isFloat({ min: 0 }).withMessage('Loyer invalide'),
+    body('charges').optional({ nullable: true, checkFalsy: true }).isFloat({ min: 0 }).withMessage('Charges invalides'),
+    body('caution').optional({ nullable: true, checkFalsy: true }).isFloat({ min: 0 }).withMessage('Caution invalide'),
+    body('prix_vente').optional({ nullable: true, checkFalsy: true }).isFloat({ min: 0 }).withMessage('Prix de vente invalide'),
+    body('photos').optional({ nullable: true }).isArray().withMessage('photos doit être un tableau'),
+];
+const bienIdParam = [param('id').isInt({ min: 1 }).withMessage('Identifiant invalide')];
 
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
@@ -143,7 +172,7 @@ router.get('/lots', permissions.canRead('biens'), tenantGuard, async (req: Authe
 });
 
 // POST /api/biens/immeubles : Créer ou mettre à jour un immeuble
-router.post('/immeubles', permissions.canWrite('biens'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/immeubles', permissions.canWrite('biens'), tenantGuard, validate(immeubleRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     // [PATTERN RLS] - Le vrai ownerId est récupéré de faĉon sécurisée via le Middleware !
     // Si l'utilisateur tente de fustiger req.body.owner_id, le RLS cassera lors de l'INSERT/UPDATE.
@@ -202,7 +231,7 @@ router.post('/immeubles', permissions.canWrite('biens'), tenantGuard, async (req
 });
 
 // POST /api/biens/lots : Créer ou mettre à jour un lot
-router.post('/lots', permissions.canWrite('biens'), checkPropertyLimit, tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/lots', permissions.canWrite('biens'), checkPropertyLimit, tenantGuard, validate(lotRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const strictOwnerId = (req as any).resolvedOwnerId;
 
@@ -280,7 +309,7 @@ router.post('/lots', permissions.canWrite('biens'), checkPropertyLimit, tenantGu
 });
 
 // DELETE /api/biens/immeubles/:id
-router.delete('/immeubles/:id', permissions.canWrite('biens'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/immeubles/:id', permissions.canWrite('biens'), tenantGuard, validate(bienIdParam), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const immeubleId = parseInt(req.params.id || '0', 10);
 
@@ -303,7 +332,7 @@ router.delete('/immeubles/:id', permissions.canWrite('biens'), tenantGuard, asyn
 });
 
 // DELETE /api/biens/lots/:id
-router.delete('/lots/:id', permissions.canWrite('biens'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/lots/:id', permissions.canWrite('biens'), tenantGuard, validate(bienIdParam), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const lotId = parseInt(req.params.id || '0', 10);
 

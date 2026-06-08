@@ -1,9 +1,27 @@
 // backend/routes/adminRoutes.ts
 import { Router, Response, NextFunction } from 'express';
+import { body, param } from 'express-validator';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import pool from '../db/database'; // Fix circular dependency
+import { validate } from '../middleware/validate';
 
 const router = Router();
+
+const adminIdParam = param('id').isInt({ min: 1 }).withMessage('Identifiant invalide');
+const userActionRules = [
+    adminIdParam,
+    body('action').notEmpty().withMessage('Action requise').bail().isString().isLength({ max: 50 }).withMessage('Action invalide'),
+    body('value').optional({ nullable: true }).isString().isLength({ max: 100 }).withMessage('Valeur invalide'),
+];
+const assignSubRules = [
+    body('userId').notEmpty().withMessage('userId est obligatoire').bail().isInt({ min: 1 }).withMessage('userId invalide'),
+    body('planId').notEmpty().withMessage('planId est obligatoire').bail().isInt({ min: 1 }).withMessage('planId invalide'),
+];
+const settingsRules = [body('settings').isObject().withMessage('settings doit être un objet')];
+const inviteRules = [
+    body('email').notEmpty().withMessage('Email requis').bail().isEmail().withMessage('Email valide requis'),
+    body('expiresInHours').optional({ nullable: true }).isInt({ min: 1, max: 720 }).withMessage('Durée invalide (heures)'),
+];
 
 // Middleware: Verify Admin Role
 const verifyAdmin = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -323,7 +341,7 @@ router.get('/users/:id', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // Admin Actions on Users
-router.post('/users/:id/action', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/users/:id/action', validate(userActionRules), async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
     const { action, value } = req.body;
 
@@ -561,7 +579,7 @@ router.get('/subscriptions', async (req: AuthenticatedRequest, res: Response) =>
 });
 
 // Assign a plan to a user
-router.post('/subscriptions/assign', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/subscriptions/assign', validate(assignSubRules), async (req: AuthenticatedRequest, res: Response) => {
     const { userId, planId } = req.body;
 
     try {
@@ -622,7 +640,7 @@ router.post('/subscriptions/assign', async (req: AuthenticatedRequest, res: Resp
 });
 
 // Cancel a subscription
-router.post('/subscriptions/:id/cancel', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/subscriptions/:id/cancel', validate([adminIdParam]), async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
     try {
         await pool.query(
@@ -749,7 +767,7 @@ router.get('/settings', async (req: AuthenticatedRequest, res: Response) => {
     }
 });
 
-router.put('/settings', async (req: AuthenticatedRequest, res: Response) => {
+router.put('/settings', validate(settingsRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { settings } = req.body;
         if (!settings || typeof settings !== 'object') {
@@ -794,7 +812,7 @@ function generateInviteCode(): string {
 }
 
 // POST /api/admin/invite - Create invitation for new admin
-router.post('/invite', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/invite', validate(inviteRules), async (req: AuthenticatedRequest, res: Response) => {
     const { email, expiresInHours = 48 } = req.body;
 
     if (!email || !email.includes('@')) {
@@ -856,7 +874,7 @@ router.get('/invites', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // DELETE /api/admin/invites/:id - Revoke invitation
-router.delete('/invites/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/invites/:id', validate([adminIdParam]), async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
     try {
         await pool.query('DELETE FROM admin_invitations WHERE id = $1', [id]);

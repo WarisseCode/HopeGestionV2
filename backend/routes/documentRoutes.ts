@@ -3,6 +3,7 @@ import { Router, Response } from 'express';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
+import { body, param } from 'express-validator';
 import * as dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs-extra';
@@ -11,11 +12,28 @@ import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import PDFDocument from 'pdfkit';
 import { upload } from '../middleware/uploadMiddleware';
+import { validate } from '../middleware/validate';
 import { uploadToSpaces, deleteFromSpaces } from '../services/spacesUploadService';
 
 dotenv.config();
 
 const router = Router();
+
+// Champs texte multipart (le fichier lui-même est vérifié à la main via req.file).
+const documentUploadRules = [
+    body('entity_type').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('entity_type invalide'),
+    body('entity_id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('entity_id invalide'),
+    body('categorie').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Catégorie invalide'),
+    body('nom').optional({ nullable: true }).isString().isLength({ max: 255 }).withMessage('Nom invalide'),
+    body('description').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('Description trop longue'),
+];
+const documentGenerateRules = [
+    body('templateId').notEmpty().withMessage('templateId est obligatoire').bail().isInt({ min: 1 }).withMessage('templateId invalide'),
+    body('entityId').notEmpty().withMessage('entityId est obligatoire').bail().isInt({ min: 1 }).withMessage('entityId invalide'),
+    body('type').notEmpty().withMessage('type est obligatoire').bail().isString().isLength({ max: 30 }).withMessage('type invalide'),
+];
+const documentIdParam = [param('id').isInt({ min: 1 }).withMessage('Identifiant invalide')];
+const leaseGenerateParam = [param('id').isInt({ min: 1 }).withMessage('Identifiant de bail invalide')];
 
 const spacesConfigured = !!(
     process.env.SPACES_KEY &&
@@ -62,7 +80,7 @@ router.get('/', permissions.canRead('documents'), tenantGuard, async (req: Authe
 });
 
 // POST /api/documents/upload - Upload file
-router.post('/upload', permissions.canWrite('documents'), tenantGuard, upload.single('file'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/upload', permissions.canWrite('documents'), tenantGuard, upload.single('file'), validate(documentUploadRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const strictOwnerId = (req as any).resolvedOwnerId;
@@ -116,7 +134,7 @@ router.post('/upload', permissions.canWrite('documents'), tenantGuard, upload.si
 });
 
 // DELETE /api/documents/:id - Delete document
-router.delete('/:id', permissions.canWrite('documents'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', permissions.canWrite('documents'), tenantGuard, validate(documentIdParam), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
@@ -154,7 +172,7 @@ router.delete('/:id', permissions.canWrite('documents'), tenantGuard, async (req
 });
 
 // POST /api/documents/generate - Generate PDF from Template
-router.post('/generate', permissions.canWrite('documents'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/generate', permissions.canWrite('documents'), tenantGuard, validate(documentGenerateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const strictOwnerId = (req as any).resolvedOwnerId;
@@ -262,7 +280,7 @@ router.post('/generate', permissions.canWrite('documents'), tenantGuard, async (
 });
 
 // POST /api/documents/generate/lease/:id - Generate lease PDF
-router.post('/generate/lease/:id', permissions.canWrite('documents'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/generate/lease/:id', permissions.canWrite('documents'), tenantGuard, validate(leaseGenerateParam), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const strictOwnerId = (req as any).resolvedOwnerId;
