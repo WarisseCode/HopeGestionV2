@@ -3,12 +3,25 @@
 // Toutes les requêtes passent par req.dbClient fourni par tenantGuard (RLS actif).
 // owner_id vient UNIQUEMENT de resolvedOwnerId — jamais déduit du client.
 
-import express from 'express';
+import express, { Response } from 'express';
 const router = express.Router();
 
+import { body } from 'express-validator';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import permissions from '../middleware/permissionMiddleware';
+import { validate } from '../middleware/validate';
+
+const depenseCreateRules = [
+    body('category').notEmpty().withMessage('La catégorie est obligatoire').bail().isString().isLength({ max: 100 }).withMessage('Catégorie invalide'),
+    body('amount').notEmpty().withMessage('Le montant est obligatoire').bail().isFloat({ gt: 0 }).withMessage('Montant invalide (> 0)'),
+    body('building_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('building_id invalide'),
+    body('lot_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('lot_id invalide'),
+    body('description').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('Description trop longue'),
+    body('supplier_name').optional({ nullable: true }).isString().isLength({ max: 200 }).withMessage('Fournisseur invalide'),
+    body('date_expense').optional({ nullable: true }).isISO8601().withMessage('Date invalide (ISO 8601)'),
+    body('proof_url').optional({ nullable: true }).isString().isLength({ max: 500 }).withMessage('URL invalide'),
+];
 
 // GET /api/depenses - Liste des dépenses filtrées par RLS
 router.get('/', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res) => {
@@ -36,15 +49,11 @@ router.get('/', permissions.canRead('finance'), tenantGuard, async (req: Authent
 // POST /api/depenses - Enregistrer une dépense
 // [SÉCURITÉ] owner_id depuis resolvedOwnerId uniquement — jamais depuis le client.
 // Le RLS garantit que building_id/lot_id appartiennent bien au tenant actif.
-router.post('/', permissions.canWrite('finance'), tenantGuard, async (req: AuthenticatedRequest, res) => {
+router.post('/', permissions.canWrite('finance'), tenantGuard, validate(depenseCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
         const { building_id, lot_id, category, description, amount, date_expense, supplier_name, proof_url } = req.body;
-
-        if (!category || !amount) {
-            return res.status(400).json({ message: 'Catégorie et montant requis.' });
-        }
 
         const result = await dbClient.query(
             `INSERT INTO expenses

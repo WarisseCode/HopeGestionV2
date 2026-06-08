@@ -1,17 +1,29 @@
 // backend/routes/mobileMoneyRoutes.ts
-import express from 'express';
+import express, { Response } from 'express';
+import { body, param } from 'express-validator';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 import { mobileMoneyService, Operator } from '../services/mobileMoneyService';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import { validate } from '../middleware/validate';
 
 const router = express.Router();
 
+// Paiement MoMo : montant > 0 obligatoire (intégrité financière + appel provider).
+const payRules = [
+    body('amount').notEmpty().withMessage('Le montant est obligatoire').bail().isFloat({ gt: 0 }).withMessage('Le montant doit être un nombre strictement positif'),
+    body('phoneNumber').notEmpty().withMessage('Le numéro de téléphone est obligatoire').bail().isString().isLength({ max: 30 }).withMessage('Numéro invalide'),
+    body('operator').notEmpty().withMessage("L'opérateur est obligatoire").bail().isString().isLength({ max: 30 }).withMessage('Opérateur invalide'),
+    body('leaseId').optional({ nullable: true }).isInt({ min: 1 }).withMessage('leaseId invalide'),
+    body('description').optional({ nullable: true }).isString().isLength({ max: 255 }).withMessage('Description trop longue'),
+];
+const configIdParam = [param('id').isInt({ min: 1 }).withMessage('Identifiant invalide')];
+
 // POST /api/mobile-money/pay - Initier un paiement
 // Le webhook n'est pas ici, c'est une requête synchrone vers l'API.
-router.post('/pay', tenantGuard, async (req: AuthenticatedRequest, res) => {
+router.post('/pay', tenantGuard, validate(payRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const strictOwnerId = (req as any).resolvedOwnerId;
 
@@ -126,7 +138,7 @@ router.post('/configs', tenantGuard, async (req: AuthenticatedRequest, res) => {
 });
 
 // PUT /api/mobile-money/configs/:id
-router.put('/configs/:id', tenantGuard, async (req: AuthenticatedRequest, res) => {
+router.put('/configs/:id', tenantGuard, validate(configIdParam), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     try {
         if (!req.userId) return res.status(401).json({ message: "Non authentifié" });
@@ -147,7 +159,7 @@ router.put('/configs/:id', tenantGuard, async (req: AuthenticatedRequest, res) =
 });
 
 // DELETE /api/mobile-money/configs/:id
-router.delete('/configs/:id', tenantGuard, async (req: AuthenticatedRequest, res) => {
+router.delete('/configs/:id', tenantGuard, validate(configIdParam), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     try {
         if (!req.userId) return res.status(401).json({ message: "Non authentifié" });
@@ -168,7 +180,7 @@ router.delete('/configs/:id', tenantGuard, async (req: AuthenticatedRequest, res
 });
 
 // PATCH /api/mobile-money/configs/:id/toggle
-router.patch('/configs/:id/toggle', tenantGuard, async (req: AuthenticatedRequest, res) => {
+router.patch('/configs/:id/toggle', tenantGuard, validate(configIdParam), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     try {
         if (!req.userId) return res.status(401).json({ message: "Non authentifié" });

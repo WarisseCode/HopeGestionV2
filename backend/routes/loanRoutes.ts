@@ -4,14 +4,32 @@
 // owner_id vient UNIQUEMENT de resolvedOwnerId — jamais depuis req.params, req.query, ou req.body.
 
 import { Router, Response } from 'express';
+import { body, param } from 'express-validator';
 import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import { validate } from '../middleware/validate';
 import { addMonths } from 'date-fns';
 
 const router = Router();
 
 router.use(protect);
+
+// Prêt : montant > 0, taux >= 0, durée >= 1 — entrées du calcul d'amortissement.
+const loanCreateRules = [
+    body('name').notEmpty().withMessage('Le nom est obligatoire').bail().isString().isLength({ max: 200 }).withMessage('Nom trop long'),
+    body('amount').notEmpty().withMessage('Le montant est obligatoire').bail().isFloat({ gt: 0 }).withMessage('Montant invalide (> 0)'),
+    body('interest_rate').notEmpty().withMessage("Le taux d'intérêt est obligatoire").bail().isFloat({ min: 0 }).withMessage('Taux invalide'),
+    body('duration_months').notEmpty().withMessage('La durée est obligatoire').bail().isInt({ min: 1 }).withMessage('Durée invalide'),
+    body('start_date').notEmpty().withMessage('La date de début est obligatoire').bail().isISO8601().withMessage('Date invalide (ISO 8601)'),
+    body('building_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('building_id invalide'),
+    body('day_of_month').optional({ nullable: true }).isInt({ min: 1, max: 31 }).withMessage('Jour du mois invalide (1-31)'),
+];
+const loanCloseRules = [param('id').isInt({ min: 1 }).withMessage('Identifiant invalide')];
+const loanInstallmentRules = [
+    param('id').isInt({ min: 1 }).withMessage('Identifiant prêt invalide'),
+    param('paymentId').isInt({ min: 1 }).withMessage('Identifiant échéance invalide'),
+];
 
 // GET /api/loans - List loans for the active tenant
 // [SÉCURITÉ] owner_id depuis resolvedOwnerId — req.query.owner_id supprimé (IDOR)
@@ -69,7 +87,7 @@ router.get('/:id', permissions.canRead('finance'), tenantGuard, async (req: Auth
 
 // POST /api/loans - Create loan & generate schedule
 // [SÉCURITÉ] owner_id depuis resolvedOwnerId — req.body.owner_id supprimé (IDOR)
-router.post('/', permissions.canWrite('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', permissions.canWrite('finance'), tenantGuard, validate(loanCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -152,7 +170,7 @@ router.post('/', permissions.canWrite('finance'), tenantGuard, async (req: Authe
 
 // PUT /api/loans/:id/close - Close/Complete a loan
 // [SÉCURITÉ] Vérification loans.owner_id = resolvedOwnerId avant clôture
-router.put('/:id/close', permissions.canWrite('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id/close', permissions.canWrite('finance'), tenantGuard, validate(loanCloseRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -192,7 +210,7 @@ router.put('/:id/close', permissions.canWrite('finance'), tenantGuard, async (re
 
 // PUT /api/loans/:id/installment/:paymentId/pay - Mark an installment as paid
 // [SÉCURITÉ] Vérification loans.owner_id = resolvedOwnerId avant tout traitement
-router.put('/:id/installment/:paymentId/pay', permissions.canWrite('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id/installment/:paymentId/pay', permissions.canWrite('finance'), tenantGuard, validate(loanInstallmentRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {

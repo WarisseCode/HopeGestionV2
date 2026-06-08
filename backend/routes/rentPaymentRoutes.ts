@@ -3,6 +3,7 @@
 // Updated: 2026-02-10
 
 import { Router, Response } from 'express';
+import { body } from 'express-validator';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { rentPaymentService } from '../services/RentPaymentService';
 import type { CreateRentPaymentRequest } from '../services/RentPaymentService';
@@ -10,9 +11,18 @@ import { fedapayService } from '../services/fedapayService';
 import type { WebhookPayload } from '../services/fedapayService';
 import permissions from '../middleware/permissionMiddleware';
 import { filterByOwner, buildOwnerWhereClause } from '../middleware/ownerIsolation';
+import { validate } from '../middleware/validate';
 import pool from '../db/database';
 
 const router = Router();
+
+// /initiate : formalise la validation manuelle existante (scheduleId int + opérateur).
+// NB : /webhook n'est PAS validé ici — il est gardé par vérification IP + re-check
+// upstream FedaPay (payload externe au format variable).
+const initiateRules = [
+    body('scheduleId').notEmpty().withMessage('scheduleId est obligatoire').bail().isInt({ min: 1 }).withMessage('scheduleId invalide'),
+    body('operator').notEmpty().withMessage('operator est obligatoire').bail().isIn(['mtn', 'moov']).withMessage('Opérateur invalide (mtn ou moov)'),
+];
 
 // ============================================================================
 // GET PENDING SCHEDULES
@@ -81,7 +91,7 @@ router.get('/:leaseId/pending', async (req: AuthenticatedRequest, res: Response)
  * POST /api/rent-payments/initiate
  * Create a payment link for a rent payment schedule
  */
-router.post('/initiate', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/initiate', validate(initiateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { scheduleId, operator } = req.body;
         const tenantId = req.userId;

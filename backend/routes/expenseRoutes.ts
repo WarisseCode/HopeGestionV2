@@ -4,11 +4,25 @@ import fs from 'fs-extra';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
+import { body, param } from 'express-validator';
 import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import { upload } from '../middleware/uploadMiddleware';
+import { validate } from '../middleware/validate';
 import { uploadToSpaces } from '../services/spacesUploadService';
+
+// Champs multipart (parsés par multer) : montant > 0, date et catégorie requis.
+const expenseCreateRules = [
+    body('amount').notEmpty().withMessage('Le montant est obligatoire').bail().isFloat({ gt: 0 }).withMessage('Montant invalide (> 0)'),
+    body('date_expense').notEmpty().withMessage('La date est obligatoire').bail().isISO8601().withMessage('Date invalide (ISO 8601)'),
+    body('category').notEmpty().withMessage('La catégorie est obligatoire').bail().isString().isLength({ max: 100 }).withMessage('Catégorie invalide'),
+    body('building_id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('building_id invalide'),
+    body('lot_id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('lot_id invalide'),
+    body('description').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('Description trop longue'),
+    body('supplier_name').optional({ nullable: true }).isString().isLength({ max: 200 }).withMessage('Fournisseur invalide'),
+];
+const expenseIdParam = [param('id').isInt({ min: 1 }).withMessage('Identifiant invalide')];
 
 const spacesConfigured = !!(
     process.env.SPACES_KEY &&
@@ -85,7 +99,7 @@ router.get('/categories', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // POST /api/expenses - Create expense (with optional proof upload)
-router.post('/', permissions.canWrite('finance'), upload.single('proof'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', permissions.canWrite('finance'), upload.single('proof'), validate(expenseCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const resolvedOwnerId = (req as any).resolvedOwnerId;
@@ -146,7 +160,7 @@ router.post('/', permissions.canWrite('finance'), upload.single('proof'), async 
 });
 
 // DELETE /api/expenses/:id
-router.delete('/:id', permissions.canWrite('finance'), async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', permissions.canWrite('finance'), validate(expenseIdParam), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;

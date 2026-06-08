@@ -1,10 +1,19 @@
 // backend/routes/subscriptionRoutes.ts
-import express from 'express';
+import express, { Response } from 'express';
 const router = express.Router();
 
+import { body } from 'express-validator';
 import { pool } from '../index';
 import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import { fedapayService, fedapayLogger as log } from '../services/fedapayService';
+import { validate } from '../middleware/validate';
+
+// Souscription : plan_id int + numéro + opérateur (mtn/moov) requis.
+const subscribeRules = [
+    body('plan_id').notEmpty().withMessage('Le plan est obligatoire').bail().isInt({ min: 1 }).withMessage('plan_id invalide'),
+    body('phone_number').notEmpty().withMessage('Le numéro est obligatoire').bail().isString().isLength({ max: 30 }).withMessage('Numéro invalide'),
+    body('operator').notEmpty().withMessage("L'opérateur est obligatoire").bail().isIn(['mtn', 'moov', 'MTN', 'MOOV']).withMessage("Opérateur non supporté (mtn ou moov)"),
+];
 
 // GET /api/subscriptions/plans - Liste des offres disponibles
 router.get('/plans', async (req, res) => {
@@ -102,25 +111,14 @@ router.get('/status', protect, async (req: AuthenticatedRequest, res) => {
 });
 
 // POST /api/subscriptions/subscribe - Souscrire à un plan (Paiement FedaPay)
-router.post('/subscribe', protect, async (req: AuthenticatedRequest, res) => {
+router.post('/subscribe', protect, validate(subscribeRules), async (req: AuthenticatedRequest, res: Response) => {
     const context = 'SUBSCRIBE';
-    
+
     try {
         const userId = req.userId!;
         const { plan_id, phone_number, operator } = req.body;
 
         log.info(context, 'Subscription request received', { userId, plan_id, operator });
-
-        // Validate inputs
-        if (!plan_id || !phone_number || !operator) {
-            return res.status(400).json({ message: "Plan, numéro et opérateur requis" });
-        }
-
-        // Validate operator
-        const validOperators = ['mtn', 'moov', 'MTN', 'MOOV'];
-        if (!validOperators.includes(operator)) {
-            return res.status(400).json({ message: "Opérateur non supporté. Utilisez 'mtn' ou 'moov'" });
-        }
 
         // Get plan details
         const planResult = await pool.query(`SELECT * FROM plans WHERE id = $1`, [plan_id]);
