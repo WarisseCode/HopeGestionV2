@@ -41,7 +41,13 @@
       "Bash(Format-Table FullName)",
       "PowerShell(Get-ChildItem \"d:\\\\Hope GImmo\\\\HopeGestionV2\\\\backend\" -MaxDepth 1 | Where-Object { !$_.PSIsContainer } | Select-Object Name, @{N='Ko';E={[math]::Round\\($_.Length/1KB,1\\)}} | Sort-Object Ko -Descending | Format-Table -AutoSize)",
       "PowerShell(Get-ChildItem \"d:\\\\Hope GImmo\\\\HopeGestionV2\\\\backend\" | Where-Object { !$_.PSIsContainer } | Select-Object Name, @{N='Ko';E={[math]::Round\\($_.Length/1KB,1\\)}} | Sort-Object Ko -Descending | Format-Table -AutoSize)",
-      "PowerShell(Get-ChildItem \"d:\\\\Hope GImmo\\\\HopeGestionV2\\\\backend\\\\scripts\" | Select-Object Name, @{N='Ko';E={[math]::Round\\($_.Length/1KB,1\\)}} | Sort-Object Name | Format-Table -AutoSize)"
+      "PowerShell(Get-ChildItem \"d:\\\\Hope GImmo\\\\HopeGestionV2\\\\backend\\\\scripts\" | Select-Object Name, @{N='Ko';E={[math]::Round\\($_.Length/1KB,1\\)}} | Sort-Object Name | Format-Table -AutoSize)",
+      "Bash(npx eslint *)",
+      "PowerShell(gh run list --limit 5 2>&1)",
+      "Bash(echo \"tsc exit:$?\")",
+      "Bash(npx jest *)",
+      "Bash(grep -nA2 \"CREATE TABLE IF NOT EXISTS edl_inspections\\\\|CREATE TABLE IF NOT EXISTS edl_items\" scripts/runMigrations.ts)",
+      "Bash(grep -rnA10 \"CREATE TABLE IF NOT EXISTS inventories \" scripts/runMigrations.ts db/ migrations/)"
     ]
   }
 }
