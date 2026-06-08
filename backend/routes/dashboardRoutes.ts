@@ -4,6 +4,7 @@ import { Router, Response } from 'express';
 import * as dotenv from 'dotenv';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import { cache, TTL } from '../utils/cache';
 
 dotenv.config();
 
@@ -25,6 +26,10 @@ router.get('/stats/gestionnaire', tenantGuard, async (req: AuthenticatedRequest,
                 stats: { totalBiens: 0, totalLots: 0, lotsOccupes: 0, tauxOccupation: 0, revenusMois: 0, impayesEnCours: 0, locatairesActifs: 0 }
             });
         }
+
+        const cacheKey = `dashboard:gestionnaire:${isAdmin ? 'admin' : validOwnerIds.slice().sort().join(',')}`;
+        const cached = cache.get<object>(cacheKey);
+        if (cached) return res.status(200).json({ stats: cached });
 
         const ownerFilter = isAdmin ? 'TRUE' : 'owner_id = ANY($1::int[])';
         const leaseFilter = isAdmin ? 'TRUE' : 'l.owner_id = ANY($1::int[])';
@@ -63,9 +68,9 @@ router.get('/stats/gestionnaire', tenantGuard, async (req: AuthenticatedRequest,
         const impayesEnCours = parseFloat(impayesResult.rows[0].total) || 0;
         const locatairesActifs = parseInt(tenantsResult.rows[0].count, 10);
 
-        res.status(200).json({
-            stats: { totalBiens, totalLots, lotsOccupes, tauxOccupation, revenusMois, impayesEnCours, locatairesActifs }
-        });
+        const stats = { totalBiens, totalLots, lotsOccupes, tauxOccupation, revenusMois, impayesEnCours, locatairesActifs };
+        cache.set(cacheKey, stats, TTL.DASHBOARD);
+        res.status(200).json({ stats });
 
     } catch (error) {
         console.error('Erreur récupération stats gestionnaire:', error);
@@ -90,6 +95,10 @@ router.get('/stats/manager', tenantGuard, async (req: AuthenticatedRequest, res:
             });
         }
 
+        const cacheKey = `dashboard:manager:${isAdmin ? 'admin' : validOwnerIds.slice().sort().join(',')}`;
+        const cached = cache.get<object>(cacheKey);
+        if (cached) return res.status(200).json({ stats: cached });
+
         const ownerFilter = isAdmin ? 'TRUE' : 'owner_id = ANY($1::int[])';
         const leaseFilter = isAdmin ? 'TRUE' : 'l.owner_id = ANY($1::int[])';
         const queryParams = isAdmin ? [] : [validOwnerIds];
@@ -127,9 +136,9 @@ router.get('/stats/manager', tenantGuard, async (req: AuthenticatedRequest, res:
         const impayesEnCours = parseFloat(impayesResult.rows[0].total) || 0;
         const locatairesActifs = parseInt(tenantsResult.rows[0].count, 10);
 
-        res.status(200).json({
-            stats: { totalBiens, totalLots, lotsOccupes, tauxOccupation, revenusMois, impayesEnCours, locatairesActifs }
-        });
+        const stats = { totalBiens, totalLots, lotsOccupes, tauxOccupation, revenusMois, impayesEnCours, locatairesActifs };
+        cache.set(cacheKey, stats, TTL.DASHBOARD);
+        res.status(200).json({ stats });
 
     } catch (error) {
         console.error('Erreur récupération stats manager:', error);
@@ -154,6 +163,10 @@ router.get('/stats/proprietaire', tenantGuard, async (req: AuthenticatedRequest,
         }
 
         const ownerId = validOwnerIds[0];
+
+        const cacheKey = `dashboard:proprietaire:${ownerId}`;
+        const cached = cache.get<object>(cacheKey);
+        if (cached) return res.status(200).json({ stats: cached });
 
         const [buildingsResult, lotsResult, occupiedResult, revenusResult, impayesResult] = await Promise.all([
             dbClient.query('SELECT COUNT(*) FROM buildings WHERE owner_id = $1', [ownerId]),
@@ -185,9 +198,9 @@ router.get('/stats/proprietaire', tenantGuard, async (req: AuthenticatedRequest,
         const revenusMois = parseFloat(revenusResult.rows[0].total) || 0;
         const impayesEnCours = parseFloat(impayesResult.rows[0].total) || 0;
 
-        res.status(200).json({
-            stats: { totalBiens, totalLots, lotsOccupes, tauxOccupation, revenusMois, impayesEnCours }
-        });
+        const stats = { totalBiens, totalLots, lotsOccupes, tauxOccupation, revenusMois, impayesEnCours };
+        cache.set(cacheKey, stats, TTL.DASHBOARD);
+        res.status(200).json({ stats });
 
     } catch (error) {
         console.error('Erreur récupération stats propriétaire:', error);
@@ -255,8 +268,8 @@ router.get('/stats/locataire', tenantGuard, async (req: AuthenticatedRequest, re
 
         let totalLoyerMensuel = 0;
         let nextPaymentDate: Date | null = null;
-        let logementsNames: string[] = [];
-        let leaseIds: number[] = [];
+        const logementsNames: string[] = [];
+        const leaseIds: number[] = [];
 
         for (const lease of leaseResult.rows) {
             totalLoyerMensuel += parseFloat(lease.loyer_actuel) || 0;

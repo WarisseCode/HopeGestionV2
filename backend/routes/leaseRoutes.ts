@@ -8,6 +8,7 @@ import { Router, Response } from 'express';
 import * as dotenv from 'dotenv';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
+import { cache } from '../utils/cache';
 import fs from 'fs';
 import path from 'path';
 import { NotificationService } from '../services/notificationService';
@@ -156,6 +157,7 @@ router.post('/', permissions.canWrite('locataires'), tenantGuard, async (req: Au
             await generatePaymentSchedule(dbClient, result.rows[0].id, date_debut, numSchedules, amount, jour_echeance, freq);
         }
 
+        cache.invalidatePrefix('dashboard:');
         res.status(201).json(result.rows[0]);
     } catch (error) {
         console.error('Error creating contract:', error);

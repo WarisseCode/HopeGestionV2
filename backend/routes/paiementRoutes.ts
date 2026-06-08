@@ -6,6 +6,7 @@ import express from 'express';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import { cache } from '../utils/cache';
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ const router = express.Router();
 router.get('/', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res) => {
     const dbClient = (req as any).dbClient;
     try {
-        let query = `
+        const query = `
             SELECT p.*, 
                    t.nom as tenant_name, t.prenoms as tenant_surname, 
                    l.ref_lot, 
@@ -112,6 +113,7 @@ router.post('/', permissions.canWrite('finance'), tenantGuard, async (req: Authe
             }
 
             await dbClient.query('COMMIT');
+            cache.invalidatePrefix('dashboard:');
             res.status(201).json(paymentResult);
         } catch (txError) {
             await dbClient.query('ROLLBACK');
