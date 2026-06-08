@@ -49,7 +49,11 @@ router.get('/', protect, permissions.canRead('locataires'), tenantGuard, async (
 
         let query = `
             SELECT t.*,
-                   (SELECT COUNT(*) FROM leases l WHERE l.tenant_id = t.id AND l.statut = 'actif') as active_leases,
+                   COALESCE(agg.active_leases, 0) as active_leases,
+                   -- Agrégats multi-logements : total des loyers actifs + nb de baux à jour
+                   COALESCE(agg.loyer_total, 0) as loyer_total,
+                   COALESCE(agg.leases_paid, 0) as leases_paid,
+                   -- Champs « bail le plus récent » conservés pour l'affichage à 1 logement
                    al.ref_lot as lot_nom,
                    al.loyer_mensuel as loyer_actuel,
                    al.lease_id as active_lease_id,
@@ -75,6 +79,24 @@ router.get('/', protect, permissions.canRead('locataires'), tenantGuard, async (
                 FROM payments p
                 WHERE p.lease_id = al.lease_id
             ) lp ON true
+            -- Agrégation sur TOUS les baux actifs du locataire (pas seulement le plus récent).
+            -- « à jour » = dernier paiement enregistré dans le mois courant (même règle que payment_status='paid').
+            LEFT JOIN LATERAL (
+                SELECT
+                    COUNT(*) AS active_leases,
+                    COALESCE(SUM(l.loyer_actuel), 0) AS loyer_total,
+                    COUNT(*) FILTER (
+                        WHERE lpa.last_payment_date IS NOT NULL
+                          AND lpa.last_payment_date >= CURRENT_DATE - INTERVAL '35 days'
+                          AND EXTRACT(MONTH FROM lpa.last_payment_date) = EXTRACT(MONTH FROM CURRENT_DATE)
+                    ) AS leases_paid
+                FROM leases l
+                LEFT JOIN LATERAL (
+                    SELECT MAX(date_paiement) AS last_payment_date
+                    FROM payments p WHERE p.lease_id = l.id
+                ) lpa ON true
+                WHERE l.tenant_id = t.id AND l.statut = 'actif'
+            ) agg ON true
             WHERE t.statut != 'Archivé'
         `;
 
@@ -127,10 +149,22 @@ router.get('/:id', protect, tenantGuard, async (req: any, res) => {
 
         // 2. Baux / Contrats
         const leasesResult = await dbClient.query(`
-            SELECT l.*, b.nom as building_name, lot.ref_lot, lot.type as lot_type
+            SELECT l.*, b.nom as building_name, lot.ref_lot, lot.type as lot_type,
+                   -- Statut de paiement par bail (même règle que la liste) pour la pastille du modal
+                   CASE
+                     WHEN lp.last_payment_date IS NULL THEN 'pending'
+                     WHEN lp.last_payment_date < CURRENT_DATE - INTERVAL '35 days' THEN 'late'
+                     WHEN EXTRACT(MONTH FROM lp.last_payment_date) = EXTRACT(MONTH FROM CURRENT_DATE) THEN 'paid'
+                     ELSE 'pending'
+                   END as payment_status,
+                   lp.last_payment_date
             FROM leases l
             JOIN lots lot ON l.lot_id = lot.id
             JOIN buildings b ON lot.building_id = b.id
+            LEFT JOIN LATERAL (
+                SELECT MAX(date_paiement) as last_payment_date
+                FROM payments p WHERE p.lease_id = l.id
+            ) lp ON true
             WHERE l.tenant_id = $1
             ORDER BY l.date_debut DESC
         `, [tenantId]);

@@ -1,9 +1,10 @@
-import React from 'react';
-import { Phone, Mail, Home, Wallet, MessageCircle, Eye } from 'lucide-react';
+import React, { useState } from 'react';
+import { Phone, Mail, Home, Wallet, MessageCircle, Eye, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Locataire } from '../../api/locataireApi';
 import { getAvatarColor, getPaymentStatus } from '../../utils/locataireUtils';
 import PaymentStatusBadge from './PaymentStatusBadge';
+import LoyerDetailsModal from './LoyerDetailsModal';
 
 interface Props {
   person: Locataire;
@@ -12,9 +13,39 @@ interface Props {
   onView: (id: number) => void;
 }
 
+// Ligne de la carte : rendue comme <button> (cliquable, ouvre le modal) quand il y a
+// au moins un logement, sinon comme simple <div> statique. Mutualise l'aria + le hover.
+const CardRow: React.FC<{
+  clickable: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}> = ({ clickable, onClick, children }) =>
+  clickable ? (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Voir le détail des loyers"
+      className="w-full flex justify-between items-center text-sm px-1 py-1.5 rounded-lg hover:bg-base-200/60 transition-colors text-left"
+    >
+      {children}
+    </button>
+  ) : (
+    <div className="flex justify-between items-center text-sm px-1 py-1.5">{children}</div>
+  );
+
 const LocataireCard: React.FC<Props> = ({ person, onWhatsApp, onCall, onView }) => {
+  const [modalOpen, setModalOpen] = useState(false);
+
   const paymentStatus = getPaymentStatus(person);
   const loyer = person.loyer_actuel || person.loyer;
+
+  // multi = plusieurs baux actifs → on bascule sur l'affichage agrégé.
+  const multi = (person.active_leases ?? 0) > 1;
+  const hasLodging = (person.active_leases ?? 0) > 0 || !!loyer;
+  const loyerAffiche = multi ? person.loyer_total : loyer;
+  const tousAJour = (person.leases_paid ?? 0) >= (person.active_leases ?? 0);
+
+  const openModal = () => setModalOpen(true);
 
   return (
     <motion.div
@@ -49,20 +80,46 @@ const LocataireCard: React.FC<Props> = ({ person, onWhatsApp, onCall, onView }) 
         </p>
       )}
 
-      <div className="space-y-2 pt-4 border-t border-base-200">
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-base-content/50 flex items-center gap-1.5"><Home size={14} /> Logement</span>
-          <span className="font-semibold text-base-content/90">{person.lot_nom || person.lot || '-'}</span>
-        </div>
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-base-content/50 flex items-center gap-1.5"><Wallet size={14} /> Loyer</span>
-          <span className="font-semibold text-primary">{loyer ? `${loyer.toLocaleString()} F` : '-'}</span>
-        </div>
-        {loyer && (
-          <div className="flex justify-between items-center text-sm">
+      <div className="space-y-1 pt-4 border-t border-base-200">
+        {/* Logement(s) — bascule « N logements » en multi */}
+        <CardRow clickable={hasLodging} onClick={openModal}>
+          <span className="text-base-content/50 flex items-center gap-1.5">
+            <Home size={14} /> {multi ? 'Logements' : 'Logement'}
+          </span>
+          <span className="font-semibold text-base-content/90 flex items-center gap-1">
+            {multi ? `${person.active_leases} logements` : (person.lot_nom || person.lot || '-')}
+            {hasLodging && <ChevronRight size={14} className="text-base-content/30" />}
+          </span>
+        </CardRow>
+
+        {/* Loyer — total cumulé en multi */}
+        <CardRow clickable={hasLodging} onClick={openModal}>
+          <span className="text-base-content/50 flex items-center gap-1.5">
+            <Wallet size={14} /> {multi ? 'Loyer total' : 'Loyer'}
+          </span>
+          <span className="font-semibold text-primary flex items-center gap-1">
+            {loyerAffiche ? `${loyerAffiche.toLocaleString()} F` : '-'}
+            {hasLodging && <ChevronRight size={14} className="text-base-content/30" />}
+          </span>
+        </CardRow>
+
+        {/* Paiement — « X/N à jour » en multi, badge unique sinon */}
+        {(multi || loyer) && (
+          <CardRow clickable={hasLodging} onClick={openModal}>
             <span className="text-base-content/50">Paiement</span>
-            <PaymentStatusBadge status={paymentStatus} />
-          </div>
+            <span className="flex items-center gap-1">
+              {multi ? (
+                <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                  tousAJour ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                }`}>
+                  {person.leases_paid ?? 0}/{person.active_leases} à jour
+                </span>
+              ) : (
+                <PaymentStatusBadge status={paymentStatus} />
+              )}
+              {hasLodging && <ChevronRight size={14} className="text-base-content/30" />}
+            </span>
+          </CardRow>
         )}
       </div>
 
@@ -83,6 +140,13 @@ const LocataireCard: React.FC<Props> = ({ person, onWhatsApp, onCall, onView }) 
           <Eye size={16} />
         </button>
       </div>
+
+      <LoyerDetailsModal
+        locataireId={person.id}
+        locataireName={`${person.prenoms} ${person.nom}`}
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+      />
     </motion.div>
   );
 };

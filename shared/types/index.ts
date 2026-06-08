@@ -21,6 +21,9 @@ export interface Locataire {
     statut: 'Actif' | 'Inactif' | 'Expiré' | 'Archivé' | 'En attente' | 'Rejeté';
     mode_paiement_preferentiel?: string;
     active_leases?: number;
+    // Agrégats multi-logements (liste) : total des loyers actifs + nb de baux à jour
+    loyer_total?: number;
+    leases_paid?: number;
     created_at?: string;
     adresse_actuelle?: string;
     date_expiration_piece?: string;
@@ -44,9 +47,13 @@ export interface BailSummary {
     reference_bail?: string;
     ref_bail?: string;
     ref_lot?: string;
+    lot_type?: string;
     building_name?: string;
     loyer_actuel?: number;
     date_debut?: string;
+    // Par bail (détail) — pour la pastille et le « dernier paiement » du modal
+    payment_status?: 'paid' | 'late' | 'pending' | 'unknown';
+    last_payment_date?: string;
 }
 
 export interface LocataireDetails {
