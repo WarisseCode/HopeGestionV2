@@ -229,7 +229,7 @@ const LocataireDetails: React.FC = () => {
                     <div><span className="text-base-content/60 block mb-1">Lot</span><span className="font-medium text-base">{activeBail.ref_lot}</span></div>
                     <div><span className="text-base-content/60 block mb-1">Immeuble</span><span className="font-medium text-base">{activeBail.building_name}</span></div>
                     <div><span className="text-base-content/60 block mb-1">Loyer</span><span className="font-bold text-primary text-base">{activeBail.loyer_actuel?.toLocaleString()} F/mois</span></div>
-                    <div><span className="text-base-content/60 block mb-1">Depuis</span><span className="font-medium text-base">{new Date(activeBail.date_debut).toLocaleDateString('fr-FR')}</span></div>
+                    <div><span className="text-base-content/60 block mb-1">Depuis</span><span className="font-medium text-base">{activeBail.date_debut ? new Date(activeBail.date_debut).toLocaleDateString('fr-FR') : '—'}</span></div>
                   </div>
                 ) : (
                   <p className="text-base-content/40 text-sm">Aucun logement actif</p>

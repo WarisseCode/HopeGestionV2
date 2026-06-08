@@ -3,7 +3,8 @@ import { getToken } from './authApi';
 
 import { API_URL } from '../config';
 
-export type { Payment, Expense, Loan, LoanSchedule } from '@hopegestion/shared-types';
+import type { Payment, Expense, Loan, LoanSchedule } from '@hopegestion/shared-types';
+export type { Payment, Expense, Loan, LoanSchedule };
 
 export interface TaxSettings {
     owner_id: number;

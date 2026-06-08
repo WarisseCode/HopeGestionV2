@@ -4,11 +4,13 @@
 import { getToken } from './authApi';
 
 import { API_URL } from '../config';
-export type { Location, PaymentScheduleItem, CreateLocationData } from '@hopegestion/shared-types';
+// Alias to avoid collision with globalThis.Location (browser DOM type).
+import type { Location as AppLocation, PaymentScheduleItem, CreateLocationData } from '@hopegestion/shared-types';
+export type { AppLocation as Location, PaymentScheduleItem, CreateLocationData };
 
 export const locationApi = {
     // Get all locations
-    getLocations: async (filters?: { statut?: string; owner_id?: number }): Promise<Location[]> => {
+    getLocations: async (filters?: { statut?: string; owner_id?: number }): Promise<AppLocation[]> => {
         const token = getToken();
         if (!token) throw new Error('Non authentifié');
         
@@ -27,7 +29,7 @@ export const locationApi = {
     },
 
     // Get single location details
-    getLocation: async (id: number): Promise<{ location: Location; echeancier: PaymentScheduleItem[] }> => {
+    getLocation: async (id: number): Promise<{ location: AppLocation; echeancier: PaymentScheduleItem[] }> => {
         const token = getToken();
         if (!token) throw new Error('Non authentifié');
         
@@ -39,7 +41,7 @@ export const locationApi = {
     },
 
     // Create new location
-    createLocation: async (data: CreateLocationData): Promise<Location> => {
+    createLocation: async (data: CreateLocationData): Promise<AppLocation> => {
         const token = getToken();
         if (!token) throw new Error('Non authentifié');
         
@@ -62,7 +64,7 @@ export const locationApi = {
     },
 
     // Update location
-    updateLocation: async (id: number, data: Partial<Location>): Promise<Location> => {
+    updateLocation: async (id: number, data: Partial<AppLocation>): Promise<AppLocation> => {
         const token = getToken();
         if (!token) throw new Error('Non authentifié');
         
@@ -95,7 +97,7 @@ export const locationApi = {
     },
 
     // Renew location
-    renouvelerLocation: async (id: number, nouvelle_date_fin: string, nouveau_loyer?: number): Promise<Location> => {
+    renouvelerLocation: async (id: number, nouvelle_date_fin: string, nouveau_loyer?: number): Promise<AppLocation> => {
         const token = getToken();
         if (!token) throw new Error('Non authentifié');
         

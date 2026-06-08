@@ -37,10 +37,22 @@ export interface Locataire {
     paiementEcheance?: boolean;
 }
 
+// Minimal bail shape returned in LocataireDetails — covers all accessed properties.
+export interface BailSummary {
+    id: number;
+    statut: string;
+    reference_bail?: string;
+    ref_bail?: string;
+    ref_lot?: string;
+    building_name?: string;
+    loyer_actuel?: number;
+    date_debut?: string;
+}
+
 export interface LocataireDetails {
     locataire: Locataire;
-    baux: unknown[];
-    paiements: unknown[];
+    baux: BailSummary[];
+    paiements: Record<string, unknown>[];
 }
 
 // ─── Biens ───────────────────────────────────────────────────────────────────

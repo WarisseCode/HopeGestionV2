@@ -1,6 +1,7 @@
 import { getToken } from './authApi';
-import { API_URL as BASE_URL } from '../config';
-export type { Immeuble, Lot } from '@hopegestion/shared-types';
+import { API_URL } from '../config';
+import type { Immeuble, Lot } from '@hopegestion/shared-types';
+export type { Immeuble, Lot };
 
 // Fonction pour récupérer les immeubles
 export async function getImmeubles(): Promise<Immeuble[]> {

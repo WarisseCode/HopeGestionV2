@@ -48,8 +48,9 @@ import type { Activity } from '../components/dashboard/ActivityFeed';
 import type { Period } from '../components/dashboard/PeriodFilter';
 import Button from '../components/ui/Button';
 import SearchInput from '../components/ui/SearchInput';
-import { getToken } from '../api/authApi';
+import { apiCall } from '../utils/apiUtils';
 import { API_URL } from '../config';
+import { getToken } from '../api/authApi';
 import EmptyState from '../components/ui/EmptyState';
 
 // --- Types for API Data ---
@@ -156,29 +157,9 @@ const GestionnaireDashboard: React.FC = () => {
   useEffect(() => {
     const fetchKPIs = async () => {
       setIsLoadingKpis(true);
-      const token = getToken();
-      if (!token) {
-        // Simulate loading delay for skeleton demo
-        await new Promise(r => setTimeout(r, 500));
-        setKpis([]);
-        setIsLoadingKpis(false);
-        return;
-      }
-      
       try {
-        const response = await fetch(`${API_URL}/dashboard/kpi?period=${period}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setKpis(data.kpis);
-        } else {
-          setKpis([]);
-        }
+        const data = await apiCall<{ kpis: any[] }>(`${API_URL}/dashboard/kpi?period=${period}`);
+        setKpis(data.kpis);
       } catch (error) {
         console.error('Error fetching KPIs:', error);
         setKpis([]);

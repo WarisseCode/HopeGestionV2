@@ -1,7 +1,8 @@
 // frontend/src/api/locataireApi.ts
 import { API_URL as BASE_URL } from '../config';
 import { getToken } from './authApi';
-export type { Locataire, LocataireDetails } from '@hopegestion/shared-types';
+import type { Locataire, LocataireDetails } from '@hopegestion/shared-types';
+export type { Locataire, LocataireDetails };
 
 const API_URL = `${BASE_URL}/locataires`;
 
