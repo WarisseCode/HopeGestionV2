@@ -1,11 +1,23 @@
-import { Router } from 'express';
-import { Pool } from 'pg';
+import { Router, Response } from 'express';
+import { body } from 'express-validator';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../config/config';
+import { validate } from '../middleware/validate';
 
 const router = Router();
 
 import pool from '../db/database';
+
+// role + module forment la clé du upsert → obligatoires. Les droits sont des
+// booléens optionnels (un upsert partiel ne réécrit que ce qui est fourni).
+const matrixRules = [
+    body('role').notEmpty().withMessage('role est obligatoire').bail().isString().isLength({ max: 50 }).withMessage('role invalide'),
+    body('module').notEmpty().withMessage('module est obligatoire').bail().isString().isLength({ max: 50 }).withMessage('module invalide'),
+    body('can_read').optional({ nullable: true }).isBoolean().withMessage('can_read doit être un booléen'),
+    body('can_write').optional({ nullable: true }).isBoolean().withMessage('can_write doit être un booléen'),
+    body('can_delete').optional({ nullable: true }).isBoolean().withMessage('can_delete doit être un booléen'),
+    body('can_validate').optional({ nullable: true }).isBoolean().withMessage('can_validate doit être un booléen'),
+];
 
 // Middleware d'auth simplifié (à factoriser idéalement)
 const verifyToken = (req: any, res: any, next: any) => {
@@ -35,7 +47,7 @@ router.get('/matrix', verifyToken, async (req, res) => {
 
 // PUT /api/permissions/matrix
 // Met à jour une ligne de permission
-router.put('/matrix', verifyToken, async (req: any, res) => {
+router.put('/matrix', verifyToken, validate(matrixRules), async (req: any, res: Response) => {
     // Seul l'admin peut modifier les permissions
     if (req.user.role !== 'admin') {
         return res.status(403).json({ message: 'Seul l\'administrateur peut modifier les permissions.' });

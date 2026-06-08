@@ -4,13 +4,24 @@
 // owner_id vient UNIQUEMENT de resolvedOwnerId — jamais depuis req.params ou req.body.
 
 import { Router, Response } from 'express';
+import { body } from 'express-validator';
 import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import permissions from '../middleware/permissionMiddleware';
+import { validate } from '../middleware/validate';
 
 const router = Router();
 
 router.use(protect);
+
+// Paramètres fiscaux : tous optionnels (upsert) mais strictement typés.
+// tax_rate borné 0-100 pour empêcher un taux aberrant ; vat_subject booléen.
+const taxSettingsRules = [
+    body('fiscal_regime').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Régime fiscal invalide'),
+    body('tax_rate').optional({ nullable: true }).isFloat({ min: 0, max: 100 }).withMessage('Taux invalide (0-100)'),
+    body('vat_subject').optional({ nullable: true }).isBoolean().withMessage('vat_subject doit être un booléen'),
+    body('country').optional({ nullable: true }).isString().isLength({ max: 100 }).withMessage('Pays invalide'),
+];
 
 // GET /api/tax/settings — Get fiscal settings for the active tenant
 // [SÉCURITÉ] ownerId résolu via tenantGuard — jamais depuis req.params
@@ -35,7 +46,7 @@ router.get('/settings', permissions.canRead('finance'), tenantGuard, async (req:
 
 // POST /api/tax/settings — Save fiscal settings for the active tenant
 // [SÉCURITÉ] owner_id depuis resolvedOwnerId — jamais depuis req.body
-router.post('/settings', permissions.canWrite('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/settings', permissions.canWrite('finance'), tenantGuard, validate(taxSettingsRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {

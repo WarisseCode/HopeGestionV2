@@ -1,16 +1,29 @@
 // backend/routes/tenantAccessRoutes.ts
 // Manages tenant portal access control
 
-import express from 'express';
+import express, { Response } from 'express';
+import { body, param } from 'express-validator';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 import { protect } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import { validate } from '../middleware/validate';
 import crypto from 'crypto';
 
 const router = express.Router();
+
+// :tenantId est parseInt() côté handler — on le valide en amont pour éviter un NaN
+// qui partirait en requête. Les champs de config sont optionnels mais typés.
+const tenantIdParam = param('tenantId').isInt({ min: 1 }).withMessage('tenantId invalide');
+
+const updateAccessRules = [
+    tenantIdParam,
+    body('access_modules').optional({ nullable: true }).isObject().withMessage('access_modules doit être un objet'),
+    body('allow_online_payment').optional({ nullable: true }).isBoolean().withMessage('allow_online_payment doit être un booléen'),
+    body('notification_channel').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Canal de notification invalide'),
+];
 
 // GET /api/tenant-access/:tenantId - Get access config
 router.get('/:tenantId', protect, permissions.canRead('locataires'), tenantGuard, async (req: any, res) => {
@@ -44,7 +57,7 @@ router.get('/:tenantId', protect, permissions.canRead('locataires'), tenantGuard
 });
 
 // PUT /api/tenant-access/:tenantId - Update access config
-router.put('/:tenantId', protect, permissions.canWrite('locataires'), tenantGuard, async (req: any, res) => {
+router.put('/:tenantId', protect, permissions.canWrite('locataires'), tenantGuard, validate(updateAccessRules), async (req: any, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const tenantId = parseInt(req.params.tenantId);
@@ -81,7 +94,7 @@ router.put('/:tenantId', protect, permissions.canWrite('locataires'), tenantGuar
 });
 
 // POST /api/tenant-access/:tenantId/activate - Activate tenant access and generate code
-router.post('/:tenantId/activate', protect, permissions.canWrite('locataires'), tenantGuard, async (req: any, res) => {
+router.post('/:tenantId/activate', protect, permissions.canWrite('locataires'), tenantGuard, validate([tenantIdParam]), async (req: any, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const tenantId = parseInt(req.params.tenantId);
@@ -117,7 +130,7 @@ router.post('/:tenantId/activate', protect, permissions.canWrite('locataires'), 
 });
 
 // POST /api/tenant-access/:tenantId/suspend - Suspend tenant access
-router.post('/:tenantId/suspend', protect, permissions.canWrite('locataires'), tenantGuard, async (req: any, res) => {
+router.post('/:tenantId/suspend', protect, permissions.canWrite('locataires'), tenantGuard, validate([tenantIdParam]), async (req: any, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const tenantId = parseInt(req.params.tenantId);

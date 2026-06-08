@@ -4,13 +4,42 @@
 // owner_id vient UNIQUEMENT de resolvedOwnerId — jamais depuis req.params, req.query, ou req.body.
 
 import { Router, Response } from 'express';
+import { body, param } from 'express-validator';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import { validate } from '../middleware/validate';
 import * as ExcelJS from 'exceljs';
 import { FinanceService } from '../services/FinanceService';
 
 const router = Router();
+
+// Mêmes règles que paiementRoutes (POST / délègue à FinanceService.createPayment).
+const paymentCreateRules = [
+    body('lease_id').notEmpty().withMessage('lease_id est obligatoire').bail()
+        .isInt({ min: 1 }).withMessage('lease_id invalide'),
+    body('montant').notEmpty().withMessage('Le montant est obligatoire').bail()
+        .isFloat({ gt: 0 }).withMessage('Le montant doit être un nombre strictement positif'),
+    body('type').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Type invalide'),
+    body('mode_paiement').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Mode de paiement invalide'),
+    body('date_paiement').optional({ nullable: true }).isISO8601().withMessage('Date invalide (ISO 8601)'),
+    body('reference_transaction').optional({ nullable: true }).isString().isLength({ max: 255 }).withMessage('Référence trop longue'),
+    body('schedule_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('schedule_id invalide'),
+];
+
+// month/year optionnels (défaut = mois/année courants côté handler).
+const generateSchedulesRules = [
+    body('month').optional({ nullable: true }).isInt({ min: 1, max: 12 }).withMessage('Mois invalide (1-12)'),
+    body('year').optional({ nullable: true }).isInt({ min: 2000, max: 2100 }).withMessage('Année invalide'),
+];
+
+// :id de l'échéance + champs de règlement optionnels typés.
+const payScheduleRules = [
+    param('id').isInt({ min: 1 }).withMessage("Identifiant d'échéance invalide"),
+    body('montant').optional({ nullable: true }).isFloat({ gt: 0 }).withMessage('Montant invalide'),
+    body('mode_paiement').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Mode de paiement invalide'),
+    body('date_paiement').optional({ nullable: true }).isISO8601().withMessage('Date invalide (ISO 8601)'),
+];
 
 // GET /api/finances - Liste des paiements
 router.get('/', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
@@ -27,7 +56,7 @@ router.get('/', permissions.canRead('finance'), tenantGuard, async (req: Authent
 });
 
 // POST /api/finances - Enregistrer un paiement
-router.post('/', permissions.canWrite('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', permissions.canWrite('finance'), tenantGuard, validate(paymentCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const ownerId = (req as any).resolvedOwnerId;
     try {
@@ -138,7 +167,7 @@ router.get('/export/excel', permissions.canRead('finance'), tenantGuard, async (
 
 // POST /api/finances/generate-schedules - Générer les échéances mensuelles (Admin/Gest)
 // ⚠️ FinanceService utilise pool en interne — pas de dbClient ici (hors tenantGuard)
-router.post('/generate-schedules', permissions.canWrite('finance'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/generate-schedules', permissions.canWrite('finance'), validate(generateSchedulesRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { month, year } = req.body;
         const targetMonth = month ? parseInt(month) : new Date().getMonth() + 1;
@@ -172,7 +201,7 @@ router.get('/schedules', permissions.canRead('finance'), tenantGuard, async (req
 });
 
 // PUT /api/finances/schedules/:id/pay - Marquer une échéance comme payée
-router.put('/schedules/:id/pay', permissions.canWrite('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.put('/schedules/:id/pay', permissions.canWrite('finance'), tenantGuard, validate(payScheduleRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient      = (req as any).dbClient;
     const ownerId       = (req as any).resolvedOwnerId;
     const validOwnerIds: number[] = (req as any).validOwnerIds || [];

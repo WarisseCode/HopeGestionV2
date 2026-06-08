@@ -1,14 +1,32 @@
 // backend/routes/paiementRoutes.ts
-import express from 'express';
+import express, { Response } from 'express';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
+import { body } from 'express-validator';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import { validate } from '../middleware/validate';
 import { cache } from '../utils/cache';
 
 const router = express.Router();
+
+// Validation de l'enregistrement d'un paiement. Seuls lease_id et montant sont
+// exigés (champs critiques pour l'intégrité financière) ; le reste est typé mais
+// optionnel pour ne pas casser les flux existants. .bail() coupe la chaîne d'un
+// champ dès la 1re erreur (évite un message de format sur une valeur absente).
+const paiementCreateRules = [
+    body('lease_id').notEmpty().withMessage('lease_id est obligatoire').bail()
+        .isInt({ min: 1 }).withMessage('lease_id invalide'),
+    body('montant').notEmpty().withMessage('Le montant est obligatoire').bail()
+        .isFloat({ gt: 0 }).withMessage('Le montant doit être un nombre strictement positif'),
+    body('type').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Type invalide'),
+    body('mode_paiement').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Mode de paiement invalide'),
+    body('date_paiement').optional({ nullable: true }).isISO8601().withMessage('Date de paiement invalide (format ISO 8601)'),
+    body('reference_transaction').optional({ nullable: true }).isString().isLength({ max: 255 }).withMessage('Référence trop longue'),
+    body('schedule_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('schedule_id invalide'),
+];
 
 // [RLS] Filtrage automatique par tenant via PostgreSQL Row-Level Security
 // Anciens helpers (filterByOwner, buildOwnerWhereClause, vérifications de rôle manuelles) supprimés.
@@ -39,7 +57,7 @@ router.get('/', permissions.canRead('finance'), tenantGuard, async (req: Authent
 });
 
 // POST /api/paiements - Enregistrer un paiement (Module V: linked to schedule)
-router.post('/', permissions.canWrite('finance'), tenantGuard, async (req: AuthenticatedRequest, res) => {
+router.post('/', permissions.canWrite('finance'), tenantGuard, validate(paiementCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const strictOwnerId = (req as any).resolvedOwnerId;
     
