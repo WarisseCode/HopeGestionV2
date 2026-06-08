@@ -4,8 +4,9 @@ import {
     ClipboardList, Plus, Search, Filter, Calendar, 
     CheckCircle, Clock, AlertTriangle, ChevronRight, User
 } from 'lucide-react';
-import { getToken } from '../api/authApi';
 import { Link } from 'react-router-dom';
+import { apiCall } from '../utils/apiUtils';
+import { API_URL } from '../config';
 
 interface Inventory {
     id: number;
@@ -31,14 +32,8 @@ const InventoriesList: React.FC = () => {
 
     const loadInventories = async () => {
         try {
-            const token = getToken();
-            const res = await fetch('http://localhost:5000/api/inventories', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setInventories(data);
-            }
+            const data = await apiCall<Inventory[]>(`${API_URL}/inventories`);
+            setInventories(data);
         } catch (error) {
             console.error('Error loading inventories:', error);
         } finally {

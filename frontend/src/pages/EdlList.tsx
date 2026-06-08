@@ -4,8 +4,9 @@ import {
     ClipboardCheck, Plus, Search, Calendar, 
     CheckCircle, Clock, User, Building, ChevronRight, Filter
 } from 'lucide-react';
-import { getToken } from '../api/authApi';
 import { Link } from 'react-router-dom';
+import { apiCall } from '../utils/apiUtils';
+import { API_URL } from '../config';
 
 interface EdlInspection {
     id: number;
@@ -34,14 +35,8 @@ const EdlList: React.FC = () => {
 
     const loadEdls = async () => {
         try {
-            const token = getToken();
-            const res = await fetch('http://localhost:5000/api/edl', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setEdls(data);
-            }
+            const data = await apiCall<EdlInspection[]>(`${API_URL}/edl`);
+            setEdls(data);
         } catch (error) {
             console.error('Error loading EDL:', error);
         } finally {

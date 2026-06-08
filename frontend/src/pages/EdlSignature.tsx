@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import SignatureCanvas from 'react-signature-canvas';
-import { getToken } from '../api/authApi';
+import { apiCall } from '../utils/apiUtils';
+import { API_URL } from '../config';
 import { toast } from 'react-hot-toast';
 import { Check, X, ArrowLeft, PenTool, User, Building } from 'lucide-react';
 
@@ -31,7 +32,6 @@ const EdlSignature: React.FC = () => {
 
         setLoading(true);
         try {
-            const token = getToken();
             const signatures = {
                 agent: {
                     signature_url: agentSigRef.current?.getCanvas().toDataURL('image/png'),
@@ -43,16 +43,10 @@ const EdlSignature: React.FC = () => {
                 }
             };
 
-            const res = await fetch(`http://localhost:5000/api/edl/${id}/sign`, {
+            await apiCall(`${API_URL}/edl/${id}/sign`, {
                 method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({ signatures })
             });
-
-            if (!res.ok) throw new Error('Erreur lors de la signature');
 
             toast.success('État des lieux signé et finalisé !');
             navigate(`/dashboard/etats-des-lieux/${id}`);

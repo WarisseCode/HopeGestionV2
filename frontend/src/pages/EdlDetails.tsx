@@ -5,7 +5,8 @@ import {
     Printer, Edit, ArrowLeft, Calendar, User, 
     ClipboardCheck, Building, CheckCircle, FileSignature
 } from 'lucide-react';
-import { getToken } from '../api/authApi';
+import { apiCall } from '../utils/apiUtils';
+import { API_URL } from '../config';
 
 const EdlDetails: React.FC = () => {
     const { id } = useParams();
@@ -19,14 +20,8 @@ const EdlDetails: React.FC = () => {
 
     const loadData = async () => {
         try {
-            const token = getToken();
-            const res = await fetch(`http://localhost:5000/api/edl/${id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setEdl(data);
-            }
+            const data = await apiCall<any>(`${API_URL}/edl/${id}`);
+            setEdl(data);
         } catch (error) {
             console.error(error);
         } finally {

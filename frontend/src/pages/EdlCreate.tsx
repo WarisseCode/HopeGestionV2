@@ -5,7 +5,8 @@ import {
     Building, User, Calendar, FileText, ClipboardCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getToken } from '../api/authApi';
+import { apiCall } from '../utils/apiUtils';
+import { API_URL } from '../config';
 import { toast } from 'react-hot-toast';
 
 const ETATS = [
@@ -67,14 +68,10 @@ const EdlCreate: React.FC = () => {
     }, []);
 
     const loadLots = async () => {
-        const token = getToken();
-        const res = await fetch('http://localhost:5000/api/biens/lots', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-            const data = await res.json();
+        try {
+            const data = await apiCall<{ lots: any[] }>(`${API_URL}/biens/lots`);
             setLots(data.lots || []);
-        }
+        } catch { /* ignore si l'endpoint est indisponible */ }
     };
 
     const handleAddItem = () => {
@@ -105,30 +102,17 @@ const EdlCreate: React.FC = () => {
 
         setLoading(true);
         try {
-            const token = getToken();
-            
             // 1. Create EDL Header
-            const res = await fetch('http://localhost:5000/api/edl', {
+            const edl = await apiCall<{ id: number }>(`${API_URL}/edl`, {
                 method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify(context)
             });
-            
-            if (!res.ok) throw new Error('Erreur création EDL');
-            const edl = await res.json();
             const edlId = edl.id;
 
             // 2. Add Items
             for (const item of items) {
-                await fetch(`http://localhost:5000/api/edl/${edlId}/items`, {
+                await apiCall(`${API_URL}/edl/${edlId}/items`, {
                     method: 'POST',
-                    headers: { 
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
                     body: JSON.stringify(item)
                 });
             }

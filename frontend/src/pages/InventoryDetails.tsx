@@ -5,7 +5,8 @@ import {
     Printer, Edit, ArrowLeft, Calendar, User, 
     ClipboardList, Building, Warehouse, CheckCircle 
 } from 'lucide-react';
-import { getToken } from '../api/authApi';
+import { apiCall } from '../utils/apiUtils';
+import { API_URL } from '../config';
 
 const InventoryDetails: React.FC = () => {
     const { id } = useParams();
@@ -19,15 +20,9 @@ const InventoryDetails: React.FC = () => {
 
     const loadData = async () => {
         try {
-            const token = getToken();
-            const res = await fetch(`http://localhost:5000/api/inventories/${id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setInventory(data);
-                setItems(data.items || []);
-            }
+            const data = await apiCall<any>(`${API_URL}/inventories/${id}`);
+            setInventory(data);
+            setItems(data.items || []);
         } catch (error) {
             console.error(error);
         } finally {
