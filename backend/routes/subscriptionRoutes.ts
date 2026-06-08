@@ -42,8 +42,8 @@ router.get('/status', protect, async (req: AuthenticatedRequest, res) => {
             // Default to Free plan
             const freePlan = await pool.query(`SELECT * FROM plans WHERE name = 'free' LIMIT 1`);
             
-            let countPropertiesRes = await pool.query(`SELECT COUNT(l.id) as total_lots FROM lots l JOIN owner_user ou ON l.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
-            let countTenantsRes = await pool.query(`SELECT COUNT(t.id) as total_tenants FROM tenants t JOIN owner_user ou ON t.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
+            const countPropertiesRes = await pool.query(`SELECT COUNT(l.id) as total_lots FROM lots l JOIN owner_user ou ON l.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
+            const countTenantsRes = await pool.query(`SELECT COUNT(t.id) as total_tenants FROM tenants t JOIN owner_user ou ON t.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
 
             return res.json({
                 plan: freePlan.rows[0] || { name: 'free', display_name: 'Gratuit', max_properties: 3, max_tenants: 5 },
@@ -62,15 +62,15 @@ router.get('/status', protect, async (req: AuthenticatedRequest, res) => {
         const daysRemaining = endDate ? Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
 
         // Récupération de l'usage actuel
-        let countPropertiesRes = await pool.query(
+        const countPropertiesRes = await pool.query(
             `SELECT COUNT(l.id) as total_lots FROM lots l JOIN owner_user ou ON l.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`,
             [userId]
         );
-        let countTenantsRes = await pool.query(
+        const countTenantsRes = await pool.query(
             `SELECT COUNT(t.id) as total_tenants FROM tenants t JOIN owner_user ou ON t.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`,
             [userId]
         );
-        let countAgenciesRes = await pool.query(
+        const countAgenciesRes = await pool.query(
             `SELECT COUNT(id) as total_agencies FROM owner_user WHERE user_id = $1 AND role = 'owner' AND is_active = TRUE`,
             [userId]
         );

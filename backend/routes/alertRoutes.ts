@@ -29,7 +29,7 @@ router.get('/', protect, async (req: AuthenticatedRequest, res: Response) => {
         // Filtrage propriétaire si besoin
         const isOwner = userRole === 'owner' || userRole === 'proprietaire';
         let ownerFilter = '';
-        let ownerParams: any[] = [];
+        const ownerParams: any[] = [];
         if (isOwner) {
             const ownerId = await getOwnerIdForUser(userId);
             if (ownerId) {

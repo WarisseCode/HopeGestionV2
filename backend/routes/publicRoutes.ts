@@ -79,7 +79,7 @@ router.get('/lots', async (req: Request, res: Response) => {
             const typeLabel = item.type || (isBuilding ? 'Immeuble' : 'Appartement');
             const location = item.quartier ? `à ${item.quartier}` : (item.ville ? `à ${item.ville}` : '');
             
-            let titre = isBuilding 
+            const titre = isBuilding 
                 ? (item.titre || `${typeLabel} ${location}`) 
                 : (item.description && item.description.length > 10 ? `${typeLabel} ${location}` : `${typeLabel} ${item.surface ? `${item.surface}m²` : ''} ${location}`);
 

@@ -710,7 +710,7 @@ router.get('/audit-logs', async (req: AuthenticatedRequest, res: Response) => {
 router.get('/settings', async (req: AuthenticatedRequest, res: Response) => {
     try {
         // Check if settings table exists
-        let settings: any = {};
+        const settings: any = {};
         try {
             const result = await pool.query('SELECT key, value FROM admin_settings');
             result.rows.forEach(row => { settings[row.key] = row.value; });

@@ -98,12 +98,12 @@ router.get('/', protect, async (req: any, res) => {
 
             while (isBefore(currentMonth, finalMonth) || currentMonth.getTime() === finalMonth.getTime()) {
                 // Créer une date pour ce mois avec le jour d'échéance
-                let dueDay = lease.jour_echeance || 5; 
+                const dueDay = lease.jour_echeance || 5; 
                 // Gérer les jours > nb jours dans le mois (ex: 31 février)
                 // setDate gère ça (31 fev -> 2 ou 3 mars), mais pour un loyer on veut fin de mois.
                 // Simplification: on laisse date-fns gérer ou on ne gère pas edge-case complexe.
                 
-                let rentDate = setDate(currentMonth, dueDay);
+                const rentDate = setDate(currentMonth, dueDay);
 
                 // Vérifier si cette date de loyer est valide pour ce bail (après début, avant fin)
                 const leaseStart = new Date(lease.date_debut);
