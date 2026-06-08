@@ -72,24 +72,46 @@ router.post('/', permissions.canWrite('finance'), tenantGuard, validate(paiement
             schedule_id // Module V: Link to specific schedule entry
         } = req.body;
         
-        // 1. Vérifier l'existence du bail (RLS garantit qu'il appartient bien à ce tenant)
-        const leaseResult = await dbClient.query('SELECT id FROM leases WHERE id = $1', [lease_id]);
+        // 1. Vérifier l'existence du bail ET récupérer son propriétaire.
+        // La RLS de lecture (multi-owner via app.current_user_id) garantit que le bail
+        // appartient bien à l'utilisateur ; on en dérive l'owner du logement payé.
+        const leaseResult = await dbClient.query(
+            `SELECT b.owner_id
+             FROM leases l
+             JOIN lots lot ON l.lot_id = lot.id
+             JOIN buildings b ON lot.building_id = b.id
+             WHERE l.id = $1`,
+            [lease_id]
+        );
         if (leaseResult.rows.length === 0) {
             return res.status(404).json({ message: "Bail non trouvé ou accès refusé." });
         }
 
+        // L'owner du bail fait foi : tenantGuard ne résout pas un owner unique pour un
+        // gestionnaire multi-owner (resolvedOwnerId = null) → l'INSERT écrirait owner_id
+        // NULL et la WITH CHECK de la policy payments rejetterait (erreur 42501).
+        // Pas d'élévation de privilège : ce bail est déjà autorisé (sinon SELECT → 404).
+        const ownerId = leaseResult.rows[0].owner_id ?? strictOwnerId;
+        if (!ownerId) {
+            return res.status(422).json({ message: "Propriétaire du bail introuvable." });
+        }
+
         let paymentResult;
-        
+
         await dbClient.query('BEGIN');
 
         try {
+            // Positionne le contexte RLS sur l'owner du bail (transaction-local, ne fuit
+            // pas vers la requête suivante) pour que la WITH CHECK accepte l'INSERT.
+            await dbClient.query(`SELECT set_config('app.current_owner_id', $1, true)`, [String(ownerId)]);
+
             // 2. Insérer paiement
             const result = await dbClient.query(
-                `INSERT INTO payments 
+                `INSERT INTO payments
                 (lease_id, montant, type, mode_paiement, date_paiement, reference_transaction, owner_id, schedule_id)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 RETURNING *`,
-                [lease_id, montant, type, mode_paiement, date_paiement || new Date(), reference_transaction || null, strictOwnerId, schedule_id || null]
+                [lease_id, montant, type, mode_paiement, date_paiement || new Date(), reference_transaction || null, ownerId, schedule_id || null]
             );
             
             paymentResult = result.rows[0];
