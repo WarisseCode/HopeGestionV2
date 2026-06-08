@@ -77,6 +77,7 @@ router.delete('/:id', permissions.canWrite('documents'), async (req: Authenticat
 // GET /api/templates/variables/:type - Get available variables with French labels
 router.get('/variables/:type', async (req: AuthenticatedRequest, res: Response) => {
     const { type } = req.params;
+    // eslint-disable-next-line no-useless-assignment
     let variables: { variable: string; label: string }[] = [];
 
     switch (type) {

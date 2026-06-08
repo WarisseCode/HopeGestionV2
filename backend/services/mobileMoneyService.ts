@@ -72,8 +72,9 @@ class MobileMoneyService {
         values.push(id);
         values.push(userId);
 
+        const idIdx = idx;
         const res = await dbClient.query(
-            `UPDATE mobile_money_configs SET ${fields.join(', ')} WHERE id = $${idx++} AND user_id = $${idx++} RETURNING *`,
+            `UPDATE mobile_money_configs SET ${fields.join(', ')} WHERE id = $${idIdx} AND user_id = $${idIdx + 1} RETURNING *`,
             values
         );
         

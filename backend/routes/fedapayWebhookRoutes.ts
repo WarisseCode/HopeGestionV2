@@ -1,7 +1,7 @@
 // backend/routes/fedapayWebhookRoutes.ts
 // FedaPay Webhook Handler with Security, Idempotency, and Subscription Activation
 
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { pool } from '../index';
 import { fedapayService, fedapayLogger as log, WebhookPayload } from '../services/fedapayService';
 import { NotificationService } from '../services/notificationService';
@@ -26,7 +26,7 @@ const SKIP_IP_CHECK = process.env.NODE_ENV === 'development' || process.env.FEDA
 // ============================================================================
 // MIDDLEWARE: IP Verification (Security Layer)
 // ============================================================================
-const verifyFedaPayIP = (req: Request, res: Response, next: Function) => {
+const verifyFedaPayIP = (req: Request, res: Response, next: NextFunction) => {
     const clientIP = req.ip || req.connection.remoteAddress || '';
     
     log.info('WEBHOOK_IP_CHECK', `Incoming webhook from IP: ${clientIP}`);

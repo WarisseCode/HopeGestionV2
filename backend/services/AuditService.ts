@@ -93,7 +93,6 @@ export class AuditService {
         if (filters.offset) {
             query += ` OFFSET $${paramCount}`;
             values.push(filters.offset);
-            paramCount++;
         }
 
         const result = await pool.query(query, values);

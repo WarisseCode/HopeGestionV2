@@ -245,13 +245,13 @@ router.put('/proprietaires/:id', async (req: AuthenticatedRequest, res: Response
         
         // Nettoyage des numéros avec support de multiples noms de champs
         const rawPhone = phone?.toString();
-        const cleanPhone = rawPhone ? rawPhone.replace(/[\s\-\(\)\.]/g, '') : null;
+        const cleanPhone = rawPhone ? rawPhone.replace(/[\s()\-.]/g, '') : null;
         
         const rawPhoneSec = (phone_secondary || secondary_phone || telephoneSecondaire)?.toString();
-        const cleanPhoneSec = rawPhoneSec ? rawPhoneSec.replace(/[\s\-\(\)\.]/g, '') : null;
+        const cleanPhoneSec = rawPhoneSec ? rawPhoneSec.replace(/[\s()\-.]/g, '') : null;
         
         const rawMobileMoney = (mobile_money_number || mobile_money)?.toString();
-        const cleanMobileMoney = rawMobileMoney ? rawMobileMoney.replace(/[\s\-\(\)\.]/g, '') : null;
+        const cleanMobileMoney = rawMobileMoney ? rawMobileMoney.replace(/[\s()\-.]/g, '') : null;
 
         let updatedOwner;
         try {

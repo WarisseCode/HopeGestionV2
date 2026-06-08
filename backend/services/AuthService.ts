@@ -14,7 +14,7 @@ import { validatePassword } from '../utils/passwordUtils';
 const SALT_ROUNDS = 10;
 export const REFRESH_TOKEN_MS = 7 * 24 * 60 * 60 * 1000;
 
-const EMAIL_REGEX = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
+const EMAIL_REGEX = /^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$/;
 
 // Typed error so routes can distinguish auth failures from unexpected errors
 export class AuthError extends Error {

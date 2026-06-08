@@ -50,12 +50,11 @@ export class LeaseService {
         `;
 
         const params: any[] = [];
-        let paramIndex = 1;
+        const paramIndex = 1;
 
         if (filters.statut) {
             query += ` AND l.statut = $${paramIndex}`;
             params.push(filters.statut);
-            paramIndex++;
         }
 
         query += ` ORDER BY l.created_at DESC`;
