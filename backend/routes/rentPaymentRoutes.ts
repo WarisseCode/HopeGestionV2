@@ -345,11 +345,8 @@ router.get('/receipt/:transactionId', async (req: AuthenticatedRequest, res: Res
  */
 router.get('/admin/transactions', permissions.canRead('finance'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const ownerIds = (req as any).ownerIds;
-        let ownerFilter = '1=1';
-        if (ownerIds && ownerIds.length > 0) {
-            ownerFilter = `l.owner_id IN (${ownerIds.join(',')})`;
-        } else if (ownerIds && ownerIds.length === 0) {
+        const ownerIds: number[] | null = (req as any).ownerIds;
+        if (ownerIds !== null && ownerIds.length === 0) {
             return res.json({ success: true, transactions: [], stats: { total: 0, pending: 0, approved: 0, failed: 0 } });
         }
 
@@ -357,8 +354,14 @@ router.get('/admin/transactions', permissions.canRead('finance'), filterByOwner,
         const targetMonth = month ? parseInt(month as string) : new Date().getMonth() + 1;
         const targetYear = year ? parseInt(year as string) : new Date().getFullYear();
 
-        let statusFilter = '';
         const params: any[] = [targetMonth, targetYear];
+        let ownerFilter = 'TRUE';
+        if (ownerIds !== null) {
+            params.push(ownerIds);
+            ownerFilter = `l.owner_id = ANY($${params.length}::int[])`;
+        }
+
+        let statusFilter = '';
         if (filterStatus && ['pending', 'approved', 'failed', 'cancelled'].includes(filterStatus as string)) {
             params.push(filterStatus);
             statusFilter = `AND rpt.status = $${params.length}`;
@@ -414,11 +417,8 @@ router.get('/admin/transactions', permissions.canRead('finance'), filterByOwner,
  */
 router.get('/admin/stats', permissions.canRead('finance'), filterByOwner, async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const ownerIds = (req as any).ownerIds;
-        let ownerFilter = '1=1';
-        if (ownerIds && ownerIds.length > 0) {
-            ownerFilter = `l.owner_id IN (${ownerIds.join(',')})`;
-        } else if (ownerIds && ownerIds.length === 0) {
+        const ownerIds: number[] | null = (req as any).ownerIds;
+        if (ownerIds !== null && ownerIds.length === 0) {
             return res.json({
                 success: true,
                 stats: { total_online: 0, pending_count: 0, approved_count: 0, failed_count: 0, total_approved_amount: 0, total_pending_amount: 0 }
@@ -428,6 +428,13 @@ router.get('/admin/stats', permissions.canRead('finance'), filterByOwner, async 
         const { month, year } = req.query;
         const targetMonth = month ? parseInt(month as string) : new Date().getMonth() + 1;
         const targetYear = year ? parseInt(year as string) : new Date().getFullYear();
+
+        const params: any[] = [targetMonth, targetYear];
+        let ownerFilter = 'TRUE';
+        if (ownerIds !== null) {
+            params.push(ownerIds);
+            ownerFilter = `l.owner_id = ANY($${params.length}::int[])`;
+        }
 
         const result = await pool.query(`
             SELECT
@@ -442,7 +449,7 @@ router.get('/admin/stats', permissions.canRead('finance'), filterByOwner, async 
             WHERE EXTRACT(MONTH FROM rpt.created_at) = $1
             AND EXTRACT(YEAR FROM rpt.created_at) = $2
             AND ${ownerFilter}
-        `, [targetMonth, targetYear]);
+        `, params);
 
         const stats = result.rows[0];
 
