@@ -4,16 +4,45 @@
 // Profile, invite, and guest management remain here until a dedicated UserService is created.
 
 import { Router, Request, Response } from 'express';
+import { body } from 'express-validator';
 import { protect } from '../middleware/authMiddleware';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { AuditService } from '../services/AuditService';
+import { validate } from '../middleware/validate';
 import pool from '../db/database';
 import { JWT_SECRET } from '../config/config';
 import { authService, AuthError, REFRESH_TOKEN_MS } from '../services/AuthService';
 
 const router = Router();
+
+// ── Règles de validation (format) ─────────────────────────────────────────────
+// IMPORTANT : sur /login on ne valide QUE la présence du mot de passe — jamais sa
+// longueur — pour ne pas verrouiller des comptes existants au mot de passe court.
+// La longueur min 6 ne s'applique qu'aux NOUVEAUX mots de passe (register/reset/
+// change), conformément à la politique d'AuthService (≥ 6 caractères).
+const registerRules = [
+    body('email').isEmail().withMessage('Email invalide'),
+    body('password').isString().isLength({ min: 6 }).withMessage('Le mot de passe doit contenir au moins 6 caractères'),
+];
+const loginRules = [
+    body('email').isEmail().withMessage('Email invalide'),
+    body('password').notEmpty().withMessage('Mot de passe requis'),
+];
+const emailOnlyRules = [body('email').isEmail().withMessage('Email invalide')];
+const verifyEmailRules = [
+    body('email').isEmail().withMessage('Email invalide'),
+    body('otp').notEmpty().withMessage('Code de vérification requis').bail().isString().isLength({ max: 10 }).withMessage('Code invalide'),
+];
+const changePasswordRules = [
+    body('currentPassword').notEmpty().withMessage('Mot de passe actuel requis'),
+    body('newPassword').isString().isLength({ min: 6 }).withMessage('Le nouveau mot de passe doit contenir au moins 6 caractères'),
+];
+const resetPasswordRules = [
+    body('token').notEmpty().withMessage('Token requis'),
+    body('newPassword').isString().isLength({ min: 6 }).withMessage('Le nouveau mot de passe doit contenir au moins 6 caractères'),
+];
 
 // ── Cookie configuration ──────────────────────────────────────────────────────
 
@@ -55,7 +84,7 @@ const SALT_ROUNDS = 10;
 
 // ── Auth routes (delegate to AuthService) ────────────────────────────────────
 
-router.post('/register', async (req, res) => {
+router.post('/register', validate(registerRules), async (req: Request, res: Response) => {
     try {
         const { userId } = await authService.register(
             req.body,
@@ -77,7 +106,7 @@ router.post('/register', async (req, res) => {
  *     description: Authentifie un utilisateur et retourne un access token (15 min) + refresh token httpOnly cookie (7 jours).
  *     security: []
  */
-router.post('/login', async (req, res) => {
+router.post('/login', validate(loginRules), async (req: Request, res: Response) => {
     const { email, password } = req.body;
     try {
         const { accessToken, refreshToken, role, userId } = await authService.login(
@@ -92,7 +121,7 @@ router.post('/login', async (req, res) => {
     }
 });
 
-router.post('/verify-email', async (req, res) => {
+router.post('/verify-email', validate(verifyEmailRules), async (req: Request, res: Response) => {
     const { email, otp } = req.body;
     try {
         const { accessToken, refreshToken, role, userId } = await authService.verifyEmail(email, otp);
@@ -103,7 +132,7 @@ router.post('/verify-email', async (req, res) => {
     }
 });
 
-router.post('/resend-otp', async (req, res) => {
+router.post('/resend-otp', validate(emailOnlyRules), async (req: Request, res: Response) => {
     const { email } = req.body;
     try {
         await authService.resendOtp(email);
@@ -155,7 +184,7 @@ router.post('/logout', async (req, res) => {
     res.json({ message: 'Déconnexion réussie.' });
 });
 
-router.post('/change-password', verifyToken, async (req: any, res) => {
+router.post('/change-password', verifyToken, validate(changePasswordRules), async (req: any, res: Response) => {
     const { currentPassword, newPassword } = req.body;
     try {
         await authService.changePassword(
@@ -169,7 +198,7 @@ router.post('/change-password', verifyToken, async (req: any, res) => {
     }
 });
 
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', validate(emailOnlyRules), async (req: Request, res: Response) => {
     const { email } = req.body;
     try {
         await authService.forgotPassword(
@@ -183,7 +212,7 @@ router.post('/forgot-password', async (req, res) => {
     }
 });
 
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', validate(resetPasswordRules), async (req: Request, res: Response) => {
     const { token, newPassword } = req.body;
     try {
         await authService.resetPassword(

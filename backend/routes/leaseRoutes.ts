@@ -2,12 +2,14 @@
 // Routes for managing leases (baux/locations)
 
 import { Router, Response } from 'express';
+import { body, param } from 'express-validator';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 import * as dotenv from 'dotenv';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
+import { validate } from '../middleware/validate';
 import { cache } from '../utils/cache';
 import fs from 'fs';
 import path from 'path';
@@ -18,6 +20,46 @@ import { tenantGuard } from '../middleware/tenantGuard';
 dotenv.config();
 
 const router = Router();
+
+// Les exigences conditionnelles (loyer si location, prix si vente) restent
+// gérées par les checks manuels du handler — ici on valide types + base.
+const leaseIdParam = param('id').isInt({ min: 1 }).withMessage('Identifiant de bail invalide');
+const leaseCreateRules = [
+    body('tenant_id').notEmpty().withMessage('Le locataire est obligatoire').bail().isInt({ min: 1 }).withMessage('tenant_id invalide'),
+    body('lot_id').notEmpty().withMessage('Le lot est obligatoire').bail().isInt({ min: 1 }).withMessage('lot_id invalide'),
+    body('date_debut').notEmpty().withMessage('La date de début est obligatoire').bail().isISO8601().withMessage('Date de début invalide (ISO 8601)'),
+    body('type_contrat').optional({ nullable: true }).isIn(['location', 'vente', 'reservation']).withMessage('Type de contrat invalide'),
+    body('date_fin').optional({ nullable: true }).isISO8601().withMessage('Date de fin invalide (ISO 8601)'),
+    body('duree_contrat').optional({ nullable: true }).isInt({ min: 1 }).withMessage('Durée invalide'),
+    body('loyer_mensuel').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Loyer invalide'),
+    body('caution').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Caution invalide'),
+    body('avance').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Avance invalide'),
+    body('charges_mensuelles').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Charges invalides'),
+    body('prix_vente').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Prix de vente invalide'),
+    body('jour_echeance').optional({ nullable: true }).isInt({ min: 1, max: 31 }).withMessage("Jour d'échéance invalide (1-31)"),
+];
+const leaseUpdateRules = [
+    leaseIdParam,
+    body('date_fin').optional({ nullable: true }).isISO8601().withMessage('Date de fin invalide (ISO 8601)'),
+    body('loyer_mensuel').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Loyer invalide'),
+    body('charges_mensuelles').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Charges invalides'),
+    body('jour_echeance').optional({ nullable: true }).isInt({ min: 1, max: 31 }).withMessage("Jour d'échéance invalide (1-31)"),
+    body('statut').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Statut invalide'),
+];
+const leaseResilierRules = [
+    leaseIdParam,
+    body('motif').optional({ nullable: true }).isString().isLength({ max: 500 }).withMessage('Motif trop long'),
+    body('date_resiliation').optional({ nullable: true }).isISO8601().withMessage('Date invalide (ISO 8601)'),
+];
+const leaseRenouvelerRules = [
+    leaseIdParam,
+    body('nouvelle_date_fin').optional({ nullable: true }).isISO8601().withMessage('Date invalide (ISO 8601)'),
+    body('nouveau_loyer').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Loyer invalide'),
+];
+const leaseSignRules = [
+    leaseIdParam,
+    body('signatureImage').notEmpty().withMessage('Image de signature manquante').bail().isString().withMessage('Signature invalide'),
+];
 
 // GET /api/locations - Liste des baux/contrats
 router.get('/', permissions.canRead('locataires'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
@@ -81,7 +123,7 @@ router.get('/:id', permissions.canRead('locataires'), tenantGuard, async (req: A
 });
 
 // POST /api/locations - Créer un contrat (Affectation)
-router.post('/', permissions.canWrite('locataires'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', permissions.canWrite('locataires'), tenantGuard, validate(leaseCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     const strictOwnerId = (req as any).resolvedOwnerId;
 
@@ -166,7 +208,7 @@ router.post('/', permissions.canWrite('locataires'), tenantGuard, async (req: Au
 });
 
 // PUT /api/locations/:id - Modifier un bail
-router.put('/:id', permissions.canWrite('locataires'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id', permissions.canWrite('locataires'), tenantGuard, validate(leaseUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     try {
         const { id } = req.params;
@@ -199,7 +241,7 @@ router.put('/:id', permissions.canWrite('locataires'), tenantGuard, async (req: 
 });
 
 // POST /api/locations/:id/resilier - Résilier un bail
-router.post('/:id/resilier', permissions.canWrite('locataires'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/resilier', permissions.canWrite('locataires'), tenantGuard, validate(leaseResilierRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     try {
         const { id } = req.params;
@@ -233,7 +275,7 @@ router.post('/:id/resilier', permissions.canWrite('locataires'), tenantGuard, as
 });
 
 // POST /api/locations/:id/renouveler - Renouveler un bail
-router.post('/:id/renouveler', permissions.canWrite('locataires'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/renouveler', permissions.canWrite('locataires'), tenantGuard, validate(leaseRenouvelerRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     try {
         const { id } = req.params;
@@ -277,7 +319,7 @@ router.get('/:id/echeancier', permissions.canRead('locataires'), tenantGuard, as
 });
 
 // POST /api/locations/:id/sign - Enregistrer la signature électronique
-router.post('/:id/sign', permissions.canWrite('locataires'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/sign', permissions.canWrite('locataires'), tenantGuard, validate(leaseSignRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     try {
         const { id } = req.params;
