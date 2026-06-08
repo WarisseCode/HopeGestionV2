@@ -29,7 +29,7 @@ jobs:
 
           # ── Frontend ──
           cd /var/www/hopegestion/frontend
-          npm ci
+          npm ci --legacy-peer-deps
           rm -rf node_modules/.vite
           source .env && npm run build
 
