@@ -210,6 +210,22 @@ router.post('/', permissions.canWrite('biens'), validate(edlCreateRules), async 
             return res.status(403).json({ message: 'Accès refusé à ce lot.' });
         }
 
+        // Rattachement automatique au bail actif/signé du lot (et à son locataire) si non fourni :
+        // lie l'EDL au contrat réel et permet la comparaison entrée/sortie (#7).
+        const leaseRes = await dbClient.query(
+            `SELECT l.id AS lease_id, t.user_id AS locataire_user_id, t.nom, t.prenoms
+             FROM leases l
+             JOIN tenants t ON l.tenant_id = t.id
+             WHERE l.lot_id = $1 AND l.statut IN ('actif', 'signe')
+             ORDER BY l.date_debut DESC
+             LIMIT 1`,
+            [lot_id]
+        );
+        const lease = leaseRes.rows[0];
+        const finalLocationId   = location_id || lease?.lease_id || null;
+        const finalLocataireId  = locataire_id || lease?.locataire_user_id || null;
+        const finalLocataireName = locataire_name || (lease ? [lease.nom, lease.prenoms].filter(Boolean).join(' ') : '');
+
         // Générer référence unique
         const year = new Date().getFullYear();
         const seqResult = await dbClient.query(`SELECT nextval('edl_ref_seq')`);
@@ -229,13 +245,13 @@ router.post('/', permissions.canWrite('biens'), validate(edlCreateRules), async 
         `, [
             ref_edl,
             lot_id,
-            location_id || null,
+            finalLocationId,
             type_edl,
             date_realisation || new Date(),
             req.user?.id,
             agentName,
-            locataire_id || null,
-            locataire_name || '',
+            finalLocataireId,
+            finalLocataireName,
             locataire_present !== false,
             commentaires || '',
             parent_edl_id || null,

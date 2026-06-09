@@ -5,6 +5,7 @@ import {
     CheckCircle, Clock, User, Building, ChevronRight, Filter
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import { apiCall } from '../utils/apiUtils';
 import { API_URL } from '../config';
 
@@ -39,6 +40,7 @@ const EdlList: React.FC = () => {
             setEdls(data);
         } catch (error) {
             console.error('Error loading EDL:', error);
+            toast.error('Impossible de charger les états des lieux.');
         } finally {
             setLoading(false);
         }
