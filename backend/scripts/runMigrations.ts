@@ -1121,6 +1121,19 @@ const MIGRATIONS: Migration[] = [
         `
     },
     {
+        name: '049b_edl_owner_id',
+        // edlRoutes.ts insère edl_inspections.owner_id, mais la migration 049 ne créait
+        // pas cette colonne (elle n'existait qu'en prod, ajoutée à la main → dérive de schéma :
+        // toute base reconstruite depuis les migrations plantait à la création d'un EDL).
+        // L'isolation par propriétaire repose sur ce champ (filtrage explicite côté route,
+        // cf. edlRoutes — défense en profondeur, le rôle DB pouvant contourner la RLS).
+        sql: `
+            ALTER TABLE edl_inspections
+                ADD COLUMN IF NOT EXISTS owner_id INTEGER REFERENCES owners(id) ON DELETE CASCADE;
+            CREATE INDEX IF NOT EXISTS idx_edl_owner ON edl_inspections(owner_id);
+        `
+    },
+    {
         name: '050_loans_tax_tables',
         // loans, loan_payments, tax_settings — de _archive/create_finance_tables.sql.
         // Utilisées par loanRoutes.ts et taxRoutes.ts.
