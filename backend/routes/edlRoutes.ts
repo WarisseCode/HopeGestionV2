@@ -5,16 +5,23 @@ import { body, param } from 'express-validator';
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import permissions from '../middleware/permissionMiddleware';
 import { validate } from '../middleware/validate';
 
 const router = express.Router();
+
+// Valeurs autorisées (alignées sur les contraintes CHECK en base, migration 049) :
+// renvoyer un 400 propre plutôt qu'un 500 (violation CHECK) sur une valeur hors liste.
+const TYPES_EDL = ['entree', 'sortie', 'intermediaire'];
+const STATUTS_EDL = ['brouillon', 'signe', 'cloture', 'archive'];
+const ETATS_ITEM = ['neuf', 'bon', 'usager', 'mauvais', 'hs'];
 
 // edl_inspections.id et edl_items.id sont SERIAL (int) — cf. migration 049.
 const edlIdParam = param('id').isInt({ min: 1 }).withMessage('Identifiant EDL invalide');
 
 const edlCreateRules = [
     body('lot_id').notEmpty().withMessage('lot_id est obligatoire').bail().isInt({ min: 1 }).withMessage('lot_id invalide'),
-    body('type_edl').notEmpty().withMessage('type_edl est obligatoire').bail().isString().isLength({ max: 30 }).withMessage('type_edl invalide'),
+    body('type_edl').notEmpty().withMessage('type_edl est obligatoire').bail().isIn(TYPES_EDL).withMessage('type_edl invalide (entree, sortie, intermediaire)'),
     body('date_realisation').optional({ nullable: true }).isISO8601().withMessage('Date invalide (ISO 8601)'),
     body('location_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('location_id invalide'),
     body('locataire_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('locataire_id invalide'),
@@ -27,7 +34,7 @@ const edlItemCreateRules = [
     edlIdParam,
     body('piece').notEmpty().withMessage('piece est obligatoire').bail().isString().isLength({ max: 100 }).withMessage('piece invalide'),
     body('nom').notEmpty().withMessage('nom est obligatoire').bail().isString().isLength({ max: 200 }).withMessage('nom invalide'),
-    body('etat').notEmpty().withMessage('etat est obligatoire').bail().isString().isLength({ max: 50 }).withMessage('etat invalide'),
+    body('etat').notEmpty().withMessage('etat est obligatoire').bail().isIn(ETATS_ITEM).withMessage('etat invalide'),
     body('inventory_item_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('inventory_item_id invalide'),
     body('categorie').optional({ nullable: true }).isString().isLength({ max: 100 }).withMessage('catégorie invalide'),
     body('description').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('description trop longue'),
@@ -38,7 +45,7 @@ const edlItemCreateRules = [
 const edlItemUpdateRules = [
     edlIdParam,
     param('itemId').isInt({ min: 1 }).withMessage('Identifiant item invalide'),
-    body('etat').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('etat invalide'),
+    body('etat').optional({ nullable: true }).isIn(ETATS_ITEM).withMessage('etat invalide'),
     body('quantite').optional({ nullable: true }).isInt({ min: 0 }).withMessage('quantité invalide'),
     body('observation').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('observation trop longue'),
     body('photos').optional({ nullable: true }).isArray().withMessage('photos doit être un tableau'),
@@ -53,7 +60,7 @@ const edlSignRules = [
 ];
 const edlUpdateRules = [
     edlIdParam,
-    body('statut').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('statut invalide'),
+    body('statut').optional({ nullable: true }).isIn(STATUTS_EDL).withMessage('statut invalide'),
     body('commentaires').optional({ nullable: true }).isString().isLength({ max: 2000 }).withMessage('Commentaires trop longs'),
 ];
 
@@ -61,16 +68,33 @@ const edlUpdateRules = [
 router.use(protect);
 router.use(tenantGuard);
 
+// ─── Isolation par propriétaire (défense en profondeur) ──────────────────────
+// On filtre explicitement par owner_id en plus de la RLS : le rôle DB peut avoir
+// BYPASSRLS (cf. locataireRoutes), auquel cas la RLS seule ne protège pas. Ce helper
+// concatène la clause et pousse le paramètre, en respectant la numérotation $N.
+// Admin : accès global (pas de clause). Gestionnaire sans owner : ANY('{}') → 0 ligne.
+function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
+    if ((req as any).userRole === 'admin') return '';
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    params.push(validOwnerIds);
+    return ` AND ${col} = ANY($${params.length}::int[])`;
+}
+
 // ============================================
 // GET /api/edl - Liste des états des lieux
 // ============================================
-router.get('/', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', permissions.canRead('biens'), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { lot_id, type_edl, statut } = req.query;
-        
+
+        // Colonnes explicites (pas e.*) : on exclut signatures_json (JSONB lourd, base64)
+        // pour ne pas alourdir la liste — il n'est utile que sur le détail.
         let query = `
-            SELECT e.*, 
+            SELECT e.id, e.ref_edl, e.lot_id, e.location_id, e.type_edl, e.date_realisation,
+                   e.agent_id, e.agent_name, e.locataire_id, e.locataire_name, e.locataire_present,
+                   e.statut, e.commentaires, e.parent_edl_id, e.validated_at, e.owner_id,
+                   e.created_at, e.updated_at,
                    l.ref_lot, l.type as lot_type,
                    (SELECT COUNT(*) FROM edl_items WHERE edl_id = e.id) as item_count
             FROM edl_inspections e
@@ -78,24 +102,25 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
             WHERE 1=1
         `;
         const params: any[] = [];
-        
+        query += scopeByOwner(req, params, 'e.owner_id');
+
         if (lot_id) {
             params.push(lot_id);
             query += ` AND e.lot_id = $${params.length}`;
         }
-        
+
         if (type_edl) {
             params.push(type_edl);
             query += ` AND e.type_edl = $${params.length}`;
         }
-        
+
         if (statut) {
             params.push(statut);
             query += ` AND e.statut = $${params.length}`;
         }
-        
+
         query += ` ORDER BY e.date_realisation DESC, e.created_at DESC`;
-        
+
         const result = await dbClient.query(query, params);
         res.json(result.rows);
     } catch (error) {
@@ -107,37 +132,39 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
 // ============================================
 // GET /api/edl/:id - Détails complets d'un EDL
 // ============================================
-router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:id', permissions.canRead('biens'), validate([edlIdParam]), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
-        
+
         // Get EDL Header
+        const params: any[] = [id];
+        const ownerClause = scopeByOwner(req, params, 'e.owner_id');
         const edlResult = await dbClient.query(`
-            SELECT e.*, 
+            SELECT e.*,
                    l.ref_lot, l.type as lot_type,
                    'Bail #' || loc.id as ref_location,
                    parent.ref_edl as parent_ref
             FROM edl_inspections e
             LEFT JOIN lots l ON e.lot_id = l.id
-            LEFT JOIN baux loc ON e.location_id = loc.id
+            LEFT JOIN leases loc ON e.location_id = loc.id
             LEFT JOIN edl_inspections parent ON e.parent_edl_id = parent.id
-            WHERE e.id = $1
-        `, [id]);
-        
+            WHERE e.id = $1${ownerClause}
+        `, params);
+
         if (edlResult.rows.length === 0) {
             return res.status(404).json({ message: 'État des lieux non trouvé ou accès refusé' });
         }
-        
+
         const edl = edlResult.rows[0];
-        
+
         // Get Items
         const itemsResult = await dbClient.query(`
-            SELECT * FROM edl_items 
-            WHERE edl_id = $1 
+            SELECT * FROM edl_items
+            WHERE edl_id = $1
             ORDER BY piece, nom
         `, [id]);
-        
+
         res.json({
             ...edl,
             items: itemsResult.rows
@@ -151,10 +178,11 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
 // ============================================
 // POST /api/edl - Créer un nouvel état des lieux
 // ============================================
-router.post('/', validate(edlCreateRules), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', permissions.canWrite('biens'), validate(edlCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
-        const resolvedOwnerId = (req as any).resolvedOwnerId;
+        const isAdmin = (req as any).userRole === 'admin';
+        const validOwnerIds: number[] = (req as any).validOwnerIds || [];
         const {
             lot_id,
             location_id,
@@ -166,17 +194,35 @@ router.post('/', validate(edlCreateRules), async (req: AuthenticatedRequest, res
             commentaires,
             parent_edl_id
         } = req.body;
-        
+
+        // L'owner fait foi via le lot inspecté (lot → immeuble.owner_id). On ne se fie pas à
+        // resolvedOwnerId qui est null pour un gestionnaire multi-owner sans owner_id explicite.
+        const lotRes = await dbClient.query(
+            `SELECT b.owner_id FROM lots l JOIN buildings b ON l.building_id = b.id WHERE l.id = $1`,
+            [lot_id]
+        );
+        if (lotRes.rows.length === 0) {
+            return res.status(404).json({ message: 'Lot introuvable ou accès refusé' });
+        }
+        const ownerId = lotRes.rows[0].owner_id;
+        // Vérif d'appartenance : empêche de créer un EDL sur le lot d'un autre propriétaire.
+        if (!isAdmin && !validOwnerIds.includes(ownerId)) {
+            return res.status(403).json({ message: 'Accès refusé à ce lot.' });
+        }
+
         // Générer référence unique
         const year = new Date().getFullYear();
         const seqResult = await dbClient.query(`SELECT nextval('edl_ref_seq')`);
         const seq = seqResult.rows[0].nextval;
         const ref_edl = `EDL-${year}-${String(seq).padStart(4, '0')}`;
-        
+
+        // Nom de l'agent sans « undefined » si prenoms est absent.
+        const agentName = [req.user?.nom, req.user?.prenoms].filter(Boolean).join(' ');
+
         const result = await dbClient.query(`
             INSERT INTO edl_inspections (
                 ref_edl, lot_id, location_id, type_edl, date_realisation,
-                agent_id, agent_name, locataire_id, locataire_name, 
+                agent_id, agent_name, locataire_id, locataire_name,
                 locataire_present, commentaires, parent_edl_id, owner_id
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING *
@@ -187,15 +233,15 @@ router.post('/', validate(edlCreateRules), async (req: AuthenticatedRequest, res
             type_edl,
             date_realisation || new Date(),
             req.user?.id,
-            `${req.user?.nom} ${req.user?.prenoms}`,
+            agentName,
             locataire_id || null,
             locataire_name || '',
             locataire_present !== false,
             commentaires || '',
             parent_edl_id || null,
-            resolvedOwnerId
+            ownerId
         ]);
-        
+
         res.status(201).json(result.rows[0]);
     } catch (error) {
         console.error('Error creating EDL:', error);
@@ -203,16 +249,25 @@ router.post('/', validate(edlCreateRules), async (req: AuthenticatedRequest, res
     }
 });
 
+// Vérifie que l'EDL parent existe ET appartient à l'utilisateur (sinon 404).
+// Centralise le contrôle d'isolation des sous-routes /items.
+async function assertEdlOwned(req: AuthenticatedRequest, edlId: string | undefined): Promise<boolean> {
+    const dbClient = (req as any).dbClient;
+    const params: any[] = [edlId];
+    const clause = scopeByOwner(req, params);
+    const check = await dbClient.query(`SELECT id FROM edl_inspections WHERE id = $1${clause}`, params);
+    return check.rows.length > 0;
+}
+
 // ============================================
 // POST /api/edl/:id/items - Ajouter/Modifier des items
 // ============================================
-router.post('/:id/items', validate(edlItemCreateRules), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/items', permissions.canWrite('biens'), validate(edlItemCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
 
-        const checkResult = await dbClient.query('SELECT id FROM edl_inspections WHERE id = $1', [id]);
-        if (checkResult.rows.length === 0) {
+        if (!(await assertEdlOwned(req, id))) {
             return res.status(404).json({ message: 'État des lieux parent introuvable ou accès refusé' });
         }
 
@@ -227,7 +282,7 @@ router.post('/:id/items', validate(edlItemCreateRules), async (req: Authenticate
             observation,
             photos
         } = req.body;
-        
+
         const result = await dbClient.query(`
             INSERT INTO edl_items (
                 edl_id, inventory_item_id, piece, categorie, nom,
@@ -246,7 +301,7 @@ router.post('/:id/items', validate(edlItemCreateRules), async (req: Authenticate
             observation || '',
             JSON.stringify(photos || [])
         ]);
-        
+
         res.status(201).json(result.rows[0]);
     } catch (error) {
         console.error('Error adding EDL item:', error);
@@ -257,18 +312,17 @@ router.post('/:id/items', validate(edlItemCreateRules), async (req: Authenticate
 // ============================================
 // PUT /api/edl/:id/items/:itemId - Modifier un item
 // ============================================
-router.put('/:id/items/:itemId', validate(edlItemUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id/items/:itemId', permissions.canWrite('biens'), validate(edlItemUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id, itemId } = req.params;
-        
-        const checkResult = await dbClient.query('SELECT id FROM edl_inspections WHERE id = $1', [id]);
-        if (checkResult.rows.length === 0) {
-             return res.status(404).json({ message: 'État des lieux parent introuvable ou accès refusé' });
+
+        if (!(await assertEdlOwned(req, id))) {
+            return res.status(404).json({ message: 'État des lieux parent introuvable ou accès refusé' });
         }
 
         const { etat, quantite, observation, photos } = req.body;
-        
+
         const result = await dbClient.query(`
             UPDATE edl_items SET
                 etat = COALESCE($1, etat),
@@ -285,11 +339,11 @@ router.put('/:id/items/:itemId', validate(edlItemUpdateRules), async (req: Authe
             itemId,
             id
         ]);
-        
+
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Élément non trouvé' });
         }
-        
+
         res.json(result.rows[0]);
     } catch (error) {
         console.error('Error updating EDL item:', error);
@@ -300,14 +354,13 @@ router.put('/:id/items/:itemId', validate(edlItemUpdateRules), async (req: Authe
 // ============================================
 // DELETE /api/edl/:id/items/:itemId - Supprimer un item
 // ============================================
-router.delete('/:id/items/:itemId', validate(edlItemDeleteRules), async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id/items/:itemId', permissions.canWrite('biens'), validate(edlItemDeleteRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id, itemId } = req.params;
-        
-        const checkResult = await dbClient.query('SELECT id FROM edl_inspections WHERE id = $1', [id]);
-        if (checkResult.rows.length === 0) {
-             return res.status(404).json({ message: 'État des lieux parent introuvable ou accès refusé' });
+
+        if (!(await assertEdlOwned(req, id))) {
+            return res.status(404).json({ message: 'État des lieux parent introuvable ou accès refusé' });
         }
 
         const result = await dbClient.query('DELETE FROM edl_items WHERE id = $1 AND edl_id = $2 RETURNING id', [itemId, id]);
@@ -324,28 +377,27 @@ router.delete('/:id/items/:itemId', validate(edlItemDeleteRules), async (req: Au
 // ============================================
 // PUT /api/edl/:id/sign - Enregistrer les signatures
 // ============================================
-router.put('/:id/sign', validate(edlSignRules), async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id/sign', permissions.canWrite('biens'), validate(edlSignRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
         const { signatures } = req.body;
-        
+
+        const params: any[] = [JSON.stringify(signatures), id];
+        const ownerClause = scopeByOwner(req, params);
         const result = await dbClient.query(`
             UPDATE edl_inspections SET
                 signatures_json = $1,
                 statut = 'signe',
                 validated_at = NOW()
-            WHERE id = $2
+            WHERE id = $2${ownerClause}
             RETURNING *
-        `, [
-            JSON.stringify(signatures),
-            id
-        ]);
-        
+        `, params);
+
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'État des lieux non trouvé ou accès refusé' });
         }
-        
+
         res.json(result.rows[0]);
     } catch (error) {
         console.error('Error signing EDL:', error);
@@ -356,29 +408,27 @@ router.put('/:id/sign', validate(edlSignRules), async (req: AuthenticatedRequest
 // ============================================
 // PUT /api/edl/:id - Mettre à jour un EDL (statut, commentaires)
 // ============================================
-router.put('/:id', validate(edlUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id', permissions.canWrite('biens'), validate(edlUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
         const { statut, commentaires } = req.body;
-        
+
+        const params: any[] = [statut, commentaires, id];
+        const ownerClause = scopeByOwner(req, params);
         const result = await dbClient.query(`
             UPDATE edl_inspections SET
                 statut = COALESCE($1, statut),
                 commentaires = COALESCE($2, commentaires),
                 updated_at = NOW()
-            WHERE id = $3
+            WHERE id = $3${ownerClause}
             RETURNING *
-        `, [
-            statut,
-            commentaires,
-            id
-        ]);
-        
+        `, params);
+
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'État des lieux non trouvé ou accès refusé' });
         }
-        
+
         res.json(result.rows[0]);
     } catch (error) {
         console.error('Error updating EDL:', error);
@@ -389,23 +439,31 @@ router.put('/:id', validate(edlUpdateRules), async (req: AuthenticatedRequest, r
 // ============================================
 // GET /api/edl/compare/:idEntree/:idSortie - Comparaison Entrée/Sortie
 // ============================================
-router.get('/compare/:idEntree/:idSortie', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/compare/:idEntree/:idSortie',
+    permissions.canRead('biens'),
+    validate([
+        param('idEntree').isInt({ min: 1 }).withMessage('idEntree invalide'),
+        param('idSortie').isInt({ min: 1 }).withMessage('idSortie invalide'),
+    ]),
+    async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { idEntree, idSortie } = req.params;
-        
-        // Get both EDLs (le RLS filtre ceux qui ne m'appartiennent pas)
-        const edlEntree = await dbClient.query('SELECT * FROM edl_inspections WHERE id = $1', [idEntree]);
-        const edlSortie = await dbClient.query('SELECT * FROM edl_inspections WHERE id = $1', [idSortie]);
-        
+
+        // Get both EDLs (isolation explicite par owner, en plus de la RLS)
+        const pEntree: any[] = [idEntree];
+        const edlEntree = await dbClient.query(`SELECT * FROM edl_inspections WHERE id = $1${scopeByOwner(req, pEntree)}`, pEntree);
+        const pSortie: any[] = [idSortie];
+        const edlSortie = await dbClient.query(`SELECT * FROM edl_inspections WHERE id = $1${scopeByOwner(req, pSortie)}`, pSortie);
+
         if (edlEntree.rows.length === 0 || edlSortie.rows.length === 0) {
             return res.status(404).json({ message: 'Un ou plusieurs EDL introuvables ou accès refusé' });
         }
-        
+
         // Get items for both
         const itemsEntree = await dbClient.query('SELECT * FROM edl_items WHERE edl_id = $1 ORDER BY piece, nom', [idEntree]);
         const itemsSortie = await dbClient.query('SELECT * FROM edl_items WHERE edl_id = $1 ORDER BY piece, nom', [idSortie]);
-        
+
         res.json({
             entree: {
                 ...edlEntree.rows[0],
@@ -421,18 +479,5 @@ router.get('/compare/:idEntree/:idSortie', async (req: AuthenticatedRequest, res
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
-
-/*
- * ═══════════════════════════════════════════════════
- * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — edlRoutes.ts
- * ═══════════════════════════════════════════════════
- * ✅ Utilisation exclusive de req.dbClient à la place de pool.query.
- * ✅ Application globale de protect et tenantGuard en haut de fichier via router.use().
- * ✅ Injection de owner_id = resolvedOwnerId dans l'INSERT de la table edl_inspections.
- * ✅ Blocages IDOR stricts : 404 retourné si les requêtes UPDATE/DELETE retournent rowCount === 0.
- * ✅ Ajout d'une vérification parente sur edl_items pour sécuriser les sous-routes d'état des lieux.
- * ✅ L'appele à la séquence id ('edl_ref_seq') passe sans soucis par dbClient.
- * ═══════════════════════════════════════════════════
- */
 
 export default router;
