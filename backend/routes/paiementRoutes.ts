@@ -135,15 +135,16 @@ router.post('/', permissions.canWrite('finance'), tenantGuard, validate(paiement
                     }
                     
                     const updateRes = await dbClient.query(
-                        // $2::text sur la comparaison : sans le cast, $2 est déduit varchar
-                        // (colonne statut) ET text (littéral 'paye') → 42P08. Le cast tranche.
+                        // $2 (statut) ne doit servir QU'UNE fois : le réutiliser dans le CASE
+                        // forçait deux déductions de type incompatibles (varchar vs text) → 42P08.
+                        // On passe la condition « payé » via un booléen dédié ($4).
                         `UPDATE payment_schedules
                          SET amount_paid = $1,
                              statut = $2,
-                             date_reglement_final = CASE WHEN $2::text = 'paye' THEN CURRENT_DATE ELSE date_reglement_final END
+                             date_reglement_final = CASE WHEN $4 THEN CURRENT_DATE ELSE date_reglement_final END
                          WHERE id = $3
                          RETURNING id`,
-                        [newPaid, newStatus, schedule_id]
+                        [newPaid, newStatus, schedule_id, newStatus === 'paye']
                     );
                     
                     if (updateRes.rowCount === 0) {
