@@ -25,12 +25,12 @@ const CardRow: React.FC<{
       type="button"
       onClick={onClick}
       aria-label="Voir le détail des loyers"
-      className="w-full flex justify-between items-center text-sm px-1 py-1.5 rounded-lg hover:bg-base-200/60 transition-colors text-left"
+      className="w-full flex justify-between items-center text-sm px-1 py-1 rounded-lg hover:bg-base-200/60 transition-colors text-left"
     >
       {children}
     </button>
   ) : (
-    <div className="flex justify-between items-center text-sm px-1 py-1.5">{children}</div>
+    <div className="flex justify-between items-center text-sm px-1 py-1">{children}</div>
   );
 
 const LocataireCard: React.FC<Props> = ({ person, onWhatsApp, onCall, onView }) => {
@@ -55,16 +55,16 @@ const LocataireCard: React.FC<Props> = ({ person, onWhatsApp, onCall, onView }) 
     <motion.div
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      className="bg-base-100 rounded-2xl shadow-lg border border-base-200 p-6 hover:shadow-xl transition-all group relative overflow-hidden"
+      className="bg-base-100 rounded-2xl shadow-lg border border-base-200 p-4 hover:shadow-xl transition-all group relative overflow-hidden"
     >
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary" />
 
-      <div className="flex justify-between items-start mb-4">
+      <div className="flex justify-between items-start mb-3">
         {person.photo_profil_url ? (
           <img src={person.photo_profil_url} alt={person.nom}
-            className="w-14 h-14 rounded-full object-cover ring-4 ring-base-100 shadow-sm" />
+            className="w-12 h-12 rounded-full object-cover ring-4 ring-base-100 shadow-sm" />
         ) : (
-          <div className={`w-14 h-14 ${getAvatarColor(person.nom)} rounded-full flex items-center justify-center text-white text-xl font-bold ring-4 ring-base-100 shadow-sm`}>
+          <div className={`w-12 h-12 ${getAvatarColor(person.nom)} rounded-full flex items-center justify-center text-white text-lg font-bold ring-4 ring-base-100 shadow-sm`}>
             {person.nom?.charAt(0)}{person.prenoms?.charAt(0)}
           </div>
         )}
@@ -79,12 +79,12 @@ const LocataireCard: React.FC<Props> = ({ person, onWhatsApp, onCall, onView }) 
         <Phone size={12} /> {person.telephone_principal}
       </p>
       {person.email && (
-        <p className="text-xs text-base-content/60 mb-3 flex items-center gap-1.5 truncate">
+        <p className="text-xs text-base-content/60 mb-2 flex items-center gap-1.5 truncate">
           <Mail size={12} /> {person.email}
         </p>
       )}
 
-      <div className="space-y-1 pt-4 border-t border-base-200">
+      <div className="space-y-0.5 pt-3 border-t border-base-200">
         {/* Logement(s) — bascule « N logements » en multi */}
         <CardRow clickable={hasLodging} onClick={openModal}>
           <span className="text-base-content/50 flex items-center gap-1.5">
@@ -127,7 +127,7 @@ const LocataireCard: React.FC<Props> = ({ person, onWhatsApp, onCall, onView }) 
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-base-200">
+      <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-base-200">
         <button type="button" title="WhatsApp"
           onClick={() => onWhatsApp(person.telephone_principal, person.prenoms)}
           className="btn btn-sm btn-ghost bg-green-100/50 hover:bg-green-100 text-green-600">
