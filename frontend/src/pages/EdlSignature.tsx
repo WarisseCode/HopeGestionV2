@@ -2,9 +2,23 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import SignatureCanvas from 'react-signature-canvas';
 import { apiCall } from '../utils/apiUtils';
-import { API_URL } from '../config';
+import { API_URL, API_BASE } from '../config';
 import { toast } from 'react-hot-toast';
 import { Check, X, ArrowLeft, PenTool, User, Building } from 'lucide-react';
+
+// Convertit un canvas de signature en PNG et l'uploade ; renvoie l'URL persistante.
+async function uploadSignature(canvas: HTMLCanvasElement, role: string): Promise<string> {
+    const blob: Blob = await new Promise((resolve, reject) =>
+        canvas.toBlob(b => (b ? resolve(b) : reject(new Error('Canvas vide'))), 'image/png')
+    );
+    const formData = new FormData();
+    formData.append('type', 'document'); // 'type' AVANT 'file' (lecture Multer)
+    formData.append('file', new File([blob], `signature-${role}-${Date.now()}.png`, { type: 'image/png' }));
+    const resp = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.message || 'Upload signature échoué');
+    return `${API_BASE}${data.files[0].path}`;
+}
 
 const EdlSignature: React.FC = () => {
     const { id } = useParams();
@@ -32,15 +46,16 @@ const EdlSignature: React.FC = () => {
 
         setLoading(true);
         try {
+            // On uploade chaque signature comme fichier PNG plutôt que de stocker un
+            // dataURL base64 (50-200 Ko) dans le JSONB : signatures_json reste léger.
+            const [agentUrl, locataireUrl] = await Promise.all([
+                uploadSignature(agentSigRef.current!.getCanvas(), 'agent'),
+                uploadSignature(locataireSigRef.current!.getCanvas(), 'locataire'),
+            ]);
+
             const signatures = {
-                agent: {
-                    signature_url: agentSigRef.current?.getCanvas().toDataURL('image/png'),
-                    date: new Date().toISOString()
-                },
-                locataire: {
-                    signature_url: locataireSigRef.current?.getCanvas().toDataURL('image/png'),
-                    date: new Date().toISOString()
-                }
+                agent:     { signature_url: agentUrl,     date: new Date().toISOString() },
+                locataire: { signature_url: locataireUrl, date: new Date().toISOString() }
             };
 
             await apiCall(`${API_URL}/edl/${id}/sign`, {

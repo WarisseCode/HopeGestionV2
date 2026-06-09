@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     ChevronLeft, ChevronRight, Save, Check, Plus, Camera, Trash2,
-    Building, User, Calendar, FileText, ClipboardCheck
+    Building, User, Calendar, FileText, ClipboardCheck, Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiCall } from '../utils/apiUtils';
-import { API_URL } from '../config';
+import { API_URL, API_BASE } from '../config';
 import { toast } from 'react-hot-toast';
 
 const ETATS = [
@@ -59,6 +59,7 @@ const EdlCreate: React.FC = () => {
         photos: []
     });
     const [showItemModal, setShowItemModal] = useState(false);
+    const [uploadingPhotos, setUploadingPhotos] = useState(false);
 
     // Available lots
     const [lots, setLots] = useState<any[]>([]);
@@ -88,10 +89,37 @@ const EdlCreate: React.FC = () => {
         });
     };
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files) return;
-        const urls = Array.from(e.target.files).map(file => URL.createObjectURL(file));
-        setCurrentItem({ ...currentItem, photos: [...currentItem.photos, ...urls] });
+    // Upload réel vers le stockage : on remplace l'ancien URL.createObjectURL() qui
+    // produisait des blob: éphémères (perdus dès le rechargement → preuve EDL sans valeur).
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.length) return;
+        const files = Array.from(e.target.files);
+        setUploadingPhotos(true);
+        try {
+            const urls: string[] = [];
+            for (const file of files) {
+                if (file.size > 5 * 1024 * 1024) {
+                    toast.error(`${file.name} dépasse 5 Mo, ignorée`);
+                    continue;
+                }
+                const formData = new FormData();
+                formData.append('type', 'document'); // 'type' AVANT 'file' pour que Multer le lise
+                formData.append('file', file);
+                const resp = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.message || 'Upload échoué');
+                urls.push(`${API_BASE}${data.files[0].path}`);
+            }
+            if (urls.length) {
+                setCurrentItem(prev => ({ ...prev, photos: [...prev.photos, ...urls] }));
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("Échec de l'envoi d'une photo");
+        } finally {
+            setUploadingPhotos(false);
+            e.target.value = ''; // permet de re-sélectionner le même fichier
+        }
     };
 
     const handleSubmit = async () => {
@@ -464,9 +492,9 @@ const EdlCreate: React.FC = () => {
                                                 <img src={src} className="w-full h-full object-cover" alt="" />
                                             </div>
                                         ))}
-                                        <label className="aspect-square rounded-lg border-2 border-dashed border-base-300 flex items-center justify-center cursor-pointer hover:border-teal-500 hover:bg-teal-50 transition">
-                                            <Plus className="text-base-content/50" />
-                                            <input type="file" multiple accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                                        <label className={`aspect-square rounded-lg border-2 border-dashed border-base-300 flex items-center justify-center transition ${uploadingPhotos ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:border-teal-500 hover:bg-teal-50'}`}>
+                                            {uploadingPhotos ? <Loader2 className="animate-spin text-teal-500" /> : <Plus className="text-base-content/50" />}
+                                            <input type="file" multiple accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploadingPhotos} />
                                         </label>
                                     </div>
                                 </div>
@@ -474,12 +502,12 @@ const EdlCreate: React.FC = () => {
                             
                             <div className="p-4 border-t border-base-200 flex justify-end gap-3">
                                 <button onClick={() => setShowItemModal(false)} className="btn-ghost">Annuler</button>
-                                <button 
+                                <button
                                     onClick={handleAddItem}
                                     className="btn-primary"
-                                    disabled={!currentItem.nom}
+                                    disabled={!currentItem.nom || uploadingPhotos}
                                 >
-                                    Ajouter
+                                    {uploadingPhotos ? 'Envoi photos...' : 'Ajouter'}
                                 </button>
                             </div>
                         </motion.div>
