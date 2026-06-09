@@ -15,6 +15,10 @@ interface Props {
 
 // PostgreSQL renvoie les numeric en chaîne → on convertit avant tout calcul/affichage,
 // sinon « 0 + "45000" » concatène au lieu d'additionner.
+// Statuts de bail considérés « vivants » (logement occupé, loyer dû).
+// Aligné sur leaseRoutes.ts : un lot est occupé si un bail est 'actif' OU 'signe'.
+const LIVE_STATUSES = ['actif', 'signe'];
+
 const formatF = (n?: number | string) => {
   const v = Number(n);
   return Number.isFinite(v) && n != null && n !== '' ? `${v.toLocaleString()} F` : '-';
@@ -47,7 +51,7 @@ const LoyerDetailsModal: React.FC<Props> = ({ locataireId, locataireName, isOpen
   }, [isOpen, locataireId]);
 
   // Agrégats affichés dans l'en-tête (recalculés côté client à partir des baux actifs)
-  const actifs = baux.filter((b) => b.statut === 'actif');
+  const actifs = baux.filter((b) => LIVE_STATUSES.includes(b.statut));
   const loyerTotal = actifs.reduce((sum, b) => sum + (Number(b.loyer_actuel) || 0), 0);
   const paidCount = actifs.filter((b) => b.payment_status === 'paid').length;
 
@@ -97,7 +101,7 @@ const LoyerDetailsModal: React.FC<Props> = ({ locataireId, locataireName, isOpen
                   </div>
                   {/* Statut du bail (actif/résilié…) distinct du statut de paiement */}
                   <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                    b.statut === 'actif' ? 'bg-green-100 text-green-700' : 'bg-base-300 text-base-content/60'
+                    LIVE_STATUSES.includes(b.statut) ? 'bg-green-100 text-green-700' : 'bg-base-300 text-base-content/60'
                   }`}>
                     {b.statut}
                   </span>

@@ -70,7 +70,7 @@ router.get('/', protect, permissions.canRead('locataires'), tenantGuard, async (
                 SELECT lot.ref_lot, l.loyer_actuel as loyer_mensuel, l.id as lease_id, l.statut as lease_statut
                 FROM leases l
                 JOIN lots lot ON l.lot_id = lot.id
-                WHERE l.tenant_id = t.id AND l.statut = 'actif'
+                WHERE l.tenant_id = t.id AND l.statut IN ('actif', 'signe')
                 ORDER BY l.date_debut DESC
                 LIMIT 1
             ) al ON true
@@ -95,7 +95,7 @@ router.get('/', protect, permissions.canRead('locataires'), tenantGuard, async (
                     SELECT MAX(date_paiement) AS last_payment_date
                     FROM payments p WHERE p.lease_id = l.id
                 ) lpa ON true
-                WHERE l.tenant_id = t.id AND l.statut = 'actif'
+                WHERE l.tenant_id = t.id AND l.statut IN ('actif', 'signe')
             ) agg ON true
             WHERE t.statut != 'Archivé'
         `;
