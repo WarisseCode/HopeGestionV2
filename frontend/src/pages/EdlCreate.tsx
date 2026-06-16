@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ChevronLeft, ChevronRight, Save, Check, Plus, Camera, Trash2,
-    Building, User, Calendar, FileText, ClipboardCheck, Loader2, Image as ImageIcon
+    Building, User, Calendar, FileText, ClipboardCheck, Loader2, Image as ImageIcon, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiCall } from '../utils/apiUtils';
@@ -12,11 +12,11 @@ import { toast } from 'react-hot-toast';
 
 // 'usager' = « Moyen » du CdC (valeur conservée pour la contrainte CHECK en base).
 const ETATS = [
-    { value: 'neuf', label: 'Neuf', color: 'bg-green-100 text-green-700' },
-    { value: 'bon', label: 'Bon', color: 'bg-teal-100 text-teal-700' },
-    { value: 'usager', label: 'Moyen', color: 'bg-yellow-100 text-yellow-700' },
-    { value: 'mauvais', label: 'Mauvais', color: 'bg-orange-100 text-orange-700' },
-    { value: 'hs', label: 'Hors Service', color: 'bg-red-100 text-red-700' },
+    { value: 'neuf', label: 'Neuf', color: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
+    { value: 'bon', label: 'Bon', color: 'bg-teal-100 text-teal-700', dot: 'bg-teal-500' },
+    { value: 'usager', label: 'Moyen', color: 'bg-yellow-100 text-yellow-700', dot: 'bg-yellow-500' },
+    { value: 'mauvais', label: 'Mauvais', color: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' },
+    { value: 'hs', label: 'Hors Service', color: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
 ];
 
 const PIECES = [
@@ -395,74 +395,108 @@ const EdlCreate: React.FC = () => {
             {/* Modal: ajout d'un élément (pièce pré-sélectionnée) */}
             <AnimatePresence>
                 {showItemModal && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-base-100 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-                            <div className="p-6 border-b border-base-200 flex justify-between items-center">
-                                <h3 className="font-bold text-base-content">Ajouter un élément — <span className="text-teal-600">{currentItem.piece}</span></h3>
-                                <button type="button" onClick={() => setShowItemModal(false)} className="text-base-content/50 hover:text-base-content/70">Fermer</button>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setShowItemModal(false)} />
+
+                        <motion.div initial={{ scale: 0.96, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.96, opacity: 0, y: 12 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                            className="relative bg-base-100 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+
+                            {/* Header dégradé */}
+                            <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-teal-600 to-teal-500 text-white">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-white/20 rounded-lg p-2"><ClipboardCheck size={18} /></div>
+                                    <div>
+                                        <h3 className="font-bold leading-tight">Ajouter un élément</h3>
+                                        <p className="text-xs text-white/80 flex items-center gap-1"><Building size={11} /> {currentItem.piece}</p>
+                                    </div>
+                                </div>
+                                <button type="button" onClick={() => setShowItemModal(false)} aria-label="Fermer"
+                                    className="p-2 rounded-full hover:bg-white/20 transition">
+                                    <X size={18} />
+                                </button>
                             </div>
 
-                            <div className="p-6 space-y-4">
+                            {/* Corps scrollable */}
+                            <div className="p-5 space-y-5 overflow-y-auto">
                                 <div>
-                                    <label className="label">Nom de l'élément</label>
-                                    <input type="text" className="input" placeholder="Ex: Porte d'entrée, Fenêtre..."
+                                    <label className="block text-sm font-medium text-base-content/70 mb-1.5">Nom de l'élément</label>
+                                    <input type="text" autoFocus
+                                        className="w-full px-3.5 py-2.5 rounded-xl border border-base-300 bg-base-200/40 outline-none transition focus:bg-base-100 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30"
+                                        placeholder="Ex: Porte d'entrée, Fenêtre, Robinet..."
                                         value={currentItem.nom}
                                         onChange={(e) => setCurrentItem({ ...currentItem, nom: e.target.value })} />
                                 </div>
 
                                 <div>
-                                    <label className="label">État</label>
+                                    <label className="block text-sm font-medium text-base-content/70 mb-1.5">État</label>
                                     <div className="grid grid-cols-3 gap-2">
-                                        {ETATS.map(etat => (
-                                            <button key={etat.value} type="button"
-                                                onClick={() => setCurrentItem({ ...currentItem, etat: etat.value })}
-                                                className={`p-2 rounded-lg text-sm border transition ${currentItem.etat === etat.value ? `${etat.color} border-current ring-2 ring-offset-1` : 'border-base-300 hover:bg-base-200'}`}>
-                                                {etat.label}
-                                            </button>
-                                        ))}
+                                        {ETATS.map(etat => {
+                                            const active = currentItem.etat === etat.value;
+                                            return (
+                                                <button key={etat.value} type="button"
+                                                    onClick={() => setCurrentItem({ ...currentItem, etat: etat.value })}
+                                                    className={`flex items-center justify-center gap-2 px-2 py-2.5 rounded-xl border text-sm font-medium transition ${active ? 'border-teal-500 bg-teal-50 text-teal-700 ring-2 ring-teal-500/30' : 'border-base-300 text-base-content/70 hover:border-base-content/30 hover:bg-base-200'}`}>
+                                                    <span className={`w-2.5 h-2.5 rounded-full ${etat.dot}`} />
+                                                    {etat.label}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="label">Observations / Défauts</label>
-                                    <textarea className="input" rows={2} placeholder="Décrire les défauts éventuels..."
+                                    <label className="block text-sm font-medium text-base-content/70 mb-1.5">Observations / Défauts</label>
+                                    <textarea rows={2}
+                                        className="w-full px-3.5 py-2.5 rounded-xl border border-base-300 bg-base-200/40 outline-none transition resize-none focus:bg-base-100 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30"
+                                        placeholder="Décrire les défauts éventuels..."
                                         value={currentItem.observation}
                                         onChange={(e) => setCurrentItem({ ...currentItem, observation: e.target.value })} />
                                 </div>
 
                                 <div>
-                                    <label className="label flex items-center gap-2">
-                                        <Camera size={16} /> Photos <span className="text-red-500">*</span>
-                                        <span className="text-xs text-base-content/50 font-normal">(au moins une — compressées & horodatées)</span>
-                                    </label>
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <label className="flex items-center gap-1.5 text-sm font-medium text-base-content/70">
+                                            <Camera size={15} /> Photos <span className="text-red-500">*</span>
+                                        </label>
+                                        <span className="text-xs text-base-content/40">compressées & horodatées</span>
+                                    </div>
                                     <div className="grid grid-cols-4 gap-2">
                                         {currentItem.photos.map((src, i) => (
-                                            <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-base-300 group">
+                                            <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-base-300 group ring-1 ring-base-300">
                                                 <img src={src} className="w-full h-full object-cover" alt="" />
                                                 <button type="button" onClick={() => removeCurrentPhoto(i)}
                                                     aria-label="Supprimer la photo"
-                                                    className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition">
+                                                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow opacity-0 group-hover:opacity-100 transition">
                                                     <Trash2 size={12} />
                                                 </button>
                                             </div>
                                         ))}
-                                        <label className={`aspect-square rounded-lg border-2 border-dashed flex items-center justify-center transition ${uploadingPhotos ? 'opacity-60 cursor-wait border-base-300' : 'cursor-pointer border-base-300 hover:border-teal-500 hover:bg-teal-50'}`}>
-                                            {uploadingPhotos ? <Loader2 className="animate-spin text-teal-500" /> : <Plus className="text-base-content/50" />}
+                                        <label className={`aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-xs transition ${uploadingPhotos ? 'opacity-60 cursor-wait border-base-300 text-base-content/40' : 'cursor-pointer border-base-300 text-base-content/50 hover:border-teal-500 hover:bg-teal-50 hover:text-teal-600'}`}>
+                                            {uploadingPhotos
+                                                ? <Loader2 size={20} className="animate-spin text-teal-500" />
+                                                : <><Camera size={20} /><span>Ajouter</span></>}
                                             <input type="file" multiple accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploadingPhotos} />
                                         </label>
                                     </div>
                                     {currentItem.photos.length === 0 && (
-                                        <p className="text-xs text-red-500 mt-1">La photo est obligatoire (preuve juridique).</p>
+                                        <p className="text-xs text-red-500/90 mt-1.5 flex items-center gap-1">⚠️ La photo est obligatoire (preuve juridique).</p>
                                     )}
                                 </div>
                             </div>
 
-                            <div className="p-4 border-t border-base-200 flex justify-end gap-3">
-                                <button type="button" onClick={() => setShowItemModal(false)} className="btn-ghost">Annuler</button>
-                                <button type="button" onClick={handleAddItem} className="btn-primary"
-                                    disabled={!currentItem.nom || currentItem.photos.length === 0 || uploadingPhotos}>
-                                    {uploadingPhotos ? 'Envoi photos...' : 'Ajouter'}
+                            {/* Footer collant */}
+                            <div className="flex justify-end items-center gap-2 px-5 py-4 border-t border-base-200 bg-base-100/80">
+                                <button type="button" onClick={() => setShowItemModal(false)}
+                                    className="px-4 py-2 rounded-xl text-sm font-medium text-base-content/70 hover:bg-base-200 transition">
+                                    Annuler
+                                </button>
+                                <button type="button" onClick={handleAddItem}
+                                    disabled={!currentItem.nom || currentItem.photos.length === 0 || uploadingPhotos}
+                                    className="px-5 py-2 rounded-xl text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 shadow-sm shadow-teal-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                                    {uploadingPhotos ? <><Loader2 size={16} className="animate-spin" /> Envoi…</> : <><Check size={16} /> Ajouter</>}
                                 </button>
                             </div>
                         </motion.div>
