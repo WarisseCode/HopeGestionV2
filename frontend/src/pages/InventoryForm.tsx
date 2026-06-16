@@ -113,9 +113,10 @@ const InventoryForm: React.FC = () => {
 
   // --- Options ---
   const buildingOptions = buildings.map(b => ({ value: b.id, label: b.nom }));
+  // /biens/lots renvoie 'reference' (alias de ref_lot) et 'immeuble' — pas 'ref_lot'.
   const lotOptions      = lots.map(l => ({
     value: l.id,
-    label: `${l.ref_lot ?? `Lot #${l.id}`} — ${l.type ?? ''}`,
+    label: [l.reference, l.immeuble, l.type].filter(Boolean).join(' · ') || `Lot #${l.id}`,
   }));
   const entityOptions   = header.entity_type === 'lot' ? lotOptions : buildingOptions;
 
