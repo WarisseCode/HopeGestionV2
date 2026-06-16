@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-    Printer, Edit, ArrowLeft, Calendar, User, 
-    ClipboardCheck, Building, CheckCircle, FileSignature
+import {
+    Printer, Edit, ArrowLeft, Calendar, User,
+    ClipboardCheck, Building, CheckCircle, FileSignature, GitCompareArrows
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { apiCall } from '../utils/apiUtils';
+import { resolveComparison } from '../utils/edlCompare';
 import { API_URL } from '../config';
 
 const EdlDetails: React.FC = () => {
@@ -26,6 +28,21 @@ const EdlDetails: React.FC = () => {
             console.error(error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Cherche l'EDL de type opposé (entrée↔sortie) du même bail/lot, puis ouvre la comparaison.
+    const handleCompare = async () => {
+        try {
+            const pair = await resolveComparison(id!);
+            if (!pair) {
+                toast('Aucun EDL opposé (entrée/sortie) trouvé pour ce bien.');
+                return;
+            }
+            navigate(`/dashboard/etats-des-lieux/compare/${pair.idEntree}/${pair.idSortie}`);
+        } catch (e) {
+            console.error(e);
+            toast.error('Erreur lors de la recherche de comparaison.');
         }
     };
 
@@ -73,8 +90,16 @@ const EdlDetails: React.FC = () => {
                     <ArrowLeft size={20} /> Retour
                 </Link>
                 <div className="flex gap-3">
-                    <button 
-                        onClick={() => window.print()} 
+                    <button
+                        type="button"
+                        onClick={handleCompare}
+                        className="btn-secondary flex items-center gap-2"
+                    >
+                        <GitCompareArrows size={18} /> Comparer
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => window.print()}
                         className="btn-secondary flex items-center gap-2"
                     >
                         <Printer size={18} /> Imprimer

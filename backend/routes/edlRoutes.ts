@@ -80,6 +80,76 @@ function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'
     return ` AND ${col} = ANY($${params.length}::int[])`;
 }
 
+// ─── Moteur de comparaison entrée / sortie (VIII.6) ──────────────────────────
+// Gravité croissante des états (alignée sur le CdC : Neuf < Bon < Moyen < Mauvais,
+// 'usager' = 'moyen', 'hs' = pire). Sert à calculer l'écart entrée→sortie.
+const ETAT_RANK: Record<string, number> = { neuf: 0, bon: 1, usager: 2, moyen: 2, mauvais: 3, hs: 4 };
+const etatRank = (etat?: string): number => ETAT_RANK[(etat || '').toLowerCase()] ?? 0;
+
+// Clé d'appariement d'un élément entre les deux EDL : pièce + nom (normalisés).
+const itemKey = (it: any): string => `${(it.piece || '').trim().toLowerCase()}::${(it.nom || '').trim().toLowerCase()}`;
+
+type CompStatut = 'degradation' | 'amelioration' | 'inchange' | 'manquant' | 'ajoute';
+
+// Compare les éléments d'un EDL d'entrée et d'un EDL de sortie.
+// Statuts : degradation (état pire), amelioration (meilleur), inchange,
+// manquant (présent à l'entrée, absent à la sortie), ajoute (apparu à la sortie).
+function buildComparison(itemsEntree: any[], itemsSortie: any[]) {
+    const mapE = new Map(itemsEntree.map((i) => [itemKey(i), i]));
+    const mapS = new Map(itemsSortie.map((i) => [itemKey(i), i]));
+    const keys = new Set([...mapE.keys(), ...mapS.keys()]);
+
+    const summary = { total: 0, degradations: 0, ameliorations: 0, inchanges: 0, manquants: 0, ajoutes: 0 };
+    const comparison: any[] = [];
+
+    for (const key of keys) {
+        const e = mapE.get(key);
+        const s = mapS.get(key);
+        const base = e || s;
+        let statut: CompStatut;
+        let delta = 0;
+
+        if (e && s) {
+            delta = etatRank(s.etat) - etatRank(e.etat);
+            statut = delta > 0 ? 'degradation' : delta < 0 ? 'amelioration' : 'inchange';
+        } else if (e) {
+            statut = 'manquant';
+        } else {
+            statut = 'ajoute';
+        }
+
+        summary.total++;
+        if (statut === 'degradation') summary.degradations++;
+        else if (statut === 'amelioration') summary.ameliorations++;
+        else if (statut === 'inchange') summary.inchanges++;
+        else if (statut === 'manquant') summary.manquants++;
+        else summary.ajoutes++;
+
+        comparison.push({
+            piece: base.piece,
+            nom: base.nom,
+            statut,
+            delta,
+            etat_entree: e?.etat ?? null,
+            etat_sortie: s?.etat ?? null,
+            observation_entree: e?.observation ?? null,
+            observation_sortie: s?.observation ?? null,
+            photos_entree: e?.photos ?? [],
+            photos_sortie: s?.photos ?? [],
+        });
+    }
+
+    // Dégradations en tête (base du rapport de retenue), puis manquants, etc.
+    const order: Record<CompStatut, number> = { degradation: 0, manquant: 1, ajoute: 2, amelioration: 3, inchange: 4 };
+    comparison.sort((a, b) =>
+        (order[a.statut as CompStatut] - order[b.statut as CompStatut]) ||
+        String(a.piece).localeCompare(String(b.piece)) ||
+        String(a.nom).localeCompare(String(b.nom))
+    );
+
+    return { comparison, summary };
+}
+
 // ============================================
 // GET /api/edl - Liste des états des lieux
 // ============================================
@@ -171,6 +241,50 @@ router.get('/:id', permissions.canRead('biens'), validate([edlIdParam]), async (
         });
     } catch (error) {
         console.error('Error fetching EDL details:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// ============================================
+// GET /api/edl/:id/counterpart - EDL de type opposé (entrée↔sortie) du même bail/lot
+// Permet à l'UI de proposer « Comparer » sans demander manuellement les deux ids.
+// ============================================
+router.get('/:id/counterpart', permissions.canRead('biens'), validate([edlIdParam]), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const dbClient = (req as any).dbClient;
+        const { id } = req.params;
+
+        const params: any[] = [id];
+        const ownerClause = scopeByOwner(req, params, 'e.owner_id');
+        const src = await dbClient.query(
+            `SELECT id, type_edl, lot_id, location_id FROM edl_inspections e WHERE e.id = $1${ownerClause}`,
+            params
+        );
+        if (src.rows.length === 0) {
+            return res.status(404).json({ message: 'EDL introuvable ou accès refusé' });
+        }
+        const cur = src.rows[0];
+        const opposite = cur.type_edl === 'sortie' ? 'entree' : 'sortie';
+
+        // Priorité au même bail (location_id) ; à défaut, le même lot. On exclut l'EDL source.
+        const p2: any[] = [opposite, cur.lot_id, cur.location_id, cur.id];
+        const ownerClause2 = scopeByOwner(req, p2, 'owner_id');
+        const cp = await dbClient.query(
+            `SELECT id, ref_edl, type_edl, date_realisation, statut
+             FROM edl_inspections
+             WHERE type_edl = $1 AND id <> $4
+               AND ( ($3 IS NOT NULL AND location_id = $3) OR lot_id = $2 )${ownerClause2}
+             ORDER BY ($3 IS NOT NULL AND location_id = $3) DESC, date_realisation DESC
+             LIMIT 1`,
+            p2
+        );
+
+        res.json({
+            source: { id: cur.id, type_edl: cur.type_edl },
+            counterpart: cp.rows[0] || null,
+        });
+    } catch (error) {
+        console.error('Error finding EDL counterpart:', error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
@@ -480,6 +594,9 @@ router.get('/compare/:idEntree/:idSortie',
         const itemsEntree = await dbClient.query('SELECT * FROM edl_items WHERE edl_id = $1 ORDER BY piece, nom', [idEntree]);
         const itemsSortie = await dbClient.query('SELECT * FROM edl_items WHERE edl_id = $1 ORDER BY piece, nom', [idSortie]);
 
+        // Moteur de diff : appariement par pièce+élément, écarts d'état, dégradations (VIII.6).
+        const { comparison, summary } = buildComparison(itemsEntree.rows, itemsSortie.rows);
+
         res.json({
             entree: {
                 ...edlEntree.rows[0],
@@ -488,7 +605,9 @@ router.get('/compare/:idEntree/:idSortie',
             sortie: {
                 ...edlSortie.rows[0],
                 items: itemsSortie.rows
-            }
+            },
+            comparison,
+            summary
         });
     } catch (error) {
         console.error('Error comparing EDL:', error);

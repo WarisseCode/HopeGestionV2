@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-    ClipboardCheck, Plus, Search, Calendar, 
-    CheckCircle, Clock, User, Building, ChevronRight, Filter
+import {
+    ClipboardCheck, Plus, Search, Calendar,
+    CheckCircle, Clock, User, Building, ChevronRight, Filter, GitCompareArrows
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { apiCall } from '../utils/apiUtils';
+import { resolveComparison } from '../utils/edlCompare';
 import { API_URL } from '../config';
 
 interface EdlInspection {
@@ -29,10 +30,26 @@ const EdlList: React.FC = () => {
     const [filterType, setFilterType] = useState('all');
     const [filterStatut, setFilterStatut] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const navigate = useNavigate();
 
     useEffect(() => {
         loadEdls();
     }, []);
+
+    // Ouvre la comparaison en résolvant l'EDL opposé (entrée↔sortie) du même bail/lot.
+    const handleCompare = async (id: number) => {
+        try {
+            const pair = await resolveComparison(id);
+            if (!pair) {
+                toast('Aucun EDL opposé (entrée/sortie) trouvé pour ce bien.');
+                return;
+            }
+            navigate(`/dashboard/etats-des-lieux/compare/${pair.idEntree}/${pair.idSortie}`);
+        } catch (e) {
+            console.error(e);
+            toast.error('Erreur lors de la recherche de comparaison.');
+        }
+    };
 
     const loadEdls = async () => {
         try {
@@ -122,20 +139,22 @@ const EdlList: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0">
                     <Filter size={18} className="text-base-content/50 hidden lg:block" />
-                    <select 
+                    <select
                         className="px-4 py-2 rounded-xl text-sm font-medium bg-base-200 border border-base-300 focus:ring-2 focus:ring-teal-500"
                         value={filterType}
                         onChange={(e) => setFilterType(e.target.value)}
+                        aria-label="Filtrer par type"
                     >
                         <option value="all">Tous les types</option>
                         <option value="entree">Entrée</option>
                         <option value="sortie">Sortie</option>
                         <option value="intermediaire">Intermédiaire</option>
                     </select>
-                    <select 
+                    <select
                         className="px-4 py-2 rounded-xl text-sm font-medium bg-base-200 border border-base-300 focus:ring-2 focus:ring-teal-500"
                         value={filterStatut}
                         onChange={(e) => setFilterStatut(e.target.value)}
+                        aria-label="Filtrer par statut"
                     >
                         <option value="all">Tous les statuts</option>
                         <option value="brouillon">Brouillon</option>
@@ -184,6 +203,14 @@ const EdlList: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleCompare(edl.id)}
+                                        title="Comparer entrée/sortie"
+                                        className="p-2 hover:bg-base-300 rounded-lg text-base-content/50 hover:text-teal-600 transition"
+                                    >
+                                        <GitCompareArrows size={20} />
+                                    </button>
                                     <Link to={`/dashboard/etats-des-lieux/${edl.id}`} className="p-2 hover:bg-base-300 rounded-lg text-base-content/50 hover:text-base-content/70 transition">
                                         <ChevronRight size={20} />
                                     </Link>

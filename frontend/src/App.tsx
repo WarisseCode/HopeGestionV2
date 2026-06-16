@@ -72,6 +72,7 @@ const EdlList = React.lazy(() => import('./pages/EdlList'));
 const EdlCreate = React.lazy(() => import('./pages/EdlCreate'));
 const EdlDetails = React.lazy(() => import('./pages/EdlDetails'));
 const EdlSignature = React.lazy(() => import('./pages/EdlSignature'));
+const EdlCompare = React.lazy(() => import('./pages/EdlCompare'));
 const Pricing = React.lazy(() => import('./pages/Pricing'));
 const Carnet = React.lazy(() => import('./pages/Carnet'));
 const TasksPage = React.lazy(() => import('./pages/TasksPage'));
@@ -211,6 +212,7 @@ const App: React.FC = () => {
                           <Route path="etats-des-lieux/nouveau" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<EdlCreate />} />} />
                           <Route path="etats-des-lieux/:id" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<EdlDetails />} />} />
                           <Route path="etats-des-lieux/:id/signer" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<EdlSignature />} />} />
+                          <Route path="etats-des-lieux/compare/:idEntree/:idSortie" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<EdlCompare />} />} />
                           <Route path="contrats" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Contrats />} />} />
                           <Route path="documents" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Documents />} />} />
                           <Route path="carnet" element={<RouteProtection allowedUserTypes={['gestionnaire', 'admin']} children={<Carnet />} />} />
