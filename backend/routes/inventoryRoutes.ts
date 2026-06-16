@@ -77,12 +77,12 @@ router.get('/', permissions.canRead('biens'), async (req: AuthenticatedRequest, 
         const dbClient = (req as any).dbClient;
         const { entity_type, entity_id } = req.query;
 
+        // Le nom de l'agent est stocké en dur sur inventories.agent_name (cf. migration 049c) :
+        // pas de JOIN sur users (la table users n'a pas de colonne prenoms → 42703).
         let query = `
             SELECT i.*,
-                   u.nom as agent_nom_user, u.prenoms as agent_prenoms_user,
                    (SELECT COUNT(*) FROM inventory_items WHERE inventory_id = i.id) as item_count
             FROM inventories i
-            LEFT JOIN users u ON i.agent_id = u.id
             WHERE 1=1
         `;
         const params: any[] = [];
@@ -113,10 +113,8 @@ router.get('/:id', permissions.canRead('biens'), validate([invIdParam]), async (
         const params: any[] = [id];
         const ownerClause = scopeByOwner(req, params, 'i.owner_id');
         const result = await dbClient.query(`
-            SELECT i.*,
-                   u.nom as agent_nom_user, u.prenoms as agent_prenoms_user
+            SELECT i.*
             FROM inventories i
-            LEFT JOIN users u ON i.agent_id = u.id
             WHERE i.id = $1${ownerClause}
         `, params);
 
