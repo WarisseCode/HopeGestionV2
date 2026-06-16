@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ChevronLeft, ChevronRight, Save, Check, Plus, Camera, Trash2,
-    Building, User, Calendar, FileText, ClipboardCheck, Loader2, Image as ImageIcon, X
+    Building, User, Calendar, FileText, ClipboardCheck, Loader2, Image as ImageIcon, X,
+    ClipboardList, Download
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiCall } from '../utils/apiUtils';
@@ -33,11 +34,12 @@ interface EdlItem {
     quantite: number;
     observation: string;
     photos: string[];
+    inventory_item_id?: number | null;  // lien vers l'élément d'inventaire d'origine (CdC VIII.3)
 }
 
 const newItem = (piece: string): EdlItem => ({
     _id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    piece, nom: '', categorie: '', etat: 'bon', quantite: 1, observation: '', photos: []
+    piece, nom: '', categorie: '', etat: 'bon', quantite: 1, observation: '', photos: [], inventory_item_id: null
 });
 
 const etatMeta = (v: string) => ETATS.find(e => e.value === v);
@@ -66,6 +68,11 @@ const EdlCreate: React.FC = () => {
 
     const [lots, setLots] = useState<any[]>([]);
 
+    // Inventaire de référence du lot (pour pré-remplir les éléments — CdC VIII.3)
+    const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+    const [loadingInv, setLoadingInv] = useState(false);
+    const [invLoaded, setInvLoaded] = useState(false);
+
     useEffect(() => { loadLots(); }, []);
 
     // On ne propose que les lots LOUÉS (bail actif/signé) — un EDL ne concerne qu'un lot occupé.
@@ -83,6 +90,41 @@ const EdlCreate: React.FC = () => {
         setCurrentItem(newItem(selectedPiece));
         setShowItemModal(true);
     };
+
+    // Charge les éléments du dernier inventaire du lot sélectionné.
+    const loadInventory = async () => {
+        if (!context.lot_id) return;
+        setLoadingInv(true);
+        try {
+            const data = await apiCall<{ items: any[] }>(`${API_URL}/edl/lot/${context.lot_id}/inventory-items`);
+            setInventoryItems(data.items || []);
+            setInvLoaded(true);
+            if (!data.items?.length) toast('Aucun inventaire trouvé pour ce lot.');
+        } catch (e) {
+            console.error(e);
+            toast.error("Impossible de charger l'inventaire du lot.");
+        } finally {
+            setLoadingInv(false);
+        }
+    };
+
+    // Ouvre le modal pré-rempli depuis un élément d'inventaire (le lien inventory_item_id
+    // est conservé ; l'agent n'a plus qu'à constater l'état et photographier).
+    const openModalForInventoryItem = (inv: any) => {
+        setCurrentItem({
+            ...newItem(selectedPiece),
+            nom: inv.nom || '',
+            categorie: inv.categorie || '',
+            etat: inv.etat || 'bon',
+            observation: inv.description || inv.observation || '',
+            inventory_item_id: inv.inventory_item_id,
+        });
+        setShowItemModal(true);
+    };
+
+    // Éléments d'inventaire pas encore repris dans l'EDL (pour ne pas proposer de doublon).
+    const usedInventoryIds = new Set(items.map(i => i.inventory_item_id).filter(Boolean));
+    const inventorySuggestions = inventoryItems.filter(inv => !usedInventoryIds.has(inv.inventory_item_id));
 
     const handleAddItem = () => {
         setItems(prev => [...prev, currentItem]);
@@ -207,6 +249,9 @@ const EdlCreate: React.FC = () => {
                                             const sel = lots.find(l => l.lot_id === lotId);
                                             // Auto-remplissage live du locataire associé au lot loué.
                                             setContext(prev => ({ ...prev, lot_id: lotId, locataire_name: sel?.locataire_name || '' }));
+                                            // L'inventaire dépend du lot → on réinitialise les suggestions.
+                                            setInventoryItems([]);
+                                            setInvLoaded(false);
                                         }}
                                         aria-label="Lot loué">
                                         <option value={0}>{lots.length ? 'Sélectionner...' : 'Aucun lot loué disponible'}</option>
@@ -295,6 +340,38 @@ const EdlCreate: React.FC = () => {
                                         </button>
                                     </div>
 
+                                    {/* Import depuis l'inventaire de référence du lot (CdC VIII.3) */}
+                                    <div className="rounded-xl border border-base-200 bg-base-200/40 p-3">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-sm text-base-content/70 flex items-center gap-1.5">
+                                                <ClipboardList size={15} /> Inventaire de référence
+                                            </span>
+                                            <button type="button" onClick={loadInventory} disabled={loadingInv || !context.lot_id}
+                                                className="text-xs px-2.5 py-1.5 rounded-lg border border-teal-500/40 text-teal-700 hover:bg-teal-50 disabled:opacity-50 flex items-center gap-1.5 transition">
+                                                {loadingInv ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                                                Importer depuis l'inventaire
+                                            </button>
+                                        </div>
+                                        {invLoaded && (
+                                            inventorySuggestions.length === 0 ? (
+                                                <p className="text-xs text-base-content/40 mt-2">
+                                                    {inventoryItems.length ? "Tous les éléments d'inventaire ont déjà été repris." : "Aucun élément d'inventaire pour ce lot."}
+                                                </p>
+                                            ) : (
+                                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                                    {inventorySuggestions.map(inv => (
+                                                        <button key={inv.inventory_item_id} type="button"
+                                                            onClick={() => openModalForInventoryItem(inv)}
+                                                            title="Ajouter cet élément (état + photo à renseigner)"
+                                                            className="text-xs px-2 py-1 rounded-full bg-base-100 border border-base-300 hover:border-teal-500 hover:text-teal-700 transition">
+                                                            + {inv.nom}{inv.categorie ? ` · ${inv.categorie}` : ''}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )
+                                        )}
+                                    </div>
+
                                     {itemsOfPiece.length === 0 ? (
                                         <div className="border-2 border-dashed border-base-300 rounded-xl p-10 text-center text-base-content/50">
                                             <ClipboardCheck size={40} className="mx-auto mb-2 opacity-20" />
@@ -308,6 +385,9 @@ const EdlCreate: React.FC = () => {
                                                         <div className="flex items-center gap-2">
                                                             <h5 className="font-semibold text-base-content">{item.nom}</h5>
                                                             <span className={`px-2 py-0.5 rounded text-xs font-bold ${etatMeta(item.etat)?.color}`}>{etatMeta(item.etat)?.label}</span>
+                                                            {item.inventory_item_id && (
+                                                                <span title="Issu de l'inventaire" className="text-teal-600"><ClipboardList size={13} /></span>
+                                                            )}
                                                         </div>
                                                         {item.observation && <p className="text-sm text-base-content/60 mt-0.5">{item.observation}</p>}
                                                         {item.photos.length > 0 && (

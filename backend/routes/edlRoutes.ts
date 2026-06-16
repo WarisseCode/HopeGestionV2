@@ -239,6 +239,44 @@ router.get('/rented-lots', permissions.canRead('biens'), async (req: Authenticat
 });
 
 // ============================================
+// GET /api/edl/lot/:lotId/inventory-items - Éléments du dernier inventaire d'un lot.
+// Permet de pré-remplir un EDL depuis l'inventaire de référence (CdC VIII.3).
+// ============================================
+router.get('/lot/:lotId/inventory-items',
+    permissions.canRead('biens'),
+    validate([param('lotId').isInt({ min: 1 }).withMessage('lotId invalide')]),
+    async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const dbClient = (req as any).dbClient;
+        const { lotId } = req.params;
+
+        const params: any[] = [lotId];
+        const ownerClause = scopeByOwner(req, params, 'owner_id');
+        const inv = await dbClient.query(
+            `SELECT id FROM inventories
+             WHERE entity_type = 'lot' AND entity_id = $1${ownerClause}
+             ORDER BY date_realisation DESC, created_at DESC
+             LIMIT 1`,
+            params
+        );
+        if (inv.rows.length === 0) {
+            return res.json({ inventory_id: null, items: [] });
+        }
+        const items = await dbClient.query(
+            `SELECT id AS inventory_item_id, categorie, nom, etat, description, observation
+             FROM inventory_items
+             WHERE inventory_id = $1
+             ORDER BY categorie, nom`,
+            [inv.rows[0].id]
+        );
+        res.json({ inventory_id: inv.rows[0].id, items: items.rows });
+    } catch (error) {
+        console.error('Error fetching lot inventory items:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// ============================================
 // GET /api/edl/:id - Détails complets d'un EDL
 // ============================================
 router.get('/:id', permissions.canRead('biens'), validate([edlIdParam]), async (req: AuthenticatedRequest, res: Response) => {
