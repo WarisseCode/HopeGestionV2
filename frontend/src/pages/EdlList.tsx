@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
     ClipboardCheck, Plus, Search, Calendar,
-    CheckCircle, Clock, User, Building, ChevronRight, Filter, GitCompareArrows
+    CheckCircle, Clock, User, Building, ChevronRight, Filter, GitCompareArrows, Archive
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -35,6 +35,19 @@ const EdlList: React.FC = () => {
     useEffect(() => {
         loadEdls();
     }, []);
+
+    // Archive un EDL (transition de statut validée côté backend).
+    const archiveEdl = async (id: number) => {
+        if (!window.confirm('Archiver cet état des lieux ? Il restera consultable mais figé.')) return;
+        try {
+            await apiCall(`${API_URL}/edl/${id}`, { method: 'PUT', body: JSON.stringify({ statut: 'archive' }) });
+            toast.success('État des lieux archivé.');
+            loadEdls();
+        } catch (e) {
+            console.error(e);
+            toast.error("Échec de l'archivage.");
+        }
+    };
 
     // Ouvre la comparaison en résolvant l'EDL opposé (entrée↔sortie) du même bail/lot.
     const handleCompare = async (id: number) => {
@@ -211,6 +224,16 @@ const EdlList: React.FC = () => {
                                     >
                                         <GitCompareArrows size={20} />
                                     </button>
+                                    {edl.statut !== 'archive' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => archiveEdl(edl.id)}
+                                            title="Archiver"
+                                            className="p-2 hover:bg-base-300 rounded-lg text-base-content/50 hover:text-orange-600 transition"
+                                        >
+                                            <Archive size={20} />
+                                        </button>
+                                    )}
                                     <Link to={`/dashboard/etats-des-lieux/${edl.id}`} className="p-2 hover:bg-base-300 rounded-lg text-base-content/50 hover:text-base-content/70 transition">
                                         <ChevronRight size={20} />
                                     </Link>

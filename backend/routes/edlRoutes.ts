@@ -443,15 +443,27 @@ router.post('/', permissions.canWrite('biens'), validate(edlCreateRules), async 
     }
 });
 
-// Vérifie que l'EDL parent existe ET appartient à l'utilisateur (sinon 404).
-// Centralise le contrôle d'isolation des sous-routes /items.
-async function assertEdlOwned(req: AuthenticatedRequest, edlId: string | undefined): Promise<boolean> {
+// Récupère l'EDL (id + statut) s'il existe ET appartient à l'utilisateur, sinon null.
+// Centralise l'isolation owner ET sert au verrouillage (un EDL non-brouillon est figé).
+async function fetchOwnedEdl(req: AuthenticatedRequest, edlId: string | undefined): Promise<{ id: number; statut: string } | null> {
     const dbClient = (req as any).dbClient;
     const params: any[] = [edlId];
     const clause = scopeByOwner(req, params);
-    const check = await dbClient.query(`SELECT id FROM edl_inspections WHERE id = $1${clause}`, params);
-    return check.rows.length > 0;
+    const r = await dbClient.query(`SELECT id, statut FROM edl_inspections WHERE id = $1${clause}`, params);
+    return r.rows[0] || null;
 }
+
+// Un EDL n'est modifiable (éléments, commentaires) qu'en brouillon : une fois signé/
+// clôturé/archivé, c'est une preuve figée. Renvoie un message de verrouillage sinon.
+const LOCK_MESSAGE = "État des lieux verrouillé : déjà signé ou clôturé, les éléments ne sont plus modifiables.";
+
+// Transitions de statut autorisées (la signature passe par /sign, pas par ici).
+const STATUT_TRANSITIONS: Record<string, string[]> = {
+    brouillon: ['archive'],
+    signe: ['cloture', 'archive'],
+    cloture: ['archive'],
+    archive: [],
+};
 
 // ============================================
 // POST /api/edl/:id/items - Ajouter/Modifier des items
@@ -461,8 +473,12 @@ router.post('/:id/items', permissions.canWrite('biens'), validate(edlItemCreateR
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
 
-        if (!(await assertEdlOwned(req, id))) {
+        const parent = await fetchOwnedEdl(req, id);
+        if (!parent) {
             return res.status(404).json({ message: 'État des lieux parent introuvable ou accès refusé' });
+        }
+        if (parent.statut !== 'brouillon') {
+            return res.status(409).json({ message: LOCK_MESSAGE });
         }
 
         const {
@@ -511,8 +527,12 @@ router.put('/:id/items/:itemId', permissions.canWrite('biens'), validate(edlItem
         const dbClient = (req as any).dbClient;
         const { id, itemId } = req.params;
 
-        if (!(await assertEdlOwned(req, id))) {
+        const parent = await fetchOwnedEdl(req, id);
+        if (!parent) {
             return res.status(404).json({ message: 'État des lieux parent introuvable ou accès refusé' });
+        }
+        if (parent.statut !== 'brouillon') {
+            return res.status(409).json({ message: LOCK_MESSAGE });
         }
 
         const { etat, quantite, observation, photos } = req.body;
@@ -553,8 +573,12 @@ router.delete('/:id/items/:itemId', permissions.canWrite('biens'), validate(edlI
         const dbClient = (req as any).dbClient;
         const { id, itemId } = req.params;
 
-        if (!(await assertEdlOwned(req, id))) {
+        const parent = await fetchOwnedEdl(req, id);
+        if (!parent) {
             return res.status(404).json({ message: 'État des lieux parent introuvable ou accès refusé' });
+        }
+        if (parent.statut !== 'brouillon') {
+            return res.status(409).json({ message: LOCK_MESSAGE });
         }
 
         const result = await dbClient.query('DELETE FROM edl_items WHERE id = $1 AND edl_id = $2 RETURNING id', [itemId, id]);
@@ -576,6 +600,14 @@ router.put('/:id/sign', permissions.canWrite('biens'), validate(edlSignRules), a
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
         const { signatures } = req.body;
+
+        const edl = await fetchOwnedEdl(req, id);
+        if (!edl) {
+            return res.status(404).json({ message: 'État des lieux non trouvé ou accès refusé' });
+        }
+        if (edl.statut !== 'brouillon') {
+            return res.status(409).json({ message: 'État des lieux déjà signé ou verrouillé.' });
+        }
 
         const params: any[] = [JSON.stringify(signatures), id];
         const ownerClause = scopeByOwner(req, params);
@@ -607,6 +639,19 @@ router.put('/:id', permissions.canWrite('biens'), validate(edlUpdateRules), asyn
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
         const { statut, commentaires } = req.body;
+
+        const edl = await fetchOwnedEdl(req, id);
+        if (!edl) {
+            return res.status(404).json({ message: 'État des lieux non trouvé ou accès refusé' });
+        }
+        // Transition de statut contrôlée (clôture/archivage), pas de retour arrière.
+        if (statut && statut !== edl.statut && !(STATUT_TRANSITIONS[edl.statut] || []).includes(statut)) {
+            return res.status(409).json({ message: `Transition de statut non autorisée (${edl.statut} → ${statut}).` });
+        }
+        // Les commentaires ne sont éditables qu'en brouillon (preuve figée après signature).
+        if (commentaires !== undefined && edl.statut !== 'brouillon') {
+            return res.status(409).json({ message: LOCK_MESSAGE });
+        }
 
         const params: any[] = [statut, commentaires, id];
         const ownerClause = scopeByOwner(req, params);

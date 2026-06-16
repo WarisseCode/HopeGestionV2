@@ -3,7 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     Printer, Edit, ArrowLeft, Calendar, User,
-    ClipboardCheck, Building, CheckCircle, FileSignature, GitCompareArrows, Download
+    ClipboardCheck, Building, CheckCircle, FileSignature, GitCompareArrows, Download,
+    Archive, FileCheck
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { apiCall } from '../utils/apiUtils';
@@ -57,6 +58,19 @@ const EdlDetails: React.FC = () => {
             toast.error('Erreur lors de la génération du PDF.');
         } finally {
             setPdfLoading(false);
+        }
+    };
+
+    // Transition de statut (clôture / archivage). Le backend valide la transition.
+    const changeStatus = async (statut: string, confirmMsg?: string) => {
+        if (confirmMsg && !window.confirm(confirmMsg)) return;
+        try {
+            await apiCall(`${API_URL}/edl/${id}`, { method: 'PUT', body: JSON.stringify({ statut }) });
+            toast.success('Statut mis à jour.');
+            loadData();
+        } catch (e) {
+            console.error(e);
+            toast.error('Échec de la mise à jour du statut.');
         }
     };
 
@@ -127,11 +141,30 @@ const EdlDetails: React.FC = () => {
                         <Printer size={18} /> Imprimer
                     </button>
                     {edl.statut === 'brouillon' && (
-                        <button 
+                        <button
+                            type="button"
                             className="btn-primary flex items-center gap-2"
                             onClick={() => navigate(`/dashboard/etats-des-lieux/${id}/signer`)}
                         >
                             <FileSignature size={18} /> Finaliser & Signer
+                        </button>
+                    )}
+                    {edl.statut === 'signe' && (
+                        <button
+                            type="button"
+                            className="btn-secondary flex items-center gap-2"
+                            onClick={() => changeStatus('cloture')}
+                        >
+                            <FileCheck size={18} /> Clôturer
+                        </button>
+                    )}
+                    {(edl.statut === 'signe' || edl.statut === 'cloture') && (
+                        <button
+                            type="button"
+                            className="btn-secondary flex items-center gap-2"
+                            onClick={() => changeStatus('archive', 'Archiver cet état des lieux ? Il restera consultable mais figé.')}
+                        >
+                            <Archive size={18} /> Archiver
                         </button>
                     )}
                 </div>
