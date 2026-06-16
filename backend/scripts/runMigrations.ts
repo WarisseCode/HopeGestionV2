@@ -1194,6 +1194,17 @@ const MIGRATIONS: Migration[] = [
         `
     },
     {
+        name: '049d_inventory_owner_id_backfill',
+        // Filet de sécurité : si la table inventories préexistait en prod (créée à la main)
+        // SANS owner_id, le CREATE TABLE IF NOT EXISTS de 049c ne l'aurait pas ajoutée, et les
+        // requêtes owner-scopées (liste/détail) échoueraient (colonne absente) → liste vide.
+        // On garantit la colonne + l'index, de façon idempotente.
+        sql: `
+            ALTER TABLE inventories ADD COLUMN IF NOT EXISTS owner_id INTEGER REFERENCES owners(id) ON DELETE CASCADE;
+            CREATE INDEX IF NOT EXISTS idx_inventories_owner ON inventories(owner_id);
+        `
+    },
+    {
         name: '050_loans_tax_tables',
         // loans, loan_payments, tax_settings — de _archive/create_finance_tables.sql.
         // Utilisées par loanRoutes.ts et taxRoutes.ts.
