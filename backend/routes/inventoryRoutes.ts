@@ -5,9 +5,28 @@ import { body, param } from 'express-validator';
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
+import permissions from '../middleware/permissionMiddleware';
 import { validate } from '../middleware/validate';
 
 const router = express.Router();
+
+// Isolation par propriétaire explicite (défense en profondeur) — le rôle DB peut avoir
+// BYPASSRLS, la RLS seule ne suffit pas. Concatène la clause et pousse le paramètre.
+function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
+    if ((req as any).userRole === 'admin') return '';
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    params.push(validOwnerIds);
+    return ` AND ${col} = ANY($${params.length}::int[])`;
+}
+
+// Vérifie l'existence + l'appartenance de l'inventaire parent (pour les sous-routes /items).
+async function fetchOwnedInventory(req: AuthenticatedRequest, invId: string | undefined): Promise<{ id: number } | null> {
+    const dbClient = (req as any).dbClient;
+    const params: any[] = [invId];
+    const clause = scopeByOwner(req, params);
+    const r = await dbClient.query(`SELECT id FROM inventories WHERE id = $1${clause}`, params);
+    return r.rows[0] || null;
+}
 
 // PK SERIAL (convention de l'app — entités lots/buildings également en int).
 const invIdParam = param('id').isInt({ min: 1 }).withMessage('Identifiant inventaire invalide');
@@ -53,13 +72,13 @@ router.use(protect);
 router.use(tenantGuard);
 
 // GET /api/inventories - List inventories (filtered by entity)
-router.get('/', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', permissions.canRead('biens'), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { entity_type, entity_id } = req.query;
-        
+
         let query = `
-            SELECT i.*, 
+            SELECT i.*,
                    u.nom as agent_nom_user, u.prenoms as agent_prenoms_user,
                    (SELECT COUNT(*) FROM inventory_items WHERE inventory_id = i.id) as item_count
             FROM inventories i
@@ -67,6 +86,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
             WHERE 1=1
         `;
         const params: any[] = [];
+        query += scopeByOwner(req, params, 'i.owner_id');
 
         if (entity_type && entity_id) {
             params.push(entity_type, entity_id);
@@ -84,19 +104,21 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // GET /api/inventories/:id - Get full details with items
-router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:id', permissions.canRead('biens'), validate([invIdParam]), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
 
         // Get Inventory Header
+        const params: any[] = [id];
+        const ownerClause = scopeByOwner(req, params, 'i.owner_id');
         const result = await dbClient.query(`
-            SELECT i.*, 
+            SELECT i.*,
                    u.nom as agent_nom_user, u.prenoms as agent_prenoms_user
             FROM inventories i
             LEFT JOIN users u ON i.agent_id = u.id
-            WHERE i.id = $1
-        `, [id]);
+            WHERE i.id = $1${ownerClause}
+        `, params);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Inventaire non trouvé ou accès refusé' });
@@ -122,34 +144,57 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // POST /api/inventories - Create new inventory header
-router.post('/', validate(inventoryCreateRules), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', permissions.canWrite('biens'), validate(inventoryCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
-        const resolvedOwnerId = (req as any).resolvedOwnerId;
+        const isAdmin = (req as any).userRole === 'admin';
+        const validOwnerIds: number[] = (req as any).validOwnerIds || [];
 
         const {
             entity_type,
-            entity_id, 
-            date_realisation, 
+            entity_id,
+            date_realisation,
             type_inventaire,
-            commentaires 
+            commentaires
         } = req.body;
+
+        // L'owner fait foi via l'entité inspectée (lot → immeuble, ou immeuble direct).
+        // On ne se fie pas à resolvedOwnerId (null pour un gestionnaire multi-owner).
+        let ownerRow;
+        if (entity_type === 'lot') {
+            ownerRow = await dbClient.query(
+                `SELECT b.owner_id FROM lots l JOIN buildings b ON l.building_id = b.id WHERE l.id = $1`, [entity_id]
+            );
+        } else if (entity_type === 'building') {
+            ownerRow = await dbClient.query(`SELECT owner_id FROM buildings WHERE id = $1`, [entity_id]);
+        } else {
+            return res.status(400).json({ message: 'entity_type invalide (lot ou building attendu).' });
+        }
+        const ownerId = ownerRow.rows[0]?.owner_id;
+        if (!ownerId) {
+            return res.status(404).json({ message: 'Entité introuvable ou accès refusé.' });
+        }
+        if (!isAdmin && !validOwnerIds.includes(ownerId)) {
+            return res.status(403).json({ message: 'Accès refusé à cette entité.' });
+        }
+
+        const agentName = [req.user?.nom, req.user?.prenoms].filter(Boolean).join(' ');
 
         const result = await dbClient.query(`
             INSERT INTO inventories (
-                entity_type, entity_id, date_realisation, type_inventaire, 
+                entity_type, entity_id, date_realisation, type_inventaire,
                 agent_id, agent_name, statut, commentaires, owner_id
             ) VALUES ($1, $2, $3, $4, $5, $6, 'brouillon', $7, $8)
             RETURNING *
         `, [
-            entity_type, 
-            entity_id, 
-            date_realisation || new Date(), 
+            entity_type,
+            entity_id,
+            date_realisation || new Date(),
             type_inventaire,
             req.user?.id,
-            `${req.user?.nom} ${req.user?.prenoms}`,
+            agentName,
             commentaires || '',
-            resolvedOwnerId
+            ownerId
         ]);
 
         res.status(201).json(result.rows[0]);
@@ -160,15 +205,14 @@ router.post('/', validate(inventoryCreateRules), async (req: AuthenticatedReques
 });
 
 // POST /api/inventories/:id/items - Add item(s)
-router.post('/:id/items', validate(inventoryItemCreateRules), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/items', permissions.canWrite('biens'), validate(inventoryItemCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
-        
-        // Sécurité RLS : Vérifier si on a le droit d'écrire sur cet inventaire
-        const checkResult = await dbClient.query('SELECT id FROM inventories WHERE id = $1', [id]);
-        if (checkResult.rows.length === 0) {
-             return res.status(404).json({ message: 'Inventaire non trouvé ou accès refusé' });
+
+        // Isolation explicite par owner (et non la seule RLS) sur l'inventaire parent.
+        if (!(await fetchOwnedInventory(req, id))) {
+            return res.status(404).json({ message: 'Inventaire non trouvé ou accès refusé' });
         }
 
         const { categorie, nom, etat, quantite, description, observation, photos } = req.body;
@@ -198,14 +242,13 @@ router.post('/:id/items', validate(inventoryItemCreateRules), async (req: Authen
 });
 
 // PUT /api/inventories/:id/items/:itemId - Update item
-router.put('/:id/items/:itemId', validate(inventoryItemUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id/items/:itemId', permissions.canWrite('biens'), validate(inventoryItemUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id, itemId } = req.params;
-        
-        const checkResult = await dbClient.query('SELECT id FROM inventories WHERE id = $1', [id]);
-        if (checkResult.rows.length === 0) {
-             return res.status(404).json({ message: 'Accès refusé à cet inventaire' });
+
+        if (!(await fetchOwnedInventory(req, id))) {
+            return res.status(404).json({ message: 'Accès refusé à cet inventaire' });
         }
 
         const { etat, quantite, description, observation, photos } = req.body;
@@ -241,14 +284,13 @@ router.put('/:id/items/:itemId', validate(inventoryItemUpdateRules), async (req:
 });
 
 // DELETE /api/inventories/:id/items/:itemId - Delete item
-router.delete('/:id/items/:itemId', validate(inventoryItemDeleteRules), async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id/items/:itemId', permissions.canWrite('biens'), validate(inventoryItemDeleteRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id, itemId } = req.params;
-        
-        const checkResult = await dbClient.query('SELECT id FROM inventories WHERE id = $1', [id]);
-        if (checkResult.rows.length === 0) {
-             return res.status(404).json({ message: 'Accès refusé à cet inventaire' });
+
+        if (!(await fetchOwnedInventory(req, id))) {
+            return res.status(404).json({ message: 'Accès refusé à cet inventaire' });
         }
 
         const result = await dbClient.query('DELETE FROM inventory_items WHERE id = $1 AND inventory_id = $2 RETURNING id', [itemId, id]);
@@ -263,12 +305,14 @@ router.delete('/:id/items/:itemId', validate(inventoryItemDeleteRules), async (r
 });
 
 // PUT /api/inventories/:id - Update header/status
-router.put('/:id', validate(inventoryUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id', permissions.canWrite('biens'), validate(inventoryUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
         const { statut, commentaires, signature_locataire, signature_agent } = req.body;
 
+        const params: any[] = [statut, commentaires, signature_locataire, signature_agent, id];
+        const ownerClause = scopeByOwner(req, params);
         const result = await dbClient.query(`
             UPDATE inventories SET
                 statut = COALESCE($1, statut),
@@ -276,15 +320,9 @@ router.put('/:id', validate(inventoryUpdateRules), async (req: AuthenticatedRequ
                 signature_locataire = COALESCE($3, signature_locataire),
                 signature_agent = COALESCE($4, signature_agent),
                 updated_at = NOW()
-            WHERE id = $5
+            WHERE id = $5${ownerClause}
             RETURNING *
-        `, [
-            statut, 
-            commentaires, 
-            signature_locataire, 
-            signature_agent, 
-            id
-        ]);
+        `, params);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Inventaire non trouvé ou accès refusé' });

@@ -1134,6 +1134,66 @@ const MIGRATIONS: Migration[] = [
         `
     },
     {
+        name: '049c_inventory_tables',
+        // Module Inventaires : inventoryRoutes.ts interroge inventories/inventory_items
+        // qui n'existaient dans AUCUNE migration (présentes seulement en prod, à la main →
+        // toute base reconstruite plantait). owner_id sert à l'isolation explicite (cf. routes).
+        sql: `
+            CREATE TABLE IF NOT EXISTS inventories (
+                id SERIAL PRIMARY KEY,
+                entity_type VARCHAR(30) NOT NULL,
+                entity_id INTEGER NOT NULL,
+                type_inventaire VARCHAR(30) NOT NULL,
+                date_realisation TIMESTAMP NOT NULL DEFAULT NOW(),
+                agent_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                agent_name VARCHAR(255),
+                statut VARCHAR(30) DEFAULT 'brouillon',
+                commentaires TEXT,
+                signature_locataire TEXT,
+                signature_agent TEXT,
+                owner_id INTEGER REFERENCES owners(id) ON DELETE CASCADE,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_inventories_entity ON inventories(entity_type, entity_id);
+            CREATE INDEX IF NOT EXISTS idx_inventories_owner ON inventories(owner_id);
+
+            CREATE TABLE IF NOT EXISTS inventory_items (
+                id SERIAL PRIMARY KEY,
+                inventory_id INTEGER REFERENCES inventories(id) ON DELETE CASCADE,
+                categorie VARCHAR(100),
+                nom VARCHAR(255) NOT NULL,
+                etat VARCHAR(20) NOT NULL,
+                quantite INTEGER DEFAULT 1,
+                description TEXT,
+                observation TEXT,
+                photos JSONB DEFAULT '[]'::jsonb,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_inventory_items_inv ON inventory_items(inventory_id);
+
+            -- Fonction générique de mise à jour de updated_at (idempotente).
+            CREATE OR REPLACE FUNCTION set_updated_at()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                NEW.updated_at = NOW();
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+
+            DROP TRIGGER IF EXISTS trigger_inventories_updated_at ON inventories;
+            CREATE TRIGGER trigger_inventories_updated_at
+                BEFORE UPDATE ON inventories
+                FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+            DROP TRIGGER IF EXISTS trigger_inventory_items_updated_at ON inventory_items;
+            CREATE TRIGGER trigger_inventory_items_updated_at
+                BEFORE UPDATE ON inventory_items
+                FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+        `
+    },
+    {
         name: '050_loans_tax_tables',
         // loans, loan_payments, tax_settings — de _archive/create_finance_tables.sql.
         // Utilisées par loanRoutes.ts et taxRoutes.ts.
