@@ -7,7 +7,7 @@ import {
   LayoutDashboard, LogOut, X, ChevronDown, ChevronRight,
   CreditCard, FolderOpen, BarChart3, Wrench, ShieldCheck,
   Calendar, CalendarCheck, ClipboardList, ClipboardCheck, Briefcase, Crown, Notebook, CheckSquare,
-  Home, Activity, UserCog, Receipt, UserCheck
+  Home, Activity, UserCog, Receipt, UserCheck, Boxes
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import ConfirmModal from '../ui/ConfirmModal';
@@ -159,6 +159,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
         gestionItems.push({ icon: <ClipboardList size={20} />, label: 'Contrats', path: '/contrats' });
     }
     if (role === 'admin' || role === 'gestionnaire') {
+        gestionItems.push({ icon: <Boxes size={20} />, label: 'Inventaires', path: '/inventories' });
         gestionItems.push({ icon: <ClipboardCheck size={20} />, label: 'États des Lieux', path: '/etats-des-lieux' });
         gestionItems.push({ icon: <CalendarCheck size={20} />, label: 'Réservations', path: '/reservations' });
     }
