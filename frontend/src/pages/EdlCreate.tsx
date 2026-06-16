@@ -205,7 +205,9 @@ const EdlCreate: React.FC = () => {
                                         aria-label="Lot ou bien">
                                         <option value={0}>Sélectionner...</option>
                                         {lots.map(lot => (
-                                            <option key={lot.id} value={lot.id}>{lot.ref_lot} - {lot.type}</option>
+                                            <option key={lot.id} value={lot.id}>
+                                                {[lot.reference, lot.immeuble, lot.type].filter(Boolean).join(' · ')}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
