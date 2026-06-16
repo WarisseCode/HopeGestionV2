@@ -3,11 +3,12 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     Printer, Edit, ArrowLeft, Calendar, User,
-    ClipboardCheck, Building, CheckCircle, FileSignature, GitCompareArrows
+    ClipboardCheck, Building, CheckCircle, FileSignature, GitCompareArrows, Download
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { apiCall } from '../utils/apiUtils';
 import { resolveComparison } from '../utils/edlCompare';
+import { downloadPdf } from '../utils/downloadPdf';
 import { API_URL } from '../config';
 
 const EdlDetails: React.FC = () => {
@@ -15,6 +16,7 @@ const EdlDetails: React.FC = () => {
     const navigate = useNavigate();
     const [edl, setEdl] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [pdfLoading, setPdfLoading] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -43,6 +45,18 @@ const EdlDetails: React.FC = () => {
         } catch (e) {
             console.error(e);
             toast.error('Erreur lors de la recherche de comparaison.');
+        }
+    };
+
+    const handleDownloadPdf = async () => {
+        setPdfLoading(true);
+        try {
+            await downloadPdf(`${API_URL}/edl/${id}/pdf`, `${edl?.ref_edl || 'EDL'}.pdf`);
+        } catch (e) {
+            console.error(e);
+            toast.error('Erreur lors de la génération du PDF.');
+        } finally {
+            setPdfLoading(false);
         }
     };
 
@@ -96,6 +110,14 @@ const EdlDetails: React.FC = () => {
                         className="btn-secondary flex items-center gap-2"
                     >
                         <GitCompareArrows size={18} /> Comparer
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleDownloadPdf}
+                        disabled={pdfLoading}
+                        className="btn-secondary flex items-center gap-2"
+                    >
+                        <Download size={18} /> {pdfLoading ? 'PDF…' : 'PDF'}
                     </button>
                     <button
                         type="button"

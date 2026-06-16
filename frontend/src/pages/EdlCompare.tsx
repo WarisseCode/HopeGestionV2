@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Printer, ArrowRight, TrendingDown, TrendingUp,
-    Minus, AlertTriangle, PlusCircle, GitCompareArrows
+    Minus, AlertTriangle, PlusCircle, GitCompareArrows, Download
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { apiCall } from '../utils/apiUtils';
+import { downloadPdf } from '../utils/downloadPdf';
 import { API_URL } from '../config';
 
 // Couleurs d'état alignées sur la saisie (neuf→hs).
@@ -50,6 +52,19 @@ const EdlCompare: React.FC = () => {
     const navigate = useNavigate();
     const [data, setData] = useState<CompareData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [pdfLoading, setPdfLoading] = useState(false);
+
+    const handleDownloadPdf = async () => {
+        setPdfLoading(true);
+        try {
+            await downloadPdf(`${API_URL}/edl/compare/${idEntree}/${idSortie}/pdf`, `comparatif-${idEntree}-${idSortie}.pdf`);
+        } catch (e) {
+            console.error(e);
+            toast.error('Erreur lors de la génération du rapport PDF.');
+        } finally {
+            setPdfLoading(false);
+        }
+    };
 
     useEffect(() => {
         apiCall<CompareData>(`${API_URL}/edl/compare/${idEntree}/${idSortie}`)
@@ -67,12 +82,17 @@ const EdlCompare: React.FC = () => {
     return (
         <div className="p-6 lg:p-10 max-w-5xl mx-auto print:p-0">
             <div className="flex items-center justify-between mb-6 print:hidden">
-                <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content">
+                <button type="button" onClick={() => navigate(-1)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content">
                     <ArrowLeft size={20} /> Retour
                 </button>
-                <button onClick={() => window.print()} className="btn-secondary flex items-center gap-2">
-                    <Printer size={18} /> Imprimer
-                </button>
+                <div className="flex gap-3">
+                    <button type="button" onClick={handleDownloadPdf} disabled={pdfLoading} className="btn-secondary flex items-center gap-2">
+                        <Download size={18} /> {pdfLoading ? 'PDF…' : 'Rapport PDF'}
+                    </button>
+                    <button type="button" onClick={() => window.print()} className="btn-secondary flex items-center gap-2">
+                        <Printer size={18} /> Imprimer
+                    </button>
+                </div>
             </div>
 
             <div className="bg-base-100 rounded-2xl shadow-sm border border-base-200 p-6 lg:p-8 print:shadow-none print:border-none">

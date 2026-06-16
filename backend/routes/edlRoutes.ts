@@ -7,6 +7,7 @@ import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import permissions from '../middleware/permissionMiddleware';
 import { validate } from '../middleware/validate';
+import { streamEdlPdf, streamComparePdf } from '../services/EdlPdfService';
 
 const router = express.Router();
 
@@ -286,6 +287,69 @@ router.get('/:id/counterpart', permissions.canRead('biens'), validate([edlIdPara
     } catch (error) {
         console.error('Error finding EDL counterpart:', error);
         res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// ============================================
+// GET /api/edl/:id/pdf - Document EDL officiel (PDF serveur, CdC VIII.10)
+// ============================================
+router.get('/:id/pdf', permissions.canRead('biens'), validate([edlIdParam]), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const dbClient = (req as any).dbClient;
+        const { id } = req.params;
+        const params: any[] = [id];
+        const ownerClause = scopeByOwner(req, params, 'e.owner_id');
+        const edlResult = await dbClient.query(
+            `SELECT e.*, l.ref_lot, l.type as lot_type
+             FROM edl_inspections e
+             LEFT JOIN lots l ON e.lot_id = l.id
+             WHERE e.id = $1${ownerClause}`,
+            params
+        );
+        if (edlResult.rows.length === 0) {
+            return res.status(404).json({ message: 'État des lieux non trouvé ou accès refusé' });
+        }
+        const items = await dbClient.query('SELECT * FROM edl_items WHERE edl_id = $1 ORDER BY piece, nom', [id]);
+        await streamEdlPdf(res, edlResult.rows[0], items.rows);
+    } catch (error) {
+        console.error('Error generating EDL pdf:', error);
+        if (!res.headersSent) res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// ============================================
+// GET /api/edl/compare/:idEntree/:idSortie/pdf - Rapport comparatif (PDF serveur)
+// ============================================
+router.get('/compare/:idEntree/:idSortie/pdf',
+    permissions.canRead('biens'),
+    validate([
+        param('idEntree').isInt({ min: 1 }).withMessage('idEntree invalide'),
+        param('idSortie').isInt({ min: 1 }).withMessage('idSortie invalide'),
+    ]),
+    async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const dbClient = (req as any).dbClient;
+        const { idEntree, idSortie } = req.params;
+
+        const pE: any[] = [idEntree];
+        const cE = scopeByOwner(req, pE, 'e.owner_id');
+        const edlEntree = await dbClient.query(`SELECT e.*, l.ref_lot FROM edl_inspections e LEFT JOIN lots l ON e.lot_id = l.id WHERE e.id = $1${cE}`, pE);
+        const pS: any[] = [idSortie];
+        const cS = scopeByOwner(req, pS, 'e.owner_id');
+        const edlSortie = await dbClient.query(`SELECT e.*, l.ref_lot FROM edl_inspections e LEFT JOIN lots l ON e.lot_id = l.id WHERE e.id = $1${cS}`, pS);
+
+        if (edlEntree.rows.length === 0 || edlSortie.rows.length === 0) {
+            return res.status(404).json({ message: 'Un ou plusieurs EDL introuvables ou accès refusé' });
+        }
+
+        const itemsE = await dbClient.query('SELECT * FROM edl_items WHERE edl_id = $1 ORDER BY piece, nom', [idEntree]);
+        const itemsS = await dbClient.query('SELECT * FROM edl_items WHERE edl_id = $1 ORDER BY piece, nom', [idSortie]);
+        const { comparison, summary } = buildComparison(itemsE.rows, itemsS.rows);
+
+        await streamComparePdf(res, { entree: edlEntree.rows[0], sortie: edlSortie.rows[0], comparison, summary });
+    } catch (error) {
+        console.error('Error generating compare pdf:', error);
+        if (!res.headersSent) res.status(500).json({ message: 'Erreur serveur' });
     }
 });
 
