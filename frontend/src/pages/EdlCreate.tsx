@@ -68,9 +68,10 @@ const EdlCreate: React.FC = () => {
 
     useEffect(() => { loadLots(); }, []);
 
+    // On ne propose que les lots LOUÉS (bail actif/signé) — un EDL ne concerne qu'un lot occupé.
     const loadLots = async () => {
         try {
-            const data = await apiCall<{ lots: any[] }>(`${API_URL}/biens/lots`);
+            const data = await apiCall<{ lots: any[] }>(`${API_URL}/edl/rented-lots`);
             setLots(data.lots || []);
         } catch { /* ignore si l'endpoint est indisponible */ }
     };
@@ -201,11 +202,16 @@ const EdlCreate: React.FC = () => {
                                     </label>
                                     <select className="w-full p-2 border border-base-300 rounded-xl bg-base-200"
                                         value={context.lot_id}
-                                        onChange={(e) => setContext({ ...context, lot_id: Number(e.target.value) })}
-                                        aria-label="Lot ou bien">
-                                        <option value={0}>Sélectionner...</option>
+                                        onChange={(e) => {
+                                            const lotId = Number(e.target.value);
+                                            const sel = lots.find(l => l.lot_id === lotId);
+                                            // Auto-remplissage live du locataire associé au lot loué.
+                                            setContext(prev => ({ ...prev, lot_id: lotId, locataire_name: sel?.locataire_name || '' }));
+                                        }}
+                                        aria-label="Lot loué">
+                                        <option value={0}>{lots.length ? 'Sélectionner...' : 'Aucun lot loué disponible'}</option>
                                         {lots.map(lot => (
-                                            <option key={lot.id} value={lot.id}>
+                                            <option key={lot.lot_id} value={lot.lot_id}>
                                                 {[lot.reference, lot.immeuble, lot.type].filter(Boolean).join(' · ')}
                                             </option>
                                         ))}
@@ -238,7 +244,7 @@ const EdlCreate: React.FC = () => {
                                         <User size={16} className="inline mr-1" /> Nom du Locataire
                                     </label>
                                     <input type="text" className="w-full p-2 border border-base-300 rounded-xl bg-base-200"
-                                        placeholder="(auto depuis le bail si laissé vide)"
+                                        placeholder="Auto-rempli à la sélection du lot (modifiable)"
                                         value={context.locataire_name}
                                         onChange={(e) => setContext({ ...context, locataire_name: e.target.value })} />
                                 </div>

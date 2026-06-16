@@ -201,6 +201,44 @@ router.get('/', permissions.canRead('biens'), async (req: AuthenticatedRequest, 
 });
 
 // ============================================
+// GET /api/edl/rented-lots - Lots actuellement loués (bail actif/signé) + locataire.
+// Sert le sélecteur de création : on ne fait un EDL que sur un lot occupé.
+// NB: déclarée AVANT GET /:id, sinon 'rented-lots' serait capté comme un :id.
+// ============================================
+router.get('/rented-lots', permissions.canRead('biens'), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const dbClient = (req as any).dbClient;
+        const params: any[] = [];
+        const ownerClause = scopeByOwner(req, params, 'b.owner_id');
+        const result = await dbClient.query(`
+            SELECT DISTINCT ON (l.id)
+                   l.id   AS lot_id,
+                   l.ref_lot AS reference,
+                   b.nom  AS immeuble,
+                   l.type,
+                   lease.id AS lease_id,
+                   TRIM(COALESCE(t.nom, '') || ' ' || COALESCE(t.prenoms, '')) AS locataire_name
+            FROM leases lease
+            JOIN lots l       ON lease.lot_id = l.id
+            JOIN buildings b  ON l.building_id = b.id
+            JOIN tenants t    ON lease.tenant_id = t.id
+            WHERE lease.statut IN ('actif', 'signe')${ownerClause}
+            ORDER BY l.id, lease.date_debut DESC
+        `, params);
+
+        // DISTINCT ON impose un ORDER BY l.id en premier ; on retrie pour l'affichage.
+        const lots = result.rows.sort((a: any, b: any) =>
+            String(a.immeuble).localeCompare(String(b.immeuble)) ||
+            String(a.reference || '').localeCompare(String(b.reference || ''))
+        );
+        res.json({ lots });
+    } catch (error) {
+        console.error('Error fetching rented lots:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// ============================================
 // GET /api/edl/:id - Détails complets d'un EDL
 // ============================================
 router.get('/:id', permissions.canRead('biens'), validate([edlIdParam]), async (req: AuthenticatedRequest, res: Response) => {
