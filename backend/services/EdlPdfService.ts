@@ -169,8 +169,16 @@ export async function streamEdlPdf(res: Response, edl: any, items: any[]): Promi
         const bx = MARGIN + i * (colW + 20);
         doc.roundedRect(bx, y, colW, 80, 3).lineWidth(0.5).strokeColor('#CCC').stroke();
         doc.fontSize(8).font('Helvetica-Bold').fillColor(MED).text(label, bx + 8, y + 8);
-        const buf = await loadImageBuffer(data?.signature_url);
-        if (buf) { try { doc.image(buf, bx + 8, y + 22, { fit: [colW - 16, 48] }); } catch { /* ignore */ } }
+        if (data?.refused) {
+            // CdC VIII.5 — refus de signature consigné dans le document.
+            doc.fontSize(10).font('Helvetica-Bold').fillColor('#c2410c').text('Refus de signature', bx + 8, y + 34, { width: colW - 16 });
+            if (data.reason) {
+                doc.fontSize(7).font('Helvetica-Oblique').fillColor(MED).text(`Motif : ${data.reason}`, bx + 8, y + 50, { width: colW - 16 });
+            }
+        } else {
+            const buf = await loadImageBuffer(data?.signature_url);
+            if (buf) { try { doc.image(buf, bx + 8, y + 22, { fit: [colW - 16, 48] }); } catch { /* ignore */ } }
+        }
     }
 
     footer(doc);

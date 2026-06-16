@@ -32,6 +32,11 @@ const EdlSignature: React.FC = () => {
     const [agentSigned, setAgentSigned] = useState(false);
     const [locataireSigned, setLocataireSigned] = useState(false);
 
+    // CdC VIII.5 — le locataire peut refuser de signer : l'EDL reste valable (signé par
+    // l'agent) avec mention du refus consignée dans signatures_json.
+    const [locataireRefuse, setLocataireRefuse] = useState(false);
+    const [refusReason, setRefusReason] = useState('');
+
     // Fonction pour effacer
     const clearSignature = (ref: React.RefObject<SignatureCanvas | null>, setSigned: (val: boolean) => void) => {
         ref.current?.clear();
@@ -39,23 +44,27 @@ const EdlSignature: React.FC = () => {
     };
 
     const handleSave = async () => {
-        if (agentSigRef.current?.isEmpty() || locataireSigRef.current?.isEmpty()) {
-            toast.error("Les deux signatures sont requises");
+        if (agentSigRef.current?.isEmpty()) {
+            toast.error("La signature de l'agent / gestionnaire est requise");
+            return;
+        }
+        if (!locataireRefuse && locataireSigRef.current?.isEmpty()) {
+            toast.error("Signature du locataire requise (ou cochez « refuse de signer »)");
             return;
         }
 
         setLoading(true);
         try {
-            // On uploade chaque signature comme fichier PNG plutôt que de stocker un
-            // dataURL base64 (50-200 Ko) dans le JSONB : signatures_json reste léger.
-            const [agentUrl, locataireUrl] = await Promise.all([
-                uploadSignature(agentSigRef.current!.getCanvas(), 'agent'),
-                uploadSignature(locataireSigRef.current!.getCanvas(), 'locataire'),
-            ]);
+            // Signature(s) uploadée(s) en PNG (signatures_json reste léger).
+            const agentUrl = await uploadSignature(agentSigRef.current!.getCanvas(), 'agent');
+
+            const locataire = locataireRefuse
+                ? { refused: true, reason: refusReason.trim() || null, date: new Date().toISOString() }
+                : { signature_url: await uploadSignature(locataireSigRef.current!.getCanvas(), 'locataire'), date: new Date().toISOString() };
 
             const signatures = {
-                agent:     { signature_url: agentUrl,     date: new Date().toISOString() },
-                locataire: { signature_url: locataireUrl, date: new Date().toISOString() }
+                agent: { signature_url: agentUrl, date: new Date().toISOString() },
+                locataire
             };
 
             await apiCall(`${API_URL}/edl/${id}/sign`, {
@@ -63,7 +72,9 @@ const EdlSignature: React.FC = () => {
                 body: JSON.stringify({ signatures })
             });
 
-            toast.success('État des lieux signé et finalisé !');
+            toast.success(locataireRefuse
+                ? 'EDL finalisé — refus de signature du locataire consigné.'
+                : 'État des lieux signé et finalisé !');
             navigate(`/dashboard/etats-des-lieux/${id}`);
         } catch (error) {
             console.error(error);
@@ -129,30 +140,58 @@ const EdlSignature: React.FC = () => {
 
                     {/* Locataire Signature */}
                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 font-bold text-base-content/80">
-                            <User size={18} /> Signature Locataire
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 font-bold text-base-content/80">
+                                <User size={18} /> Signature Locataire
+                            </div>
+                            <label className="flex items-center gap-1.5 text-xs text-base-content/70 cursor-pointer">
+                                <input type="checkbox" checked={locataireRefuse}
+                                    onChange={(e) => setLocataireRefuse(e.target.checked)}
+                                    className="w-3.5 h-3.5 accent-orange-500" />
+                                Refuse de signer
+                            </label>
                         </div>
-                        <div className="border-2 border-dashed border-base-300 rounded-xl bg-base-200 relative h-64">
-                            <SignatureCanvas 
-                                ref={locataireSigRef}
-                                canvasProps={{className: 'w-full h-full rounded-xl'}}
-                                onEnd={() => setLocataireSigned(true)}
-                                backgroundColor="rgba(255,255,255,0)"
-                            />
-                            {!locataireSigned && (
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-base-content/50 text-sm">
-                                    Signer ici
+
+                        {locataireRefuse ? (
+                            <div className="border-2 border-dashed border-orange-300 bg-orange-50 rounded-xl h-64 p-4 flex flex-col">
+                                <p className="text-sm font-bold text-orange-800 flex items-center gap-1.5">
+                                    <X size={16} /> Le locataire refuse de signer
+                                </p>
+                                <p className="text-xs text-orange-700 mt-1">
+                                    Le constat reste valable, signé par le gestionnaire. Précisez le motif si possible.
+                                </p>
+                                <textarea
+                                    className="mt-3 flex-1 w-full p-2 rounded-lg border border-orange-200 bg-white/70 text-sm resize-none outline-none focus:ring-2 focus:ring-orange-300"
+                                    placeholder="Motif du refus (optionnel)..."
+                                    value={refusReason}
+                                    onChange={(e) => setRefusReason(e.target.value)}
+                                />
+                            </div>
+                        ) : (
+                            <>
+                                <div className="border-2 border-dashed border-base-300 rounded-xl bg-base-200 relative h-64">
+                                    <SignatureCanvas
+                                        ref={locataireSigRef}
+                                        canvasProps={{ className: 'w-full h-full rounded-xl' }}
+                                        onEnd={() => setLocataireSigned(true)}
+                                        backgroundColor="rgba(255,255,255,0)"
+                                    />
+                                    {!locataireSigned && (
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-base-content/50 text-sm">
+                                            Signer ici
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
-                        <div className="flex justify-end">
-                            <button 
-                                onClick={() => clearSignature(locataireSigRef, setLocataireSigned)}
-                                className="text-sm text-red-500 hover:text-red-700 underline"
-                            >
-                                Effacer
-                            </button>
-                        </div>
+                                <div className="flex justify-end">
+                                    <button type="button"
+                                        onClick={() => clearSignature(locataireSigRef, setLocataireSigned)}
+                                        className="text-sm text-red-500 hover:text-red-700 underline"
+                                    >
+                                        Effacer
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
 

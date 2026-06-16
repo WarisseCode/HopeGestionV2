@@ -289,7 +289,14 @@ const EdlDetails: React.FC = () => {
                     </div>
                     <div className="border rounded-xl h-32 p-4 relative">
                         <span className="text-xs text-base-content/50 uppercase font-bold absolute top-3 left-3">Signature Locataire</span>
-                        {edl.signatures_json?.locataire?.signature_url && (
+                        {edl.signatures_json?.locataire?.refused ? (
+                            <div className="h-full w-full flex flex-col items-center justify-center text-center">
+                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">Refus de signature</span>
+                                {edl.signatures_json.locataire.reason && (
+                                    <p className="text-xs text-base-content/60 mt-2 italic">« {edl.signatures_json.locataire.reason} »</p>
+                                )}
+                            </div>
+                        ) : edl.signatures_json?.locataire?.signature_url && (
                             <img src={edl.signatures_json.locataire.signature_url} className="h-full w-full object-contain" alt="Signature Locataire" />
                         )}
                     </div>
