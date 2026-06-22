@@ -102,7 +102,7 @@ const FinanceExpenses: React.FC = () => {
             {/* Form Modal */}
             {showForm && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <Card className="max-w-md w-full bg-base-100 relative">
+                    <Card className="max-w-3xl w-full bg-base-100 relative max-h-[90vh] overflow-y-auto">
                         <h3 className="text-lg font-bold mb-4">Nouvelle Dépense</h3>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -19,6 +19,7 @@ const expenseCreateRules = [
     body('category').notEmpty().withMessage('La catégorie est obligatoire').bail().isString().isLength({ max: 100 }).withMessage('Catégorie invalide'),
     body('building_id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('building_id invalide'),
     body('lot_id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('lot_id invalide'),
+    body('owner_id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('owner_id invalide'),
     body('description').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('Description trop longue'),
     body('supplier_name').optional({ nullable: true }).isString().isLength({ max: 200 }).withMessage('Fournisseur invalide'),
 ];
@@ -103,6 +104,7 @@ router.post('/', permissions.canWrite('finance'), upload.single('proof'), valida
     try {
         const dbClient = (req as any).dbClient;
         const resolvedOwnerId = (req as any).resolvedOwnerId;
+        const validOwnerIds: number[] = (req as any).validOwnerIds || [];
 
         const {
             building_id,
@@ -117,6 +119,41 @@ router.post('/', permissions.canWrite('finance'), upload.single('proof'), valida
         // Validation simple
         if (!amount || !date_expense || !category) {
             return res.status(400).json({ message: 'Champs obligatoires manquants' });
+        }
+
+        // [SÉCURITÉ/RLS] Déterminer l'owner réel de la dépense. resolvedOwnerId est null pour un
+        // gestionnaire multi-propriétaires → écrire owner_id NULL violait la WITH CHECK (42501).
+        // Ordre de priorité : owner dérivé de l'immeuble > du lot > owner_id du body (validé) > resolvedOwnerId.
+        let ownerId: number | null = null;
+        if (building_id) {
+            const r = await dbClient.query('SELECT owner_id FROM buildings WHERE id = $1', [building_id]);
+            if (r.rows.length === 0) {
+                return res.status(404).json({ message: 'Immeuble introuvable ou accès refusé' });
+            }
+            ownerId = r.rows[0].owner_id;
+        } else if (lot_id) {
+            const r = await dbClient.query(
+                'SELECT b.owner_id FROM lots lo JOIN buildings b ON lo.building_id = b.id WHERE lo.id = $1',
+                [lot_id]
+            );
+            if (r.rows.length === 0) {
+                return res.status(404).json({ message: 'Lot introuvable ou accès refusé' });
+            }
+            ownerId = r.rows[0].owner_id;
+        } else if (req.body.owner_id) {
+            // owner_id fourni par le client : ne JAMAIS faire confiance aveuglément — vérifier
+            // qu'il fait partie des propriétaires gérés par l'utilisateur (anti-IDOR).
+            const candidate = parseInt(req.body.owner_id, 10);
+            if (!validOwnerIds.includes(candidate)) {
+                return res.status(403).json({ message: 'Propriétaire non autorisé.' });
+            }
+            ownerId = candidate;
+        } else {
+            ownerId = resolvedOwnerId ?? null;
+        }
+
+        if (!ownerId) {
+            return res.status(422).json({ message: 'Sélectionnez un immeuble ou un propriétaire pour cette dépense.' });
         }
 
         // Handle uploaded proof file
@@ -134,25 +171,34 @@ router.post('/', permissions.canWrite('finance'), upload.single('proof'), valida
             }
         }
 
-        const result = await dbClient.query(`
-            INSERT INTO expenses (
-                building_id, lot_id, owner_id, category, description,
-                amount, date_expense, supplier_name, status, proof_url
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'paid', $9)
-            RETURNING *
-        `, [
-            building_id || null,
-            lot_id || null,
-            resolvedOwnerId,
-            category,
-            description || '',
-            amount,
-            date_expense,
-            supplier_name || '',
-            proofUrl
-        ]);
-
-        res.status(201).json(result.rows[0]);
+        // Transaction : on positionne le contexte RLS (transaction-local) sur l'owner dérivé
+        // pour que la WITH CHECK de la policy expenses accepte l'INSERT même en multi-owner.
+        await dbClient.query('BEGIN');
+        try {
+            await dbClient.query(`SELECT set_config('app.current_owner_id', $1, true)`, [String(ownerId)]);
+            const result = await dbClient.query(`
+                INSERT INTO expenses (
+                    building_id, lot_id, owner_id, category, description,
+                    amount, date_expense, supplier_name, status, proof_url
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'paid', $9)
+                RETURNING *
+            `, [
+                building_id || null,
+                lot_id || null,
+                ownerId,
+                category,
+                description || '',
+                amount,
+                date_expense,
+                supplier_name || '',
+                proofUrl
+            ]);
+            await dbClient.query('COMMIT');
+            res.status(201).json(result.rows[0]);
+        } catch (txErr) {
+            await dbClient.query('ROLLBACK');
+            throw txErr;
+        }
     } catch (error) {
         console.error('Error creating expense:', error);
         res.status(500).json({ message: 'Erreur serveur' });
