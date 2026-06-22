@@ -1361,6 +1361,17 @@ const MIGRATIONS: Migration[] = [
                 END IF;
             END $$;
         `
+    },
+    {
+        name: '053_payments_statut_paid_to_valide',
+        // Backfill : paySchedule insérait historiquement payments.statut = 'paid', valeur
+        // ignorée par toutes les lectures de revenus (qui filtrent 'valide') → loyers encaissés
+        // invisibles dans les KPI/graphiques + quittance introuvable. On normalise l'historique.
+        // Sûr et ciblé : 'paid' n'a jamais été une valeur légitime de payments.statut
+        // (valeurs attendues : 'valide' / 'en_attente' / 'annule').
+        sql: `
+            UPDATE payments SET statut = 'valide' WHERE statut = 'paid';
+        `
     }
 ];
 

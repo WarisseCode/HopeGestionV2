@@ -347,12 +347,16 @@ export class FinanceService {
                 [scheduleId]
             );
 
+            // statut = 'valide' (et non 'paid') : c'est la valeur reconnue par toutes les
+            // lectures de revenus (getStats, getMonthlyStats, lookup quittance) et la convention
+            // commune aux paiements en ligne/mobile money. 'paid' reste correct pour
+            // payment_schedules.status ci-dessus (l'échéance), mais pas pour payments.statut.
             const paymentRes = await dbClient.query(
                 `INSERT INTO payments (
                     lease_id, schedule_id, montant, date_paiement, mode_paiement,
                     reference_transaction, type, statut, owner_id, description
                  )
-                 VALUES ($1, $2, $3, NOW(), $4, $5, 'loyer', 'paid', $6, $7)
+                 VALUES ($1, $2, $3, NOW(), $4, $5, 'loyer', 'valide', $6, $7)
                  RETURNING id`,
                 [
                     schedule.lease_id, scheduleId, schedule.total_amount,

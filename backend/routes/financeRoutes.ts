@@ -14,16 +14,20 @@ import { FinanceService } from '../services/FinanceService';
 
 const router = Router();
 
-// Mêmes règles que paiementRoutes (POST / délègue à FinanceService.createPayment).
+// POST / délègue à FinanceService.createPayment. Les noms de champs DOIVENT correspondre
+// au contrat réel (front financeApi.createPayment + interface CreatePaymentData) :
+// amount / payment_method / payment_date / reference — et non montant / mode_paiement / etc.,
+// sinon la validation rejette tout payload légitime en 400.
 const paymentCreateRules = [
     body('lease_id').notEmpty().withMessage('lease_id est obligatoire').bail()
         .isInt({ min: 1 }).withMessage('lease_id invalide'),
-    body('montant').notEmpty().withMessage('Le montant est obligatoire').bail()
+    body('amount').notEmpty().withMessage('Le montant est obligatoire').bail()
         .isFloat({ gt: 0 }).withMessage('Le montant doit être un nombre strictement positif'),
     body('type').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Type invalide'),
-    body('mode_paiement').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Mode de paiement invalide'),
-    body('date_paiement').optional({ nullable: true }).isISO8601().withMessage('Date invalide (ISO 8601)'),
-    body('reference_transaction').optional({ nullable: true }).isString().isLength({ max: 255 }).withMessage('Référence trop longue'),
+    body('payment_method').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Mode de paiement invalide'),
+    body('payment_date').optional({ nullable: true }).isISO8601().withMessage('Date invalide (ISO 8601)'),
+    body('reference').optional({ nullable: true }).isString().isLength({ max: 255 }).withMessage('Référence trop longue'),
+    body('description').optional({ nullable: true }).isString().isLength({ max: 1000 }).withMessage('Description trop longue'),
     body('schedule_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('schedule_id invalide'),
 ];
 
