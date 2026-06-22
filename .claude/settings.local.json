@@ -47,7 +47,15 @@
       "Bash(echo \"tsc exit:$?\")",
       "Bash(npx jest *)",
       "Bash(grep -nA2 \"CREATE TABLE IF NOT EXISTS edl_inspections\\\\|CREATE TABLE IF NOT EXISTS edl_items\" scripts/runMigrations.ts)",
-      "Bash(grep -rnA10 \"CREATE TABLE IF NOT EXISTS inventories \" scripts/runMigrations.ts db/ migrations/)"
+      "Bash(grep -rnA10 \"CREATE TABLE IF NOT EXISTS inventories \" scripts/runMigrations.ts db/ migrations/)",
+      "PowerShell(cd \"d:\\\\Hope GImmo\\\\HopeGestionV2\\\\frontend\"; npx tsc -b 2>&1 | Select-Object -First 30; \"EXIT=$LASTEXITCODE\")",
+      "PowerShell(cd \"d:\\\\Hope GImmo\\\\HopeGestionV2\\\\backend\"; npx tsc --noEmit 2>&1 | Select-Object -First 10; \"TSC=$LASTEXITCODE\")",
+      "PowerShell(cd \"d:\\\\Hope GImmo\\\\HopeGestionV2\\\\frontend\"; npx tsc -b 2>&1 | Select-Object -First 15; \"FRONT=$LASTEXITCODE\")",
+      "PowerShell(cd \"d:\\\\Hope GImmo\\\\HopeGestionV2\\\\backend\"; npx tsc --noEmit 2>&1 | Select-Object -First 10; \"BACK=$LASTEXITCODE\")",
+      "PowerShell(cd \"d:\\\\Hope GImmo\\\\HopeGestionV2\\\\frontend\"; npx tsc -b 2>&1 | Select-Object -First 10; \"FRONT=$LASTEXITCODE\")",
+      "PowerShell(cd \"d:\\\\Hope GImmo\\\\HopeGestionV2\\\\backend\"; npx tsc --noEmit 2>&1 | Select-Object -First 20; \"TSC=$LASTEXITCODE\"; npx eslint routes/edlRoutes.ts 2>&1 | Select-Object -Last 4; \"LINT=$LASTEXITCODE\")",
+      "PowerShell(cd \"d:\\\\Hope GImmo\\\\HopeGestionV2\\\\frontend\"; npx tsc -b 2>&1 | Select-Object -First 20; \"FRONT=$LASTEXITCODE\")",
+      "PowerShell(cd \"d:\\\\Hope GImmo\\\\HopeGestionV2\\\\backend\"; npx tsc --noEmit 2>&1 | Select-Object -First 15; \"BACK=$LASTEXITCODE\")"
     ]
   }
 }
