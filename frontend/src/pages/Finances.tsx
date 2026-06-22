@@ -75,10 +75,18 @@ const Finances: React.FC = () => {
     fetchData();
   }, [selectedMonth, selectedYear]);
 
+  // Bornes du mois sélectionné (1er → dernier jour) pour filtrer les paiements affichés.
+  const periodRange = (month: number, year: number) => {
+    const start = `${year}-${String(month).padStart(2, '0')}-01`;
+    const end = new Date(year, month, 0).toISOString().split('T')[0]; // jour 0 du mois suivant = dernier jour
+    return { start, end };
+  };
+
   const fetchData = async () => {
     try {
+      const { start, end } = periodRange(selectedMonth, selectedYear);
       const [pData, pStats, locs, subStatus] = await Promise.all([
-        financeApi.getPayments(),
+        financeApi.getPayments({ start_date: start, end_date: end }),
         financeApi.getStats(selectedMonth, selectedYear),
         getLocataires('Locataire'),
         getSubscriptionStatus().catch(err => {
@@ -86,12 +94,10 @@ const Finances: React.FC = () => {
             return null;
         })
       ]);
-      
+
       setPaiements(pData);
       setLocataires(locs);
       if (subStatus) setSubscriptionStatus(subStatus);
-      
-      // @ts-expect-error - stats updated in backend
       setStats(pStats);
 
     } catch (error) {
@@ -104,7 +110,6 @@ const Finances: React.FC = () => {
     const reloadStats = async () => {
       try {
         const pStats = await financeApi.getStats(selectedMonth, selectedYear);
-        // @ts-expect-error
         setStats(pStats);
       } catch (error) {
         console.error('Erreur stats:', error);
@@ -179,6 +184,7 @@ const Finances: React.FC = () => {
           toast.success(`Paiement enregistré — quittance téléchargée pour ${locataireName}`);
           setShowForm(false);
           fetchData();
+          setChartKey(k => k + 1);
       } catch (error: any) {
           console.error("Erreur:", error);
           toast.error(error.message || "Erreur lors de l'enregistrement");
@@ -187,16 +193,20 @@ const Finances: React.FC = () => {
 
   const [generating, setGenerating] = useState(false);
   const [schedulesKey, setSchedulesKey] = useState(0);
+  // Incrémenté après un encaissement ou une génération pour forcer FinanceChart à recharger.
+  const [chartKey, setChartKey] = useState(0);
 
   const [showGenerateModal, setShowGenerateModal] = useState(false);
 
   const confirmGenerateSchedules = async () => {
       try {
           setGenerating(true);
-          const result = await financeApi.generateSchedules();
+          // Génère pour le mois actuellement affiché (pas forcément le mois courant).
+          const result = await financeApi.generateSchedules(selectedMonth, selectedYear);
           toast.success(`${result.details.generated} échéances générées avec succès`);
           fetchData();
           setSchedulesKey(k => k + 1); // Force FinanceSchedules à recharger ses données
+          setChartKey(k => k + 1);
           setActiveTab('echeances');
           setShowGenerateModal(false);
       } catch (error: any) {
@@ -214,6 +224,26 @@ const Finances: React.FC = () => {
 
   const formatCurrency = (amount: number) => {
       return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(amount);
+  };
+
+  // Référence lisible à largeur fixe (P-0005, P-0042…) — évite le padding incohérent.
+  const formatPaymentRef = (id: number) => `P-${String(id).padStart(4, '0')}`;
+
+  // Couleur du badge selon le statut réel du paiement (et non vert systématique).
+  const statutBadgeClass = (statut?: string) => {
+      switch (statut) {
+          case 'valide':
+          case 'paye':
+          case 'paid':
+              return 'bg-green-100 text-green-600';
+          case 'en_attente':
+          case 'partiel':
+              return 'bg-amber-100 text-amber-700';
+          case 'annule':
+              return 'bg-red-100 text-red-600';
+          default:
+              return 'bg-base-200 text-base-content/60';
+      }
   };
 
   return (
@@ -307,7 +337,7 @@ const Finances: React.FC = () => {
       </div>
 
       {/* Revenue vs Expenses Chart */}
-      <FinanceChart />
+      <FinanceChart key={chartKey} />
 
       {/* Navigation Tabs */}
       <div className="bg-base-100 rounded-2xl p-2 shadow-sm border border-base-200 overflow-x-auto">
@@ -472,11 +502,11 @@ const Finances: React.FC = () => {
                             <tbody className="divide-y divide-base-200">
                                 {paiements.map((item) => (
                                     <tr key={item.id} className="hover:bg-base-200/50">
-                                        <td className="pl-6 py-3 font-medium text-base-content/90">P-00{item.id}</td>
+                                        <td className="pl-6 py-3 font-medium text-base-content/90">{formatPaymentRef(item.id)}</td>
                                         <td className="py-3 font-bold text-base-content/80">{item.locataire_prenoms} {item.locataire_nom}</td>
                                         <td className="py-3 text-base-content/60">{new Date(item.payment_date).toLocaleDateString()}</td>
                                         <td className="py-3 font-mono font-bold text-green-600">{formatCurrency(Number(item.amount))}</td>
-                                        <td className="py-3"><span className="badge bg-green-100 text-green-600 px-2 py-1 rounded text-xs">{item.statut}</span></td>
+                                        <td className="py-3"><span className={`badge ${statutBadgeClass(item.statut)} px-2 py-1 rounded text-xs`}>{item.statut}</span></td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -515,7 +545,8 @@ const Finances: React.FC = () => {
       >
           <div className="space-y-4">
               <p className="text-base-content/70">
-                  Cette action va générer automatiquement les quittances de loyer pour tous les baux actifs du mois courant.
+                  Cette action va générer les échéances de loyer pour tous les baux actifs de{' '}
+                  <strong>{monthNames[selectedMonth - 1]} {selectedYear}</strong>.
               </p>
               <div className="bg-teal-50 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200 p-4 rounded-lg text-sm border border-teal-200 dark:border-teal-700">
                   ℹ️ Les quittances déjà existantes pour ce mois ne seront pas dupliquées.

@@ -169,8 +169,8 @@ export class FinanceService {
                 SELECT SUM(ps.total_amount - ps.amount_paid) as total
                 FROM payment_schedules ps JOIN leases l ON ps.lease_id = l.id
                 WHERE l.owner_id = ANY($1::int[]) AND ps.status IN ('pending', 'partial', 'overdue')
-                AND ps.due_date <= CURRENT_DATE
-            `, [effectiveOwnerIds]),
+                AND EXTRACT(MONTH FROM ps.due_date) = $2 AND EXTRACT(YEAR FROM ps.due_date) = $3
+            `, [effectiveOwnerIds, month, year]),
         ]);
 
         const income   = parseFloat(encashedRes.rows[0].total || '0');

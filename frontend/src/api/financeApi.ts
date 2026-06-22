@@ -27,6 +27,8 @@ export interface CreatePaymentData {
 
 export interface BaseStats {
     encashed_month: number;
+    expenses_month: number;
+    net_balance: number;
     pending_total: number;
 }
 
