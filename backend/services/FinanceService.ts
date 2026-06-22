@@ -48,8 +48,11 @@ export class FinanceService {
 
     // ── Paiements ─────────────────────────────────────────────────────────────
 
-    static async getPayments(dbClient: PoolClient, ownerId: number, filters: PaymentFilters) {
-        const params: any[] = [ownerId];
+    // effectiveOwnerIds : liste des propriétaires autorisés (resolvedOwnerId unique OU
+    // validOwnerIds pour un gestionnaire multi-propriétaires). Filtrer par = ANY(...)
+    // évite le bug "owner_id = NULL" qui vidait toute la page pour un compte multi-owner.
+    static async getPayments(dbClient: PoolClient, effectiveOwnerIds: number[], filters: PaymentFilters) {
+        const params: any[] = [effectiveOwnerIds];
         let paramIndex = 2;
         let query = `
             SELECT ${SELECT_PAYMENTS_FIELDS},
@@ -60,7 +63,7 @@ export class FinanceService {
             JOIN leases l ON p.lease_id = l.id
             JOIN tenants t ON l.tenant_id = t.id
             JOIN owners o ON l.owner_id = o.id
-            WHERE p.owner_id = $1
+            WHERE p.owner_id = ANY($1::int[])
         `;
 
         if (filters.lease_id)  { query += ` AND p.lease_id = $${paramIndex++}`;        params.push(filters.lease_id); }
@@ -78,7 +81,7 @@ export class FinanceService {
     /** Enregistre un paiement et met à jour l'échéance associée si schedule_id fourni. */
     static async createPayment(
         dbClient: PoolClient,
-        ownerId: number,
+        effectiveOwnerIds: number[],
         data: CreatePaymentData,
         userId: number
     ) {
@@ -88,14 +91,21 @@ export class FinanceService {
                 throw Object.assign(new Error('Données invalides'), { statusCode: 400 });
             }
 
-            // [SÉCURITÉ] Vérifie que le bail appartient à cet owner — empêche l'insertion cross-tenant
+            // [SÉCURITÉ] Vérifie l'appartenance du bail à l'un des propriétaires autorisés ET
+            // dérive l'owner réel du bail. Pour un gestionnaire multi-owner, resolvedOwnerId est
+            // null → on ne peut pas écrire owner_id en dur ; l'owner du bail fait foi.
             const leaseCheck = await dbClient.query(
-                'SELECT id FROM leases WHERE id = $1 AND owner_id = $2',
-                [data.lease_id, ownerId]
+                'SELECT owner_id FROM leases WHERE id = $1 AND owner_id = ANY($2::int[])',
+                [data.lease_id, effectiveOwnerIds]
             );
             if (leaseCheck.rows.length === 0) {
                 throw Object.assign(new Error('Bail introuvable pour ce propriétaire'), { statusCode: 404 });
             }
+            const ownerId = leaseCheck.rows[0].owner_id;
+
+            // Positionne le contexte RLS sur l'owner du bail (transaction-local) pour que la
+            // WITH CHECK de la policy payments accepte l'INSERT même en multi-owner.
+            await dbClient.query(`SELECT set_config('app.current_owner_id', $1, true)`, [String(ownerId)]);
 
             const insertRes = await dbClient.query(`
                 INSERT INTO payments (
@@ -142,25 +152,25 @@ export class FinanceService {
 
     // ── Statistiques ──────────────────────────────────────────────────────────
 
-    static async getStats(dbClient: PoolClient, ownerId: number, month: number, year: number) {
+    static async getStats(dbClient: PoolClient, effectiveOwnerIds: number[], month: number, year: number) {
         const [encashedRes, expensesRes, pendingRes] = await Promise.all([
             dbClient.query(`
                 SELECT SUM(montant) as total FROM payments
-                WHERE owner_id = $1
+                WHERE owner_id = ANY($1::int[])
                 AND EXTRACT(MONTH FROM date_paiement) = $2 AND EXTRACT(YEAR FROM date_paiement) = $3
                 AND statut = 'valide'
-            `, [ownerId, month, year]),
+            `, [effectiveOwnerIds, month, year]),
             dbClient.query(`
                 SELECT SUM(amount) as total FROM expenses
-                WHERE owner_id = $1
+                WHERE owner_id = ANY($1::int[])
                 AND EXTRACT(MONTH FROM date_expense) = $2 AND EXTRACT(YEAR FROM date_expense) = $3
-            `, [ownerId, month, year]),
+            `, [effectiveOwnerIds, month, year]),
             dbClient.query(`
                 SELECT SUM(ps.total_amount - ps.amount_paid) as total
                 FROM payment_schedules ps JOIN leases l ON ps.lease_id = l.id
-                WHERE l.owner_id = $1 AND ps.status IN ('pending', 'partial', 'overdue')
+                WHERE l.owner_id = ANY($1::int[]) AND ps.status IN ('pending', 'partial', 'overdue')
                 AND ps.due_date <= CURRENT_DATE
-            `, [ownerId]),
+            `, [effectiveOwnerIds]),
         ]);
 
         const income   = parseFloat(encashedRes.rows[0].total || '0');
@@ -173,26 +183,26 @@ export class FinanceService {
         };
     }
 
-    static async getMonthlyStats(dbClient: PoolClient, ownerId: number, months: number) {
+    static async getMonthlyStats(dbClient: PoolClient, effectiveOwnerIds: number[], months: number) {
         const [revenueRes, expenseRes] = await Promise.all([
             dbClient.query(`
                 SELECT EXTRACT(MONTH FROM date_paiement)::int as month,
                        EXTRACT(YEAR FROM date_paiement)::int as year,
                        SUM(montant) as total
                 FROM payments
-                WHERE owner_id = $1
+                WHERE owner_id = ANY($1::int[])
                 AND date_paiement >= (CURRENT_DATE - INTERVAL '1 month' * $2) AND statut = 'valide'
                 GROUP BY year, month ORDER BY year, month
-            `, [ownerId, months]),
+            `, [effectiveOwnerIds, months]),
             dbClient.query(`
                 SELECT EXTRACT(MONTH FROM date_expense)::int as month,
                        EXTRACT(YEAR FROM date_expense)::int as year,
                        SUM(amount) as total
                 FROM expenses
-                WHERE owner_id = $1
+                WHERE owner_id = ANY($1::int[])
                 AND date_expense >= (CURRENT_DATE - INTERVAL '1 month' * $2)
                 GROUP BY year, month ORDER BY year, month
-            `, [ownerId, months]),
+            `, [effectiveOwnerIds, months]),
         ]);
 
         const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
@@ -211,11 +221,11 @@ export class FinanceService {
     }
 
     /** Statistiques d'occupation et de recouvrement pour un immeuble donné. */
-    static async getBuildingStats(dbClient: PoolClient, ownerId: number, buildingId: string) {
-        // [SÉCURITÉ] Vérifie que l'immeuble appartient à cet owner — empêche l'IDOR cross-tenant
+    static async getBuildingStats(dbClient: PoolClient, effectiveOwnerIds: number[], buildingId: string) {
+        // [SÉCURITÉ] Vérifie que l'immeuble appartient à l'un des owners autorisés — anti-IDOR cross-tenant
         const buildingCheck = await dbClient.query(
-            'SELECT id FROM buildings WHERE id = $1 AND owner_id = $2',
-            [buildingId, ownerId]
+            'SELECT id FROM buildings WHERE id = $1 AND owner_id = ANY($2::int[])',
+            [buildingId, effectiveOwnerIds]
         );
         if (buildingCheck.rows.length === 0) {
             throw Object.assign(new Error('Immeuble introuvable'), { statusCode: 404 });
@@ -261,11 +271,11 @@ export class FinanceService {
     /** Retourne les lignes brutes pour export Excel — la route gère le formatage ExcelJS. */
     static async getPaymentsForExport(
         dbClient: PoolClient,
-        ownerId: number,
+        effectiveOwnerIds: number[],
         startDate?: string,
         endDate?: string
     ) {
-        const params: any[] = [ownerId];
+        const params: any[] = [effectiveOwnerIds];
         let query = `
             SELECT p.date_paiement, p.montant, p.mode_paiement, p.reference_transaction, p.type, p.statut,
                    l.reference_bail,
@@ -277,7 +287,7 @@ export class FinanceService {
             JOIN owners o ON l.owner_id = o.id
             JOIN lots lo ON l.lot_id = lo.id
             JOIN buildings b ON lo.building_id = b.id
-            WHERE p.owner_id = $1
+            WHERE p.owner_id = ANY($1::int[])
         `;
         if (startDate) { params.push(startDate); query += ` AND p.date_paiement >= $${params.length}`; }
         if (endDate)   { params.push(endDate);   query += ` AND p.date_paiement <= $${params.length}`; }
@@ -384,7 +394,10 @@ export class FinanceService {
 
     // ── Génération des échéances (hors tenantGuard — crée sa propre connexion) ──
 
-    static async generateMonthlySchedules(month: number, year: number) {
+    // effectiveOwnerIds OBLIGATOIRE : sans ce filtre, un seul clic "Générer Loyers" balayait
+    // TOUS les baux de la base (toutes les agences) → franchissement multi-tenant. On restreint
+    // la génération aux propriétaires gérés par l'utilisateur courant.
+    static async generateMonthlySchedules(month: number, year: number, effectiveOwnerIds: number[]) {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
@@ -396,8 +409,9 @@ export class FinanceService {
                 SELECT id, loyer_actuel, charges_mensuelles, jour_echeance, tenant_id
                 FROM leases
                 WHERE statut = 'actif'
+                AND owner_id = ANY($3::int[])
                 AND date_debut <= $1 AND (date_fin IS NULL OR date_fin >= $2)
-            `, [endDate, startDate]);
+            `, [endDate, startDate, effectiveOwnerIds]);
 
             let generatedCount = 0;
 

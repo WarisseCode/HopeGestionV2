@@ -14,6 +14,17 @@ import { FinanceService } from '../services/FinanceService';
 
 const router = Router();
 
+// Liste des propriétaires effectivement gérés par l'utilisateur :
+// - resolvedOwnerId si tenantGuard a pu résoudre un owner unique ;
+// - sinon validOwnerIds (gestionnaire multi-propriétaires, resolvedOwnerId = null).
+// Filtrer par cette liste (= ANY(...)) évite les requêtes "owner_id = NULL" qui
+// renvoyaient une page Finances vide pour les comptes multi-owner.
+function getEffectiveOwnerIds(req: AuthenticatedRequest): number[] {
+    const ownerId = (req as any).resolvedOwnerId;
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    return ownerId != null ? [ownerId] : validOwnerIds;
+}
+
 // POST / délègue à FinanceService.createPayment. Les noms de champs DOIVENT correspondre
 // au contrat réel (front financeApi.createPayment + interface CreatePaymentData) :
 // amount / payment_method / payment_date / reference — et non montant / mode_paiement / etc.,
@@ -48,10 +59,11 @@ const payScheduleRules = [
 // GET /api/finances - Liste des paiements
 router.get('/', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
-    const ownerId = (req as any).resolvedOwnerId;
+    const effectiveOwnerIds = getEffectiveOwnerIds(req);
     try {
+        if (effectiveOwnerIds.length === 0) return res.json({ payments: [] });
         const { lease_id, start_date, end_date, statut, type } = req.query;
-        const payments = await FinanceService.getPayments(dbClient, ownerId, { lease_id, start_date, end_date, statut, type } as any);
+        const payments = await FinanceService.getPayments(dbClient, effectiveOwnerIds, { lease_id, start_date, end_date, statut, type } as any);
         res.json({ payments });
     } catch (error) {
         console.error('Error fetching payments:', error);
@@ -62,9 +74,12 @@ router.get('/', permissions.canRead('finance'), tenantGuard, async (req: Authent
 // POST /api/finances - Enregistrer un paiement
 router.post('/', permissions.canWrite('finance'), tenantGuard, validate(paymentCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
-    const ownerId = (req as any).resolvedOwnerId;
+    const effectiveOwnerIds = getEffectiveOwnerIds(req);
     try {
-        const payment = await FinanceService.createPayment(dbClient, ownerId, req.body, req.userId!);
+        if (effectiveOwnerIds.length === 0) {
+            return res.status(403).json({ message: 'Aucun propriétaire associé à ce compte.' });
+        }
+        const payment = await FinanceService.createPayment(dbClient, effectiveOwnerIds, req.body, req.userId!);
         res.status(201).json(payment);
     } catch (error: any) {
         console.error('Error recording payment:', error);
@@ -75,11 +90,14 @@ router.post('/', permissions.canWrite('finance'), tenantGuard, validate(paymentC
 // GET /api/finances/stats - Statistiques mensuelles
 router.get('/stats', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
-    const ownerId = (req as any).resolvedOwnerId;
+    const effectiveOwnerIds = getEffectiveOwnerIds(req);
     try {
+        if (effectiveOwnerIds.length === 0) {
+            return res.json({ encashed_month: 0, expenses_month: 0, net_balance: 0, pending_total: 0 });
+        }
         const targetMonth = req.query.month ? parseInt(req.query.month as string) : new Date().getMonth() + 1;
         const targetYear  = req.query.year  ? parseInt(req.query.year  as string) : new Date().getFullYear();
-        const stats = await FinanceService.getStats(dbClient, ownerId, targetMonth, targetYear);
+        const stats = await FinanceService.getStats(dbClient, effectiveOwnerIds, targetMonth, targetYear);
         res.json(stats);
     } catch (error) {
         console.error('Error fetching stats:', error);
@@ -90,10 +108,11 @@ router.get('/stats', permissions.canRead('finance'), tenantGuard, async (req: Au
 // GET /api/finances/stats/monthly - Revenus/Dépenses par mois (graphiques)
 router.get('/stats/monthly', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
-    const ownerId = (req as any).resolvedOwnerId;
+    const effectiveOwnerIds = getEffectiveOwnerIds(req);
     try {
+        if (effectiveOwnerIds.length === 0) return res.json([]);
         const months = parseInt(req.query.months as string) || 6;
-        const data = await FinanceService.getMonthlyStats(dbClient, ownerId, months);
+        const data = await FinanceService.getMonthlyStats(dbClient, effectiveOwnerIds, months);
         res.json(data);
     } catch (error) {
         console.error('Error fetching monthly stats:', error);
@@ -104,9 +123,12 @@ router.get('/stats/monthly', permissions.canRead('finance'), tenantGuard, async 
 // GET /api/finances/stats/building/:id - Statistiques par immeuble
 router.get('/stats/building/:id', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
-    const ownerId = (req as any).resolvedOwnerId;
+    const effectiveOwnerIds = getEffectiveOwnerIds(req);
     try {
-        const result = await FinanceService.getBuildingStats(dbClient, ownerId, req.params.id as string);
+        if (effectiveOwnerIds.length === 0) {
+            return res.status(404).json({ message: 'Immeuble introuvable' });
+        }
+        const result = await FinanceService.getBuildingStats(dbClient, effectiveOwnerIds, req.params.id as string);
         res.json(result);
     } catch (error: any) {
         console.error('Error fetching building stats:', error);
@@ -118,11 +140,14 @@ router.get('/stats/building/:id', permissions.canRead('finance'), tenantGuard, a
 // La mise en forme ExcelJS reste dans la route — c'est du rendu HTTP, pas de la logique métier.
 router.get('/export/excel', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
-    const ownerId = (req as any).resolvedOwnerId;
+    const effectiveOwnerIds = getEffectiveOwnerIds(req);
     try {
+        if (effectiveOwnerIds.length === 0) {
+            return res.status(403).json({ message: 'Aucun propriétaire associé à ce compte.' });
+        }
         const { start_date, end_date } = req.query;
         const rows = await FinanceService.getPaymentsForExport(
-            dbClient, ownerId,
+            dbClient, effectiveOwnerIds,
             start_date as string | undefined,
             end_date   as string | undefined
         );
@@ -170,13 +195,18 @@ router.get('/export/excel', permissions.canRead('finance'), tenantGuard, async (
 });
 
 // POST /api/finances/generate-schedules - Générer les échéances mensuelles (Admin/Gest)
-// ⚠️ FinanceService utilise pool en interne — pas de dbClient ici (hors tenantGuard)
-router.post('/generate-schedules', permissions.canWrite('finance'), validate(generateSchedulesRules), async (req: AuthenticatedRequest, res: Response) => {
+// tenantGuard requis pour récupérer effectiveOwnerIds : la génération ne doit toucher QUE
+// les baux des propriétaires gérés par l'utilisateur (cf. FinanceService.generateMonthlySchedules).
+router.post('/generate-schedules', permissions.canWrite('finance'), tenantGuard, validate(generateSchedulesRules), async (req: AuthenticatedRequest, res: Response) => {
+    const effectiveOwnerIds = getEffectiveOwnerIds(req);
     try {
+        if (effectiveOwnerIds.length === 0) {
+            return res.status(403).json({ message: 'Aucun propriétaire associé à ce compte.' });
+        }
         const { month, year } = req.body;
         const targetMonth = month ? parseInt(month) : new Date().getMonth() + 1;
         const targetYear  = year  ? parseInt(year)  : new Date().getFullYear();
-        const result = await FinanceService.generateMonthlySchedules(targetMonth, targetYear);
+        const result = await FinanceService.generateMonthlySchedules(targetMonth, targetYear, effectiveOwnerIds);
         res.json({ message: 'Génération terminée', details: result });
     } catch (error) {
         console.error('Error generating schedules:', error);
