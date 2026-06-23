@@ -67,6 +67,7 @@ const LocationDetails = React.lazy(() => import('./pages/LocationDetails'));
 const ReservationsList = React.lazy(() => import('./pages/ReservationsList'));
 const InventoriesList = React.lazy(() => import('./pages/InventoriesList'));
 const InventoryForm = React.lazy(() => import('./pages/InventoryForm'));
+const Corbeille = React.lazy(() => import('./pages/Corbeille'));
 const InventoryDetails = React.lazy(() => import('./pages/InventoryDetails'));
 const EdlList = React.lazy(() => import('./pages/EdlList'));
 const EdlCreate = React.lazy(() => import('./pages/EdlCreate'));
@@ -225,6 +226,7 @@ const App: React.FC = () => {
                           <Route path="alertes" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Alertes />} />} />
                           <Route path="mobile-money" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<MobileMoney />} />} />
                           <Route path="quittances" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Quittances />} />} />
+                          <Route path="corbeille" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Corbeille />} />} />
                           <Route path="paiements-loyer" element={<RouteProtection allowedUserTypes={['locataire']} children={<TenantPayments />} />} />
                           <Route path="abonnement" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Pricing />} />} />
                           <Route path="proprietaires" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<Proprietaires />} />} />

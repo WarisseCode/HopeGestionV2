@@ -7,7 +7,7 @@ import {
   LayoutDashboard, LogOut, X, ChevronDown, ChevronRight,
   CreditCard, FolderOpen, BarChart3, Wrench, ShieldCheck,
   Calendar, CalendarCheck, ClipboardList, ClipboardCheck, Briefcase, Crown, Notebook, CheckSquare,
-  Home, Activity, UserCog, Receipt, UserCheck, Boxes
+  Home, Activity, UserCog, Receipt, UserCheck, Boxes, Trash2
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import ConfirmModal from '../ui/ConfirmModal';
@@ -185,6 +185,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
         orgItems.push({ icon: <CheckSquare size={20} />, label: 'Tâches', path: '/tasks' });
         orgItems.push({ icon: <Wrench size={20} />, label: 'Interventions', path: '/interventions' });
         orgItems.push({ icon: <BarChart3 size={20} />, label: 'Données & Rapports', path: '/rapports' });
+        orgItems.push({ icon: <Trash2 size={20} />, label: 'Corbeille', path: '/corbeille' });
     }
 
     // Groupe Admin
