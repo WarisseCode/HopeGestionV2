@@ -16,8 +16,12 @@ import {
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
 import { generateQuittancePDF } from '../utils/pdfGenerator';
 import { financeApi } from '../api/financeApi';
+import { getLocataires, getLocataireDetails } from '../api/locataireApi';
+import type { Locataire } from '../api/locataireApi';
+import type { BailSummary } from '@hopegestion/shared-types';
 import toast from 'react-hot-toast';
 import { useUser } from '../contexts/UserContext';
 
@@ -62,6 +66,12 @@ const Quittances: React.FC = () => {
     }
   };
 
+  // Sélection liée aux vraies données (locataire → baux → auto-remplissage Bien/Montant).
+  const [locataires, setLocataires] = useState<Locataire[]>([]);
+  const [baux, setBaux] = useState<BailSummary[]>([]);
+  const [selectedLocataireId, setSelectedLocataireId] = useState('');
+  const [selectedBailId, setSelectedBailId] = useState('');
+
   const [formData, setFormData] = useState({
     locataire: '',
     bien: '',
@@ -69,6 +79,52 @@ const Quittances: React.FC = () => {
     montant: 0,
     dateEmission: new Date().toISOString().split('T')[0]
   });
+
+  // Charger la liste des locataires (uniquement pour les profils qui peuvent générer).
+  useEffect(() => {
+    if (!canWrite) return;
+    getLocataires('Locataire')
+      .then(setLocataires)
+      .catch(() => {/* non bloquant : le formulaire reste utilisable en saisie libre */});
+  }, [canWrite]);
+
+  // Référence "Bien" lisible à partir d'un bail (lot + immeuble, repli sur la réf. de bail).
+  const bailToBien = (b: BailSummary) =>
+    [b.ref_lot, b.building_name].filter(Boolean).join(' · ') || b.reference_bail || b.ref_bail || `Bail #${b.id}`;
+
+  // Applique un bail au formulaire : remplit Bien + Montant (modifiables ensuite).
+  const applyBail = (bail?: BailSummary) => {
+    setSelectedBailId(bail ? String(bail.id) : '');
+    setFormData(prev => ({
+      ...prev,
+      bien: bail ? bailToBien(bail) : '',
+      montant: bail?.loyer_actuel ?? prev.montant,
+    }));
+  };
+
+  // Sélection d'un locataire → charge ses baux et pré-sélectionne le bail actif.
+  const handleLocataireSelect = async (id: string) => {
+    setSelectedLocataireId(id);
+    setSelectedBailId('');
+    if (!id) {
+      setBaux([]);
+      setFormData(prev => ({ ...prev, locataire: '', bien: '', montant: 0 }));
+      return;
+    }
+    const loc = locataires.find(l => String(l.id) === id);
+    const nom = `${loc?.prenoms || ''} ${loc?.nom || ''}`.trim();
+    setFormData(prev => ({ ...prev, locataire: nom }));
+    try {
+      const details = await getLocataireDetails(parseInt(id));
+      const list = details.baux || [];
+      setBaux(list);
+      const activeBail = list.find(b => b.statut === 'actif') || list[0];
+      applyBail(activeBail);
+    } catch {
+      toast.error("Impossible de charger les baux de ce locataire");
+      setBaux([]);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -126,65 +182,84 @@ const Quittances: React.FC = () => {
       {/* Formulaire de génération */}
       {(showForm || activeTab === 'generer') && (
         <Card title="Générer une nouvelle quittance (Manuel)">
-            {/* Formulaire simplifié pour démo/manuel - en réalité on devrait lier aux données */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium mb-2">Locataire</label>
-              <Input 
-                value={formData.locataire}
-                onChange={(e) => setFormData({...formData, locataire: e.target.value})}
-                placeholder="Nom du locataire"
-              />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 max-w-4xl">
+            {/* Locataire : liste réelle. La sélection auto-remplit le bail, le bien et le montant. */}
+            <Select
+              label="Locataire"
+              value={selectedLocataireId}
+              onChange={(e) => handleLocataireSelect(e.target.value)}
+              options={[
+                { value: '', label: 'Choisir un locataire...' },
+                ...locataires.map(l => ({ value: String(l.id), label: `${l.prenoms || ''} ${l.nom || ''}`.trim() })),
+              ]}
+            />
+
+            {/* Bail : utile quand le locataire a plusieurs logements. Sinon pré-rempli automatiquement. */}
+            <Select
+              label="Bail / Logement"
+              value={selectedBailId}
+              onChange={(e) => applyBail(baux.find(b => String(b.id) === e.target.value))}
+              disabled={baux.length === 0}
+              options={[
+                { value: '', label: baux.length ? 'Choisir un bail...' : 'Sélectionnez d’abord un locataire' },
+                ...baux.map(b => ({
+                  value: String(b.id),
+                  label: `${bailToBien(b)}${b.statut !== 'actif' ? ` (${b.statut})` : ''}`,
+                })),
+              ]}
+            />
 
             <div>
               <label className="block text-sm font-medium mb-2">Bien</label>
-              <Input 
+              <Input
                 value={formData.bien}
                 onChange={(e) => setFormData({...formData, bien: e.target.value})}
-                placeholder="Référence du bien"
+                placeholder="Auto-rempli depuis le bail (modifiable)"
               />
             </div>
 
-            <div>
-              <Input 
-                label="Période" 
-                type="month"
-                value={formData.periode}
-                onChange={(e) => setFormData({...formData, periode: e.target.value})}
-              />
-            </div>
+            <Input
+              label="Montant (FCFA)"
+              type="number"
+              value={formData.montant}
+              onChange={(e) => setFormData({...formData, montant: parseFloat(e.target.value) || 0})}
+            />
 
-            <div>
-              <Input 
-                label="Montant (FCFA)" 
-                type="number"
-                value={formData.montant}
-                onChange={(e) => setFormData({...formData, montant: parseFloat(e.target.value) || 0})}
-              />
-            </div>
+            <Input
+              label="Période"
+              type="month"
+              value={formData.periode}
+              onChange={(e) => setFormData({...formData, periode: e.target.value})}
+            />
 
-            <div>
-              <Input 
-                label="Date d'émission" 
-                type="date"
-                value={formData.dateEmission}
-                onChange={(e) => setFormData({...formData, dateEmission: e.target.value})}
-              />
-            </div>
+            <Input
+              label="Date d'émission"
+              type="date"
+              value={formData.dateEmission}
+              onChange={(e) => setFormData({...formData, dateEmission: e.target.value})}
+            />
           </div>
 
           <div className="flex justify-end gap-3 mt-6">
-            <Button 
-              variant="ghost" 
-              onClick={() => setShowForm(false)}
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowForm(false);
+                setSelectedLocataireId('');
+                setSelectedBailId('');
+                setBaux([]);
+                setFormData({ locataire: '', bien: '', periode: '', montant: 0, dateEmission: new Date().toISOString().split('T')[0] });
+              }}
             >
               Annuler
             </Button>
-            <Button 
+            <Button
               variant="primary"
               className="flex items-center gap-2"
               onClick={async () => {
+                  if (!formData.locataire.trim()) return toast.error("Sélectionnez un locataire");
+                  if (!formData.montant || formData.montant <= 0) return toast.error("Le montant doit être supérieur à 0");
+                  if (!formData.periode) return toast.error("Indiquez la période");
                   await generateQuittancePDF({
                       id: 'MANUAL-' + Date.now(),
                       numero: 'QUI-MANUAL-' + new Date().getFullYear(),
