@@ -56,10 +56,10 @@ router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: 
         let ownerFilter = '';
         let queryParams: any[] = [];
         if (!isAdmin && validOwnerIds.length > 0) {
-            ownerFilter = 'WHERE b.owner_id = ANY($1::int[])';
+            ownerFilter = 'AND b.owner_id = ANY($1::int[])';
             queryParams = [validOwnerIds];
         } else if (!isAdmin) {
-            ownerFilter = 'WHERE FALSE';
+            ownerFilter = 'AND FALSE';
         }
 
         const query = `
@@ -76,7 +76,7 @@ router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: 
              LEFT JOIN lots l ON l.building_id = b.id
              LEFT JOIN owners o ON b.owner_id = o.id
              LEFT JOIN users g ON b.gestionnaire_id = g.id
-             ${ownerFilter}
+             WHERE b.deleted_at IS NULL ${ownerFilter}
              GROUP BY b.id, o.id, g.id
              ORDER BY b.created_at DESC
         `;
@@ -146,7 +146,7 @@ router.get('/lots', permissions.canRead('biens'), tenantGuard, async (req: Authe
              FROM lots l
              JOIN buildings b ON l.building_id = b.id
              LEFT JOIN owners o ON b.owner_id = o.id
-             WHERE 1=1 ${ownerFilter}
+             WHERE l.deleted_at IS NULL AND b.deleted_at IS NULL ${ownerFilter}
              ORDER BY l.created_at DESC
         `;
 
@@ -314,17 +314,22 @@ router.delete('/immeubles/:id', permissions.canWrite('biens'), tenantGuard, vali
     const immeubleId = parseInt(req.params.id || '0', 10);
 
     try {
-        const lotsCheck = await dbClient.query('SELECT COUNT(*) as count FROM lots WHERE building_id = $1', [immeubleId]);
+        // On ne compte que les lots actifs (non déjà en corbeille).
+        const lotsCheck = await dbClient.query('SELECT COUNT(*) as count FROM lots WHERE building_id = $1 AND deleted_at IS NULL', [immeubleId]);
         if (parseInt(lotsCheck.rows[0].count) > 0) {
             return res.status(409).json({ message: `Impossible de supprimer : ${lotsCheck.rows[0].count} lot(s) sont rattachés à cet immeuble. Supprimez-les d'abord.` });
         }
 
-        const result = await dbClient.query('DELETE FROM buildings WHERE id = $1 RETURNING id', [immeubleId]);
-        
+        // Soft-delete : déplacé vers la corbeille (récupérable), pas de suppression définitive.
+        const result = await dbClient.query(
+            'UPDATE buildings SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING id',
+            [immeubleId, req.userId]
+        );
+
         if (result.rowCount === 0) {
             return res.status(404).json({ message: 'Immeuble introuvable ou accès refusé.' });
         }
-        res.status(200).json({ message: 'Immeuble supprimé avec succès.' });
+        res.status(200).json({ message: 'Immeuble déplacé vers la corbeille.' });
     } catch (error) {
         console.error('Erreur suppression immeuble:', error);
         res.status(500).json({ message: 'Erreur serveur.' });
@@ -337,13 +342,16 @@ router.delete('/lots/:id', permissions.canWrite('biens'), tenantGuard, validate(
     const lotId = parseInt(req.params.id || '0', 10);
 
     try {
-        // [PATTERN RLS] - Idem: On délègue tout à PostgreSQL sans risque d'IDOR
-        const result = await dbClient.query('DELETE FROM lots WHERE id = $1 RETURNING id', [lotId]);
-        
+        // Soft-delete : déplacé vers la corbeille (récupérable).
+        const result = await dbClient.query(
+            'UPDATE lots SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING id',
+            [lotId, req.userId]
+        );
+
         if (result.rowCount === 0) {
             return res.status(404).json({ message: 'Lot introuvable ou accès refusé.' });
         }
-        res.status(200).json({ message: 'Lot supprimé avec succès.' });
+        res.status(200).json({ message: 'Lot déplacé vers la corbeille.' });
     } catch (error) {
         console.error('Erreur suppression lot:', error);
         res.status(500).json({ message: 'Erreur serveur.' });

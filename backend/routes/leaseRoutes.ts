@@ -14,7 +14,7 @@ import { cache } from '../utils/cache';
 import fs from 'fs';
 import path from 'path';
 import { NotificationService } from '../services/notificationService';
-import { LeaseService } from '../services/leaseService';
+import { LeaseService } from '../services/LeaseService';
 import { tenantGuard } from '../middleware/tenantGuard';
 
 dotenv.config();

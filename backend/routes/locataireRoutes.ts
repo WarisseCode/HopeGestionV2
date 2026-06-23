@@ -97,7 +97,7 @@ router.get('/', protect, permissions.canRead('locataires'), tenantGuard, async (
                 ) lpa ON true
                 WHERE l.tenant_id = t.id AND l.statut IN ('actif', 'signe')
             ) agg ON true
-            WHERE t.statut != 'Archivé'
+            WHERE t.statut != 'Archivé' AND t.deleted_at IS NULL
         `;
 
         // Filtrage explicite par owner — indispensable quand BYPASSRLS est actif
@@ -336,7 +336,12 @@ router.delete('/:id', protect, tenantGuard, validate(tenantIdParam), async (req:
     const tenantId = parseInt(req.params.id, 10);
 
     try {
-        const result = await dbClient.query("UPDATE tenants SET statut = 'Archivé' WHERE id = $1 RETURNING id", [tenantId]);
+        // Soft-delete vers la corbeille (deleted_at) — récupérable, contrairement à un
+        // simple statut='Archivé' qui ne se restaure pas via le module Corbeille.
+        const result = await dbClient.query(
+            "UPDATE tenants SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING id",
+            [tenantId, req.userId]
+        );
 
         if (result.rowCount === 0) {
             return res.status(404).json({ message: 'Ressource introuvable ou accès refusé.' });
