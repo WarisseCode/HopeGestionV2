@@ -343,12 +343,6 @@ const Quittances: React.FC = () => {
       {/* Onglet : Quittances générées manuellement (persistées) */}
       {activeTab === 'generer' && canWrite && (
         <div className="space-y-6">
-          <div className="flex justify-end">
-            <Button variant="primary" onClick={openModal} className="flex items-center gap-2">
-              <Plus size={18} /> Nouvelle quittance manuelle
-            </Button>
-          </div>
-
           <Card title="Quittances générées manuellement">
             {loadingManual ? (
               <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent" /></div>
