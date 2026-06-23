@@ -14,9 +14,27 @@ const router = Router();
 
 router.use(protect);
 
+// La fiscalité est PAR propriétaire : un gestionnaire multi-propriétaires choisit explicitement
+// l'owner concerné dans l'UI. On valide cet owner_id contre validOwnerIds (anti-IDOR), avec repli
+// sur resolvedOwnerId (owner unique) puis sur l'unique propriétaire géré.
+// `forbidden` = owner_id demandé hors périmètre → 403 ; ownerId null = aucun owner déterminable → 400.
+function pickOwner(req: AuthenticatedRequest, requestedRaw: any): { ownerId: number | null; forbidden: boolean } {
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    const resolved = (req as any).resolvedOwnerId;
+    if (requestedRaw != null && requestedRaw !== '') {
+        const c = parseInt(String(requestedRaw), 10);
+        if (Number.isNaN(c) || !validOwnerIds.includes(c)) return { ownerId: null, forbidden: true };
+        return { ownerId: c, forbidden: false };
+    }
+    if (resolved != null) return { ownerId: resolved, forbidden: false };
+    if (validOwnerIds.length === 1) return { ownerId: validOwnerIds[0] ?? null, forbidden: false };
+    return { ownerId: null, forbidden: false };
+}
+
 // Paramètres fiscaux : tous optionnels (upsert) mais strictement typés.
 // tax_rate borné 0-100 pour empêcher un taux aberrant ; vat_subject booléen.
 const taxSettingsRules = [
+    body('owner_id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('owner_id invalide'),
     body('fiscal_regime').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Régime fiscal invalide'),
     body('tax_rate').optional({ nullable: true }).isFloat({ min: 0, max: 100 }).withMessage('Taux invalide (0-100)'),
     body('vat_subject').optional({ nullable: true }).isBoolean().withMessage('vat_subject doit être un booléen'),
@@ -27,7 +45,9 @@ const taxSettingsRules = [
 // [SÉCURITÉ] ownerId résolu via tenantGuard — jamais depuis req.params
 router.get('/settings', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
-    const ownerId = (req as any).resolvedOwnerId;
+    const { ownerId, forbidden } = pickOwner(req, req.query.owner_id);
+    if (forbidden) return res.status(403).json({ message: 'Propriétaire non autorisé.' });
+    if (!ownerId) return res.status(400).json({ message: 'Propriétaire requis.' });
     try {
         const result = await dbClient.query(
             'SELECT * FROM tax_settings WHERE owner_id = $1',
@@ -48,24 +68,34 @@ router.get('/settings', permissions.canRead('finance'), tenantGuard, async (req:
 // [SÉCURITÉ] owner_id depuis resolvedOwnerId — jamais depuis req.body
 router.post('/settings', permissions.canWrite('finance'), tenantGuard, validate(taxSettingsRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
-    const ownerId = (req as any).resolvedOwnerId;
+    const { ownerId, forbidden } = pickOwner(req, req.body.owner_id);
+    if (forbidden) return res.status(403).json({ message: 'Propriétaire non autorisé.' });
+    if (!ownerId) return res.status(400).json({ message: 'Propriétaire requis.' });
     try {
         const { fiscal_regime, tax_rate, vat_subject, country } = req.body;
 
-        const result = await dbClient.query(`
-            INSERT INTO tax_settings (owner_id, fiscal_regime, tax_rate, vat_subject, country, updated_at)
-            VALUES ($1, $2, $3, $4, $5, NOW())
-            ON CONFLICT (owner_id)
-            DO UPDATE SET
-                fiscal_regime = EXCLUDED.fiscal_regime,
-                tax_rate = EXCLUDED.tax_rate,
-                vat_subject = EXCLUDED.vat_subject,
-                country = EXCLUDED.country,
-                updated_at = NOW()
-            RETURNING *
-        `, [ownerId, fiscal_regime, tax_rate, vat_subject, country]);
-
-        res.json(result.rows[0]);
+        await dbClient.query('BEGIN');
+        try {
+            // Contexte RLS (transaction-local) sur l'owner ciblé pour la WITH CHECK en multi-owner.
+            await dbClient.query(`SELECT set_config('app.current_owner_id', $1, true)`, [String(ownerId)]);
+            const result = await dbClient.query(`
+                INSERT INTO tax_settings (owner_id, fiscal_regime, tax_rate, vat_subject, country, updated_at)
+                VALUES ($1, $2, $3, $4, $5, NOW())
+                ON CONFLICT (owner_id)
+                DO UPDATE SET
+                    fiscal_regime = EXCLUDED.fiscal_regime,
+                    tax_rate = EXCLUDED.tax_rate,
+                    vat_subject = EXCLUDED.vat_subject,
+                    country = EXCLUDED.country,
+                    updated_at = NOW()
+                RETURNING *
+            `, [ownerId, fiscal_regime, tax_rate, vat_subject, country]);
+            await dbClient.query('COMMIT');
+            res.json(result.rows[0]);
+        } catch (txErr) {
+            await dbClient.query('ROLLBACK');
+            throw txErr;
+        }
     } catch (error) {
         console.error('Error saving tax settings:', error);
         res.status(500).json({ message: 'Erreur serveur' });
@@ -76,7 +106,9 @@ router.post('/settings', permissions.canWrite('finance'), tenantGuard, validate(
 // [SÉCURITÉ] ownerId résolu via tenantGuard — jamais depuis req.params
 router.get('/report/:year', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
-    const ownerId = (req as any).resolvedOwnerId;
+    const { ownerId, forbidden } = pickOwner(req, req.query.owner_id);
+    if (forbidden) return res.status(403).json({ message: 'Propriétaire non autorisé.' });
+    if (!ownerId) return res.status(400).json({ message: 'Propriétaire requis.' });
     try {
         const { year } = req.params;
 

@@ -189,27 +189,29 @@ export const financeApi = {
     },
 
     // --- TAX ---
-    // [SÉCURITÉ] ownerId retiré de l'URL — le backend résout le tenant via JWT+tenantGuard
-    getTaxSettings: async (): Promise<TaxSettings> => {
+    // La fiscalité est par propriétaire : on transmet l'owner sélectionné dans l'UI.
+    // Le backend le VALIDE contre les propriétaires gérés (anti-IDOR) — pas de confiance aveugle.
+    getTaxSettings: async (ownerId: number): Promise<TaxSettings> => {
         const token = getToken();
-        const res = await fetch(`${API_URL}/tax/settings`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/tax/settings?owner_id=${ownerId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) throw new Error((await res.json()).message || 'Erreur paramètres fiscaux');
         return await res.json();
     },
 
-    saveTaxSettings: async (data: Omit<TaxSettings, 'owner_id'>): Promise<TaxSettings> => {
+    saveTaxSettings: async (data: TaxSettings): Promise<TaxSettings> => {
         const token = getToken();
         const res = await fetch(`${API_URL}/tax/settings`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
+        if (!res.ok) throw new Error((await res.json()).message || 'Erreur sauvegarde');
         return await res.json();
     },
 
-    // [SÉCURITÉ] ownerId retiré de l'URL — le backend résout le tenant via JWT+tenantGuard
-    getTaxReport: async (year: number): Promise<any> => {
+    getTaxReport: async (year: number, ownerId: number): Promise<any> => {
         const token = getToken();
-        const res = await fetch(`${API_URL}/tax/report/${year}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/tax/report/${year}?owner_id=${ownerId}`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error('Erreur rapport fiscal');
         return await res.json();
     },
