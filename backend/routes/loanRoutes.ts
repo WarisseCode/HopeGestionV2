@@ -22,9 +22,19 @@ const loanCreateRules = [
     body('interest_rate').notEmpty().withMessage("Le taux d'intérêt est obligatoire").bail().isFloat({ min: 0 }).withMessage('Taux invalide'),
     body('duration_months').notEmpty().withMessage('La durée est obligatoire').bail().isInt({ min: 1 }).withMessage('Durée invalide'),
     body('start_date').notEmpty().withMessage('La date de début est obligatoire').bail().isISO8601().withMessage('Date invalide (ISO 8601)'),
-    body('building_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('building_id invalide'),
+    body('building_id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('building_id invalide'),
+    body('owner_id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('owner_id invalide'),
     body('day_of_month').optional({ nullable: true }).isInt({ min: 1, max: 31 }).withMessage('Jour du mois invalide (1-31)'),
 ];
+
+// Propriétaires gérés par l'utilisateur : resolvedOwnerId (owner unique) sinon validOwnerIds
+// (gestionnaire multi-propriétaires, où resolvedOwnerId = null). Filtrer par cette liste évite
+// les requêtes "owner_id = NULL" qui renvoyaient une liste de prêts vide. Cf. financeRoutes.
+function getEffectiveOwnerIds(req: AuthenticatedRequest): number[] {
+    const ownerId = (req as any).resolvedOwnerId;
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    return ownerId != null ? [ownerId] : validOwnerIds;
+}
 const loanCloseRules = [param('id').isInt({ min: 1 }).withMessage('Identifiant invalide')];
 const loanInstallmentRules = [
     param('id').isInt({ min: 1 }).withMessage('Identifiant prêt invalide'),
@@ -35,8 +45,9 @@ const loanInstallmentRules = [
 // [SÉCURITÉ] owner_id depuis resolvedOwnerId — req.query.owner_id supprimé (IDOR)
 router.get('/', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
-    const ownerId = (req as any).resolvedOwnerId;
+    const effectiveOwnerIds = getEffectiveOwnerIds(req);
     try {
+        if (effectiveOwnerIds.length === 0) return res.json([]);
         const result = await dbClient.query(`
             SELECT l.*,
                    o.name as owner_name,
@@ -46,9 +57,9 @@ router.get('/', permissions.canRead('finance'), tenantGuard, async (req: Authent
             FROM loans l
             LEFT JOIN owners o ON l.owner_id = o.id
             LEFT JOIN buildings b ON l.building_id = b.id
-            WHERE l.owner_id = $1
+            WHERE l.owner_id = ANY($1::int[])
             ORDER BY l.start_date DESC
-        `, [ownerId]);
+        `, [effectiveOwnerIds]);
         res.json(result.rows);
     } catch (error) {
         console.error('Error fetching loans:', error);
@@ -60,13 +71,14 @@ router.get('/', permissions.canRead('finance'), tenantGuard, async (req: Authent
 // [SÉCURITÉ] Vérification loans.owner_id = resolvedOwnerId — empêche l'IDOR cross-tenant
 router.get('/:id', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
-    const ownerId = (req as any).resolvedOwnerId;
+    const effectiveOwnerIds = getEffectiveOwnerIds(req);
     try {
         const { id } = req.params;
+        if (effectiveOwnerIds.length === 0) return res.status(404).json({ message: 'Prêt non trouvé' });
 
         const loanRes = await dbClient.query(
-            'SELECT * FROM loans WHERE id = $1 AND owner_id = $2',
-            [id, ownerId]
+            'SELECT * FROM loans WHERE id = $1 AND owner_id = ANY($2::int[])',
+            [id, effectiveOwnerIds]
         );
         if (loanRes.rows.length === 0) return res.status(404).json({ message: 'Prêt non trouvé' });
 
@@ -89,14 +101,41 @@ router.get('/:id', permissions.canRead('finance'), tenantGuard, async (req: Auth
 // [SÉCURITÉ] owner_id depuis resolvedOwnerId — req.body.owner_id supprimé (IDOR)
 router.post('/', permissions.canWrite('finance'), tenantGuard, validate(loanCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
-    const ownerId = (req as any).resolvedOwnerId;
+    const effectiveOwnerIds = getEffectiveOwnerIds(req);
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
     try {
-        await dbClient.query('BEGIN');
-
         const {
             name, amount, interest_rate, duration_months,
             start_date, building_id, day_of_month
         } = req.body;
+
+        // [SÉCURITÉ/RLS] Déterminer l'owner du prêt. resolvedOwnerId est null pour un gestionnaire
+        // multi-propriétaires → écrire owner_id NULL violerait la WITH CHECK (42501).
+        // Priorité : owner dérivé de l'immeuble > owner_id du body (validé) > owner unique géré.
+        let ownerId: number | null = null;
+        if (building_id) {
+            const r = await dbClient.query('SELECT owner_id FROM buildings WHERE id = $1', [building_id]);
+            if (r.rows.length === 0) {
+                return res.status(404).json({ message: 'Immeuble introuvable ou accès refusé' });
+            }
+            ownerId = r.rows[0].owner_id;
+        } else if (req.body.owner_id) {
+            const candidate = parseInt(req.body.owner_id, 10);
+            if (!validOwnerIds.includes(candidate)) {
+                return res.status(403).json({ message: 'Propriétaire non autorisé.' });
+            }
+            ownerId = candidate;
+        } else if (effectiveOwnerIds.length === 1) {
+            ownerId = effectiveOwnerIds[0] ?? null;
+        }
+
+        if (!ownerId) {
+            return res.status(422).json({ message: 'Précisez le propriétaire concerné par ce prêt.' });
+        }
+
+        await dbClient.query('BEGIN');
+        // Contexte RLS (transaction-local) sur l'owner dérivé pour la WITH CHECK.
+        await dbClient.query(`SELECT set_config('app.current_owner_id', $1, true)`, [String(ownerId)]);
 
         // 1. Calculate Monthly Payment (PMT)
         const r = (parseFloat(interest_rate) / 12) / 100;
@@ -172,16 +211,16 @@ router.post('/', permissions.canWrite('finance'), tenantGuard, validate(loanCrea
 // [SÉCURITÉ] Vérification loans.owner_id = resolvedOwnerId avant clôture
 router.put('/:id/close', permissions.canWrite('finance'), tenantGuard, validate(loanCloseRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
-    const ownerId = (req as any).resolvedOwnerId;
+    const effectiveOwnerIds = getEffectiveOwnerIds(req);
     try {
         await dbClient.query('BEGIN');
 
         const { id } = req.params;
 
-        // [SÉCURITÉ] Vérifie que le prêt appartient à cet owner — empêche l'IDOR cross-tenant
+        // [SÉCURITÉ] Vérifie que le prêt appartient à l'un des owners gérés — anti-IDOR cross-tenant
         const loanRes = await dbClient.query(
-            'SELECT * FROM loans WHERE id = $1 AND owner_id = $2',
-            [id, ownerId]
+            'SELECT * FROM loans WHERE id = $1 AND owner_id = ANY($2::int[])',
+            [id, effectiveOwnerIds]
         );
         if (loanRes.rows.length === 0) {
             await dbClient.query('ROLLBACK');
@@ -212,16 +251,16 @@ router.put('/:id/close', permissions.canWrite('finance'), tenantGuard, validate(
 // [SÉCURITÉ] Vérification loans.owner_id = resolvedOwnerId avant tout traitement
 router.put('/:id/installment/:paymentId/pay', permissions.canWrite('finance'), tenantGuard, validate(loanInstallmentRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
-    const ownerId = (req as any).resolvedOwnerId;
+    const effectiveOwnerIds = getEffectiveOwnerIds(req);
     try {
         await dbClient.query('BEGIN');
 
         const { id, paymentId } = req.params;
 
-        // [SÉCURITÉ] Vérifie que le prêt appartient à cet owner — empêche l'IDOR cross-tenant
+        // [SÉCURITÉ] Vérifie que le prêt appartient à l'un des owners gérés — anti-IDOR cross-tenant
         const loanCheck = await dbClient.query(
-            'SELECT id FROM loans WHERE id = $1 AND owner_id = $2',
-            [id, ownerId]
+            'SELECT id FROM loans WHERE id = $1 AND owner_id = ANY($2::int[])',
+            [id, effectiveOwnerIds]
         );
         if (loanCheck.rows.length === 0) {
             await dbClient.query('ROLLBACK');

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Eye, Calendar, TrendingUp, CheckCircle, Ban } from 'lucide-react';
+import { Plus, Eye, CheckCircle, Ban, Building2 } from 'lucide-react';
 import { financeApi } from '../../api/financeApi';
 import type { Loan } from '../../api/financeApi';
+import { ownerApi } from '../../api/ownerApi';
+import type { Owner } from '../../api/ownerApi';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
@@ -9,6 +11,7 @@ import { toast } from 'react-hot-toast';
 
 const FinanceLoans: React.FC = () => {
     const [loans, setLoans] = useState<Loan[]>([]);
+    const [owners, setOwners] = useState<Owner[]>([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
@@ -20,11 +23,14 @@ const FinanceLoans: React.FC = () => {
         interest_rate: '',
         duration_months: '',
         start_date: new Date().toISOString().split('T')[0],
-        day_of_month: 5
+        day_of_month: 5,
+        owner_id: '' as string | number
     });
 
     useEffect(() => {
         loadLoans();
+        // Les propriétaires servent à choisir le bénéficiaire d'un prêt (obligatoire en multi-owner).
+        ownerApi.getOwners().then(setOwners).catch(() => {/* non bloquant */});
     }, []);
 
     const loadLoans = async () => {
@@ -41,10 +47,20 @@ const FinanceLoans: React.FC = () => {
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+        // En multi-propriétaires, le prêt doit être rattaché à un propriétaire précis
+        // (sinon le backend ne peut pas déterminer owner_id → 422).
+        if (owners.length > 1 && !formData.owner_id) {
+            toast.error("Sélectionnez le propriétaire concerné");
+            return;
+        }
         try {
             await financeApi.createLoan(formData);
             toast.success("Prêt créé avec succès");
             setShowForm(false);
+            setFormData({
+                name: '', amount: '', interest_rate: '', duration_months: '',
+                start_date: new Date().toISOString().split('T')[0], day_of_month: 5, owner_id: ''
+            });
             loadLoans();
         } catch (error: any) {
             toast.error(error.message);
@@ -96,7 +112,22 @@ const FinanceLoans: React.FC = () => {
                 </Button>
             </div>
 
-            {/* List */}
+            {/* Loading */}
+            {loading ? (
+                <div className="flex justify-center items-center py-20">
+                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent" />
+                </div>
+            ) : loans.length === 0 ? (
+                /* Empty state — cohérent avec les autres onglets (Dépenses, Échéances) */
+                <Card className="border-none shadow-lg bg-base-100 text-center py-16">
+                    <Building2 size={48} className="mx-auto text-base-content/40 mb-4" />
+                    <h3 className="text-lg font-bold text-base-content/80">Aucun prêt enregistré</h3>
+                    <p className="text-base-content/60 mt-2">
+                        Cliquez sur <strong>"Nouveau Prêt"</strong> pour enregistrer un financement et générer son tableau d'amortissement.
+                    </p>
+                </Card>
+            ) : (
+            /* List */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {loans.map(loan => (
                     <Card key={loan.id} className="hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group">
@@ -161,6 +192,7 @@ const FinanceLoans: React.FC = () => {
                     </Card>
                 ))}
             </div>
+            )}
 
             {/* Create Modal */}
             {showForm && (
@@ -179,6 +211,26 @@ const FinanceLoans: React.FC = () => {
                                 <Input label="Durée (Mois)" type="number" value={formData.duration_months} onChange={e => setFormData({...formData, duration_months: e.target.value})} required />
                                 <Input label="Date Début" type="date" value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} required />
                             </div>
+
+                            {/* Propriétaire — requis seulement si le compte gère plusieurs propriétaires.
+                                Pour un mono-propriétaire, le backend le déduit automatiquement. */}
+                            {owners.length > 1 && (
+                                <div>
+                                    <label className="block text-sm font-bold text-base-content/80 mb-1">Propriétaire Concerné</label>
+                                    <select
+                                        className="select select-bordered w-full bg-base-200 border p-2 rounded"
+                                        aria-label="Propriétaire concerné"
+                                        value={formData.owner_id || ''}
+                                        onChange={e => setFormData({...formData, owner_id: e.target.value ? parseInt(e.target.value) : ''})}
+                                        required
+                                    >
+                                        <option value="">-- Sélectionner un propriétaire --</option>
+                                        {owners.map(o => (
+                                            <option key={o.id} value={o.id}>{o.name} {o.first_name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             <p className="text-xs text-base-content/60 bg-base-200 p-3 rounded">
                                 ℹ️ Un tableau d'amortissement sera généré automatiquement et les échéances seront intégrées au prévisionnel de trésorerie.
