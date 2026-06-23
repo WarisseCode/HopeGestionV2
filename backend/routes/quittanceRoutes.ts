@@ -58,14 +58,18 @@ router.post('/', permissions.canWrite('finance'), tenantGuard, validate(createRu
         const { lease_id, locataire, bien, periode, montant, date_emission } = req.body;
 
         // [SÉCURITÉ] Vérifie l'appartenance du bail à l'un des owners gérés ET dérive l'owner réel.
+        // On récupère aussi le nom du propriétaire (= bailleur) pour l'afficher sur la quittance.
         const leaseRes = await dbClient.query(
-            'SELECT owner_id FROM leases WHERE id = $1 AND owner_id = ANY($2::int[])',
+            `SELECT l.owner_id, o.name AS proprietaire_name
+             FROM leases l JOIN owners o ON l.owner_id = o.id
+             WHERE l.id = $1 AND l.owner_id = ANY($2::int[])`,
             [lease_id, effectiveOwnerIds]
         );
         if (leaseRes.rows.length === 0) {
             return res.status(404).json({ message: 'Bail introuvable ou accès refusé' });
         }
         const ownerId = leaseRes.rows[0].owner_id;
+        const proprietaireName = leaseRes.rows[0].proprietaire_name || '';
 
         const emission = date_emission || new Date();
         const year = new Date(emission).getFullYear();
@@ -75,10 +79,10 @@ router.post('/', permissions.canWrite('finance'), tenantGuard, validate(createRu
         try {
             const ins = await dbClient.query(
                 `INSERT INTO manual_quittances
-                    (owner_id, lease_id, locataire_name, bien, periode, montant, date_emission, created_by)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    (owner_id, lease_id, locataire_name, proprietaire_name, bien, periode, montant, date_emission, created_by)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                  RETURNING id`,
-                [ownerId, lease_id, locataire || '', bien || '', periode, montant, emission, req.userId || null]
+                [ownerId, lease_id, locataire || '', proprietaireName, bien || '', periode, montant, emission, req.userId || null]
             );
             const id = ins.rows[0].id;
             const numero = `QUI-MAN-${year}-${String(id).padStart(4, '0')}`;

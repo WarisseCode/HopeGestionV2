@@ -1385,6 +1385,7 @@ const MIGRATIONS: Migration[] = [
                 lease_id INTEGER REFERENCES leases(id) ON DELETE SET NULL,
                 numero VARCHAR(50),
                 locataire_name VARCHAR(255),
+                proprietaire_name VARCHAR(255),
                 bien VARCHAR(255),
                 periode VARCHAR(50),
                 montant NUMERIC(12, 2) NOT NULL DEFAULT 0,
@@ -1393,6 +1394,15 @@ const MIGRATIONS: Migration[] = [
                 created_at TIMESTAMP DEFAULT NOW()
             );
             CREATE INDEX IF NOT EXISTS idx_manual_quittances_owner ON manual_quittances(owner_id);
+        `
+    },
+    {
+        name: '055_manual_quittances_proprietaire',
+        // Filet de sécurité : si 054 a déjà créé la table SANS proprietaire_name (déploiement
+        // intermédiaire), on garantit la colonne de façon idempotente. Le PDF de quittance
+        // affiche ce nom au lieu du libellé générique "Agence Hope Immobilier".
+        sql: `
+            ALTER TABLE manual_quittances ADD COLUMN IF NOT EXISTS proprietaire_name VARCHAR(255);
         `
     }
 ];
