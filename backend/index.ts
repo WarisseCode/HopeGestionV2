@@ -253,6 +253,11 @@ app.use('/api/finances', protect, financeRoutes);
 app.use('/api/expenses', protect, expenseRoutes);
 app.use('/api/loans', protect, loanRoutes);
 app.use('/api/tax', protect, taxRoutes);
+
+// Routes Quittances manuelles (génération hors flux de paiement, persistées)
+import quittanceRoutes from './routes/quittanceRoutes';
+app.use('/api/quittances', protect, quittanceRoutes);
+
 app.use('/api/templates', protect, templateRoutes);
 app.use('/api/carnet', protect, notebookRoutes);
 

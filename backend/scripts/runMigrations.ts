@@ -1372,6 +1372,28 @@ const MIGRATIONS: Migration[] = [
         sql: `
             UPDATE payments SET statut = 'valide' WHERE statut = 'paid';
         `
+    },
+    {
+        name: '054_manual_quittances',
+        // Quittances générées manuellement (hors flux de paiement) — persistées pour alimenter
+        // la liste de l'onglet "Générer manuel". Isolation par owner explicite côté route
+        // (pas de policy RLS sur cette table, comme le module inventaires) : on filtre owner_id.
+        sql: `
+            CREATE TABLE IF NOT EXISTS manual_quittances (
+                id SERIAL PRIMARY KEY,
+                owner_id INTEGER REFERENCES owners(id) ON DELETE CASCADE,
+                lease_id INTEGER REFERENCES leases(id) ON DELETE SET NULL,
+                numero VARCHAR(50),
+                locataire_name VARCHAR(255),
+                bien VARCHAR(255),
+                periode VARCHAR(50),
+                montant NUMERIC(12, 2) NOT NULL DEFAULT 0,
+                date_emission DATE,
+                created_by INTEGER,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_manual_quittances_owner ON manual_quittances(owner_id);
+        `
     }
 ];
 
