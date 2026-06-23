@@ -258,6 +258,10 @@ app.use('/api/tax', protect, taxRoutes);
 import quittanceRoutes from './routes/quittanceRoutes';
 app.use('/api/quittances', protect, quittanceRoutes);
 
+// Routes Corbeille / Archivage (soft-delete transverse, CdC §XVII)
+import trashRoutes from './routes/trashRoutes';
+app.use('/api/trash', protect, trashRoutes);
+
 app.use('/api/templates', protect, templateRoutes);
 app.use('/api/carnet', protect, notebookRoutes);
 

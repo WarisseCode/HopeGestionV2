@@ -1404,6 +1404,34 @@ const MIGRATIONS: Migration[] = [
         sql: `
             ALTER TABLE manual_quittances ADD COLUMN IF NOT EXISTS proprietaire_name VARCHAR(255);
         `
+    },
+    {
+        name: '056_soft_delete_corbeille',
+        // Module Corbeille (CdC §XVII) : soft-delete transverse. Au lieu de supprimer les lignes,
+        // on pose deleted_at/deleted_by ; les listes filtrent deleted_at IS NULL ; la corbeille
+        // liste deleted_at IS NOT NULL ; restaurer = remettre à NULL ; définitif = vrai DELETE.
+        // Idempotent (ADD COLUMN IF NOT EXISTS) sur les 9 tables concernées.
+        sql: `
+            ALTER TABLE buildings        ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP, ADD COLUMN IF NOT EXISTS deleted_by INTEGER;
+            ALTER TABLE lots             ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP, ADD COLUMN IF NOT EXISTS deleted_by INTEGER;
+            ALTER TABLE tenants          ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP, ADD COLUMN IF NOT EXISTS deleted_by INTEGER;
+            ALTER TABLE leases           ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP, ADD COLUMN IF NOT EXISTS deleted_by INTEGER;
+            ALTER TABLE documents        ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP, ADD COLUMN IF NOT EXISTS deleted_by INTEGER;
+            ALTER TABLE edl_inspections  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP, ADD COLUMN IF NOT EXISTS deleted_by INTEGER;
+            ALTER TABLE tickets          ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP, ADD COLUMN IF NOT EXISTS deleted_by INTEGER;
+            ALTER TABLE tasks            ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP, ADD COLUMN IF NOT EXISTS deleted_by INTEGER;
+            ALTER TABLE messages         ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP, ADD COLUMN IF NOT EXISTS deleted_by INTEGER;
+
+            CREATE INDEX IF NOT EXISTS idx_buildings_deleted_at       ON buildings(deleted_at);
+            CREATE INDEX IF NOT EXISTS idx_lots_deleted_at            ON lots(deleted_at);
+            CREATE INDEX IF NOT EXISTS idx_tenants_deleted_at         ON tenants(deleted_at);
+            CREATE INDEX IF NOT EXISTS idx_leases_deleted_at          ON leases(deleted_at);
+            CREATE INDEX IF NOT EXISTS idx_documents_deleted_at       ON documents(deleted_at);
+            CREATE INDEX IF NOT EXISTS idx_edl_inspections_deleted_at ON edl_inspections(deleted_at);
+            CREATE INDEX IF NOT EXISTS idx_tickets_deleted_at         ON tickets(deleted_at);
+            CREATE INDEX IF NOT EXISTS idx_tasks_deleted_at           ON tasks(deleted_at);
+            CREATE INDEX IF NOT EXISTS idx_messages_deleted_at        ON messages(deleted_at);
+        `
     }
 ];
 
