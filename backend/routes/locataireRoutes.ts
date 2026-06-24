@@ -339,7 +339,7 @@ router.delete('/:id', protect, tenantGuard, validate(tenantIdParam), async (req:
         // Soft-delete vers la corbeille (deleted_at) — récupérable, contrairement à un
         // simple statut='Archivé' qui ne se restaure pas via le module Corbeille.
         const result = await dbClient.query(
-            "UPDATE tenants SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING id",
+            "UPDATE tenants SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING id, nom, prenoms",
             [tenantId, req.userId]
         );
 
@@ -357,7 +357,12 @@ router.delete('/:id', protect, tenantGuard, validate(tenantIdParam), async (req:
             userAgent: (req.headers['user-agent'] as string) || 'unknown'
         });
 
-        res.json({ message: "Locataire archivé" });
+        // Élément critique → alerte les administrateurs (CdC §XVII).
+        const tName = `${result.rows[0].prenoms || ''} ${result.rows[0].nom || ''}`.trim() || `#${tenantId}`;
+        const { NotificationService } = require('../services/notificationService');
+        NotificationService.notifyAdmins('Suppression d\'un locataire', `Le locataire « ${tName} » a été déplacé vers la corbeille.`);
+
+        res.json({ message: "Locataire déplacé vers la corbeille" });
 
     } catch (error) {
         console.error('Error archiving tenant:', error);

@@ -54,6 +54,19 @@ export class NotificationService {
     }
 
     /**
+     * Notifie tous les administrateurs (ex. suppression d'un élément critique — CdC §XVII).
+     * "Fire and forget" : n'interrompt jamais le flux appelant en cas d'échec.
+     */
+    static async notifyAdmins(title: string, message: string, type: 'info' | 'success' | 'warning' | 'error' = 'warning') {
+        try {
+            const admins = await pool.query("SELECT id FROM users WHERE role = 'admin'");
+            await Promise.all(admins.rows.map((a: any) => this.send(a.id, title, message, type)));
+        } catch (error) {
+            console.error('[NOTIF] notifyAdmins failed:', error);
+        }
+    }
+
+    /**
      * Send a WhatsApp message via provider (Twilio/Meta) or Simulation
      */
     static async sendWhatsApp(phone: string, message: string) {

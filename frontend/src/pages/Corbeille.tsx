@@ -8,6 +8,8 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { trashApi } from '../api/trashApi';
 import type { TrashItem } from '../api/trashApi';
+import { getToken } from '../api/authApi';
+import { API_URL } from '../config';
 import { useUser } from '../contexts/UserContext';
 import toast from 'react-hot-toast';
 
@@ -96,6 +98,26 @@ const Corbeille: React.FC = () => {
 
   const formatDate = (d: string) => new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+  // Export Excel (mêmes filtres serveur que la liste) — téléchargement authentifié via blob.
+  const exportExcel = async () => {
+    try {
+      const p = new URLSearchParams();
+      if (moduleFilter) p.set('module', moduleFilter);
+      if (search) p.set('search', search);
+      if (startDate) p.set('startDate', startDate);
+      if (endDate) p.set('endDate', endDate);
+      const res = await fetch(`${API_URL}/trash/export/excel?${p.toString()}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (!res.ok) throw new Error('Export impossible');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `Corbeille_${Date.now()}.xlsx`; a.click();
+      URL.revokeObjectURL(url);
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de l'export");
+    }
+  };
+
   // ── Restauration (réversible → pas de saisie du nom) ──
   const restoreOne = async (it: TrashItem) => {
     try {
@@ -161,7 +183,10 @@ const Corbeille: React.FC = () => {
           </h1>
           <p className="text-base-content/60">Éléments supprimés — restauration ou suppression définitive</p>
         </div>
-        <Button variant="ghost" onClick={loadItems} className="rounded-full">Actualiser</Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={exportExcel} className="rounded-full" disabled={items.length === 0}>Exporter (Excel)</Button>
+          <Button variant="ghost" onClick={loadItems} className="rounded-full">Actualiser</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

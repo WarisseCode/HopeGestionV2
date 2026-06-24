@@ -7,6 +7,7 @@ import { checkPropertyLimit } from '../middleware/subscriptionLimits';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import { validate } from '../middleware/validate';
+import { NotificationService } from '../services/notificationService';
 
 dotenv.config();
 
@@ -322,13 +323,18 @@ router.delete('/immeubles/:id', permissions.canWrite('biens'), tenantGuard, vali
 
         // Soft-delete : déplacé vers la corbeille (récupérable), pas de suppression définitive.
         const result = await dbClient.query(
-            'UPDATE buildings SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING id',
+            'UPDATE buildings SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING id, nom',
             [immeubleId, req.userId]
         );
 
         if (result.rowCount === 0) {
             return res.status(404).json({ message: 'Immeuble introuvable ou accès refusé.' });
         }
+        // Élément critique → alerte les administrateurs (CdC §XVII).
+        NotificationService.notifyAdmins(
+            'Suppression d\'un immeuble',
+            `L'immeuble « ${result.rows[0].nom || ('#' + immeubleId)} » a été déplacé vers la corbeille.`
+        );
         res.status(200).json({ message: 'Immeuble déplacé vers la corbeille.' });
     } catch (error) {
         console.error('Erreur suppression immeuble:', error);
