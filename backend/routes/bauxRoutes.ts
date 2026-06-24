@@ -6,7 +6,7 @@ import express, { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
-import { LeaseService } from '../services/LeaseService';
+import { LeaseService } from '../services/leaseService';
 
 const router = express.Router();
 

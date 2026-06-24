@@ -46,7 +46,7 @@ export class LeaseService {
             LEFT JOIN lots lot ON l.lot_id = lot.id
             LEFT JOIN buildings b ON lot.building_id = b.id
             LEFT JOIN owners o ON l.owner_id = o.id
-            WHERE 1=1
+            WHERE 1=1 AND l.deleted_at IS NULL
         `;
 
         const params: any[] = [];
