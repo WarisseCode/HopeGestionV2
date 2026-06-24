@@ -13,7 +13,7 @@ import { tenantGuard } from '../middleware/tenantGuard';
 import PDFDocument from 'pdfkit';
 import { upload } from '../middleware/uploadMiddleware';
 import { validate } from '../middleware/validate';
-import { uploadToSpaces, deleteFromSpaces } from '../services/spacesUploadService';
+import { uploadToSpaces } from '../services/spacesUploadService';
 
 dotenv.config();
 
@@ -51,8 +51,8 @@ router.get('/', permissions.canRead('documents'), tenantGuard, async (req: Authe
         const { entity_type, entity_id, categorie } = req.query;
         
         let query = `
-            SELECT * FROM documents 
-            WHERE 1=1
+            SELECT * FROM documents
+            WHERE 1=1 AND deleted_at IS NULL
         `;
         const params: any[] = [];
         let paramIndex = 1;
@@ -139,31 +139,19 @@ router.delete('/:id', permissions.canWrite('documents'), tenantGuard, validate(d
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
 
-        // La clause LIMIT 1 avec suppression gère le RLS et renvoie la ligne affectée
-        const result = await dbClient.query('DELETE FROM documents WHERE id = $1 RETURNING url', [id]);
-        
+        // Soft-delete : déplacé vers la corbeille. On NE supprime PAS le fichier physique
+        // (Spaces/disque) pour permettre la restauration ; le fichier ne sera nettoyé qu'à
+        // la suppression définitive depuis la corbeille.
+        const result = await dbClient.query(
+            'UPDATE documents SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING id',
+            [id, req.userId]
+        );
+
         if (result.rowCount === 0) {
-            // RLS a bloqué ou document inexistant
             return res.status(404).json({ message: 'Document non trouvé ou accès refusé' });
         }
 
-        const docUrl = result.rows[0].url;
-        if (docUrl) {
-            if (spacesConfigured && docUrl.startsWith('http')) {
-                // Suppression depuis Spaces (best-effort, ne bloque pas la réponse)
-                deleteFromSpaces(docUrl).catch(err =>
-                    console.warn('[UPLOAD] Impossible de supprimer le fichier Spaces:', err)
-                );
-            } else {
-                // Fallback : suppression disque local (dev)
-                const filePath = path.join(__dirname, '../../', docUrl);
-                if (await fs.pathExists(filePath)) {
-                    await fs.remove(filePath);
-                }
-            }
-        }
-
-        res.json({ message: 'Document supprimé' });
+        res.json({ message: 'Document déplacé vers la corbeille' });
 
     } catch (error) {
         console.error('Error deleting document:', error);

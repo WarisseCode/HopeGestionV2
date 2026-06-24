@@ -170,7 +170,7 @@ router.get('/', permissions.canRead('biens'), async (req: AuthenticatedRequest, 
                    (SELECT COUNT(*) FROM edl_items WHERE edl_id = e.id) as item_count
             FROM edl_inspections e
             LEFT JOIN lots l ON e.lot_id = l.id
-            WHERE 1=1
+            WHERE 1=1 AND e.deleted_at IS NULL
         `;
         const params: any[] = [];
         query += scopeByOwner(req, params, 'e.owner_id');

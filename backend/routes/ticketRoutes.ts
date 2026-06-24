@@ -59,7 +59,7 @@ router.get('/', protect, tenantGuard, async (req: any, res) => {
             LEFT JOIN tenants tn ON le.tenant_id = tn.id
         `;
 
-        let where = 'WHERE 1=1';
+        let where = 'WHERE 1=1 AND t.deleted_at IS NULL';
         const params: any[] = [];
         let paramIndex = 1;
 

@@ -83,7 +83,7 @@ router.get('/', async (req: any, res) => {
         const { status, priority, filter } = req.query;
         const pg = parsePagination(req.query);
 
-        let where = 'WHERE 1=1';
+        let where = 'WHERE 1=1 AND t.deleted_at IS NULL';
         const params: any[] = [];
         let paramId = 1;
 
@@ -318,11 +318,15 @@ router.delete('/:id', async (req: any, res) => {
         const id = req.params.id;
         const userId = req.userId;
 
-        const result = await pool.query('DELETE FROM tasks WHERE id = $1 AND created_by = $2 RETURNING id', [id, userId]);
+        // Soft-delete vers la corbeille (récupérable). Réservé au créateur.
+        const result = await pool.query(
+            'UPDATE tasks SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND created_by = $2 AND deleted_at IS NULL RETURNING id',
+            [id, userId]
+        );
         if (result.rowCount === 0) {
             return res.status(404).json({ message: 'Tâche introuvable ou suppression réservée au créateur' });
         }
-        res.json({ message: 'Tâche supprimée' });
+        res.json({ message: 'Tâche déplacée vers la corbeille' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Erreur suppression tâche' });

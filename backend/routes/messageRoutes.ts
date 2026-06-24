@@ -33,6 +33,7 @@ router.get('/', protect, async (req: any, res) => {
              LEFT JOIN users u ON m.sender_id = u.id
              WHERE m.context_type = $1 AND m.context_id = $2
              AND (m.sender_id = $3 OR m.recipient_id = $3)
+             AND m.deleted_at IS NULL
              ORDER BY m.created_at ASC`,
             [context_type, context_id, req.userId]
         );
