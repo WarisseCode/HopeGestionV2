@@ -1,7 +1,7 @@
 // frontend/src/pages/Corbeille.tsx
 // Module Corbeille / Archivage (CdC §XVII) : consultation, restauration et
 // suppression définitive des éléments supprimés (soft-delete).
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Trash2, RotateCcw, Search, Filter, AlertTriangle, Inbox } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -28,6 +28,62 @@ const MODULES: { value: string; label: string }[] = [
 ];
 
 const keyOf = (it: TrashItem) => `${it.module}:${it.id}`;
+
+// Carte mobile avec geste de swipe : glisser à droite = restaurer, à gauche = supprimer.
+// Le swipe n'est actif que pour les utilisateurs autorisés (canWrite).
+const SwipeRow: React.FC<{
+  item: TrashItem;
+  canWrite: boolean;
+  onRestore: () => void;
+  onDelete: () => void;
+  formatDate: (d: string) => string;
+}> = ({ item, canWrite, onRestore, onDelete, formatDate }) => {
+  const [dx, setDx] = useState(0);
+  const startX = useRef(0);
+  const THRESHOLD = 80;
+
+  const onStart = (e: React.TouchEvent) => { startX.current = e.touches[0]?.clientX ?? 0; };
+  const onMove = (e: React.TouchEvent) => { if (canWrite) setDx((e.touches[0]?.clientX ?? 0) - startX.current); };
+  const onEnd = () => {
+    if (canWrite && dx > THRESHOLD) onRestore();
+    else if (canWrite && dx < -THRESHOLD) onDelete();
+    setDx(0);
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-xl">
+      {/* Indices d'action révélés sous la carte pendant le swipe */}
+      <div className="absolute inset-0 flex justify-between items-center px-4 text-sm font-bold">
+        <span className="text-green-600 flex items-center gap-1"><RotateCcw size={16} /> Restaurer</span>
+        <span className="text-red-600 flex items-center gap-1">Supprimer <Trash2 size={16} /></span>
+      </div>
+      <div
+        className="relative bg-base-100 border border-base-200 rounded-xl p-4"
+        style={{ transform: `translateX(${dx}px)`, transition: dx === 0 ? 'transform 0.2s' : 'none' }}
+        onTouchStart={onStart}
+        onTouchMove={onMove}
+        onTouchEnd={onEnd}
+      >
+        <div className="flex justify-between items-start gap-3">
+          <div className="min-w-0">
+            <p className="font-bold text-base-content/90 truncate">{item.label}</p>
+            <div className="flex items-center gap-2 mt-1 text-xs">
+              <span className="bg-base-300 px-2 py-0.5 rounded font-semibold text-base-content/70">{item.type_label}</span>
+              <span className="text-base-content/60">{item.module_label}</span>
+            </div>
+            <p className="text-xs text-base-content/60 mt-1">Par {item.deleted_by_name} · {formatDate(item.deleted_at)}</p>
+          </div>
+          {canWrite && (
+            <div className="flex flex-col gap-1 flex-shrink-0">
+              <button type="button" onClick={onRestore} aria-label="Restaurer" className="text-green-700 p-1 hover:bg-green-50 rounded"><RotateCcw size={18} /></button>
+              <button type="button" onClick={onDelete} aria-label="Supprimer définitivement" className="text-red-600 p-1 hover:bg-red-50 rounded"><Trash2 size={18} /></button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Corbeille: React.FC = () => {
   const { user } = useUser();
@@ -254,7 +310,27 @@ const Corbeille: React.FC = () => {
             </div>
           )}
 
-          <Card className="p-0 overflow-hidden">
+          {/* Vue mobile : liste verticale avec swipe (glisser à droite = restaurer, gauche = supprimer) */}
+          <div className="md:hidden space-y-3">
+            {loading ? (
+              <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent" /></div>
+            ) : visibleItems.length === 0 ? (
+              <Card className="text-center py-12">
+                <Inbox size={40} className="mx-auto text-base-content/30 mb-3" />
+                <p className="text-base-content/70 font-semibold text-sm">La corbeille est vide</p>
+              </Card>
+            ) : (
+              <>
+                {canWrite && <p className="text-xs text-base-content/50 px-1">Astuce : glissez une carte vers la droite pour restaurer, vers la gauche pour supprimer.</p>}
+                {visibleItems.map(it => (
+                  <SwipeRow key={keyOf(it)} item={it} canWrite={canWrite} formatDate={formatDate} onRestore={() => restoreOne(it)} onDelete={() => openPurgeOne(it)} />
+                ))}
+              </>
+            )}
+          </div>
+
+          {/* Vue desktop : tableau */}
+          <Card className="p-0 overflow-hidden hidden md:block">
             {loading ? (
               <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent" /></div>
             ) : visibleItems.length === 0 ? (
