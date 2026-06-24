@@ -89,6 +89,11 @@ export class TrashService {
             FROM ${m.table} t
             LEFT JOIN users u ON t.deleted_by = u.id
             WHERE t.deleted_at IS NOT NULL
+              -- Ancres toujours vraies : garantissent que $1/$2 apparaissent (avec cast) dans
+              -- CHAQUE sous-requête, même quand l'isolation ne les utilise pas (admin / owner-only),
+              -- sinon Postgres ne peut pas déduire leur type (42P18).
+              AND ($1::int[] IS NULL OR TRUE)
+              AND ($2::int IS NULL OR TRUE)
               AND ${scopeClause(m, ctx)}
               AND ($3::text IS NULL OR (${m.labelExpr}) ILIKE $3)
               AND ($4::int IS NULL OR t.deleted_by = $4)
@@ -106,7 +111,9 @@ export class TrashService {
         const params: any[] = [ctx.ownerIds, ctx.userId, id];
         const r = await dbClient.query(
             `UPDATE ${m.table} SET deleted_at = NULL, deleted_by = NULL
-             WHERE id = $3 AND deleted_at IS NOT NULL AND ${scopeClause(m, ctx)}`,
+             WHERE id = $3 AND deleted_at IS NOT NULL
+               AND ($1::int[] IS NULL OR TRUE) AND ($2::int IS NULL OR TRUE)
+               AND ${scopeClause(m, ctx)}`,
             params
         );
         return (r.rowCount ?? 0) > 0;
@@ -117,7 +124,9 @@ export class TrashService {
         const params: any[] = [ctx.ownerIds, ctx.userId, id];
         const r = await dbClient.query(
             `DELETE FROM ${m.table}
-             WHERE id = $3 AND deleted_at IS NOT NULL AND ${scopeClause(m, ctx)}`,
+             WHERE id = $3 AND deleted_at IS NOT NULL
+               AND ($1::int[] IS NULL OR TRUE) AND ($2::int IS NULL OR TRUE)
+               AND ${scopeClause(m, ctx)}`,
             params
         );
         return (r.rowCount ?? 0) > 0;
