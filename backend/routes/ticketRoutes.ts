@@ -247,6 +247,34 @@ router.post('/:id/close', protect, tenantGuard, validate(ticketCloseRules), asyn
     }
 });
 
+// DELETE /api/tickets/:id (Gestionnaire) — soft-delete vers la corbeille.
+// Filtrage owner explicite (tickets.owner_id) + admin voit tout.
+router.delete('/:id', protect, tenantGuard, validate([ticketIdParam]), async (req: any, res: Response) => {
+    try {
+        const dbClient = (req as any).dbClient;
+        const isAdmin = (req as any).userRole === 'admin';
+        const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+        const params: any[] = [req.params.id, req.userId];
+        let ownerClause = '';
+        if (!isAdmin) {
+            params.push(validOwnerIds);
+            ownerClause = ` AND owner_id = ANY($3::int[])`;
+        }
+        const result = await dbClient.query(
+            `UPDATE tickets SET deleted_at = NOW(), deleted_by = $2
+             WHERE id = $1 AND deleted_at IS NULL${ownerClause} RETURNING id`,
+            params
+        );
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Intervention introuvable ou accès refusé' });
+        }
+        res.json({ message: 'Intervention déplacée vers la corbeille' });
+    } catch (error) {
+        console.error('Erreur suppression ticket:', error);
+        res.status(500).json({ message: 'Erreur suppression intervention' });
+    }
+});
+
 /*
  * ═══════════════════════════════════════════════════
  * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — ticketRoutes.ts

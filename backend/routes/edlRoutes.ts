@@ -669,6 +669,29 @@ router.delete('/:id/items/:itemId', permissions.canWrite('biens'), validate(edlI
 });
 
 // ============================================
+// DELETE /api/edl/:id - Déplacer un état des lieux vers la corbeille (soft-delete)
+// ============================================
+router.delete('/:id', permissions.canWrite('biens'), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const dbClient = (req as any).dbClient;
+        const { id } = req.params;
+        // fetchOwnedEdl valide l'existence ET l'appartenance (anti-IDOR).
+        const owned = await fetchOwnedEdl(req, id);
+        if (!owned) {
+            return res.status(404).json({ message: 'État des lieux introuvable ou accès refusé' });
+        }
+        await dbClient.query(
+            'UPDATE edl_inspections SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND deleted_at IS NULL',
+            [id, req.userId]
+        );
+        res.json({ message: 'État des lieux déplacé vers la corbeille' });
+    } catch (error) {
+        console.error('Error deleting EDL:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// ============================================
 // PUT /api/edl/:id/sign - Enregistrer les signatures
 // ============================================
 router.put('/:id/sign', permissions.canWrite('biens'), validate(edlSignRules), async (req: AuthenticatedRequest, res: Response) => {
