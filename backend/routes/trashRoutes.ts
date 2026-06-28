@@ -6,6 +6,7 @@
 import { Router, Response } from 'express';
 import { param } from 'express-validator';
 import * as ExcelJS from 'exceljs';
+import PDFDocument from 'pdfkit';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import { validate } from '../middleware/validate';
@@ -91,6 +92,72 @@ router.get('/export/excel', tenantGuard, async (req: AuthenticatedRequest, res: 
     } catch (error) {
         console.error('Error exporting trash:', error);
         res.status(500).json({ message: "Erreur lors de l'export" });
+    }
+});
+
+// GET /api/trash/export/pdf — Export PDF de la corbeille (mêmes filtres que la liste)
+router.get('/export/pdf', tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
+    const dbClient = (req as any).dbClient;
+    try {
+        const ctx = buildContext(req);
+        const { module, search, startDate, endDate } = req.query as Record<string, string>;
+        const rows = await TrashService.list(dbClient, ctx, {
+            module: module || undefined, search: search || undefined,
+            startDate: startDate || undefined, endDate: endDate || undefined,
+        });
+
+        const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=Corbeille_${Date.now()}.pdf`);
+        doc.pipe(res);
+
+        const NAVY = '#1A365D';
+        doc.fontSize(18).font('Helvetica-Bold').fillColor(NAVY).text('Corbeille — éléments supprimés', { align: 'left' });
+        doc.moveDown(0.2);
+        doc.fontSize(9).font('Helvetica').fillColor('#666')
+            .text(`Généré le ${new Date().toLocaleString('fr-FR')} · ${rows.length} élément(s)`);
+        doc.moveDown(0.8);
+
+        // Colonnes (largeurs en points). Page utile ~515pt à partir de x=40.
+        const cols = [
+            { key: 'label', label: 'Nom', w: 150 },
+            { key: 'type_label', label: 'Type', w: 90 },
+            { key: 'module_label', label: 'Module', w: 80 },
+            { key: 'deleted_by_name', label: 'Supprimé par', w: 95 },
+            { key: 'date', label: 'Date', w: 100 },
+        ];
+        const startX = 40;
+        let y = doc.y;
+
+        const drawHeader = () => {
+            doc.fontSize(8).font('Helvetica-Bold').fillColor('#FFFFFF');
+            doc.rect(startX, y, 515, 18).fill(NAVY);
+            let x = startX + 4;
+            doc.fillColor('#FFFFFF');
+            cols.forEach(c => { doc.text(c.label, x, y + 5, { width: c.w - 6 }); x += c.w; });
+            y += 18;
+        };
+        drawHeader();
+
+        doc.font('Helvetica').fontSize(8);
+        rows.forEach((r: any, i: number) => {
+            if (y > 780) { doc.addPage(); y = 40; drawHeader(); doc.font('Helvetica').fontSize(8); }
+            if (i % 2 === 0) { doc.rect(startX, y, 515, 16).fill('#F5F7FA'); }
+            let x = startX + 4;
+            doc.fillColor('#1E1E1E');
+            const vals: Record<string, string> = {
+                label: r.label || '—', type_label: r.type_label, module_label: r.module_label,
+                deleted_by_name: r.deleted_by_name,
+                date: r.deleted_at ? new Date(r.deleted_at).toLocaleString('fr-FR') : '',
+            };
+            cols.forEach(c => { doc.text(String(vals[c.key] ?? ''), x, y + 4, { width: c.w - 6, ellipsis: true, lineBreak: false }); x += c.w; });
+            y += 16;
+        });
+
+        doc.end();
+    } catch (error) {
+        console.error('Error exporting trash PDF:', error);
+        if (!res.headersSent) res.status(500).json({ message: "Erreur lors de l'export PDF" });
     }
 });
 

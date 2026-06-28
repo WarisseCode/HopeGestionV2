@@ -154,20 +154,20 @@ const Corbeille: React.FC = () => {
 
   const formatDate = (d: string) => new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-  // Export Excel (mêmes filtres serveur que la liste) — téléchargement authentifié via blob.
-  const exportExcel = async () => {
+  // Export (mêmes filtres serveur que la liste) — téléchargement authentifié via blob.
+  const exportFile = async (format: 'excel' | 'pdf') => {
     try {
       const p = new URLSearchParams();
       if (moduleFilter) p.set('module', moduleFilter);
       if (search) p.set('search', search);
       if (startDate) p.set('startDate', startDate);
       if (endDate) p.set('endDate', endDate);
-      const res = await fetch(`${API_URL}/trash/export/excel?${p.toString()}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      const res = await fetch(`${API_URL}/trash/export/${format}?${p.toString()}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
       if (!res.ok) throw new Error('Export impossible');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = `Corbeille_${Date.now()}.xlsx`; a.click();
+      a.href = url; a.download = `Corbeille_${Date.now()}.${format === 'excel' ? 'xlsx' : 'pdf'}`; a.click();
       URL.revokeObjectURL(url);
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de l'export");
@@ -240,7 +240,8 @@ const Corbeille: React.FC = () => {
           <p className="text-base-content/60">Éléments supprimés — restauration ou suppression définitive</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" onClick={exportExcel} className="rounded-full" disabled={items.length === 0}>Exporter (Excel)</Button>
+          <Button variant="ghost" onClick={() => exportFile('excel')} className="rounded-full" disabled={items.length === 0}>Excel</Button>
+          <Button variant="ghost" onClick={() => exportFile('pdf')} className="rounded-full" disabled={items.length === 0}>PDF</Button>
           <Button variant="ghost" onClick={loadItems} className="rounded-full">Actualiser</Button>
         </div>
       </div>
