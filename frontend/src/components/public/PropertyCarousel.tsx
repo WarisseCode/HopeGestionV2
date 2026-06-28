@@ -1,5 +1,5 @@
 // frontend/src/components/public/PropertyCarousel.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { MapPin, Home, Maximize2, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -21,7 +21,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onViewDetails }) 
 
   return (
     <div
-      className="flex-shrink-0 w-[340px] bg-base-100 rounded-2xl overflow-hidden shadow-lg border border-base-200 group cursor-pointer property-card-glow transition-shadow duration-300"
+      className="flex-shrink-0 w-[85vw] max-w-[340px] bg-base-100 rounded-2xl overflow-hidden shadow-lg border border-base-200 group cursor-pointer property-card-glow transition-shadow duration-300"
       onClick={() => onViewDetails(property.id)}
     >
       {/* Image Container */}
@@ -145,16 +145,39 @@ const PropertyCarousel: React.FC = () => {
   // Start at the middle set
   const startIndex = realLength > 0 ? realLength : 0;
   
-  const CARD_WIDTH = 340 + 32; // card + gap
+  // Pas de largeur fixe : la carte est responsive (w-[85vw] max-w-[340px]). On mesure la
+  // largeur réelle d'une carte (+ gap de 32px / gap-8) pour que le défilement reste aligné
+  // sur tous les écrans. Recalcul au montage, après chargement et au redimensionnement.
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [cardStep, setCardStep] = useState(372); // 340 + 32 par défaut (desktop)
   const controls = useAnimation();
-  
+
+  useEffect(() => {
+    const measure = () => {
+      const first = trackRef.current?.firstElementChild as HTMLElement | null;
+      if (first) {
+        const w = first.getBoundingClientRect().width;
+        if (w > 0) setCardStep(w + 32);
+      }
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [realLength]);
+
   // Initialize index at the start of the middle set
   useEffect(() => {
     if (realLength > 0) {
       setIndex(startIndex);
-      controls.set({ x: -startIndex * CARD_WIDTH });
+      controls.set({ x: -startIndex * cardStep });
     }
-  }, [realLength, startIndex, CARD_WIDTH, controls]);
+  }, [realLength, startIndex, cardStep, controls]);
+
+  // Repositionne sans animation quand la largeur de carte change (ex. rotation/resize).
+  useEffect(() => {
+    if (realLength > 0) controls.set({ x: -index * cardStep });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardStep]);
 
   // Handle auto-scroll
   useEffect(() => {
@@ -174,23 +197,23 @@ const PropertyCarousel: React.FC = () => {
     // If we reach the end of the 3rd set, jump back to start of 2nd set
     if (index >= realLength * 2) {
       const resetIndex = index - realLength;
-      controls.set({ x: -resetIndex * CARD_WIDTH });
+      controls.set({ x: -resetIndex * cardStep });
       setIndex(resetIndex);
     }
     // If we reach the start of the 1st set, jump forward to start of 2nd set
     else if (index < realLength) {
       const resetIndex = index + realLength;
-      controls.set({ x: -resetIndex * CARD_WIDTH });
+      controls.set({ x: -resetIndex * cardStep });
       setIndex(resetIndex);
     }
     else {
       // Normal animation
       controls.start({
-        x: -index * CARD_WIDTH,
+        x: -index * cardStep,
         transition: { duration: 0.5, ease: "easeInOut" }
       });
     }
-  }, [index, controls, realLength, CARD_WIDTH]);
+  }, [index, controls, realLength, cardStep]);
 
   const handleNext = () => {
     setIndex(prev => prev + 1);
@@ -279,9 +302,10 @@ const PropertyCarousel: React.FC = () => {
               {/* Draggable/Animated List */}
               <div className="py-10 mx-[-8px]">
                 <motion.div
+                    ref={trackRef}
                     className="flex gap-8 px-[8px]"
                     animate={controls}
-                    initial={{ x: -startIndex * CARD_WIDTH }}
+                    initial={{ x: -startIndex * cardStep }}
                     drag="x"
                     dragConstraints={{ left: -10000, right: 10000 }} // Allow free drag, we snap back
                     onDragEnd={(e, { offset }) => {
@@ -292,7 +316,7 @@ const PropertyCarousel: React.FC = () => {
                         handlePrev();
                       } else {
                         // Snap back if not dragged enough
-                        controls.start({ x: -index * CARD_WIDTH });
+                        controls.start({ x: -index * cardStep });
                       }
                       // Temporary pause after drag
                       setIsPaused(true);
