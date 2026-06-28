@@ -15,7 +15,8 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
                 {children}
             </main>
             <PublicFooter />
-            <ChatBot />
+            {/* Pas de barre de navigation mobile en bas sur les pages publiques → FAB en coin bas. */}
+            <ChatBot mobileBottomNav={false} />
         </div>
     );
 };

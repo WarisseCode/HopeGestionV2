@@ -28,7 +28,13 @@ const QUICK_SUGGESTIONS: QuickSuggestion[] = [
   { label: '📍 Localisation', value: 'Dans quels quartiers ?' },
 ];
 
-const ChatBot: React.FC = () => {
+interface ChatBotProps {
+  // true (défaut) : laisse de la place pour la barre de navigation mobile du bas (bottom-24).
+  // false (pages publiques, sans barre) : bouton placé dans le coin bas (bottom-6).
+  mobileBottomNav?: boolean;
+}
+
+const ChatBot: React.FC<ChatBotProps> = ({ mobileBottomNav = true }) => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -263,7 +269,7 @@ const ChatBot: React.FC = () => {
             setIsMinimized(false);
             setHasInteracted(true); 
         }}
-        className="fixed bottom-24 md:bottom-6 right-6 z-50 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center bg-gradient-to-br from-primary to-secondary hover:scale-110 transition-all duration-300 group"
+        className={`fixed ${mobileBottomNav ? 'bottom-24' : 'bottom-6'} md:bottom-6 right-6 z-50 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center bg-gradient-to-br from-primary to-secondary hover:scale-110 transition-all duration-300 group`}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         initial={{ scale: 0 }}
