@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
     ClipboardCheck, Plus, Search, Calendar,
-    CheckCircle, Clock, User, Building, ChevronRight, Filter, GitCompareArrows, Archive
+    CheckCircle, Clock, User, Building, ChevronRight, Filter, GitCompareArrows, Archive, Trash2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -35,6 +35,19 @@ const EdlList: React.FC = () => {
     useEffect(() => {
         loadEdls();
     }, []);
+
+    // Déplace un EDL vers la corbeille (soft-delete, restaurable).
+    const deleteEdl = async (id: number) => {
+        if (!window.confirm('Déplacer cet état des lieux vers la corbeille ? Il sera restaurable depuis la Corbeille.')) return;
+        try {
+            await apiCall(`${API_URL}/edl/${id}`, { method: 'DELETE' });
+            toast.success('État des lieux déplacé vers la corbeille.');
+            loadEdls();
+        } catch (e) {
+            console.error(e);
+            toast.error('Échec de la suppression.');
+        }
+    };
 
     // Archive un EDL (transition de statut validée côté backend).
     const archiveEdl = async (id: number) => {
@@ -234,6 +247,14 @@ const EdlList: React.FC = () => {
                                             <Archive size={20} />
                                         </button>
                                     )}
+                                    <button
+                                        type="button"
+                                        onClick={() => deleteEdl(edl.id)}
+                                        title="Déplacer vers la corbeille"
+                                        className="p-2 hover:bg-base-300 rounded-lg text-base-content/50 hover:text-red-600 transition"
+                                    >
+                                        <Trash2 size={20} />
+                                    </button>
                                     <Link to={`/dashboard/etats-des-lieux/${edl.id}`} className="p-2 hover:bg-base-300 rounded-lg text-base-content/50 hover:text-base-content/70 transition">
                                         <ChevronRight size={20} />
                                     </Link>

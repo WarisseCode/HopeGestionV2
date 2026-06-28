@@ -256,6 +256,18 @@ const Interventions: React.FC = () => {
     }
   };
 
+  // Déplace une intervention vers la corbeille (soft-delete, restaurable).
+  const handleDeleteTicket = async (id: number) => {
+    if (!window.confirm('Déplacer cette intervention vers la corbeille ? Elle sera restaurable depuis la Corbeille.')) return;
+    try {
+      await apiCall(`${API_URL}/tickets/${id}`, { method: 'DELETE' });
+      toast.success('Intervention déplacée vers la corbeille');
+      fetchData();
+    } catch (e) {
+      toast.error('Erreur lors de la suppression');
+    }
+  };
+
   const handleClose = async () => {
     if (!selectedTicket) return;
     try {
@@ -582,8 +594,11 @@ const Interventions: React.FC = () => {
                   <td className="p-4">{renderStatusBadge(t.statut)}</td>
                   <td className="p-4 text-base-content/50">-</td>
                   <td className="p-4 text-sm">{format(new Date(t.date_creation), 'dd MMM yyyy', { locale: fr })}</td>
-                  <td className="p-4 text-right">
+                  <td className="p-4 text-right space-x-2">
                     <Button size="sm" onClick={() => { setSelectedTicket(t); setShowAssignModal(true); }}>Assigner</Button>
+                    <Button size="sm" variant="ghost" className="text-red-600" title="Déplacer vers la corbeille" onClick={() => handleDeleteTicket(t.id)}>
+                      <Trash2 size={14} />
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -608,6 +623,9 @@ const Interventions: React.FC = () => {
                         <Button size="sm" onClick={() => { setSelectedTicket(t); setShowCloseModal(true); }}>Clôturer</Button>
                       </>
                     )}
+                    <Button size="sm" variant="ghost" className="text-red-600" title="Déplacer vers la corbeille" onClick={() => handleDeleteTicket(t.id)}>
+                      <Trash2 size={14} />
+                    </Button>
                   </td>
                 </tr>
               ))}
