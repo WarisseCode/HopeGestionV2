@@ -36,6 +36,14 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
   const [targetPosition, setTargetPosition] = useState<Position | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
+  // Sur mobile, la pop-up est centrée (un ancrage à la cible déborderait de l'écran étroit).
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const currentStepData = steps[currentStep];
   const isLastStep = currentStep === steps.length - 1;
@@ -65,8 +73,8 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
 
   // Calculate tooltip position based on target and placement
   useEffect(() => {
-    if (!targetPosition || !tooltipRef.current || isCenterPlacement) {
-      // Center placement
+    if (!targetPosition || !tooltipRef.current || isCenterPlacement || isMobile) {
+      // Centrage (placement 'center', cible absente, ou mobile) — évite tout débordement.
       setTooltipStyle({
         position: 'fixed',
         top: '50%',
@@ -110,7 +118,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
       top: `${top}px`,
       left: `${left}px`,
     });
-  }, [targetPosition, currentStepData?.placement, isCenterPlacement, currentStep]);
+  }, [targetPosition, currentStepData?.placement, isCenterPlacement, currentStep, isMobile]);
 
   // Update position on resize and step change
   useEffect(() => {
