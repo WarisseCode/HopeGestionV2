@@ -46,25 +46,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ mobileBottomNav = true }) => {
 
 
 
-  // 10. Message Proactif (Une seule fois par session lors de la connexion)
-  useEffect(() => {
-    const hasSessionOpened = sessionStorage.getItem('chatbot_session_opened');
-    
-    if (!hasSessionOpened) {
-      const timer = setTimeout(() => {
-        setIsOpen(prevIsOpen => {
-          if (!prevIsOpen) {
-            playSound();
-            sessionStorage.setItem('chatbot_session_opened', 'true');
-            return true;
-          }
-          return prevIsOpen;
-        });
-      }, 5000); // 5 secondes après la nouvelle connexion
-
-      return () => clearTimeout(timer);
-    }
-  }, []);
+  // Pas d'ouverture automatique : le chat ne s'ouvre que sur clic de l'utilisateur.
 
   // Marquer comme ouvert dans la session si l'utilisateur l'ouvre manuellement
   useEffect(() => {

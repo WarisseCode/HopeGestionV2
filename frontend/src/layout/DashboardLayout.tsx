@@ -1,15 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { getProfile } from '../api/authApi';
 import { getAlerts } from '../api/alertApi';
-import ChatBot from '../components/ChatBot';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
 import { useMobile } from '../hooks/useMobile';
-import { OnboardingTour, useOnboarding } from '../components/ui/OnboardingTour';
-import type { OnboardingStep } from '../components/ui/OnboardingTour';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -22,37 +19,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
   const [userProfile, setUserProfile] = useState<any>(null);
   const [alertsCount, setAlertsCount] = useState(0);
   const location = useLocation();
-  
-  // Onboarding tour
-  const { showTour, completeTour, skipTour } = useOnboarding();
-  
-  // Define onboarding steps
-  const onboardingSteps: OnboardingStep[] = useMemo(() => [
-    {
-      target: '',
-      title: '🎉 Bienvenue sur HopeGestion !',
-      description: 'Nous sommes ravis de vous accueillir. Ce guide rapide vous présentera les fonctionnalités clés de la plateforme pour vous aider à démarrer.',
-      placement: 'center',
-    },
-    {
-      target: '#onboarding-sidebar',
-      title: '📋 Navigation Latérale',
-      description: 'Utilisez ce menu pour accéder à tous les modules : Propriétaires, Biens, Locataires, Locations, Finances... Chaque section regroupe les fonctionnalités associées.',
-      placement: 'right',
-    },
-    {
-      target: '#onboarding-header',
-      title: '🔍 Actions Rapides',
-      description: 'Ici vous trouverez la recherche globale, les notifications et l\'accès rapide à votre profil. Restez informé et réactif !',
-      placement: 'bottom',
-    },
-    {
-      target: '#onboarding-main-content',
-      title: '📊 Votre Espace de Travail',
-      description: 'C\'est ici que s\'affiche le contenu principal. Tableaux de bord, listes, formulaires... tout est accessible depuis cet espace central.',
-      placement: 'center',
-    },
-  ], []);
 
   // Reset sidebar open state when mobile state changes
   useEffect(() => {
@@ -151,15 +117,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
         </main>
 
       </div>
-      <ChatBot />
-      
-      {/* Onboarding Tour */}
-      <OnboardingTour
-        steps={onboardingSteps}
-        onComplete={completeTour}
-        onSkip={skipTour}
-        isOpen={showTour}
-      />
     </div>
   );
 };

@@ -12,7 +12,6 @@ import { getProfile } from '../api/authApi';
 import { getAlerts } from '../api/alertApi';
 import { useMobile } from '../hooks/useMobile';
 import ConfirmModal from '../components/ui/ConfirmModal';
-import ChatBot from '../components/ChatBot';
 
 interface LocataireLayoutProps {
     children: React.ReactNode;
@@ -231,8 +230,6 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
                     </AnimatePresence>
                 </main>
             </div>
-
-            <ChatBot />
 
             <ConfirmModal
                 isOpen={showLogoutConfirm}

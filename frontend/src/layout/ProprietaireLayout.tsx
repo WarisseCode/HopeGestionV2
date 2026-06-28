@@ -14,7 +14,6 @@ import { getProfile } from '../api/authApi';
 import { getAlerts } from '../api/alertApi';
 import { useMobile } from '../hooks/useMobile';
 import ConfirmModal from '../components/ui/ConfirmModal';
-import ChatBot from '../components/ChatBot';
 
 interface ProprietaireLayoutProps {
     children: React.ReactNode;
@@ -247,8 +246,6 @@ const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLog
                     </AnimatePresence>
                 </main>
             </div>
-
-            <ChatBot />
 
             <ConfirmModal
                 isOpen={showLogoutConfirm}
