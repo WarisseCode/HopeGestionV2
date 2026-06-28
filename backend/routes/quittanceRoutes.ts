@@ -60,7 +60,7 @@ router.post('/', permissions.canWrite('finance'), tenantGuard, validate(createRu
         // [SÉCURITÉ] Vérifie l'appartenance du bail à l'un des owners gérés ET dérive l'owner réel.
         // On récupère aussi le nom du propriétaire (= bailleur) pour l'afficher sur la quittance.
         const leaseRes = await dbClient.query(
-            `SELECT l.owner_id, o.name AS proprietaire_name
+            `SELECT l.owner_id, o.name AS proprietaire_name, o.address AS proprietaire_adresse, o.phone AS proprietaire_tel
              FROM leases l JOIN owners o ON l.owner_id = o.id
              WHERE l.id = $1 AND l.owner_id = ANY($2::int[])`,
             [lease_id, effectiveOwnerIds]
@@ -70,6 +70,8 @@ router.post('/', permissions.canWrite('finance'), tenantGuard, validate(createRu
         }
         const ownerId = leaseRes.rows[0].owner_id;
         const proprietaireName = leaseRes.rows[0].proprietaire_name || '';
+        const proprietaireAdresse = leaseRes.rows[0].proprietaire_adresse || null;
+        const proprietaireTel = leaseRes.rows[0].proprietaire_tel || null;
 
         const emission = date_emission || new Date();
         const year = new Date(emission).getFullYear();
@@ -79,10 +81,10 @@ router.post('/', permissions.canWrite('finance'), tenantGuard, validate(createRu
         try {
             const ins = await dbClient.query(
                 `INSERT INTO manual_quittances
-                    (owner_id, lease_id, locataire_name, proprietaire_name, bien, periode, montant, date_emission, created_by)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    (owner_id, lease_id, locataire_name, proprietaire_name, proprietaire_adresse, proprietaire_tel, bien, periode, montant, date_emission, created_by)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                  RETURNING id`,
-                [ownerId, lease_id, locataire || '', proprietaireName, bien || '', periode, montant, emission, req.userId || null]
+                [ownerId, lease_id, locataire || '', proprietaireName, proprietaireAdresse, proprietaireTel, bien || '', periode, montant, emission, req.userId || null]
             );
             const id = ins.rows[0].id;
             const numero = `QUI-MAN-${year}-${String(id).padStart(4, '0')}`;

@@ -11,6 +11,8 @@ export interface QuittanceData {
   montant: number;
   datePaiement: string | Date;
   proprietaire?: string;
+  proprietaireAdresse?: string;
+  proprietaireTel?: string;
   charges?: number;
 }
 
@@ -167,11 +169,13 @@ export const generateQuittancePDF = async (data: QuittanceData, mode: 'download'
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text(data.proprietaire || 'Agence Hope Immobilier', margin + 8, partiesY + 19);
-  
+
+  // Adresse / téléphone du bailleur : valeurs réelles du propriétaire si fournies,
+  // sinon repli sur les coordonnées génériques de l'agence.
   doc.setFontSize(9);
   doc.setTextColor(...BRAND.mediumText);
-  doc.text('Cotonou, Bénin', margin + 8, partiesY + 26);
-  doc.text('Tél: +229 01 02 03 04', margin + 8, partiesY + 33);
+  doc.text(data.proprietaireAdresse || 'Cotonou, Bénin', margin + 8, partiesY + 26, { maxWidth: colWidth - 16 });
+  doc.text(`Tél: ${data.proprietaireTel || '+229 01 02 03 04'}`, margin + 8, partiesY + 33);
 
   // --- Locataire (Right column) ---
   const rightColX = margin + colWidth + 10;

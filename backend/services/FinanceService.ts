@@ -58,7 +58,7 @@ export class FinanceService {
             SELECT ${SELECT_PAYMENTS_FIELDS},
                 l.reference_bail, l.loyer_actuel as loyer_mensuel,
                 t.nom as locataire_nom, t.prenoms as locataire_prenoms,
-                o.name as proprietaire_nom
+                o.name as proprietaire_nom, o.address as proprietaire_adresse, o.phone as proprietaire_tel
             FROM payments p
             JOIN leases l ON p.lease_id = l.id
             JOIN tenants t ON l.tenant_id = t.id

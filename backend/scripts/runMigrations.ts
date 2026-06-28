@@ -1432,6 +1432,15 @@ const MIGRATIONS: Migration[] = [
             CREATE INDEX IF NOT EXISTS idx_tasks_deleted_at           ON tasks(deleted_at);
             CREATE INDEX IF NOT EXISTS idx_messages_deleted_at        ON messages(deleted_at);
         `
+    },
+    {
+        name: '057_manual_quittances_bailleur_contact',
+        // Coordonnées du bailleur (propriétaire) figées sur la quittance manuelle pour
+        // alimenter le bloc BAILLEUR du PDF (nom + adresse + tél) au lieu du générique agence.
+        sql: `
+            ALTER TABLE manual_quittances ADD COLUMN IF NOT EXISTS proprietaire_adresse TEXT;
+            ALTER TABLE manual_quittances ADD COLUMN IF NOT EXISTS proprietaire_tel VARCHAR(50);
+        `
     }
 ];
 

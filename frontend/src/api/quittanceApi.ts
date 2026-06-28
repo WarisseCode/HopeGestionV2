@@ -9,6 +9,8 @@ export interface ManualQuittance {
     lease_id?: number;
     locataire_name: string;
     proprietaire_name?: string;
+    proprietaire_adresse?: string;
+    proprietaire_tel?: string;
     bien: string;
     periode: string;
     montant: number;
