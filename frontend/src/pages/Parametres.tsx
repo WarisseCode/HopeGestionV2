@@ -1,18 +1,19 @@
 // frontend/src/pages/Parametres.tsx
 // Page de réglages du compte (source unique). Regroupe ce qui était auparavant
 // éclaté entre « Mon Compte › Mon Profil » (CompteProfil) et l'ancienne page
-// Paramètres décorative : identité + photo, préférences (thème/langue/devise/
-// fuseau), notifications réelles, sécurité (mot de passe).
+// Paramètres décorative : identité + photo, préférences (thème/langue),
+// notifications réelles, sécurité (mot de passe).
 //
 // Tout est câblé sur accountApi (endpoints /auth/profile + /auth/change-password),
 // et on appelle refreshUser() après sauvegarde pour resynchroniser le contexte
-// global (nom dans le header, thème initialisé par UserContext).
+// global. Les textes passent par i18n (useTranslation).
 
 import React, { useState, useEffect } from 'react';
 import {
   User, Bell, Lock, Globe, Moon, Sun, Save, Smartphone, Mail,
   ChevronRight, Shield, Loader2, Check, Camera, MessageCircle, SlidersHorizontal
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
@@ -26,6 +27,7 @@ type Tab = 'profil' | 'preferences' | 'notifications' | 'securite';
 
 const Parametres: React.FC = () => {
   const { refreshUser } = useUser();
+  const { t, i18n } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<Tab>('profil');
   const [loading, setLoading] = useState(true);
@@ -63,12 +65,12 @@ const Parametres: React.FC = () => {
           notifWhatsApp: data.preferences?.notifications?.whatsapp ?? false,
         });
       } catch {
-        toast.error('Erreur lors du chargement du profil');
+        toast.error(t('settings.loadError'));
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [t]);
 
   const initials = (() => {
     const a = form.prenom?.charAt(0) || '';
@@ -93,8 +95,6 @@ const Parametres: React.FC = () => {
   });
 
   // Applique le thème au DOM + localStorage immédiatement (aperçu instantané).
-  // La persistance backend se fait au clic « Enregistrer » ; UserContext relira
-  // preferences.theme au prochain refreshUser pour rester cohérent.
   const applyTheme = (theme: 'light' | 'dark') => {
     if (theme === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
@@ -107,15 +107,21 @@ const Parametres: React.FC = () => {
     setForm(f => ({ ...f, theme }));
   };
 
+  // Bascule la langue instantanément (re-rendu via i18n) ; persistée au save.
+  const handleLanguageChange = (lang: string) => {
+    setForm(f => ({ ...f, language: lang }));
+    i18n.changeLanguage(lang);
+  };
+
   const handleSaveAll = async () => {
-    if (!form.email) { toast.error('L\'email est requis'); return; }
+    if (!form.email) { toast.error(t('settings.emailRequired')); return; }
     setSavingAll(true);
     try {
       await accountApi.updateProfile(buildPayload());
       await refreshUser();
-      toast.success('Modifications enregistrées');
+      toast.success(t('settings.saved'));
     } catch (err: any) {
-      toast.error(err.message || 'Erreur lors de la mise à jour');
+      toast.error(err.message || t('settings.updateError'));
     } finally {
       setSavingAll(false);
     }
@@ -127,7 +133,7 @@ const Parametres: React.FC = () => {
     const fd = new FormData();
     fd.append('file', file);
     fd.append('type', 'avatar');
-    const t = toast.loading('Téléchargement de la photo...');
+    const tid = toast.loading(t('settings.photoUploading'));
     try {
       const res = await fetch(`${API_URL}/upload`, { method: 'POST', body: fd });
       const data = await res.json();
@@ -137,32 +143,32 @@ const Parametres: React.FC = () => {
         // Persistance immédiate de la photo (UX : pas besoin de cliquer Enregistrer).
         await accountApi.updateProfile({ ...buildPayload(), photo_url: url });
         await refreshUser();
-        toast.success('Photo mise à jour', { id: t });
+        toast.success(t('settings.photoUpdated'), { id: tid });
       } else {
         throw new Error(data.message || 'Erreur inconnue');
       }
     } catch {
-      toast.error("Erreur lors de l'upload de la photo", { id: t });
+      toast.error(t('settings.photoError'), { id: tid });
     }
   };
 
   const handleChangePassword = async () => {
     if (!pwdForm.current || !pwdForm.next || !pwdForm.confirm) {
-      toast.error('Veuillez remplir tous les champs'); return;
+      toast.error(t('settings.pwdFillAll')); return;
     }
     if (pwdForm.next !== pwdForm.confirm) {
-      toast.error('Les mots de passe ne correspondent pas'); return;
+      toast.error(t('settings.pwdMismatch')); return;
     }
     if (pwdForm.next.length < 6) {
-      toast.error('Le nouveau mot de passe doit contenir au moins 6 caractères'); return;
+      toast.error(t('settings.pwdTooShort')); return;
     }
     setSavingPassword(true);
     try {
       await accountApi.changePassword({ currentPassword: pwdForm.current, newPassword: pwdForm.next });
       setPwdForm({ current: '', next: '', confirm: '' });
-      toast.success('Mot de passe modifié avec succès');
+      toast.success(t('settings.pwdChanged'));
     } catch (err: any) {
-      toast.error(err.message || 'Erreur lors du changement de mot de passe');
+      toast.error(err.message || t('settings.pwdError'));
     } finally {
       setSavingPassword(false);
     }
@@ -192,10 +198,10 @@ const Parametres: React.FC = () => {
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
-            Paramètres & Configuration <span className="text-primary">.</span>
+            {t('settings.title')} <span className="text-primary">.</span>
           </h1>
           <p className="text-base-content/60 font-medium mt-1">
-            Personnalisez votre expérience et sécurisez votre compte.
+            {t('settings.subtitle')}
           </p>
         </div>
         {showSaveButton && (
@@ -206,7 +212,7 @@ const Parametres: React.FC = () => {
             className="rounded-full px-6 h-10 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all font-semibold"
           >
             {savingAll ? <Loader2 size={18} className="mr-2 animate-spin" /> : <Save size={18} className="mr-2" />}
-            {savingAll ? 'Enregistrement...' : 'Enregistrer'}
+            {savingAll ? t('common.saving') : t('common.save')}
           </Button>
         )}
       </motion.div>
@@ -217,10 +223,10 @@ const Parametres: React.FC = () => {
           <Card className="p-2 border-none shadow-lg bg-base-100 sticky top-6">
             <nav className="space-y-1">
               {([
-                { id: 'profil', icon: User, label: 'Mon Profil' },
-                { id: 'preferences', icon: SlidersHorizontal, label: 'Préférences' },
-                { id: 'notifications', icon: Bell, label: 'Notifications' },
-                { id: 'securite', icon: Shield, label: 'Sécurité' },
+                { id: 'profil', icon: User, label: t('settings.tabs.profile') },
+                { id: 'preferences', icon: SlidersHorizontal, label: t('settings.tabs.preferences') },
+                { id: 'notifications', icon: Bell, label: t('settings.tabs.notifications') },
+                { id: 'securite', icon: Shield, label: t('settings.tabs.security') },
               ] as { id: Tab; icon: any; label: string }[]).map((item) => (
                 <button
                   key={item.id}
@@ -250,7 +256,7 @@ const Parametres: React.FC = () => {
             {/* ── PROFIL ── */}
             {activeTab === 'profil' && (
               <motion.div key="profil" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
-                <Card title="Informations Personnelles" className="border-none shadow-xl bg-base-100/80 backdrop-blur-sm">
+                <Card title={t('settings.personalInfo')} className="border-none shadow-xl bg-base-100/80 backdrop-blur-sm">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Avatar + upload */}
                     <div className="md:col-span-2 flex justify-center mb-4">
@@ -264,7 +270,7 @@ const Parametres: React.FC = () => {
                           <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                           <span className="text-white text-xs font-medium flex flex-col items-center gap-1">
                             <Camera size={18} />
-                            Modifier
+                            {t('settings.modify')}
                           </span>
                         </label>
                         <div className="absolute bottom-0 right-0 bg-primary text-white p-1.5 rounded-full pointer-events-none shadow-lg border-2 border-base-100">
@@ -273,13 +279,13 @@ const Parametres: React.FC = () => {
                       </div>
                     </div>
 
-                    <Input label="Nom" placeholder="Votre nom de famille"
+                    <Input label={t('settings.name')} placeholder={t('settings.namePlaceholder')}
                       value={form.nom} onChange={e => setForm({ ...form, nom: e.target.value })} />
-                    <Input label="Prénom(s)" placeholder="Votre prénom"
+                    <Input label={t('settings.firstName')} placeholder={t('settings.firstNamePlaceholder')}
                       value={form.prenom} onChange={e => setForm({ ...form, prenom: e.target.value })} />
-                    <Input label="Email" type="email" placeholder="votre@email.com" startIcon={<Mail size={16} />}
+                    <Input label={t('settings.email')} type="email" placeholder="votre@email.com" startIcon={<Mail size={16} />}
                       value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-                    <Input label="Téléphone" placeholder="+229..." startIcon={<Smartphone size={16} />}
+                    <Input label={t('settings.phone')} placeholder="+229..." startIcon={<Smartphone size={16} />}
                       value={form.telephone} onChange={e => setForm({ ...form, telephone: e.target.value })} />
                   </div>
                 </Card>
@@ -289,25 +295,25 @@ const Parametres: React.FC = () => {
             {/* ── PRÉFÉRENCES ── */}
             {activeTab === 'preferences' && (
               <motion.div key="preferences" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
-                <Card title="Apparence" className="border-none shadow-xl bg-base-100">
+                <Card title={t('settings.appearance')} className="border-none shadow-xl bg-base-100">
                   <div className="grid grid-cols-2 gap-4 max-w-md">
                     <button type="button" onClick={() => applyTheme('light')}
                       className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${form.theme === 'light' ? 'border-primary bg-primary/5 shadow-sm' : 'border-base-200 hover:border-base-300'}`}>
                       <div className="p-3 rounded-full bg-base-300 text-base-content/70"><Sun size={20} /></div>
-                      <span className="font-medium text-sm">Clair</span>
+                      <span className="font-medium text-sm">{t('settings.themeLight')}</span>
                     </button>
                     <button type="button" onClick={() => applyTheme('dark')}
                       className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${form.theme === 'dark' ? 'border-primary bg-primary/5 shadow-sm' : 'border-base-200 hover:border-base-300'}`}>
                       <div className="p-3 rounded-full bg-gray-800 text-white"><Moon size={20} /></div>
-                      <span className="font-medium text-sm">Sombre</span>
+                      <span className="font-medium text-sm">{t('settings.themeDark')}</span>
                     </button>
                   </div>
                 </Card>
 
-                <Card title="Langue" className="border-none shadow-xl bg-base-100">
+                <Card title={t('settings.language')} className="border-none shadow-xl bg-base-100">
                   <div className="max-w-sm space-y-1.5">
-                    <label className="text-sm font-bold text-base-content/80 flex items-center gap-2"><Globe size={15} /> Langue de l'interface</label>
-                    <select aria-label="Langue de l'interface" value={form.language} onChange={e => setForm({ ...form, language: e.target.value })}
+                    <label className="text-sm font-bold text-base-content/80 flex items-center gap-2"><Globe size={15} /> {t('settings.languageLabel')}</label>
+                    <select aria-label={t('settings.languageLabel')} value={form.language} onChange={e => handleLanguageChange(e.target.value)}
                       className="select select-bordered w-full bg-base-200 focus:bg-base-100">
                       <option value="fr">Français (France)</option>
                       <option value="en">English (US)</option>
@@ -320,15 +326,15 @@ const Parametres: React.FC = () => {
             {/* ── NOTIFICATIONS ── */}
             {activeTab === 'notifications' && (
               <motion.div key="notifications" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <Card title="Canaux de notification" className="border-none shadow-xl bg-base-100">
+                <Card title={t('settings.notifChannels')} className="border-none shadow-xl bg-base-100">
                   <div className="space-y-4">
                     {/* Email — réellement persisté dans preferences.notifications.email */}
                     <label className="flex items-center justify-between gap-4 p-4 rounded-xl border border-base-200 hover:bg-base-200 transition-colors cursor-pointer">
                       <div className="flex items-center gap-4">
                         <div className="p-3 bg-primary/10 text-primary rounded-xl"><Mail size={22} /></div>
                         <div>
-                          <p className="font-bold text-base-content/90">Emails système</p>
-                          <p className="text-sm text-base-content/60">Reçus, alertes de paiement et rappels par email</p>
+                          <p className="font-bold text-base-content/90">{t('settings.emailSystem')}</p>
+                          <p className="text-sm text-base-content/60">{t('settings.emailSystemDesc')}</p>
                         </div>
                       </div>
                       <input type="checkbox" className="toggle toggle-primary toggle-lg"
@@ -340,8 +346,8 @@ const Parametres: React.FC = () => {
                       <div className="flex items-center gap-4">
                         <div className="p-3 bg-green-100 text-green-600 rounded-xl"><MessageCircle size={22} /></div>
                         <div>
-                          <p className="font-bold text-base-content/90">WhatsApp</p>
-                          <p className="text-sm text-base-content/60">Alertes importantes envoyées sur WhatsApp</p>
+                          <p className="font-bold text-base-content/90">{t('settings.whatsapp')}</p>
+                          <p className="text-sm text-base-content/60">{t('settings.whatsappDesc')}</p>
                         </div>
                       </div>
                       <input type="checkbox" className="toggle toggle-success toggle-lg"
@@ -355,25 +361,25 @@ const Parametres: React.FC = () => {
             {/* ── SÉCURITÉ ── */}
             {activeTab === 'securite' && (
               <motion.div key="securite" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
-                <Card title="Sécurité du compte" className="border-none shadow-xl bg-base-100">
+                <Card title={t('settings.accountSecurity')} className="border-none shadow-xl bg-base-100">
                   <div>
                     <h3 className="font-bold text-base-content/90 mb-6 flex items-center gap-2">
-                      <Lock className="text-primary" size={20} /> Changer de mot de passe
+                      <Lock className="text-primary" size={20} /> {t('settings.changePassword')}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-base-200 rounded-2xl border border-base-200">
-                      <Input label="Mot de passe actuel" type="password"
+                      <Input label={t('settings.currentPassword')} type="password"
                         value={pwdForm.current} onChange={e => setPwdForm({ ...pwdForm, current: e.target.value })} />
                       <div className="hidden md:block" />
-                      <Input label="Nouveau mot de passe" type="password"
+                      <Input label={t('settings.newPassword')} type="password"
                         value={pwdForm.next} onChange={e => setPwdForm({ ...pwdForm, next: e.target.value })} />
-                      <Input label="Confirmer le nouveau mot de passe" type="password"
+                      <Input label={t('settings.confirmPassword')} type="password"
                         value={pwdForm.confirm} onChange={e => setPwdForm({ ...pwdForm, confirm: e.target.value })} />
                       <div className="md:col-span-2 flex justify-end">
                         <Button variant="ghost" onClick={handleChangePassword} disabled={savingPassword}
                           className="bg-base-100 shadow-sm border border-base-300">
                           {savingPassword
-                            ? <><Loader2 size={16} className="mr-2 animate-spin" />Mise à jour...</>
-                            : <><Check size={16} className="mr-2" />Mettre à jour</>}
+                            ? <><Loader2 size={16} className="mr-2 animate-spin" />{t('common.updating')}</>
+                            : <><Check size={16} className="mr-2" />{t('common.update')}</>}
                         </Button>
                       </div>
                     </div>

@@ -10,6 +10,7 @@ import {
   Home, Activity, UserCog, Receipt, UserCheck, Boxes, Trash2
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import ConfirmModal from '../ui/ConfirmModal';
 
 interface SidebarProps {
@@ -22,7 +23,8 @@ interface SidebarProps {
 
 // Définition des groupes de menu
 type MenuGroup = {
-  title: string;
+  id: string;       // clé stable (indépendante de la langue) pour l'état d'expansion
+  title: string;    // libellé affiché (traduit)
   items: MenuItem[];
 };
 
@@ -35,10 +37,11 @@ type MenuItem = {
 
 const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggleSidebar, userProfile, onLogout, alertsCount = 0, isMobile }) => {
   const location = useLocation();
+  const { t } = useTranslation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    "Principal": true,
-    "Gestion": true,
+    principal: true,
+    gestion: true,
   });
 
   const toggleGroup = (groupTitle: string) => {
@@ -65,21 +68,23 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
     if (type === 'locataire') {
       return [
         {
-          title: "Principal",
+          id: "principal",
+          title: t('nav.groups.principal'),
           items: [
-             { icon: <LayoutDashboard size={20} />, label: 'Bureau', path: '/' },
-             { icon: <Bell size={20} />, label: 'Mes Alertes', path: '/alertes', badge: alertsCount },
+             { icon: <LayoutDashboard size={20} />, label: t('nav.bureau'), path: '/' },
+             { icon: <Bell size={20} />, label: t('nav.mesAlertes'), path: '/alertes', badge: alertsCount },
           ]
         },
         {
-          title: "Mon Espace",
+          id: "monEspace",
+          title: t('nav.groups.monEspace'),
           items: [
-            { icon: <FileText size={20} />, label: 'Mes Contrats', path: '/contrats' },
-            { icon: <CreditCard size={20} />, label: 'Payer en ligne', path: '/paiements-loyer' },
-            { icon: <Wallet size={20} />, label: 'Mes Paiements', path: '/finances' },
-            { icon: <Receipt size={20} />, label: 'Mes Quittances', path: '/quittances' },
-            { icon: <FolderOpen size={20} />, label: 'Documents', path: '/documents' },
-            { icon: <UserCog size={20} />, label: 'Mon Compte', path: '/mon-compte' },
+            { icon: <FileText size={20} />, label: t('nav.mesContrats'), path: '/contrats' },
+            { icon: <CreditCard size={20} />, label: t('nav.payerEnLigne'), path: '/paiements-loyer' },
+            { icon: <Wallet size={20} />, label: t('nav.mesPaiements'), path: '/finances' },
+            { icon: <Receipt size={20} />, label: t('nav.mesQuittances'), path: '/quittances' },
+            { icon: <FolderOpen size={20} />, label: t('nav.documents'), path: '/documents' },
+            { icon: <UserCog size={20} />, label: t('nav.monCompte'), path: '/mon-compte' },
           ]
         }
       ];
@@ -89,46 +94,51 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
     if (type === 'proprietaire') {
       return [
         {
-          title: "Principal",
+          id: "principal",
+          title: t('nav.groups.principal'),
           items: [
-            { icon: <LayoutDashboard size={20} />, label: 'Bureau', path: '/' },
-            { icon: <Crown size={20} />, label: 'Abonnement', path: '/abonnement' },
-            { icon: <Bell size={20} />, label: 'Alertes', path: '/alertes', badge: alertsCount },
+            { icon: <LayoutDashboard size={20} />, label: t('nav.bureau'), path: '/' },
+            { icon: <Crown size={20} />, label: t('nav.abonnement'), path: '/abonnement' },
+            { icon: <Bell size={20} />, label: t('nav.alertes'), path: '/alertes', badge: alertsCount },
           ]
         },
         {
-          title: "Gestion",
+          id: "gestion",
+          title: t('nav.groups.gestion'),
           items: [
-            { icon: <Building2 size={20} />, label: 'Mes Biens', path: '/biens' },
-            { icon: <Users size={20} />, label: 'Mes Locataires', path: '/locataires' },
-            { icon: <FileText size={20} />, label: 'Locations', path: '/locations' },
-            { icon: <ClipboardList size={20} />, label: 'Contrats', path: '/contrats' },
-            { icon: <CalendarCheck size={20} />, label: 'Réservations', path: '/reservations' },
+            { icon: <Building2 size={20} />, label: t('nav.mesBiens'), path: '/biens' },
+            { icon: <Users size={20} />, label: t('nav.mesLocataires'), path: '/locataires' },
+            { icon: <FileText size={20} />, label: t('nav.locations'), path: '/locations' },
+            { icon: <ClipboardList size={20} />, label: t('nav.contrats'), path: '/contrats' },
+            { icon: <CalendarCheck size={20} />, label: t('nav.reservations'), path: '/reservations' },
           ]
         },
         {
-          title: "Finances",
+          id: "finances",
+          title: t('nav.groups.finances'),
           items: [
-            { icon: <Wallet size={20} />, label: 'Finances', path: '/finances' },
-            { icon: <CreditCard size={20} />, label: 'Mobile Money', path: '/mobile-money' },
-            { icon: <Receipt size={20} />, label: 'Quittances', path: '/quittances' },
+            { icon: <Wallet size={20} />, label: t('nav.financesItem'), path: '/finances' },
+            { icon: <CreditCard size={20} />, label: t('nav.mobileMoney'), path: '/mobile-money' },
+            { icon: <Receipt size={20} />, label: t('nav.quittances'), path: '/quittances' },
           ]
         },
         {
-          title: "Organisation",
+          id: "organisation",
+          title: t('nav.groups.organisation'),
           items: [
-            { icon: <Briefcase size={20} />, label: 'Mon Équipe', path: '/equipe' },
-            { icon: <Calendar size={20} />, label: 'Calendrier', path: '/calendrier' },
-            { icon: <FolderOpen size={20} />, label: 'Documents', path: '/documents' },
-            { icon: <Wrench size={20} />, label: 'Interventions', path: '/interventions' },
-            { icon: <BarChart3 size={20} />, label: 'Rapports', path: '/rapports' },
+            { icon: <Briefcase size={20} />, label: t('nav.monEquipe'), path: '/equipe' },
+            { icon: <Calendar size={20} />, label: t('nav.calendrier'), path: '/calendrier' },
+            { icon: <FolderOpen size={20} />, label: t('nav.documents'), path: '/documents' },
+            { icon: <Wrench size={20} />, label: t('nav.interventions'), path: '/interventions' },
+            { icon: <BarChart3 size={20} />, label: t('nav.rapports'), path: '/rapports' },
           ]
         },
         {
-           title: "Compte",
+           id: "compte",
+           title: t('nav.groups.compte'),
            items: [
-               { icon: <Settings size={20} />, label: 'Paramètres', path: '/parametres' },
-               { icon: <UserCog size={20} />, label: 'Mon Profil', path: '/mon-compte' },
+               { icon: <Settings size={20} />, label: t('nav.parametres'), path: '/parametres' },
+               { icon: <UserCog size={20} />, label: t('nav.monProfil'), path: '/mon-compte' },
            ]
         }
       ];
@@ -139,67 +149,67 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
     
     // Groupe Principal
     const mainItems: MenuItem[] = [
-        { icon: <LayoutDashboard size={20} />, label: 'Bureau', path: '/' },
-        { icon: <Bell size={20} />, label: 'Alertes', path: '/alertes', badge: alertsCount },
+        { icon: <LayoutDashboard size={20} />, label: t('nav.bureau'), path: '/' },
+        { icon: <Bell size={20} />, label: t('nav.alertes'), path: '/alertes', badge: alertsCount },
     ];
     // if guest/admin/gestionnaire have access to subscription
     if (type !== 'guest') {
-         mainItems.push({ icon: <Crown size={20} />, label: 'Abonnement', path: '/abonnement' });
+         mainItems.push({ icon: <Crown size={20} />, label: t('nav.abonnement'), path: '/abonnement' });
     }
 
     // Groupe Gestion
     const gestionItems: MenuItem[] = [];
-    if (perms.biens_read || role === 'admin' || role === 'gestionnaire') gestionItems.push({ icon: <Building2 size={20} />, label: 'Parc Immobilier', path: '/biens' });
+    if (perms.biens_read || role === 'admin' || role === 'gestionnaire') gestionItems.push({ icon: <Building2 size={20} />, label: t('nav.parcImmobilier'), path: '/biens' });
     if (perms.locataires_read || role === 'admin' || role === 'gestionnaire') {
-        gestionItems.push({ icon: <Users size={20} />, label: 'Locataires', path: '/locataires' });
+        gestionItems.push({ icon: <Users size={20} />, label: t('nav.locataires'), path: '/locataires' });
     }
     // Consolidation of renting activities
     if (perms.locataires_read || role === 'admin' || role === 'gestionnaire') {
-        gestionItems.push({ icon: <Home size={20} />, label: 'Baux & Locations', path: '/locations' });
-        gestionItems.push({ icon: <ClipboardList size={20} />, label: 'Contrats', path: '/contrats' });
+        gestionItems.push({ icon: <Home size={20} />, label: t('nav.bauxLocations'), path: '/locations' });
+        gestionItems.push({ icon: <ClipboardList size={20} />, label: t('nav.contrats'), path: '/contrats' });
     }
     if (role === 'admin' || role === 'gestionnaire') {
-        gestionItems.push({ icon: <Boxes size={20} />, label: 'Inventaires', path: '/inventories' });
-        gestionItems.push({ icon: <ClipboardCheck size={20} />, label: 'États des Lieux', path: '/etats-des-lieux' });
-        gestionItems.push({ icon: <CalendarCheck size={20} />, label: 'Réservations', path: '/reservations' });
+        gestionItems.push({ icon: <Boxes size={20} />, label: t('nav.inventaires'), path: '/inventories' });
+        gestionItems.push({ icon: <ClipboardCheck size={20} />, label: t('nav.etatsDesLieux'), path: '/etats-des-lieux' });
+        gestionItems.push({ icon: <CalendarCheck size={20} />, label: t('nav.reservations'), path: '/reservations' });
     }
     if ((perms.owners_read || role === 'admin' || role === 'gestionnaire') && type !== 'proprietaire') {
-        gestionItems.push({ icon: <UserCheck size={20} />, label: 'Propriétaires', path: '/proprietaires' }); 
+        gestionItems.push({ icon: <UserCheck size={20} />, label: t('nav.proprietaires'), path: '/proprietaires' });
     }
 
     // Groupe Finances
     const financeItems: MenuItem[] = [];
     if (perms.finance_read || role === 'admin' || role === 'gestionnaire') {
-        financeItems.push({ icon: <Wallet size={20} />, label: 'Transactions', path: '/finances' });
-        financeItems.push({ icon: <Receipt size={20} />, label: 'Quittances', path: '/quittances' });
+        financeItems.push({ icon: <Wallet size={20} />, label: t('nav.transactions'), path: '/finances' });
+        financeItems.push({ icon: <Receipt size={20} />, label: t('nav.quittances'), path: '/quittances' });
     }
     if (perms.finance_validate || role === 'admin' || role === 'gestionnaire') {
-        financeItems.push({ icon: <CreditCard size={20} />, label: 'Comptes MoMo', path: '/mobile-money' });
+        financeItems.push({ icon: <CreditCard size={20} />, label: t('nav.comptesMomo'), path: '/mobile-money' });
     }
 
     // Groupe Organisation
     const orgItems: MenuItem[] = [];
-    if (perms.documents_read || role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <FolderOpen size={20} />, label: 'Documents', path: '/documents' });
+    if (perms.documents_read || role === 'admin' || role === 'gestionnaire') orgItems.push({ icon: <FolderOpen size={20} />, label: t('nav.documents'), path: '/documents' });
     if (role === 'admin' || role === 'gestionnaire') {
-        orgItems.push({ icon: <Calendar size={20} />, label: 'Planning', path: '/calendrier' });
-        orgItems.push({ icon: <CheckSquare size={20} />, label: 'Tâches', path: '/tasks' });
-        orgItems.push({ icon: <Wrench size={20} />, label: 'Interventions', path: '/interventions' });
-        orgItems.push({ icon: <BarChart3 size={20} />, label: 'Données & Rapports', path: '/rapports' });
-        orgItems.push({ icon: <Trash2 size={20} />, label: 'Corbeille', path: '/corbeille' });
+        orgItems.push({ icon: <Calendar size={20} />, label: t('nav.planning'), path: '/calendrier' });
+        orgItems.push({ icon: <CheckSquare size={20} />, label: t('nav.taches'), path: '/tasks' });
+        orgItems.push({ icon: <Wrench size={20} />, label: t('nav.interventions'), path: '/interventions' });
+        orgItems.push({ icon: <BarChart3 size={20} />, label: t('nav.donneesRapports'), path: '/rapports' });
+        orgItems.push({ icon: <Trash2 size={20} />, label: t('nav.corbeille'), path: '/corbeille' });
     }
 
     // Groupe Admin
     const adminItems: MenuItem[] = [];
-     if (role === 'admin' || role === 'gestionnaire') adminItems.push({ icon: <ShieldCheck size={20} />, label: 'Audit & Sécurité', path: '/audit-logs' });
-    adminItems.push({ icon: <Settings size={20} />, label: 'Paramètres', path: '/parametres' });
-    adminItems.push({ icon: <UserCog size={20} />, label: 'Mon Profil', path: '/mon-compte' });
+     if (role === 'admin' || role === 'gestionnaire') adminItems.push({ icon: <ShieldCheck size={20} />, label: t('nav.auditSecurite'), path: '/audit-logs' });
+    adminItems.push({ icon: <Settings size={20} />, label: t('nav.parametres'), path: '/parametres' });
+    adminItems.push({ icon: <UserCog size={20} />, label: t('nav.monProfil'), path: '/mon-compte' });
 
     return [
-        { title: "Principal", items: mainItems },
-        { title: "Gestion", items: gestionItems },
-        { title: "Finances", items: financeItems },
-        { title: "Organisation", items: orgItems },
-        { title: "Administration", items: adminItems },
+        { id: "principal", title: t('nav.groups.principal'), items: mainItems },
+        { id: "gestion", title: t('nav.groups.gestion'), items: gestionItems },
+        { id: "finances", title: t('nav.groups.finances'), items: financeItems },
+        { id: "organisation", title: t('nav.groups.organisation'), items: orgItems },
+        { id: "administration", title: t('nav.groups.administration'), items: adminItems },
     ].filter(group => group.items.length > 0);
   };
 
@@ -251,12 +261,12 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                   <div key={idx} className="group-section">
                       {/* Group Title */}
                       {(isOpen || isMobile) && (
-                          <div 
+                          <div
                               className="flex items-center justify-between px-3 mb-3 cursor-pointer text-[11px] font-bold text-base-content/60 uppercase tracking-widest hover:text-primary transition-colors"
-                              onClick={() => toggleGroup(group.title)}
+                              onClick={() => toggleGroup(group.id)}
                           >
                               <span>{group.title}</span>
-                              {expandedGroups[group.title] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                              {expandedGroups[group.id] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                           </div>
                       )}
                       
@@ -265,7 +275,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
 
                       {/* Group Items */}
                       <AnimatePresence initial={false}>
-                          {((isOpen || isMobile) ? expandedGroups[group.title] : true) && (
+                          {((isOpen || isMobile) ? expandedGroups[group.id] : true) && (
                                <motion.div
                                   initial={{ height: 0, opacity: 0 }}
                                   animate={{ height: "auto", opacity: 1 }}
@@ -328,7 +338,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
           <div className="p-4 border-t border-base-300 bg-base-200/50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] shrink-0 flex flex-col gap-2">
               
               {/* User Profile Area */}
-              <div className={`flex items-center gap-3 p-2 rounded-xl transition-colors ${(!isOpen && !isMobile) ? 'justify-center cursor-pointer hover:bg-base-200/50' : 'hover:bg-base-100/50'} tooltip tooltip-right`} data-tip={(!isOpen && !isMobile) ? "Mon profil" : ""}>
+              <div className={`flex items-center gap-3 p-2 rounded-xl transition-colors ${(!isOpen && !isMobile) ? 'justify-center cursor-pointer hover:bg-base-200/50' : 'hover:bg-base-100/50'} tooltip tooltip-right`} data-tip={(!isOpen && !isMobile) ? t('common.profile') : ""}>
                   <div className="avatar placeholder online shrink-0">
                     <div className="bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600 rounded-2xl w-10 h-10 flex items-center justify-center border border-primary-200/50 shadow-sm overflow-hidden ring-2 ring-transparent transition-all cursor-pointer hover:ring-primary-300">
                       {userProfile?.photo_url ? (
@@ -346,15 +356,15 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                   </div>
                   {(isOpen || isMobile) && (
                       <div className="overflow-hidden flex-1 min-w-0 flex flex-col justify-center">
-                          <p className="font-bold text-sm truncate text-base-content/90 font-heading leading-tight">{userProfile?.nom || 'Utilisateur'}</p>
-                          <p className="text-[11px] text-base-content/50 truncate capitalize font-medium mt-0.5">{userProfile?.role || 'Membre'}</p>
+                          <p className="font-bold text-sm truncate text-base-content/90 font-heading leading-tight">{userProfile?.nom || t('common.user')}</p>
+                          <p className="text-[11px] text-base-content/50 truncate capitalize font-medium mt-0.5">{userProfile?.role || t('common.member')}</p>
                       </div>
                   )}
               </div>
 
               {/* Logout Button */}
-              <div className={(!isOpen && !isMobile) ? "tooltip tooltip-right w-full flex justify-center" : ""} data-tip="Déconnexion">
-                <button 
+              <div className={(!isOpen && !isMobile) ? "tooltip tooltip-right w-full flex justify-center" : ""} data-tip={t('common.logout')}>
+                <button
                   onClick={() => setShowLogoutConfirm(true)}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-error/80 hover:text-error hover:bg-error/10 w-full transition-all duration-300 group relative overflow-hidden
                     ${(!isOpen && !isMobile) ? 'justify-center w-12 h-12 px-0' : ''}
@@ -364,7 +374,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                   <span className="absolute inset-0 bg-error/5 scale-0 group-hover:scale-100 transition-transform duration-300 rounded-xl origin-center" />
                   
                   <LogOut size={18} className="group-hover:scale-110 transition-transform relative z-10" />
-                  {(isOpen || isMobile) && <span className="font-medium text-sm relative z-10">Déconnexion</span>}
+                  {(isOpen || isMobile) && <span className="font-medium text-sm relative z-10">{t('common.logout')}</span>}
                 </button>
               </div>
           </div>
@@ -377,10 +387,10 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
             setShowLogoutConfirm(false);
             onLogout();
           }}
-          title="Déconnexion"
-          message="Êtes-vous sûr de vouloir vous déconnecter ?"
-          confirmLabel="Se déconnecter"
-          cancelLabel="Annuler"
+          title={t('common.logoutTitle')}
+          message={t('common.logoutMessage')}
+          confirmLabel={t('common.logoutConfirm')}
+          cancelLabel={t('common.cancel')}
           type="danger"
         />
     </>

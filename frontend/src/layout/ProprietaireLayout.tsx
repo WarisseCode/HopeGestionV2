@@ -13,6 +13,7 @@ import {
 import { getProfile } from '../api/authApi';
 import { getAlerts } from '../api/alertApi';
 import { useMobile } from '../hooks/useMobile';
+import { useTranslation } from 'react-i18next';
 import ConfirmModal from '../components/ui/ConfirmModal';
 
 interface ProprietaireLayoutProps {
@@ -20,32 +21,34 @@ interface ProprietaireLayoutProps {
     onLogout: () => void;
 }
 
+// `label` contient une clé i18n, traduite au rendu via t(item.label).
 const NAV_ITEMS = [
-    { icon: LayoutDashboard, label: 'Vue d\'ensemble', path: '/dashboard/proprietaire' },
-    { icon: Building2,       label: 'Mes Biens',       path: '/dashboard/biens' },
-    { icon: Users,           label: 'Locataires',       path: '/dashboard/locataires' },
-    { icon: Wallet,          label: 'Finances',         path: '/dashboard/finances' },
-    { icon: FileText,        label: 'Contrats',         path: '/dashboard/contrats' },
-    { icon: FolderOpen,      label: 'Documents',        path: '/dashboard/documents' },
-    { icon: Receipt,         label: 'Quittances',       path: '/dashboard/quittances' },
-    { icon: BarChart3,       label: 'Rapports',         path: '/dashboard/rapports' },
+    { icon: LayoutDashboard, label: 'nav.vueDensemble', path: '/dashboard/proprietaire' },
+    { icon: Building2,       label: 'nav.mesBiens',     path: '/dashboard/biens' },
+    { icon: Users,           label: 'nav.locataires',   path: '/dashboard/locataires' },
+    { icon: Wallet,          label: 'nav.financesItem', path: '/dashboard/finances' },
+    { icon: FileText,        label: 'nav.contrats',     path: '/dashboard/contrats' },
+    { icon: FolderOpen,      label: 'nav.documents',    path: '/dashboard/documents' },
+    { icon: Receipt,         label: 'nav.quittances',   path: '/dashboard/quittances' },
+    { icon: BarChart3,       label: 'nav.rapports',     path: '/dashboard/rapports' },
 ];
 
 const BOTTOM_ITEMS = [
-    { icon: Bell,     label: 'Alertes',    path: '/dashboard/alertes' },
-    { icon: Settings, label: 'Paramètres', path: '/dashboard/parametres' },
-    { icon: UserCog,  label: 'Mon Profil', path: '/dashboard/mon-compte' },
+    { icon: Bell,     label: 'nav.alertes',    path: '/dashboard/alertes' },
+    { icon: Settings, label: 'nav.parametres', path: '/dashboard/parametres' },
+    { icon: UserCog,  label: 'nav.monProfil',  path: '/dashboard/mon-compte' },
 ];
 
 const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLogout }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const isMobile = useMobile();
+    const { t } = useTranslation();
     const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
     const [userProfile, setUserProfile] = useState<any>(null);
     const [alertsCount, setAlertsCount] = useState(0);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    const [gestionnaireName, setGestionnaireName] = useState<string>('votre gestionnaire');
+    const [gestionnaireName, setGestionnaireName] = useState<string>('');
 
     useEffect(() => { setSidebarOpen(!isMobile); }, [isMobile]);
 
@@ -88,8 +91,8 @@ const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLog
                 <div className="flex items-center gap-2">
                     <Eye size={13} className="text-teal-500 shrink-0" />
                     <div>
-                        <p className="text-xs font-semibold text-teal-700">Mode consultation</p>
-                        <p className="text-[10px] text-teal-500 leading-tight">Géré par {gestionnaireName}</p>
+                        <p className="text-xs font-semibold text-teal-700">{t('layout.consultationMode')}</p>
+                        <p className="text-[10px] text-teal-500 leading-tight">{t('layout.managedBy', { name: gestionnaireName || t('layout.yourManager') })}</p>
                     </div>
                 </div>
             </div>
@@ -113,7 +116,7 @@ const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLog
                             `}
                         >
                             <Icon size={18} className={active ? 'text-white' : 'text-base-content/50 group-hover:text-base-content'} />
-                            <span className="flex-1">{label}</span>
+                            <span className="flex-1">{t(label)}</span>
                             {active && <ChevronRight size={14} className="text-white/70" />}
                         </Link>
                     );
@@ -136,8 +139,8 @@ const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLog
                             `}
                         >
                             <Icon size={17} className="text-base-content/50 group-hover:text-base-content" />
-                            <span>{label}</span>
-                            {label === 'Alertes' && alertsCount > 0 && (
+                            <span>{t(label)}</span>
+                            {label === 'nav.alertes' && alertsCount > 0 && (
                                 <span className="ml-auto bg-error text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                                     {alertsCount}
                                 </span>
@@ -197,10 +200,10 @@ const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLog
 
                         {/* Breadcrumb */}
                         <div className="hidden md:flex items-center gap-1 text-sm text-base-content/50">
-                            <span>Portail propriétaire</span>
+                            <span>{t('layout.ownerPortal')}</span>
                             <ChevronRight size={14} />
                             <span className="text-base-content font-medium capitalize">
-                                {location.pathname.split('/').pop()?.replace('-', ' ') || 'Bureau'}
+                                {location.pathname.split('/').pop()?.replace('-', ' ') || t('nav.bureau')}
                             </span>
                         </div>
                     </div>
@@ -209,7 +212,7 @@ const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLog
                     <div className="flex items-center gap-2">
                         <div className="hidden sm:flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-full">
                             <Eye size={12} />
-                            <span>Lecture seule</span>
+                            <span>{t('layout.readOnly')}</span>
                         </div>
 
                         {alertsCount > 0 && (
@@ -251,9 +254,9 @@ const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLog
                 isOpen={showLogoutConfirm}
                 onConfirm={handleLogout}
                 onClose={() => setShowLogoutConfirm(false)}
-                title="Déconnexion"
-                message="Êtes-vous sûr de vouloir vous déconnecter ?"
-                confirmLabel="Se déconnecter"
+                title={t('common.logoutTitle')}
+                message={t('common.logoutMessage')}
+                confirmLabel={t('common.logoutConfirm')}
             />
         </div>
     );

@@ -11,6 +11,7 @@ import {
 import { getProfile } from '../api/authApi';
 import { getAlerts } from '../api/alertApi';
 import { useMobile } from '../hooks/useMobile';
+import { useTranslation } from 'react-i18next';
 import ConfirmModal from '../components/ui/ConfirmModal';
 
 interface LocataireLayoutProps {
@@ -18,26 +19,28 @@ interface LocataireLayoutProps {
     onLogout: () => void;
 }
 
+// `label` contient une clé i18n, traduite au rendu via t(item.label).
 const NAV_ITEMS = [
-    { icon: LayoutDashboard, label: 'Tableau de bord',   path: '/dashboard/locataire' },
-    { icon: Home,            label: 'Mon Logement',       path: '/dashboard/locataire' },
-    { icon: Wallet,          label: 'Mes Paiements',      path: '/dashboard/finances' },
-    { icon: FileText,        label: 'Mon Contrat',        path: '/dashboard/contrats' },
-    { icon: FolderOpen,      label: 'Documents',          path: '/dashboard/documents' },
-    { icon: Receipt,         label: 'Quittances',         path: '/dashboard/quittances' },
-    { icon: MessageSquare,   label: 'Plaintes / Incidents', path: '/dashboard/alertes' },
+    { icon: LayoutDashboard, label: 'nav.tableauDeBord',    path: '/dashboard/locataire' },
+    { icon: Home,            label: 'nav.monLogement',      path: '/dashboard/locataire' },
+    { icon: Wallet,          label: 'nav.mesPaiements',     path: '/dashboard/finances' },
+    { icon: FileText,        label: 'nav.monContrat',       path: '/dashboard/contrats' },
+    { icon: FolderOpen,      label: 'nav.documents',        path: '/dashboard/documents' },
+    { icon: Receipt,         label: 'nav.quittances',       path: '/dashboard/quittances' },
+    { icon: MessageSquare,   label: 'nav.plaintesIncidents', path: '/dashboard/alertes' },
 ];
 
 const BOTTOM_ITEMS = [
-    { icon: Bell,    label: 'Notifications', path: '/dashboard/alertes' },
-    { icon: Settings, label: 'Paramètres',  path: '/dashboard/parametres' },
-    { icon: UserCog, label: 'Mon Profil',   path: '/dashboard/mon-compte' },
+    { icon: Bell,    label: 'nav.notifications', path: '/dashboard/alertes' },
+    { icon: Settings, label: 'nav.parametres',   path: '/dashboard/parametres' },
+    { icon: UserCog, label: 'nav.monProfil',     path: '/dashboard/mon-compte' },
 ];
 
 const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const isMobile = useMobile();
+    const { t } = useTranslation();
     const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
     const [userProfile, setUserProfile] = useState<any>(null);
     const [alertsCount, setAlertsCount] = useState(0);
@@ -84,8 +87,8 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
                 <div className="flex items-center gap-2">
                     <Home size={13} className="text-green-600 shrink-0" />
                     <div>
-                        <p className="text-xs font-semibold text-green-700">Espace Locataire</p>
-                        <p className="text-[10px] text-green-500 leading-tight">Mon espace personnel</p>
+                        <p className="text-xs font-semibold text-green-700">{t('layout.tenantArea')}</p>
+                        <p className="text-[10px] text-green-500 leading-tight">{t('layout.myPersonalSpace')}</p>
                     </div>
                 </div>
             </div>
@@ -109,7 +112,7 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
                             `}
                         >
                             <Icon size={18} className={active ? 'text-white' : 'text-base-content/50 group-hover:text-base-content'} />
-                            <span className="flex-1">{label}</span>
+                            <span className="flex-1">{t(label)}</span>
                             {active && <ChevronRight size={14} className="text-white/70" />}
                         </Link>
                     );
@@ -132,8 +135,8 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
                             `}
                         >
                             <Icon size={17} className="text-base-content/50 group-hover:text-base-content" />
-                            <span>{label}</span>
-                            {label === 'Notifications' && alertsCount > 0 && (
+                            <span>{t(label)}</span>
+                            {label === 'nav.notifications' && alertsCount > 0 && (
                                 <span className="ml-auto bg-error text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                                     {alertsCount}
                                 </span>
@@ -188,10 +191,10 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
                         </button>
 
                         <div className="hidden md:flex items-center gap-1 text-sm text-base-content/50">
-                            <span>Portail locataire</span>
+                            <span>{t('layout.tenantPortal')}</span>
                             <ChevronRight size={14} />
                             <span className="text-base-content font-medium capitalize">
-                                {location.pathname.split('/').pop()?.replace('-', ' ') || 'Tableau de bord'}
+                                {location.pathname.split('/').pop()?.replace('-', ' ') || t('nav.tableauDeBord')}
                             </span>
                         </div>
                     </div>
@@ -235,9 +238,9 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
                 isOpen={showLogoutConfirm}
                 onConfirm={handleLogout}
                 onClose={() => setShowLogoutConfirm(false)}
-                title="Déconnexion"
-                message="Êtes-vous sûr de vouloir vous déconnecter ?"
-                confirmLabel="Se déconnecter"
+                title={t('common.logoutTitle')}
+                message={t('common.logoutMessage')}
+                confirmLabel={t('common.logoutConfirm')}
             />
         </div>
     );

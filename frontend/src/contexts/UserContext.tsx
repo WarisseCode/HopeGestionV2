@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { getProfile, getToken } from '../api/authApi';
 import { apiCall } from '../utils/apiUtils';
 import { API_URL as BASE_URL } from '../config';
+import i18n from '../i18n';
 
 // Types
 export interface UserProfile {
@@ -89,6 +90,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       const profile = await getProfile();
       const userData = profile.user as UserProfile;
       setUser(userData);
+
+      // Applique la langue enregistrée côté serveur (prime sur le détecteur).
+      if (userData.preferences?.language) {
+        i18n.changeLanguage(userData.preferences.language);
+      }
 
       // Set explicit theme
       if (userData.preferences?.theme) {
