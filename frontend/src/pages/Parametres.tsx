@@ -304,33 +304,14 @@ const Parametres: React.FC = () => {
                   </div>
                 </Card>
 
-                <Card title="Préférences régionales" className="border-none shadow-xl bg-base-100">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-bold text-base-content/80 flex items-center gap-2"><Globe size={15} /> Langue</label>
-                      <select aria-label="Langue de l'interface" value={form.language} onChange={e => setForm({ ...form, language: e.target.value })}
-                        className="select select-bordered w-full bg-base-200 focus:bg-base-100">
-                        <option value="fr">Français (France)</option>
-                        <option value="en">English (US)</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-bold text-base-content/80">Devise par défaut</label>
-                      <select aria-label="Devise par défaut" value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })}
-                        className="select select-bordered w-full bg-base-200 focus:bg-base-100">
-                        <option value="XOF">FCFA (XOF)</option>
-                        <option value="EUR">Euro (€)</option>
-                        <option value="USD">Dollar ($)</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-bold text-base-content/80">Fuseau horaire</label>
-                      <select aria-label="Fuseau horaire" value={form.timezone} onChange={e => setForm({ ...form, timezone: e.target.value })}
-                        className="select select-bordered w-full bg-base-200 focus:bg-base-100">
-                        <option value="GMT">GMT (Abidjan, Dakar)</option>
-                        <option value="GMT+1">GMT+1 (Cotonou, Lagos, Paris)</option>
-                      </select>
-                    </div>
+                <Card title="Langue" className="border-none shadow-xl bg-base-100">
+                  <div className="max-w-sm space-y-1.5">
+                    <label className="text-sm font-bold text-base-content/80 flex items-center gap-2"><Globe size={15} /> Langue de l'interface</label>
+                    <select aria-label="Langue de l'interface" value={form.language} onChange={e => setForm({ ...form, language: e.target.value })}
+                      className="select select-bordered w-full bg-base-200 focus:bg-base-100">
+                      <option value="fr">Français (France)</option>
+                      <option value="en">English (US)</option>
+                    </select>
                   </div>
                 </Card>
               </motion.div>

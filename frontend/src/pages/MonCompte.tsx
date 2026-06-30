@@ -1,12 +1,7 @@
 // frontend/src/pages/MonCompte.tsx
 import React, { useState } from 'react';
-import { 
-  Users, 
-  Shield, 
-  Building2, 
-} from 'lucide-react';
+import { Users, Shield } from 'lucide-react';
 import CompteUtilisateurs from "../components/CompteUtilisateurs";
-import CompteProprietaires from "../components/CompteProprietaires";
 import Permissions from '../components/Permissions';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -15,30 +10,18 @@ import { useUser } from '../contexts/UserContext';
 const MonCompte: React.FC = () => {
   const { user } = useUser(); // Use context
 
-  // Determine if user is an owner (proprietaire)
-  const isOwner = user?.role === 'proprietaire' || user?.role === 'owner';
-
-  // Onglets d'administration du compte. Le profil personnel a été déplacé vers
-  // la page « Paramètres » (source unique des réglages perso).
-  const [activeTab, setActiveTab] = useState<'proprietaires' | 'utilisateurs' | 'autorisation'>(
-    (user?.role === 'proprietaire' || user?.role === 'owner') ? 'utilisateurs' : 'proprietaires'
-  );
+  // Onglets d'administration du compte. Le profil personnel est dans « Paramètres ».
+  // La gestion des propriétaires a sa propre page (« Propriétaires ») → retirée d'ici.
+  const [activeTab, setActiveTab] = useState<'utilisateurs' | 'autorisation'>('utilisateurs');
 
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
-  
+
   // Check permission for Users tab
   const showUsersTab = user?.permissions?.users_read || ['admin', 'gestionnaire', 'proprietaire', 'owner'].includes(user?.role || '');
 
-  // Effect to correct tab if user role loads late and we are on a forbidden tab
-  React.useEffect(() => {
-     if (isOwner && activeTab === 'proprietaires') {
-         setActiveTab('utilisateurs');
-     }
-  }, [user, isOwner, activeTab]);
-
   return (
-    <motion.div 
+    <motion.div
       className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto"
       variants={containerVariants}
       initial="hidden"
@@ -49,17 +32,6 @@ const MonCompte: React.FC = () => {
       {/* Tabs */}
      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-center bg-base-100 rounded-2xl p-2 shadow-sm border border-base-200">
         <div className="flex p-1 bg-base-300/50 rounded-xl overflow-x-auto">
-             {!isOwner && (
-                 <button
-                    onClick={() => setActiveTab('proprietaires')}
-                    className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-                    activeTab === 'proprietaires' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content/80'
-                    }`}
-                >
-                    <Building2 size={18} />
-                    Propriétaires
-                </button>
-             )}
             {showUsersTab && (
                 <button
                     onClick={() => setActiveTab('utilisateurs')}
@@ -85,19 +57,8 @@ const MonCompte: React.FC = () => {
 
       {/* Content */}
       <AnimatePresence mode="wait">
-        {!isOwner && activeTab === 'proprietaires' && (
-            <motion.div 
-            key="proprietaires"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            >
-                <CompteProprietaires />
-            </motion.div>
-        )}
-
         {activeTab === 'utilisateurs' && (
-             <motion.div 
+             <motion.div
              key="utilisateurs"
              initial={{ opacity: 0 }}
              animate={{ opacity: 1 }}
@@ -108,7 +69,7 @@ const MonCompte: React.FC = () => {
         )}
 
         {activeTab === 'autorisation' && (
-             <motion.div 
+             <motion.div
              key="autorisation"
              initial={{ opacity: 0 }}
              animate={{ opacity: 1 }}
