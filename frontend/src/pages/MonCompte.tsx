@@ -5,30 +5,24 @@ import {
   Shield, 
   Building2, 
 } from 'lucide-react';
-import Alert from '../components/ui/Alert';
 import CompteUtilisateurs from "../components/CompteUtilisateurs";
 import CompteProprietaires from "../components/CompteProprietaires";
-import CompteProfil from "../components/CompteProfil";
 import Permissions from '../components/Permissions';
-import { getRole } from '../api/authApi';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useUser } from '../contexts/UserContext';
-// ... existing imports ...
 
 const MonCompte: React.FC = () => {
   const { user } = useUser(); // Use context
-  
+
   // Determine if user is an owner (proprietaire)
   const isOwner = user?.role === 'proprietaire' || user?.role === 'owner';
 
-  // Set default tab: If owner, skip 'proprietaires' and go to 'utilisateurs' (or 'profile')
-  const [activeTab, setActiveTab] = useState<'proprietaires' | 'utilisateurs' | 'autorisation' | 'profile'>(
+  // Onglets d'administration du compte. Le profil personnel a été déplacé vers
+  // la page « Paramètres » (source unique des réglages perso).
+  const [activeTab, setActiveTab] = useState<'proprietaires' | 'utilisateurs' | 'autorisation'>(
     (user?.role === 'proprietaire' || user?.role === 'owner') ? 'utilisateurs' : 'proprietaires'
   );
-
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
@@ -86,15 +80,6 @@ const MonCompte: React.FC = () => {
                 <Shield size={18} />
                 Permissions
             </button>
-             <button
-                onClick={() => setActiveTab('profile')}
-                className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'profile' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content/80'
-                }`}
-            >
-                <Users size={18} />
-                Mon Profil
-            </button>
         </div>
       </motion.div>
 
@@ -130,17 +115,6 @@ const MonCompte: React.FC = () => {
              exit={{ opacity: 0 }}
              >
                 <Permissions />
-             </motion.div>
-        )}
-
-        {activeTab === 'profile' && (
-             <motion.div 
-             key="profile"
-             initial={{ opacity: 0 }}
-             animate={{ opacity: 1 }}
-             exit={{ opacity: 0 }}
-             >
-                <CompteProfil />
              </motion.div>
         )}
       </AnimatePresence>

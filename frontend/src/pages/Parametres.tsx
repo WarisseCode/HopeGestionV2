@@ -1,90 +1,102 @@
 // frontend/src/pages/Parametres.tsx
+// Page de réglages du compte (source unique). Regroupe ce qui était auparavant
+// éclaté entre « Mon Compte › Mon Profil » (CompteProfil) et l'ancienne page
+// Paramètres décorative : identité + photo, préférences (thème/langue/devise/
+// fuseau), notifications réelles, sécurité (mot de passe).
+//
+// Tout est câblé sur accountApi (endpoints /auth/profile + /auth/change-password),
+// et on appelle refreshUser() après sauvegarde pour resynchroniser le contexte
+// global (nom dans le header, thème initialisé par UserContext).
+
 import React, { useState, useEffect } from 'react';
 import {
-  User,
-  Bell,
-  Lock,
-  CreditCard,
-  Globe,
-  Moon,
-  Sun,
-  Save,
-  Smartphone,
-  Mail,
-  ChevronRight,
-  Shield,
-  Loader2,
-  Check
+  User, Bell, Lock, Globe, Moon, Sun, Save, Smartphone, Mail,
+  ChevronRight, Shield, Loader2, Check, Camera, MessageCircle, SlidersHorizontal
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import { useUser } from '../contexts/UserContext';
-import { updateProfile, changePassword } from '../api/authApi';
+import { accountApi } from '../api/accountApi';
+import { API_BASE, API_URL } from '../config';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
-const Parametres: React.FC = () => {
-  const { user, refreshUser } = useUser();
-  const canWrite = !['proprietaire', 'locataire'].includes(user?.userType || '');
+type Tab = 'profil' | 'preferences' | 'notifications' | 'securite';
 
-  const [activeTab, setActiveTab] = useState<'profil' | 'notifications' | 'securite' | 'integrations'>('profil');
-  const [savingProfil, setSavingProfil] = useState(false);
+const Parametres: React.FC = () => {
+  const { refreshUser } = useUser();
+
+  const [activeTab, setActiveTab] = useState<Tab>('profil');
+  const [loading, setLoading] = useState(true);
+  const [savingAll, setSavingAll] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
-  // Profil form state — split nom into two parts
-  const [profil, setProfil] = useState({ nom: '', prenom: '', email: '', telephone: '', bio: '' });
-  const [darkMode, setDarkMode] = useState(false);
+  // photo_url est géré à part (upload immédiat) : on ne le met pas dans formData.
+  const [photoUrl, setPhotoUrl] = useState<string>('');
 
-  // Password form state
+  // État unique du formulaire : profil + préférences + notifications.
+  const [form, setForm] = useState({
+    nom: '', prenom: '', email: '', telephone: '',
+    language: 'fr', currency: 'XOF', timezone: 'GMT+1', theme: 'light',
+    notifEmail: true, notifWhatsApp: false,
+  });
+
   const [pwdForm, setPwdForm] = useState({ current: '', next: '', confirm: '' });
 
-  // Sync form with loaded user
+  // ── Chargement initial depuis l'API réelle ──
   useEffect(() => {
-    if (!user) return;
-    const parts = (user.nom || '').split(' ');
-    setProfil({
-      nom: parts[0] || '',
-      prenom: parts.slice(1).join(' ') || '',
-      email: user.email || '',
-      telephone: user.telephone || '',
-      bio: user.preferences?.bio || ''
-    });
-    setDarkMode(user.preferences?.theme === 'dark');
-  }, [user]);
+    (async () => {
+      try {
+        const data: any = await accountApi.getProfile();
+        setPhotoUrl(data.photo_url || '');
+        setForm({
+          nom: data.nom || '',
+          prenom: data.prenom || '',
+          email: data.email || '',
+          telephone: data.telephone || '',
+          language: data.preferences?.language || 'fr',
+          currency: data.preferences?.currency || 'XOF',
+          timezone: data.preferences?.timezone || 'GMT+1',
+          theme: data.preferences?.theme || 'light',
+          notifEmail: data.preferences?.notifications?.email ?? true,
+          notifWhatsApp: data.preferences?.notifications?.whatsapp ?? false,
+        });
+      } catch {
+        toast.error('Erreur lors du chargement du profil');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const initials = (() => {
-    const parts = (user?.nom || '').split(' ').filter(Boolean);
-    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return 'U';
+    const a = form.prenom?.charAt(0) || '';
+    const b = form.nom?.charAt(0) || '';
+    return (a + b).toUpperCase() || 'U';
   })();
 
-  const handleSaveProfil = async () => {
-    if (!profil.email) { toast.error('L\'email est requis'); return; }
-    setSavingProfil(true);
-    try {
-      await updateProfile({
-        nom: profil.nom,
-        prenom: profil.prenom,
-        email: profil.email,
-        telephone: profil.telephone,
-        preferences: { ...(user?.preferences || {}), bio: profil.bio, theme: darkMode ? 'dark' : 'light' }
-      });
-      await refreshUser();
-      toast.success('Profil mis à jour avec succès');
-    } catch (err: any) {
-      toast.error(err.message || 'Erreur lors de la mise à jour');
-    } finally {
-      setSavingProfil(false);
-    }
-  };
+  // Construit le payload complet attendu par /auth/profile.
+  const buildPayload = () => ({
+    nom: form.nom,
+    prenom: form.prenom,
+    email: form.email,
+    telephone: form.telephone,
+    photo_url: photoUrl,
+    preferences: {
+      language: form.language,
+      currency: form.currency,
+      timezone: form.timezone,
+      theme: form.theme,
+      notifications: { email: form.notifEmail, whatsapp: form.notifWhatsApp },
+    },
+  });
 
-  const handleThemeToggle = async (enabled: boolean) => {
-    setDarkMode(enabled);
-    const theme = enabled ? 'dark' : 'light';
-    // Apply theme immediately to DOM
-    if (enabled) {
+  // Applique le thème au DOM + localStorage immédiatement (aperçu instantané).
+  // La persistance backend se fait au clic « Enregistrer » ; UserContext relira
+  // preferences.theme au prochain refreshUser pour rester cohérent.
+  const applyTheme = (theme: 'light' | 'dark') => {
+    if (theme === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
       document.documentElement.classList.add('dark');
     } else {
@@ -92,37 +104,61 @@ const Parametres: React.FC = () => {
       document.documentElement.classList.remove('dark');
     }
     localStorage.setItem('theme', theme);
-    // Persist to backend silently
+    setForm(f => ({ ...f, theme }));
+  };
+
+  const handleSaveAll = async () => {
+    if (!form.email) { toast.error('L\'email est requis'); return; }
+    setSavingAll(true);
     try {
-      await updateProfile({
-        nom: profil.nom,
-        prenom: profil.prenom,
-        email: profil.email,
-        telephone: profil.telephone,
-        preferences: { ...(user?.preferences || {}), bio: profil.bio, theme }
-      });
+      await accountApi.updateProfile(buildPayload());
       await refreshUser();
+      toast.success('Modifications enregistrées');
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de la mise à jour');
+    } finally {
+      setSavingAll(false);
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('type', 'avatar');
+    const t = toast.loading('Téléchargement de la photo...');
+    try {
+      const res = await fetch(`${API_URL}/upload`, { method: 'POST', body: fd });
+      const data = await res.json();
+      if (res.ok && data.files?.[0]) {
+        const url = `${API_BASE}${data.files[0].path}`;
+        setPhotoUrl(url);
+        // Persistance immédiate de la photo (UX : pas besoin de cliquer Enregistrer).
+        await accountApi.updateProfile({ ...buildPayload(), photo_url: url });
+        await refreshUser();
+        toast.success('Photo mise à jour', { id: t });
+      } else {
+        throw new Error(data.message || 'Erreur inconnue');
+      }
     } catch {
-      // Non-critical — theme already applied locally
+      toast.error("Erreur lors de l'upload de la photo", { id: t });
     }
   };
 
   const handleChangePassword = async () => {
     if (!pwdForm.current || !pwdForm.next || !pwdForm.confirm) {
-      toast.error('Veuillez remplir tous les champs');
-      return;
+      toast.error('Veuillez remplir tous les champs'); return;
     }
     if (pwdForm.next !== pwdForm.confirm) {
-      toast.error('Les mots de passe ne correspondent pas');
-      return;
+      toast.error('Les mots de passe ne correspondent pas'); return;
     }
     if (pwdForm.next.length < 6) {
-      toast.error('Le nouveau mot de passe doit contenir au moins 6 caractères');
-      return;
+      toast.error('Le nouveau mot de passe doit contenir au moins 6 caractères'); return;
     }
     setSavingPassword(true);
     try {
-      await changePassword(pwdForm.current, pwdForm.next);
+      await accountApi.changePassword({ currentPassword: pwdForm.current, newPassword: pwdForm.next });
       setPwdForm({ current: '', next: '', confirm: '' });
       toast.success('Mot de passe modifié avec succès');
     } catch (err: any) {
@@ -132,15 +168,18 @@ const Parametres: React.FC = () => {
     }
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
+  const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
+  const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
 
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
-  };
+  if (loading) return (
+    <div className="flex justify-center items-center h-64">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+    </div>
+  );
+
+  // Le bouton « Enregistrer » global ne concerne pas l'onglet Sécurité
+  // (qui a son propre bouton de validation du mot de passe).
+  const showSaveButton = activeTab !== 'securite';
 
   return (
     <motion.div
@@ -159,37 +198,34 @@ const Parametres: React.FC = () => {
             Personnalisez votre expérience et sécurisez votre compte.
           </p>
         </div>
-        {activeTab === 'profil' && (
+        {showSaveButton && (
           <Button
             variant="primary"
-            onClick={handleSaveProfil}
-            disabled={savingProfil}
+            onClick={handleSaveAll}
+            disabled={savingAll}
             className="rounded-full px-6 h-10 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all font-semibold"
           >
-            {savingProfil
-              ? <Loader2 size={18} className="mr-2 animate-spin" />
-              : <Save size={18} className="mr-2" />
-            }
-            {savingProfil ? 'Enregistrement...' : 'Enregistrer'}
+            {savingAll ? <Loader2 size={18} className="mr-2 animate-spin" /> : <Save size={18} className="mr-2" />}
+            {savingAll ? 'Enregistrement...' : 'Enregistrer'}
           </Button>
         )}
       </motion.div>
 
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Sidebar */}
+        {/* Sidebar des onglets */}
         <motion.div variants={itemVariants} className="lg:w-72 flex-shrink-0">
           <Card className="p-2 border-none shadow-lg bg-base-100 sticky top-6">
             <nav className="space-y-1">
-              {[
+              {([
                 { id: 'profil', icon: User, label: 'Mon Profil' },
+                { id: 'preferences', icon: SlidersHorizontal, label: 'Préférences' },
                 { id: 'notifications', icon: Bell, label: 'Notifications' },
                 { id: 'securite', icon: Shield, label: 'Sécurité' },
-                { id: 'integrations', icon: Globe, label: 'Intégrations' },
-              ].map((item) => (
+              ] as { id: Tab; icon: any; label: string }[]).map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setActiveTab(item.id as any)}
+                  onClick={() => setActiveTab(item.id)}
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 font-medium ${
                     activeTab === item.id
                       ? 'bg-primary text-white shadow-md shadow-primary/30'
@@ -213,83 +249,88 @@ const Parametres: React.FC = () => {
 
             {/* ── PROFIL ── */}
             {activeTab === 'profil' && (
-              <motion.div
-                key="profil"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
-              >
+              <motion.div key="profil" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
                 <Card title="Informations Personnelles" className="border-none shadow-xl bg-base-100/80 backdrop-blur-sm">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Avatar */}
+                    {/* Avatar + upload */}
                     <div className="md:col-span-2 flex justify-center mb-4">
-                      <div className="relative">
-                        <div className="avatar placeholder">
-                          <div className="bg-primary text-white rounded-full w-24 h-24 flex items-center justify-center text-3xl font-bold">
-                            {initials}
-                          </div>
+                      <div className="relative group w-24 h-24">
+                        <div className="w-full h-full rounded-full overflow-hidden border-4 border-base-100 shadow-xl bg-primary text-white flex items-center justify-center text-3xl font-bold">
+                          {photoUrl
+                            ? <img src={photoUrl} alt="Profil" className="w-full h-full object-cover" />
+                            : initials}
+                        </div>
+                        <label className="absolute inset-0 cursor-pointer rounded-full bg-black/0 hover:bg-black/30 transition-all flex items-center justify-center opacity-0 hover:opacity-100">
+                          <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                          <span className="text-white text-xs font-medium flex flex-col items-center gap-1">
+                            <Camera size={18} />
+                            Modifier
+                          </span>
+                        </label>
+                        <div className="absolute bottom-0 right-0 bg-primary text-white p-1.5 rounded-full pointer-events-none shadow-lg border-2 border-base-100">
+                          <Camera size={12} />
                         </div>
                       </div>
                     </div>
 
-                    <Input
-                      label="Nom"
-                      placeholder="Votre nom de famille"
-                      value={profil.nom}
-                      onChange={e => setProfil({ ...profil, nom: e.target.value })}
-                    />
-                    <Input
-                      label="Prénom(s)"
-                      placeholder="Votre prénom"
-                      value={profil.prenom}
-                      onChange={e => setProfil({ ...profil, prenom: e.target.value })}
-                    />
-                    <Input
-                      label="Email"
-                      type="email"
-                      placeholder="votre@email.com"
-                      value={profil.email}
-                      onChange={e => setProfil({ ...profil, email: e.target.value })}
-                      startIcon={<Mail size={16} />}
-                    />
-                    <Input
-                      label="Téléphone"
-                      placeholder="+229..."
-                      value={profil.telephone}
-                      onChange={e => setProfil({ ...profil, telephone: e.target.value })}
-                      startIcon={<Smartphone size={16} />}
-                    />
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-bold text-base-content/80 mb-2">Bio / Description</label>
-                      <textarea
-                        className="textarea textarea-bordered w-full h-24 bg-base-200 focus:bg-base-100 transition-colors"
-                        placeholder="Description de votre agence..."
-                        value={profil.bio}
-                        onChange={e => setProfil({ ...profil, bio: e.target.value })}
-                      />
-                    </div>
+                    <Input label="Nom" placeholder="Votre nom de famille"
+                      value={form.nom} onChange={e => setForm({ ...form, nom: e.target.value })} />
+                    <Input label="Prénom(s)" placeholder="Votre prénom"
+                      value={form.prenom} onChange={e => setForm({ ...form, prenom: e.target.value })} />
+                    <Input label="Email" type="email" placeholder="votre@email.com" startIcon={<Mail size={16} />}
+                      value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+                    <Input label="Téléphone" placeholder="+229..." startIcon={<Smartphone size={16} />}
+                      value={form.telephone} onChange={e => setForm({ ...form, telephone: e.target.value })} />
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* ── PRÉFÉRENCES ── */}
+            {activeTab === 'preferences' && (
+              <motion.div key="preferences" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                <Card title="Apparence" className="border-none shadow-xl bg-base-100">
+                  <div className="grid grid-cols-2 gap-4 max-w-md">
+                    <button type="button" onClick={() => applyTheme('light')}
+                      className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${form.theme === 'light' ? 'border-primary bg-primary/5 shadow-sm' : 'border-base-200 hover:border-base-300'}`}>
+                      <div className="p-3 rounded-full bg-base-300 text-base-content/70"><Sun size={20} /></div>
+                      <span className="font-medium text-sm">Clair</span>
+                    </button>
+                    <button type="button" onClick={() => applyTheme('dark')}
+                      className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${form.theme === 'dark' ? 'border-primary bg-primary/5 shadow-sm' : 'border-base-200 hover:border-base-300'}`}>
+                      <div className="p-3 rounded-full bg-gray-800 text-white"><Moon size={20} /></div>
+                      <span className="font-medium text-sm">Sombre</span>
+                    </button>
                   </div>
                 </Card>
 
-                <Card title="Apparence" className="border-none shadow-xl bg-base-100">
-                  <div className="flex items-center justify-between p-2">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-xl ${darkMode ? 'bg-teal-900 text-teal-300' : 'bg-teal-100 text-teal-600'}`}>
-                        {darkMode ? <Moon size={24} /> : <Sun size={24} />}
-                      </div>
-                      <div>
-                        <p className="font-bold text-base-content/90">Mode Sombre</p>
-                        <p className="text-sm text-base-content/60">Activer le thème sombre pour l'interface</p>
-                      </div>
+                <Card title="Préférences régionales" className="border-none shadow-xl bg-base-100">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-bold text-base-content/80 flex items-center gap-2"><Globe size={15} /> Langue</label>
+                      <select aria-label="Langue de l'interface" value={form.language} onChange={e => setForm({ ...form, language: e.target.value })}
+                        className="select select-bordered w-full bg-base-200 focus:bg-base-100">
+                        <option value="fr">Français (France)</option>
+                        <option value="en">English (US)</option>
+                      </select>
                     </div>
-                    <input
-                      type="checkbox"
-                      aria-label="Activer le mode sombre"
-                      className="toggle toggle-primary toggle-lg"
-                      checked={darkMode}
-                      onChange={e => handleThemeToggle(e.target.checked)}
-                    />
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-bold text-base-content/80">Devise par défaut</label>
+                      <select aria-label="Devise par défaut" value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })}
+                        className="select select-bordered w-full bg-base-200 focus:bg-base-100">
+                        <option value="XOF">FCFA (XOF)</option>
+                        <option value="EUR">Euro (€)</option>
+                        <option value="USD">Dollar ($)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-bold text-base-content/80">Fuseau horaire</label>
+                      <select aria-label="Fuseau horaire" value={form.timezone} onChange={e => setForm({ ...form, timezone: e.target.value })}
+                        className="select select-bordered w-full bg-base-200 focus:bg-base-100">
+                        <option value="GMT">GMT (Abidjan, Dakar)</option>
+                        <option value="GMT+1">GMT+1 (Cotonou, Lagos, Paris)</option>
+                      </select>
+                    </div>
                   </div>
                 </Card>
               </motion.div>
@@ -297,45 +338,34 @@ const Parametres: React.FC = () => {
 
             {/* ── NOTIFICATIONS ── */}
             {activeTab === 'notifications' && (
-              <motion.div
-                key="notifications"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-              >
-                <Card title="Préférences de Notifications" className="border-none shadow-xl bg-base-100">
-                  <div className="space-y-8">
-                    {[
-                      { icon: CreditCard, color: 'text-primary', bg: 'bg-primary/10', title: 'Paiements de loyer', desc: 'Recevoir une alerte quand un loyer est payé' },
-                      { icon: Smartphone, color: 'text-secondary', bg: 'bg-secondary/10', title: 'Nouveaux messages', desc: 'Alertes pour les messages des locataires' },
-                      { icon: Mail, color: 'text-accent', bg: 'bg-accent/10', title: 'Rapports mensuels', desc: 'Recevoir le récapitulatif financier par mail' }
-                    ].map((item, index) => (
-                      <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl hover:bg-base-200 transition-colors border border-base-200">
-                        <div className="flex items-center gap-4">
-                          <div className={`p-3 ${item.bg} ${item.color} rounded-xl`}>
-                            <item.icon size={24} />
-                          </div>
-                          <div>
-                            <p className="font-bold text-base-content/90">{item.title}</p>
-                            <p className="text-sm text-base-content/60">{item.desc}</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-6 pl-14 sm:pl-0">
-                          <label className="label cursor-pointer gap-2 flex-col items-center">
-                            <span className="label-text text-xs font-semibold">Email</span>
-                            <input type="checkbox" className="checkbox checkbox-primary checkbox-sm" defaultChecked />
-                          </label>
-                          <label className="label cursor-pointer gap-2 flex-col items-center">
-                            <span className="label-text text-xs font-semibold">Push</span>
-                            <input type="checkbox" className="checkbox checkbox-primary checkbox-sm" />
-                          </label>
-                          <label className="label cursor-pointer gap-2 flex-col items-center">
-                            <span className="label-text text-xs font-semibold">SMS</span>
-                            <input type="checkbox" className="checkbox checkbox-primary checkbox-sm" />
-                          </label>
+              <motion.div key="notifications" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <Card title="Canaux de notification" className="border-none shadow-xl bg-base-100">
+                  <div className="space-y-4">
+                    {/* Email — réellement persisté dans preferences.notifications.email */}
+                    <label className="flex items-center justify-between gap-4 p-4 rounded-xl border border-base-200 hover:bg-base-200 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-primary/10 text-primary rounded-xl"><Mail size={22} /></div>
+                        <div>
+                          <p className="font-bold text-base-content/90">Emails système</p>
+                          <p className="text-sm text-base-content/60">Reçus, alertes de paiement et rappels par email</p>
                         </div>
                       </div>
-                    ))}
+                      <input type="checkbox" className="toggle toggle-primary toggle-lg"
+                        checked={form.notifEmail} onChange={e => setForm({ ...form, notifEmail: e.target.checked })} />
+                    </label>
+
+                    {/* WhatsApp — réellement persisté dans preferences.notifications.whatsapp */}
+                    <label className="flex items-center justify-between gap-4 p-4 rounded-xl border border-base-200 hover:bg-base-200 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-green-100 text-green-600 rounded-xl"><MessageCircle size={22} /></div>
+                        <div>
+                          <p className="font-bold text-base-content/90">WhatsApp</p>
+                          <p className="text-sm text-base-content/60">Alertes importantes envoyées sur WhatsApp</p>
+                        </div>
+                      </div>
+                      <input type="checkbox" className="toggle toggle-success toggle-lg"
+                        checked={form.notifWhatsApp} onChange={e => setForm({ ...form, notifWhatsApp: e.target.checked })} />
+                    </label>
                   </div>
                 </Card>
               </motion.div>
@@ -343,93 +373,29 @@ const Parametres: React.FC = () => {
 
             {/* ── SÉCURITÉ ── */}
             {activeTab === 'securite' && (
-              <motion.div
-                key="securite"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
-              >
+              <motion.div key="securite" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
                 <Card title="Sécurité du compte" className="border-none shadow-xl bg-base-100">
-                  <div className="space-y-8">
-                    <div>
-                      <h3 className="font-bold text-base-content/90 mb-6 flex items-center gap-2">
-                        <Lock className="text-primary" size={20} />
-                        Changer de mot de passe
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-base-200 rounded-2xl border border-base-200">
-                        <Input
-                          label="Mot de passe actuel"
-                          type="password"
-                          value={pwdForm.current}
-                          onChange={e => setPwdForm({ ...pwdForm, current: e.target.value })}
-                        />
-                        <div className="hidden md:block" />
-                        <Input
-                          label="Nouveau mot de passe"
-                          type="password"
-                          value={pwdForm.next}
-                          onChange={e => setPwdForm({ ...pwdForm, next: e.target.value })}
-                        />
-                        <Input
-                          label="Confirmer le nouveau mot de passe"
-                          type="password"
-                          value={pwdForm.confirm}
-                          onChange={e => setPwdForm({ ...pwdForm, confirm: e.target.value })}
-                        />
-                        <div className="md:col-span-2 flex justify-end">
-                          <Button
-                            variant="ghost"
-                            onClick={handleChangePassword}
-                            disabled={savingPassword}
-                            className="bg-base-100 shadow-sm border border-base-300"
-                          >
-                            {savingPassword
-                              ? <><Loader2 size={16} className="mr-2 animate-spin" />Mise à jour...</>
-                              : <><Check size={16} className="mr-2" />Mettre à jour</>
-                            }
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* ── INTÉGRATIONS ── */}
-            {activeTab === 'integrations' && (
-              <motion.div
-                key="integrations"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-              >
-                <Card title="Intégrations & API" className="border-none shadow-xl bg-base-100">
-                  <div className="grid grid-cols-1 gap-6">
-                    {[
-                      { name: 'MTN Mobile Money', status: 'Connecté • Compte principal', connected: true, color: 'bg-yellow-400 text-black', iconText: 'MTN' },
-                      { name: 'Moov Money', status: 'Non connecté', connected: false, color: 'bg-teal-600 text-white', iconText: 'Moov' },
-                      { name: 'Celtiis Cash', status: 'Non connecté', connected: false, color: 'bg-teal-600 text-white', iconText: 'Celtiis' }
-                    ].map((item, index) => (
-                      <div key={index} className="border border-base-200 rounded-2xl p-6 flex items-center justify-between hover:shadow-lg transition-all duration-300 bg-base-100">
-                        <div className="flex items-center gap-6">
-                          <div className={`w-16 h-16 ${item.color} rounded-2xl flex items-center justify-center font-bold text-xl shadow-md`}>
-                            {item.iconText}
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-lg text-base-content/90">{item.name}</h4>
-                            <p className={`text-sm font-medium ${item.connected ? 'text-success' : 'text-base-content/50'}`}>{item.status}</p>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          className={item.connected ? 'text-success bg-success/10' : 'border border-base-300'}
-                        >
-                          {item.connected ? 'Configuré' : 'Connecter'}
+                  <div>
+                    <h3 className="font-bold text-base-content/90 mb-6 flex items-center gap-2">
+                      <Lock className="text-primary" size={20} /> Changer de mot de passe
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-base-200 rounded-2xl border border-base-200">
+                      <Input label="Mot de passe actuel" type="password"
+                        value={pwdForm.current} onChange={e => setPwdForm({ ...pwdForm, current: e.target.value })} />
+                      <div className="hidden md:block" />
+                      <Input label="Nouveau mot de passe" type="password"
+                        value={pwdForm.next} onChange={e => setPwdForm({ ...pwdForm, next: e.target.value })} />
+                      <Input label="Confirmer le nouveau mot de passe" type="password"
+                        value={pwdForm.confirm} onChange={e => setPwdForm({ ...pwdForm, confirm: e.target.value })} />
+                      <div className="md:col-span-2 flex justify-end">
+                        <Button variant="ghost" onClick={handleChangePassword} disabled={savingPassword}
+                          className="bg-base-100 shadow-sm border border-base-300">
+                          {savingPassword
+                            ? <><Loader2 size={16} className="mr-2 animate-spin" />Mise à jour...</>
+                            : <><Check size={16} className="mr-2" />Mettre à jour</>}
                         </Button>
                       </div>
-                    ))}
+                    </div>
                   </div>
                 </Card>
               </motion.div>
