@@ -8,76 +8,77 @@ import { getToken, logoutUser } from './api/authApi';
 import { UserProvider } from './contexts/UserContext';
 import AdminLayout from './layout/AdminLayout';
 import UserSpecificLayout from './layout/UserSpecificLayout';
+import { lazyWithReload } from './utils/lazyWithReload';
 
 // Auth & onboarding
-const LoginForm = React.lazy(() => import('./components/LoginForm'));
-const SignupForm = React.lazy(() => import('./components/SignupForm'));
-const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
-const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
-const CompleteProfile = React.lazy(() => import('./pages/CompleteProfile'));
-const AcceptInvite = React.lazy(() => import('./pages/AcceptInvite'));
-const VerifyEmail = React.lazy(() => import('./pages/VerifyEmail'));
-const InvitationPage = React.lazy(() => import('./pages/public/InvitationPage'));
+const LoginForm = lazyWithReload(() => import('./components/LoginForm'));
+const SignupForm = lazyWithReload(() => import('./components/SignupForm'));
+const ForgotPassword = lazyWithReload(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazyWithReload(() => import('./pages/ResetPassword'));
+const CompleteProfile = lazyWithReload(() => import('./pages/CompleteProfile'));
+const AcceptInvite = lazyWithReload(() => import('./pages/AcceptInvite'));
+const VerifyEmail = lazyWithReload(() => import('./pages/VerifyEmail'));
+const InvitationPage = lazyWithReload(() => import('./pages/public/InvitationPage'));
 
 // Home & marketing
-const HomePage = React.lazy(() => import('./HomePage'));
-const FonctionnalitesPage = React.lazy(() => import('./pages/public/FonctionnalitesPage'));
-const GestionnaireProprietairePage = React.lazy(() => import('./pages/public/GestionnaireProprietairePage'));
-const LocatairePublicPage = React.lazy(() => import('./pages/public/LocatairePublicPage'));
-const ModulesTransversesPage = React.lazy(() => import('./pages/public/ModulesTransversesPage'));
-const AboutPage = React.lazy(() => import('./pages/public/AboutPage'));
-const BiensPublicsPage = React.lazy(() => import('./pages/public/BiensPublicsPage'));
-const PublicReservation = React.lazy(() => import('./pages/public/PublicReservation'));
+const HomePage = lazyWithReload(() => import('./HomePage'));
+const FonctionnalitesPage = lazyWithReload(() => import('./pages/public/FonctionnalitesPage'));
+const GestionnaireProprietairePage = lazyWithReload(() => import('./pages/public/GestionnaireProprietairePage'));
+const LocatairePublicPage = lazyWithReload(() => import('./pages/public/LocatairePublicPage'));
+const ModulesTransversesPage = lazyWithReload(() => import('./pages/public/ModulesTransversesPage'));
+const AboutPage = lazyWithReload(() => import('./pages/public/AboutPage'));
+const BiensPublicsPage = lazyWithReload(() => import('./pages/public/BiensPublicsPage'));
+const PublicReservation = lazyWithReload(() => import('./pages/public/PublicReservation'));
 
 // Admin pages
-const AdminDashboard = React.lazy(() => import('./pages/admin/AdminDashboard'));
-const AdminUsers = React.lazy(() => import('./pages/admin/AdminUsers'));
-const AdminAgencies = React.lazy(() => import('./pages/admin/AdminAgencies'));
-const AdminFinances = React.lazy(() => import('./pages/admin/AdminFinances'));
-const AdminSubscriptions = React.lazy(() => import('./pages/admin/AdminSubscriptions'));
-const AdminAuditLogs = React.lazy(() => import('./pages/admin/AdminAuditLogs'));
-const AdminSettings = React.lazy(() => import('./pages/admin/AdminSettings'));
-const NotFound = React.lazy(() => import('./pages/NotFound'));
+const AdminDashboard = lazyWithReload(() => import('./pages/admin/AdminDashboard'));
+const AdminUsers = lazyWithReload(() => import('./pages/admin/AdminUsers'));
+const AdminAgencies = lazyWithReload(() => import('./pages/admin/AdminAgencies'));
+const AdminFinances = lazyWithReload(() => import('./pages/admin/AdminFinances'));
+const AdminSubscriptions = lazyWithReload(() => import('./pages/admin/AdminSubscriptions'));
+const AdminAuditLogs = lazyWithReload(() => import('./pages/admin/AdminAuditLogs'));
+const AdminSettings = lazyWithReload(() => import('./pages/admin/AdminSettings'));
+const NotFound = lazyWithReload(() => import('./pages/NotFound'));
 
 // Dashboard redirects & rôles
-const UserDashboardRedirect = React.lazy(() => import('./pages/UserDashboardRedirect'));
-const LocataireDashboard = React.lazy(() => import('./pages/LocataireDashboard'));
-const ProprietaireDashboard = React.lazy(() => import('./pages/ProprietaireDashboard'));
-const GestionnaireDashboard = React.lazy(() => import('./pages/GestionnaireDashboard'));
+const UserDashboardRedirect = lazyWithReload(() => import('./pages/UserDashboardRedirect'));
+const LocataireDashboard = lazyWithReload(() => import('./pages/LocataireDashboard'));
+const ProprietaireDashboard = lazyWithReload(() => import('./pages/ProprietaireDashboard'));
+const GestionnaireDashboard = lazyWithReload(() => import('./pages/GestionnaireDashboard'));
 
 // Dashboard pages
-const MonCompte = React.lazy(() => import('./pages/MonCompte'));
-const Biens = React.lazy(() => import('./pages/Biens'));
-const Locataires = React.lazy(() => import('./pages/Locataires'));
-const LocataireDetails = React.lazy(() => import('./pages/LocataireDetails'));
-const Contrats = React.lazy(() => import('./pages/Contrats'));
-const Finances = React.lazy(() => import('./pages/Finances'));
-const Interventions = React.lazy(() => import('./pages/Interventions'));
-const Parametres = React.lazy(() => import('./pages/Parametres'));
-const Rapports = React.lazy(() => import('./pages/Rapports'));
-const Alertes = React.lazy(() => import('./pages/Alertes'));
-const MobileMoney = React.lazy(() => import('./pages/MobileMoney'));
-const Quittances = React.lazy(() => import('./pages/Quittances'));
-const Proprietaires = React.lazy(() => import('./pages/Proprietaires'));
-const Documents = React.lazy(() => import('./pages/Documents'));
-const CalendrierPage = React.lazy(() => import('./pages/CalendrierPage'));
-const AuditLogsPage = React.lazy(() => import('./pages/AuditLogsPage'));
-const Locations = React.lazy(() => import('./pages/Locations'));
-const LocationDetails = React.lazy(() => import('./pages/LocationDetails'));
-const ReservationsList = React.lazy(() => import('./pages/ReservationsList'));
-const InventoriesList = React.lazy(() => import('./pages/InventoriesList'));
-const InventoryForm = React.lazy(() => import('./pages/InventoryForm'));
-const Corbeille = React.lazy(() => import('./pages/Corbeille'));
-const InventoryDetails = React.lazy(() => import('./pages/InventoryDetails'));
-const EdlList = React.lazy(() => import('./pages/EdlList'));
-const EdlCreate = React.lazy(() => import('./pages/EdlCreate'));
-const EdlDetails = React.lazy(() => import('./pages/EdlDetails'));
-const EdlSignature = React.lazy(() => import('./pages/EdlSignature'));
-const EdlCompare = React.lazy(() => import('./pages/EdlCompare'));
-const Pricing = React.lazy(() => import('./pages/Pricing'));
-const Carnet = React.lazy(() => import('./pages/Carnet'));
-const TasksPage = React.lazy(() => import('./pages/TasksPage'));
-const TenantPayments = React.lazy(() => import('./pages/TenantPayments'));
+const MonCompte = lazyWithReload(() => import('./pages/MonCompte'));
+const Biens = lazyWithReload(() => import('./pages/Biens'));
+const Locataires = lazyWithReload(() => import('./pages/Locataires'));
+const LocataireDetails = lazyWithReload(() => import('./pages/LocataireDetails'));
+const Contrats = lazyWithReload(() => import('./pages/Contrats'));
+const Finances = lazyWithReload(() => import('./pages/Finances'));
+const Interventions = lazyWithReload(() => import('./pages/Interventions'));
+const Parametres = lazyWithReload(() => import('./pages/Parametres'));
+const Rapports = lazyWithReload(() => import('./pages/Rapports'));
+const Alertes = lazyWithReload(() => import('./pages/Alertes'));
+const MobileMoney = lazyWithReload(() => import('./pages/MobileMoney'));
+const Quittances = lazyWithReload(() => import('./pages/Quittances'));
+const Proprietaires = lazyWithReload(() => import('./pages/Proprietaires'));
+const Documents = lazyWithReload(() => import('./pages/Documents'));
+const CalendrierPage = lazyWithReload(() => import('./pages/CalendrierPage'));
+const AuditLogsPage = lazyWithReload(() => import('./pages/AuditLogsPage'));
+const Locations = lazyWithReload(() => import('./pages/Locations'));
+const LocationDetails = lazyWithReload(() => import('./pages/LocationDetails'));
+const ReservationsList = lazyWithReload(() => import('./pages/ReservationsList'));
+const InventoriesList = lazyWithReload(() => import('./pages/InventoriesList'));
+const InventoryForm = lazyWithReload(() => import('./pages/InventoryForm'));
+const Corbeille = lazyWithReload(() => import('./pages/Corbeille'));
+const InventoryDetails = lazyWithReload(() => import('./pages/InventoryDetails'));
+const EdlList = lazyWithReload(() => import('./pages/EdlList'));
+const EdlCreate = lazyWithReload(() => import('./pages/EdlCreate'));
+const EdlDetails = lazyWithReload(() => import('./pages/EdlDetails'));
+const EdlSignature = lazyWithReload(() => import('./pages/EdlSignature'));
+const EdlCompare = lazyWithReload(() => import('./pages/EdlCompare'));
+const Pricing = lazyWithReload(() => import('./pages/Pricing'));
+const Carnet = lazyWithReload(() => import('./pages/Carnet'));
+const TasksPage = lazyWithReload(() => import('./pages/TasksPage'));
+const TenantPayments = lazyWithReload(() => import('./pages/TenantPayments'));
 
 // Spinner plein écran — utilisé à la toute première navigation
 const PageLoader: React.FC = () => (

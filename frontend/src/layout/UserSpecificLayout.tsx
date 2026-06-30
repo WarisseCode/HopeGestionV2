@@ -2,14 +2,15 @@
 import React, { Suspense } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
+import { lazyWithReload } from '../utils/lazyWithReload';
 
 // Lazy-load des layouts pour sortir framer-motion du chemin critique initial.
 // Les 3 layouts importent framer-motion (~100 kB) — les charger eagerly le ferait
 // atterrir dans le chunk principal. Avec lazy, il est chargé après auth.
 // Le fallback est identique au spinner du contexte utilisateur — UX cohérente.
-const DashboardLayout    = React.lazy(() => import('./DashboardLayout'));
-const ProprietaireLayout = React.lazy(() => import('./ProprietaireLayout'));
-const LocataireLayout    = React.lazy(() => import('./LocataireLayout'));
+const DashboardLayout    = lazyWithReload(() => import('./DashboardLayout'));
+const ProprietaireLayout = lazyWithReload(() => import('./ProprietaireLayout'));
+const LocataireLayout    = lazyWithReload(() => import('./LocataireLayout'));
 
 interface UserSpecificLayoutProps {
   children: React.ReactNode;
