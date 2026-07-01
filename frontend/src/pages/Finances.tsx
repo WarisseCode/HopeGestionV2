@@ -19,6 +19,7 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
 import { useUser } from '../contexts/UserContext';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { KPICard } from '../components/dashboard';
 import { financeApi } from '../api/financeApi';
@@ -41,6 +42,7 @@ import { generateQuittancePDF } from '../utils/pdfGenerator';
 
 const Finances: React.FC = () => {
   const { user } = useUser();
+  const { t } = useTranslation();
   const canWrite = !['proprietaire', 'locataire'].includes(user?.userType || '');
 
   const [activeTab, setActiveTab] = useState<'paiements' | 'echeances' | 'en_ligne' | 'depenses' | 'prets' | 'fiscalite'>('echeances');
@@ -58,7 +60,7 @@ const Finances: React.FC = () => {
   // Period selector state
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+  const monthNames = t('months', { returnObjects: true }) as string[];
 
   // Selectors Data for Payment Form
   const [locataires, setLocataires] = useState<Locataire[]>([]);
@@ -141,7 +143,7 @@ const Finances: React.FC = () => {
   const handlePaymentSubmit = async () => {
       try {
           if (!paiementForm.locataireId) {
-              toast.error("Veuillez sélectionner un locataire");
+              toast.error(t('finance.selectTenant'));
               return;
           }
           const details = await getLocataireDetails(parseInt(paiementForm.locataireId));
@@ -149,7 +151,7 @@ const Finances: React.FC = () => {
           const leaseId = activeLease?.id ?? null;
 
           if (!leaseId) {
-              toast.error("Ce locataire n'a pas de bail actif");
+              toast.error(t('finance.noActiveLease'));
               return;
           }
 
@@ -181,13 +183,13 @@ const Finances: React.FC = () => {
               datePaiement: paiementForm.date || new Date().toISOString()
           }, 'download');
 
-          toast.success(`Paiement enregistré — quittance téléchargée pour ${locataireName}`);
+          toast.success(t('finance.paymentSavedReceipt', { name: locataireName }));
           setShowForm(false);
           fetchData();
           setChartKey(k => k + 1);
       } catch (error: any) {
           console.error("Erreur:", error);
-          toast.error(error.message || "Erreur lors de l'enregistrement");
+          toast.error(error.message || t('finance.saveError'));
       }
   };
 
@@ -203,7 +205,7 @@ const Finances: React.FC = () => {
           setGenerating(true);
           // Génère pour le mois actuellement affiché (pas forcément le mois courant).
           const result = await financeApi.generateSchedules(selectedMonth, selectedYear);
-          toast.success(`${result.details.generated} échéances générées avec succès`);
+          toast.success(t('finance.schedulesGenerated', { count: result.details.generated }));
           fetchData();
           setSchedulesKey(k => k + 1); // Force FinanceSchedules à recharger ses données
           setChartKey(k => k + 1);
@@ -211,7 +213,7 @@ const Finances: React.FC = () => {
           setShowGenerateModal(false);
       } catch (error: any) {
           console.error("Erreur génération:", error);
-          toast.error(error.message || "Erreur lors de la génération");
+          toast.error(error.message || t('finance.generateError'));
       } finally {
           setGenerating(false);
       }
@@ -257,10 +259,10 @@ const Finances: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
-            Finance & Trésorerie <span className="text-primary">.</span>
+            {t('finance.title')} <span className="text-primary">.</span>
           </h1>
           <p className="text-base-content/60 font-medium mt-1">
-            Pilotage financier complet (Revenus, Dépenses, Fiscalité)
+            {t('finance.subtitle')}
           </p>
         </div>
         {canWrite && (activeTab === 'paiements' || activeTab === 'echeances') && (
@@ -271,14 +273,14 @@ const Finances: React.FC = () => {
                     onClick={() => setShowGenerateModal(true)}
                     disabled={generating}
                  >
-                    {generating ? 'Génération...' : '📅 Générer Loyers'}
+                    {generating ? t('finance.generating') : t('finance.generateRents')}
                  </Button>
                  <Button
                     variant="primary"
                     className="rounded-full px-6 shadow-lg"
                     onClick={() => setShowForm(true)}
                  >
-                    <Plus size={18} className="mr-2" /> Encaisser Loyer
+                    <Plus size={18} className="mr-2" /> {t('finance.collectRent')}
                  </Button>
              </div>
         )}
@@ -311,27 +313,27 @@ const Finances: React.FC = () => {
       {/* Global KPIs (Dynamic Treasury) */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <KPICard 
-            icon={Wallet} 
-            label="Revenus (Mois)" 
-            value={formatCurrency(stats.encashed_month)} 
-            color="green" 
+            icon={Wallet}
+            label={t('finance.kpiRevenue')}
+            value={formatCurrency(stats.encashed_month)}
+            color="green"
         />
-         <KPICard 
-            icon={TrendingDown} 
-            label="Dépenses (Mois)" 
-            value={formatCurrency(stats.expenses_month)} 
-            color="orange" 
+         <KPICard
+            icon={TrendingDown}
+            label={t('finance.kpiExpenses')}
+            value={formatCurrency(stats.expenses_month)}
+            color="orange"
         />
-        <KPICard 
-            icon={TrendingUp} 
-            label="Trésorerie Nette" 
-            value={formatCurrency(stats.net_balance)} 
+        <KPICard
+            icon={TrendingUp}
+            label={t('finance.kpiNet')}
+            value={formatCurrency(stats.net_balance)}
             color="teal"
         />
          <KPICard
-            icon={Building2} 
-            label="Loyer en Attente" 
-            value={formatCurrency(stats.pending_total)} 
+            icon={Building2}
+            label={t('finance.kpiPending')}
+            value={formatCurrency(stats.pending_total)}
             color="teal"
         />
       </div>
@@ -348,7 +350,7 @@ const Finances: React.FC = () => {
                 activeTab === 'echeances' ? 'bg-amber-50 text-amber-700 shadow-sm border border-amber-100' : 'text-base-content/60 hover:bg-base-200'
                 }`}
             >
-                📅 Échéances
+                {t('finance.tabSchedules')}
             </button>
              <button
                 onClick={() => setActiveTab('paiements')}
@@ -356,12 +358,12 @@ const Finances: React.FC = () => {
                 activeTab === 'paiements' ? 'bg-green-50 text-green-700 shadow-sm border border-green-100' : 'text-base-content/60 hover:bg-base-200'
                 }`}
             >
-                <ArrowDownRight size={18}/> Revenus & Loyers
+                <ArrowDownRight size={18}/> {t('finance.tabPayments')}
             </button>
             <button
                 onClick={() => {
                     if (subscriptionStatus && !subscriptionStatus.is_premium) {
-                        toast('Fonctionnalité Premium. Veuillez upgrader votre abonnement.', { icon: '👑' });
+                        toast(t('finance.premiumToast'), { icon: '👑' });
                         return;
                     }
                     setActiveTab('en_ligne')
@@ -369,9 +371,9 @@ const Finances: React.FC = () => {
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
                 activeTab === 'en_ligne' ? 'bg-cyan-50 text-cyan-700 shadow-sm border border-cyan-100' : 'text-base-content/60 hover:bg-base-200'
                 } ${subscriptionStatus && !subscriptionStatus.is_premium ? 'opacity-50 grayscale' : ''}`}
-                title={subscriptionStatus && !subscriptionStatus.is_premium ? "Fonctionnalité Premium" : ""}
+                title={subscriptionStatus && !subscriptionStatus.is_premium ? t('finance.premiumFeature') : ""}
             >
-                📱 Paiements en ligne
+                {t('finance.tabOnline')}
                 {subscriptionStatus && !subscriptionStatus.is_premium && (
                     <span className="ml-1 flex items-center gap-0.5 text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200 font-bold">
                         <Lock size={10} /> PRO
@@ -384,12 +386,12 @@ const Finances: React.FC = () => {
                 activeTab === 'depenses' ? 'bg-red-50 text-red-700 shadow-sm border border-red-100' : 'text-base-content/60 hover:bg-base-200'
                 }`}
             >
-                <ArrowUpRight size={18}/> Dépenses & Factures
+                <ArrowUpRight size={18}/> {t('finance.tabExpenses')}
             </button>
              <button
                 onClick={() => {
                     if (subscriptionStatus && !subscriptionStatus.is_premium) {
-                        toast('Fonctionnalité Premium. Veuillez upgrader votre abonnement.', { icon: '👑' });
+                        toast(t('finance.premiumToast'), { icon: '👑' });
                         return;
                     }
                     setActiveTab('prets')
@@ -397,9 +399,9 @@ const Finances: React.FC = () => {
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
                 activeTab === 'prets' ? 'bg-teal-50 text-teal-700 shadow-sm border border-teal-100' : 'text-base-content/60 hover:bg-base-200'
                 } ${subscriptionStatus && !subscriptionStatus.is_premium ? 'opacity-50 grayscale' : ''}`}
-                title={subscriptionStatus && !subscriptionStatus.is_premium ? "Fonctionnalité Premium" : ""}
+                title={subscriptionStatus && !subscriptionStatus.is_premium ? t('finance.premiumFeature') : ""}
             >
-                <Building2 size={18}/> Prêts & Financements
+                <Building2 size={18}/> {t('finance.tabLoans')}
                 {subscriptionStatus && !subscriptionStatus.is_premium && (
                     <span className="ml-1 flex items-center gap-0.5 text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200 font-bold">
                         <Lock size={10} /> PRO
@@ -409,7 +411,7 @@ const Finances: React.FC = () => {
              <button
                 onClick={() => {
                     if (subscriptionStatus && !subscriptionStatus.is_premium) {
-                        toast('Fonctionnalité Premium. Veuillez upgrader votre abonnement.', { icon: '👑' });
+                        toast(t('finance.premiumToast'), { icon: '👑' });
                         return;
                     }
                     setActiveTab('fiscalite')
@@ -417,9 +419,9 @@ const Finances: React.FC = () => {
                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
                 activeTab === 'fiscalite' ? 'bg-teal-50 text-teal-700 shadow-sm border border-teal-100' : 'text-base-content/60 hover:bg-base-200'
                 } ${subscriptionStatus && !subscriptionStatus.is_premium ? 'opacity-50 grayscale' : ''}`}
-                title={subscriptionStatus && !subscriptionStatus.is_premium ? "Fonctionnalité Premium" : ""}
+                title={subscriptionStatus && !subscriptionStatus.is_premium ? t('finance.premiumFeature') : ""}
             >
-                <Calculator size={18}/> Fiscalité
+                <Calculator size={18}/> {t('finance.tabTax')}
                 {subscriptionStatus && !subscriptionStatus.is_premium && (
                     <span className="ml-1 flex items-center gap-0.5 text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200 font-bold">
                         <Lock size={10} /> PRO
@@ -443,45 +445,45 @@ const Finances: React.FC = () => {
                 {showForm ? (
                      <Card className="border-none shadow-xl bg-base-100 max-w-2xl mx-auto mb-8 relative z-10">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold">Encaisser un paiement</h2>
+                            <h2 className="text-xl font-bold">{t('finance.collectPaymentTitle')}</h2>
                             <Button variant="ghost" onClick={() => setShowForm(false)}>✕</Button>
                         </div>
                         <div className="space-y-4">
                             <Select
-                                label="Locataire"
+                                label={t('finance.tenant')}
                                 value={paiementForm.locataireId}
                                 onChange={(e) => setPaiementForm({...paiementForm, locataireId: e.target.value})}
                                 options={[
-                                    { value: '', label: 'Choisir...' },
+                                    { value: '', label: t('common.choose') },
                                     ...locataires.map(l => ({ value: l.id, label: `${l.prenoms} ${l.nom}` }))
                                 ]}
                             />
                             <div className="grid grid-cols-2 gap-4">
-                                <Input label="Montant" type="number" value={paiementForm.montant} onChange={(e) => setPaiementForm({...paiementForm, montant: parseFloat(e.target.value)})} />
-                                <Input label="Date" type="date" value={paiementForm.date} onChange={(e) => setPaiementForm({...paiementForm, date: e.target.value})} />
+                                <Input label={t('finance.amount')} type="number" value={paiementForm.montant} onChange={(e) => setPaiementForm({...paiementForm, montant: parseFloat(e.target.value)})} />
+                                <Input label={t('finance.date')} type="date" value={paiementForm.date} onChange={(e) => setPaiementForm({...paiementForm, date: e.target.value})} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <Select
-                                    label="Type"
+                                    label={t('finance.type')}
                                     value={paiementForm.type}
                                     onChange={(e) => setPaiementForm({...paiementForm, type: e.target.value})}
                                     options={[
-                                        { value: 'loyer', label: 'Loyer' },
-                                        { value: 'charges', label: 'Charges' },
+                                        { value: 'loyer', label: t('finance.typeRent') },
+                                        { value: 'charges', label: t('finance.typeCharges') },
                                     ]}
                                 />
                                 <Select
-                                    label="Mode de paiement"
+                                    label={t('finance.paymentMethod')}
                                     value={paiementForm.modePaiement}
                                     onChange={(e) => setPaiementForm({...paiementForm, modePaiement: e.target.value})}
                                     options={[
-                                        { value: 'especes', label: 'Espèces' },
+                                        { value: 'especes', label: t('finance.cash') },
                                         { value: 'mobile_money', label: 'Mobile Money' },
                                     ]}
                                 />
                             </div>
                             <div className="flex justify-end gap-2 pt-4">
-                                <Button variant="primary" onClick={handlePaymentSubmit}>Valider Paiement</Button>
+                                <Button variant="primary" onClick={handlePaymentSubmit}>{t('finance.validatePayment')}</Button>
                             </div>
                         </div>
                     </Card>
@@ -492,11 +494,11 @@ const Finances: React.FC = () => {
                         <table className="table w-full text-left">
                             <thead className="bg-base-200/50">
                                 <tr>
-                                    <th className="py-4 pl-6 font-semibold">Référence</th>
-                                    <th className="py-4 font-semibold">Locataire</th>
-                                    <th className="py-4 font-semibold">Date</th>
-                                    <th className="py-4 font-semibold">Montant</th>
-                                    <th className="py-4 font-semibold">Statut</th>
+                                    <th className="py-4 pl-6 font-semibold">{t('finance.colReference')}</th>
+                                    <th className="py-4 font-semibold">{t('finance.tenant')}</th>
+                                    <th className="py-4 font-semibold">{t('finance.date')}</th>
+                                    <th className="py-4 font-semibold">{t('finance.amount')}</th>
+                                    <th className="py-4 font-semibold">{t('common.status')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-base-200">
@@ -528,28 +530,27 @@ const Finances: React.FC = () => {
       <Modal
         isOpen={showGenerateModal}
         onClose={() => setShowGenerateModal(false)}
-        title="Générer les appels de loyer"
+        title={t('finance.generateModalTitle')}
         size="md"
         footer={
             <>
-                <Button variant="ghost" onClick={() => setShowGenerateModal(false)}>Annuler</Button>
-                <Button 
-                    variant="primary" 
+                <Button variant="ghost" onClick={() => setShowGenerateModal(false)}>{t('common.cancel')}</Button>
+                <Button
+                    variant="primary"
                     onClick={confirmGenerateSchedules}
                     disabled={generating}
                 >
-                    {generating ? 'Génération en cours...' : 'Confirmer la génération'}
+                    {generating ? t('finance.generatingInProgress') : t('finance.confirmGeneration')}
                 </Button>
             </>
         }
       >
           <div className="space-y-4">
               <p className="text-base-content/70">
-                  Cette action va générer les échéances de loyer pour tous les baux actifs de{' '}
-                  <strong>{monthNames[selectedMonth - 1]} {selectedYear}</strong>.
+                  {t('finance.generateModalBody', { period: `${monthNames[selectedMonth - 1]} ${selectedYear}` })}
               </p>
               <div className="bg-teal-50 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200 p-4 rounded-lg text-sm border border-teal-200 dark:border-teal-700">
-                  ℹ️ Les quittances déjà existantes pour ce mois ne seront pas dupliquées.
+                  {t('finance.generateModalNote')}
               </div>
           </div>
       </Modal>
