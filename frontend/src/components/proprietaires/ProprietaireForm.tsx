@@ -6,13 +6,17 @@ import {
   ArrowRight, ArrowLeft, Save,
   Mail, MapPin, Banknote, Calendar,
   Building2, Hash, Info, ChevronRight,
-  MessageCircle
+  MessageCircle, UploadCloud, Trash2, Loader2, Download
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import PhoneInput from '../ui/PhoneInput';
 import AvatarUpload from '../ui/AvatarUpload';
+import { documentApi } from '../../api/documentApi';
+import type { Document as OwnerDocument } from '../../api/documentApi';
+import { API_BASE } from '../../config';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -37,10 +41,21 @@ interface Owner {
 
 interface ProprietaireFormProps {
   owner?: Partial<Owner>;
-  onSave: (owner: Partial<Owner>) => Promise<void>;
+  // Persiste le propriétaire et renvoie l'entité sauvegardée (avec son id),
+  // nécessaire pour rattacher les documents mis en attente sur un nouvel owner.
+  onSave: (owner: Partial<Owner>) => Promise<{ id?: number } | void>;
   onCancel: () => void;
   loading?: boolean;
 }
+
+// Catégorie et type d'entité utilisés pour les documents d'un propriétaire.
+const OWNER_DOC_CATEGORY = 'proprietaire';
+const OWNER_ENTITY_TYPE = 'owner';
+
+// Construit une URL absolue pour ouvrir/télécharger un document
+// (les URLs disque local sont relatives, les URLs Spaces sont déjà absolues).
+const resolveDocUrl = (url: string) =>
+  url?.startsWith('http') ? url : `${API_BASE}${url}`;
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -105,6 +120,15 @@ const ProprietaireForm: React.FC<ProprietaireFormProps> = ({
   const [touched, setTouched]         = useState<Record<string, boolean>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  // ── Documents ──────────────────────────────────────────────────────────────
+  const [docs, setDocs]               = useState<OwnerDocument[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  // Fichiers sélectionnés avant que l'owner n'existe (création) → uploadés après.
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [submitting, setSubmitting]   = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   const buildDefaults = (): Partial<Owner> => ({
     type: 'individual',
     management_mode: 'direct',
@@ -167,6 +191,58 @@ const ProprietaireForm: React.FC<ProprietaireFormProps> = ({
     window.open(`https://wa.me/${cleaned}`, '_blank');
   };
 
+  // ── Documents : chargement des documents existants (mode édition) ──────────
+  useEffect(() => {
+    if (!owner?.id) { setDocs([]); return; }
+    setLoadingDocs(true);
+    documentApi
+      .getDocuments({ entity_type: OWNER_ENTITY_TYPE, entity_id: owner.id }, owner.id)
+      .then(setDocs)
+      .catch(() => { /* liste vide si erreur/aucun doc */ })
+      .finally(() => setLoadingDocs(false));
+  }, [owner?.id]);
+
+  const handleFilesSelected = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const selected = Array.from(files);
+
+    if (owner?.id) {
+      // Owner existant → upload immédiat, rattaché à l'entité owner.
+      setUploadingDoc(true);
+      try {
+        for (const file of selected) {
+          const doc = await documentApi.uploadDocument(
+            { file, categorie: OWNER_DOC_CATEGORY, entity_type: OWNER_ENTITY_TYPE, entity_id: owner.id },
+            owner.id,
+          );
+          setDocs(prev => [doc, ...prev]);
+        }
+        toast.success(selected.length > 1 ? 'Documents ajoutés' : 'Document ajouté');
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || "Erreur lors de l'ajout du document");
+      } finally {
+        setUploadingDoc(false);
+      }
+    } else {
+      // Nouveau propriétaire (pas encore d'id) → mise en attente, upload après création.
+      setPendingFiles(prev => [...prev, ...selected]);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleDeleteDoc = async (id: number) => {
+    try {
+      await documentApi.deleteDocument(id, owner?.id);
+      setDocs(prev => prev.filter(d => d.id !== id));
+      toast.success('Document supprimé');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Erreur lors de la suppression');
+    }
+  };
+
+  const removePendingFile = (index: number) =>
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
+
   // ── Step navigation ───────────────────────────────────────────────────────
 
   const getRequiredFields = () =>
@@ -217,7 +293,30 @@ const ProprietaireForm: React.FC<ProprietaireFormProps> = ({
   };
 
   const handleSubmit = async () => {
-    await onSave(formData);
+    setSubmitting(true);
+    try {
+      const saved = await onSave(formData);
+      // Rattache les documents mis en attente à l'owner nouvellement créé.
+      const ownerId = owner?.id ?? (saved as { id?: number } | undefined)?.id;
+      if (!owner?.id && ownerId && pendingFiles.length > 0) {
+        try {
+          for (const file of pendingFiles) {
+            await documentApi.uploadDocument(
+              { file, categorie: OWNER_DOC_CATEGORY, entity_type: OWNER_ENTITY_TYPE, entity_id: ownerId },
+              ownerId,
+            );
+          }
+        } catch {
+          // Le propriétaire est créé ; on signale seulement l'échec des documents.
+          toast.error("Propriétaire créé, mais certains documents n'ont pas pu être envoyés.");
+        }
+      }
+      onCancel(); // Ferme le formulaire après succès (le parent recharge la liste).
+    } catch {
+      // Erreur de sauvegarde : le parent affiche déjà le toast, on garde le formulaire ouvert.
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // ── Derived values ────────────────────────────────────────────────────────
@@ -520,17 +619,117 @@ const ProprietaireForm: React.FC<ProprietaireFormProps> = ({
                   <Info size={16} className="text-base-content/50 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-base-content/60 leading-snug">
                     Ajoutez ici les contrats de mandat, pièces d'identité et autres
-                    documents légaux du propriétaire.
+                    documents légaux du propriétaire (PDF ou image).
+                    {!owner?.id && (
+                      <span className="block mt-1 text-base-content/45">
+                        Les documents sélectionnés seront enregistrés à la création du propriétaire.
+                      </span>
+                    )}
                   </p>
                 </div>
 
-                <div className="h-52 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-base-300 rounded-xl bg-base-50 text-base-content/40">
-                  <FileText size={40} className="opacity-40" />
-                  <div className="text-center">
-                    <p className="font-medium text-sm">Documents légaux</p>
-                    <p className="text-xs mt-1">Fonctionnalité à venir</p>
+                {/* Zone d'upload */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,image/*"
+                  className="hidden"
+                  onChange={e => handleFilesSelected(e.target.files)}
+                />
+                <button
+                  type="button"
+                  onClick={() => !uploadingDoc && fileInputRef.current?.click()}
+                  disabled={uploadingDoc}
+                  className="w-full h-40 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-base-300 rounded-xl bg-base-50 text-base-content/50 hover:border-primary/50 hover:text-primary transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {uploadingDoc ? (
+                    <>
+                      <Loader2 size={32} className="animate-spin" />
+                      <span className="text-sm font-medium">Envoi en cours…</span>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud size={34} className="opacity-70" />
+                      <div className="text-center">
+                        <p className="font-medium text-sm">Cliquez pour ajouter des documents</p>
+                        <p className="text-xs mt-1 text-base-content/40">PDF, JPG, PNG — plusieurs fichiers possibles</p>
+                      </div>
+                    </>
+                  )}
+                </button>
+
+                {/* Liste des documents */}
+                {loadingDocs ? (
+                  <div className="flex items-center justify-center py-6 text-base-content/40">
+                    <Loader2 size={18} className="animate-spin mr-2" /> Chargement des documents…
                   </div>
-                </div>
+                ) : (docs.length === 0 && pendingFiles.length === 0) ? (
+                  <p className="text-center text-xs text-base-content/40 py-2">
+                    Aucun document pour le moment.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {/* Documents déjà enregistrés */}
+                    {docs.map(doc => (
+                      <li
+                        key={doc.id}
+                        className="flex items-center gap-3 p-3 bg-base-100 border border-base-200 rounded-xl"
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                          <FileText size={16} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-base-content truncate">{doc.nom}</p>
+                          <p className="text-[11px] text-base-content/40">
+                            {doc.categorie}{doc.taille ? ` · ${(Number(doc.taille) / 1024).toFixed(0)} Ko` : ''}
+                          </p>
+                        </div>
+                        <a
+                          href={resolveDocUrl(doc.url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-ghost btn-xs btn-square text-base-content/50 hover:text-primary"
+                          title="Ouvrir / télécharger"
+                        >
+                          <Download size={15} />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteDoc(doc.id)}
+                          className="btn btn-ghost btn-xs btn-square text-base-content/50 hover:text-error"
+                          title="Supprimer"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </li>
+                    ))}
+
+                    {/* Fichiers en attente (nouvel owner) */}
+                    {pendingFiles.map((file, i) => (
+                      <li
+                        key={`pending-${i}`}
+                        className="flex items-center gap-3 p-3 bg-warning/5 border border-warning/20 rounded-xl"
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-warning/15 text-warning flex items-center justify-center flex-shrink-0">
+                          <FileText size={16} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-base-content truncate">{file.name}</p>
+                          <p className="text-[11px] text-warning">En attente — sera envoyé à la création</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removePendingFile(i)}
+                          className="btn btn-ghost btn-xs btn-square text-base-content/50 hover:text-error"
+                          title="Retirer"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
 
@@ -724,10 +923,10 @@ const ProprietaireForm: React.FC<ProprietaireFormProps> = ({
             <Button
               variant="primary"
               onClick={handleSubmit}
-              disabled={loading}
+              disabled={loading || submitting}
               className="flex items-center gap-2 min-w-[150px] justify-center"
             >
-              {loading ? (
+              {loading || submitting ? (
                 <>
                   <span className="loading loading-spinner loading-xs" />
                   Enregistrement…

@@ -376,14 +376,16 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = ({
                   owner={editingProp || undefined}
                   onSave={async (data) => {
                     try {
-                      await accountApi.saveProprietaire(data);
-                      setShowForm(false);
-                      setEditingProp(null);
+                      const saved = await accountApi.saveProprietaire(data);
                       toast.success(data.id ? "Propriétaire modifié avec succès" : "Propriétaire créé avec succès");
                       await loadOwners();
+                      // Renvoyé au formulaire : permet de rattacher les documents en
+                      // attente à l'owner créé. Le formulaire ferme lui-même via onCancel.
+                      return saved;
                     } catch (err: any) {
                       console.error('Error saving owner:', err);
                       toast.error(err.message || "Erreur lors de l'enregistrement.");
+                      throw err; // propage → le formulaire reste ouvert
                     }
                   }}
                   onCancel={() => {

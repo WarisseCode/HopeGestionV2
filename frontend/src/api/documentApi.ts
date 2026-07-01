@@ -4,6 +4,12 @@ import { API_URL } from '../config';
 
 const getToken = () => localStorage.getItem('userToken');
 
+// En-tête X-Owner-Id : indique à tenantGuard le propriétaire ciblé.
+// Nécessaire pour les documents liés à un owner précis (multi-propriétaires),
+// car tenantGuard s'exécute avant multer et ne peut pas lire owner_id du body.
+const ownerHeader = (ownerId?: number) =>
+    ownerId ? { 'X-Owner-Id': String(ownerId) } : {};
+
 export interface Document {
     id: number;
     nom: string;
@@ -34,7 +40,7 @@ export interface UploadData {
 }
 
 export const documentApi = {
-    getDocuments: async (filters: DocumentFilters = {}): Promise<Document[]> => {
+    getDocuments: async (filters: DocumentFilters = {}, ownerId?: number): Promise<Document[]> => {
         const token = getToken();
         // Construire la query string
         const params = new URLSearchParams();
@@ -43,12 +49,12 @@ export const documentApi = {
         if (filters.categorie) params.append('categorie', filters.categorie);
 
         const response = await axios.get(`${API_URL}/documents?${params.toString()}`, {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}`, ...ownerHeader(ownerId) }
         });
         return response.data;
     },
 
-    uploadDocument: async (data: UploadData): Promise<Document> => {
+    uploadDocument: async (data: UploadData, ownerId?: number): Promise<Document> => {
         const token = getToken();
         const formData = new FormData();
         formData.append('file', data.file);
@@ -59,18 +65,19 @@ export const documentApi = {
         if (data.description) formData.append('description', data.description);
 
         const response = await axios.post(`${API_URL}/documents/upload`, formData, {
-            headers: { 
+            headers: {
                 Authorization: `Bearer ${token}`,
-                'Content-Type': 'multipart/form-data' 
+                'Content-Type': 'multipart/form-data',
+                ...ownerHeader(ownerId)
             }
         });
         return response.data;
     },
 
-    deleteDocument: async (id: number): Promise<void> => {
+    deleteDocument: async (id: number, ownerId?: number): Promise<void> => {
         const token = getToken();
         await axios.delete(`${API_URL}/documents/${id}`, {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}`, ...ownerHeader(ownerId) }
         });
     },
 
