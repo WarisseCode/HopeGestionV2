@@ -6,7 +6,9 @@ const router = express.Router();
 
 /**
  * GET /api/audit-logs
- * Protected route: Only accessible by 'gestionnaire' or 'admin'.
+ * Protected route: réservé aux administrateurs.
+ * Le journal d'audit a été déplacé dans l'espace administrateur ; il n'est plus
+ * à la portée des utilisateurs du dashboard (gestionnaire, etc.).
  * Query Params:
  * - userId: Filter by user ID
  * - action: Filter by action type
@@ -15,15 +17,12 @@ const router = express.Router();
  */
 router.get('/', protect, async (req: any, res) => {
     try {
-        // RPAC Check: Only Manager or Admin
-        const userRole = req.user.role; // Assuming role is stored in token/user object
-        const userType = req.user.userType; // Or userType
+        // RBAC : admin uniquement (le gestionnaire n'y a plus accès).
+        const userRole = req.user.role;
 
-        // Allow if role is admin OR userType is gestionnaire
-        const isAuthorized = userRole === 'admin' || userType === 'gestionnaire' || req.user.is_super_admin;
+        const isAuthorized = userRole === 'admin' || req.user.is_super_admin;
 
         if (!isAuthorized) {
-            // Log unauthorized access attempt?
             return res.status(403).json({ message: "Accès refusé. Réservé aux administrateurs." });
         }
 

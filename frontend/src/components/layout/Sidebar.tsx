@@ -5,7 +5,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Building2, Users, FileText, Wallet, Settings, Bell, 
   LayoutDashboard, LogOut, X, ChevronDown, ChevronRight,
-  CreditCard, FolderOpen, BarChart3, Wrench, ShieldCheck,
+  CreditCard, FolderOpen, BarChart3, Wrench,
   Calendar, CalendarCheck, ClipboardList, ClipboardCheck, Briefcase, Crown, Notebook, CheckSquare,
   Home, Activity, UserCog, Receipt, UserCheck, Boxes, Trash2
 } from 'lucide-react';
@@ -199,8 +199,8 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
     }
 
     // Groupe Admin
+    // Note : « Audit & Sécurité » a été déplacé dans l'espace administrateur (/admin/logs).
     const adminItems: MenuItem[] = [];
-     if (role === 'admin' || role === 'gestionnaire') adminItems.push({ icon: <ShieldCheck size={20} />, label: t('nav.auditSecurite'), path: '/audit-logs' });
     adminItems.push({ icon: <Settings size={20} />, label: t('nav.parametres'), path: '/parametres' });
     adminItems.push({ icon: <UserCog size={20} />, label: t('nav.monProfil'), path: '/mon-compte' });
 

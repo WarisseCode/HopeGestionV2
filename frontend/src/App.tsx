@@ -62,7 +62,6 @@ const Quittances = lazyWithReload(() => import('./pages/Quittances'));
 const Proprietaires = lazyWithReload(() => import('./pages/Proprietaires'));
 const Documents = lazyWithReload(() => import('./pages/Documents'));
 const CalendrierPage = lazyWithReload(() => import('./pages/CalendrierPage'));
-const AuditLogsPage = lazyWithReload(() => import('./pages/AuditLogsPage'));
 const Locations = lazyWithReload(() => import('./pages/Locations'));
 const LocationDetails = lazyWithReload(() => import('./pages/LocationDetails'));
 const ReservationsList = lazyWithReload(() => import('./pages/ReservationsList'));
@@ -223,7 +222,7 @@ const App: React.FC = () => {
                           <Route path="interventions" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Interventions />} />} />
                           <Route path="parametres" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Parametres />} />} />
                           <Route path="rapports" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<Rapports />} />} />
-                          <Route path="audit-logs" element={<RouteProtection allowedUserTypes={['gestionnaire', 'admin']} children={<AuditLogsPage />} />} />
+                          {/* Audit & Sécurité déplacé dans l'espace admin (/admin/logs) — non accessible aux utilisateurs du dashboard */}
                           <Route path="alertes" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Alertes />} />} />
                           <Route path="mobile-money" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<MobileMoney />} />} />
                           <Route path="quittances" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire', 'locataire']} children={<Quittances />} />} />
