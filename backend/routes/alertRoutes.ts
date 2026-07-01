@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { param } from 'express-validator';
 import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 import { validate } from '../middleware/validate';
+import { tenantGuard } from '../middleware/tenantGuard';
 import pool from '../db/database';
 
 const router = Router();
@@ -12,38 +13,45 @@ const dismissRules = [
     param('id').isString().trim().notEmpty().withMessage('Identifiant d\'alerte requis').isLength({ max: 100 }).withMessage('Identifiant invalide'),
 ];
 
-// Helper : récupère l'ownerId lié à l'utilisateur courant (si 'owner')
-async function getOwnerIdForUser(userId: number): Promise<number | null> {
-    const res = await pool.query(
-        'SELECT o.id FROM owners o JOIN owner_user ou ON ou.owner_id = o.id WHERE ou.user_id = $1 LIMIT 1',
-        [userId]
-    );
-    return res.rows.length > 0 ? res.rows[0].id : null;
-}
-
 // GET /api/alertes
-router.get('/', protect, async (req: AuthenticatedRequest, res: Response) => {
+// tenantGuard cadre l'utilisateur sur ses owner_id (validOwnerIds / resolvedOwnerId),
+// exactement comme Finances/Biens. Sans ce cadrage, un gestionnaire voyait les
+// alertes (lots vacants, retards, tickets) de TOUTE la base → fuite inter-locataires
+// et volume énorme identique pour un nouvel inscrit.
+router.get('/', protect, tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const userId = req.userId!;
         const userRole = req.userRole;
+        const dbClient = (req as any).dbClient;
 
         // Alertes ignorées par cet utilisateur
-        const dismissedRes = await pool.query(
+        const dismissedRes = await dbClient.query(
             'SELECT alert_id FROM dismissed_alerts WHERE user_id = $1',
             [userId]
         );
         const dismissedIds = new Set(dismissedRes.rows.map((r: any) => r.alert_id));
 
-        // Filtrage propriétaire si besoin
+        // ── Périmètre propriétaire ────────────────────────────────────────────
+        // admin : voit tout (aucun filtre). Autres : filtrés sur leurs owner_id.
+        // Un utilisateur sans périmètre (nouvel inscrit sans bien) ne voit rien.
+        const isAdmin = userRole === 'admin' || userRole === 'super_admin';
         const isOwner = userRole === 'owner' || userRole === 'proprietaire';
-        let ownerFilter = '';
+        const resolvedOwnerId = (req as any).resolvedOwnerId;
+        const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+        const effectiveOwnerIds: number[] = resolvedOwnerId != null ? [resolvedOwnerId] : validOwnerIds;
+
+        if (!isAdmin && effectiveOwnerIds.length === 0) {
+            return res.json({ alerts: [], dismissedCount: dismissedIds.size });
+        }
+
+        // Filtres owner explicites (vides pour l'admin). $1 = tableau d'owner_id.
         const ownerParams: any[] = [];
-        if (isOwner) {
-            const ownerId = await getOwnerIdForUser(userId);
-            if (ownerId) {
-                ownerFilter = `AND lo.owner_id = $${ownerParams.length + 1}`;
-                ownerParams.push(ownerId);
-            }
+        let lotOwnerFilter = '';
+        let ticketOwnerFilter = '';
+        if (!isAdmin) {
+            ownerParams.push(effectiveOwnerIds);
+            lotOwnerFilter = 'AND lo.owner_id = ANY($1::int[])';
+            ticketOwnerFilter = 'AND t.owner_id = ANY($1::int[])';
         }
 
         const alerts: any[] = [];
@@ -63,9 +71,9 @@ router.get('/', protect, async (req: AuthenticatedRequest, res: Response) => {
                 AND EXTRACT(YEAR FROM p.date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
             )
             AND EXTRACT(DAY FROM CURRENT_DATE) > (COALESCE(l.jour_echeance, 5) + 5)
-            ${ownerFilter}
+            ${lotOwnerFilter}
         `;
-        const lateRes = await pool.query(latePaymentsQuery, ownerParams);
+        const lateRes = await dbClient.query(latePaymentsQuery, ownerParams);
         lateRes.rows.forEach((row: any) => {
             const id = `late_${row.id}`;
             if (!dismissedIds.has(id)) {
@@ -90,9 +98,9 @@ router.get('/', protect, async (req: AuthenticatedRequest, res: Response) => {
             AND l.date_fin IS NOT NULL
             AND l.date_fin <= (CURRENT_DATE + INTERVAL '60 days')
             AND l.date_fin >= CURRENT_DATE
-            ${ownerFilter}
+            ${lotOwnerFilter}
         `;
-        const expiringRes = await pool.query(expiringQuery, ownerParams);
+        const expiringRes = await dbClient.query(expiringQuery, ownerParams);
         expiringRes.rows.forEach((row: any) => {
             const id = `exp_${row.id}`;
             const daysLeft = Math.ceil((new Date(row.date_fin).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
@@ -109,12 +117,14 @@ router.get('/', protect, async (req: AuthenticatedRequest, res: Response) => {
             }
         });
 
-        // 3. Tickets / Plaintes ouverts (gestionnaire seulement)
+        // 3. Tickets / Plaintes ouverts (gestionnaire seulement), cadrés par owner
         if (!isOwner) {
             try {
-                const ticketsRes = await pool.query(
+                const ticketsRes = await dbClient.query(
                     `SELECT t.id, t.titre, t.description, t.priorite, t.date_creation
-                     FROM tickets t WHERE t.statut = 'ouvert'`
+                     FROM tickets t
+                     WHERE t.statut = 'ouvert' AND t.deleted_at IS NULL ${ticketOwnerFilter}`,
+                    ownerParams
                 );
                 ticketsRes.rows.forEach((row: any) => {
                     const id = `tick_${row.id}`;
@@ -135,28 +145,35 @@ router.get('/', protect, async (req: AuthenticatedRequest, res: Response) => {
             }
         }
 
-        // 4. Lots vacants
+        // 4. Lots vacants — AGRÉGÉS en une seule alerte (évite une alerte par lot,
+        //    qui noyait le centre d'alertes). Priorité Basse, purement informatif.
         const vacantQuery = `
             SELECT lo.id, lo.ref_lot, b.nom as building_name
             FROM lots lo
             JOIN buildings b ON lo.building_id = b.id
             WHERE (lo.statut = 'libre' OR lo.statut = 'disponible')
-            ${ownerFilter}
+            AND lo.deleted_at IS NULL
+            ${lotOwnerFilter}
+            ORDER BY lo.id
         `;
-        const vacantRes = await pool.query(vacantQuery, ownerParams);
-        vacantRes.rows.forEach((row: any) => {
-            const id = `vac_${row.id}`;
+        const vacantRes = await dbClient.query(vacantQuery, ownerParams);
+        if (vacantRes.rows.length > 0) {
+            const id = 'vac_all'; // id stable → "Ignorer" masque le groupe entier
             if (!dismissedIds.has(id)) {
+                const count = vacantRes.rows.length;
+                const first = vacantRes.rows[0];
                 alerts.push({
-                    id, reference: `VAC-${row.id}`,
-                    titre: 'Lot vacant',
-                    description: `Le lot ${row.ref_lot ?? ''} (${row.building_name}) est libre.`,
+                    id, reference: 'VAC',
+                    titre: count === 1 ? 'Lot vacant' : `${count} lots vacants`,
+                    description: count === 1
+                        ? `Le lot ${first.ref_lot ?? ''} (${first.building_name}) est libre.`
+                        : `${count} lots sont actuellement libres et à commercialiser.`,
                     destinataire: 'Commercial', type: 'Commercial',
                     priorite: 'Basse', dateCreation: new Date().toISOString(),
                     statut: 'Active', link: '/dashboard/biens?tab=lots'
                 });
             }
-        });
+        }
 
         // Tri : Urgente → Haute → Moyenne → Basse
         const priorityOrder: { [k: string]: number } = { 'Urgente': 1, 'Haute': 2, 'Moyenne': 3, 'Basse': 4 };
