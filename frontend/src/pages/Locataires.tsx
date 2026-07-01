@@ -26,28 +26,10 @@ import ConfirmModal from '../components/ui/ConfirmModal';
 import EmptyState from '../components/ui/EmptyState';
 import InvitationLinkModal from '../components/ui/InvitationLinkModal';
 import { useUser } from '../contexts/UserContext';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ITEMS_PER_PAGE = 12;
-
-const LOCATAIRE_FILTERS: FilterConfig[] = [
-  {
-    id: 'statut',
-    type: 'select',
-    label: 'Statut',
-    options: [{ value: 'Actif', label: 'Actif' }, { value: 'Inactif', label: 'Inactif' }],
-  },
-  {
-    id: 'paymentStatus',
-    type: 'multi-select',
-    label: 'Paiement',
-    options: [
-      { value: 'paid', label: 'Payé' },
-      { value: 'pending', label: 'En attente' },
-      { value: 'late', label: 'En retard' },
-    ],
-  },
-];
 
 const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.05 } } };
 const itemVariants      = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
@@ -79,9 +61,30 @@ const EMPTY_FORM = {
 
 const Locataires: React.FC = () => {
   const { user }    = useUser();
+  const { t }       = useTranslation();
   const canWrite    = !['proprietaire', 'locataire'].includes(user?.userType || '');
   const navigate    = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // Filtres construits dans le composant pour être traduisibles (dépendent de t).
+  const LOCATAIRE_FILTERS: FilterConfig[] = useMemo(() => [
+    {
+      id: 'statut',
+      type: 'select',
+      label: t('common.status'),
+      options: [{ value: 'Actif', label: t('tenants.filterActif') }, { value: 'Inactif', label: t('tenants.filterInactif') }],
+    },
+    {
+      id: 'paymentStatus',
+      type: 'multi-select',
+      label: t('tenants.filterPaiement'),
+      options: [
+        { value: 'paid', label: t('tenants.payPaid') },
+        { value: 'pending', label: t('tenants.payPending') },
+        { value: 'late', label: t('tenants.payLate') },
+      ],
+    },
+  ], [t]);
 
   const [activeTab,   setActiveTab]   = useState<'locataires' | 'acheteurs' | 'affectation'>(
     (searchParams.get('tab') as any) || 'locataires'
@@ -121,11 +124,11 @@ const Locataires: React.FC = () => {
       setProprietaires(props);
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || 'Erreur lors du chargement');
+      toast.error(err.message || t('common.loadError'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { setCurrentPage(1); }, [searchQuery, filterValues, activeTab]);
@@ -158,11 +161,11 @@ const Locataires: React.FC = () => {
   const handleDelete = (id: number) => {
     setConfirmConfig({
       isOpen: true,
-      title: 'Supprimer ce locataire',
-      message: 'Voulez-vous vraiment supprimer ce profil ? Cette action est irréversible.',
+      title: t('tenants.deleteTitle'),
+      message: t('tenants.deleteMessage'),
       type: 'danger',
       action: async () => {
-        try { await deleteLocataire(id); toast.success('Profil supprimé'); fetchData(); }
+        try { await deleteLocataire(id); toast.success(t('tenants.profileDeleted')); fetchData(); }
         catch (err: any) { toast.error(err.message); }
       },
     });
@@ -180,11 +183,11 @@ const Locataires: React.FC = () => {
         <div className="flex items-center gap-4">
           <button type="button" onClick={() => setShowModal(false)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
             <ArrowLeft size={20} />
-            <span className="text-sm font-medium">Retour aux locataires</span>
+            <span className="text-sm font-medium">{t('tenants.backToTenants')}</span>
           </button>
           <div className="h-5 w-px bg-base-300" />
           <h1 className="text-xl font-bold text-base-content/90">
-            {locataireForm.typeProfil === 'Acheteur' ? 'Nouvel Acheteur' : 'Nouveau Locataire'}
+            {locataireForm.typeProfil === 'Acheteur' ? t('tenants.newBuyer') : t('tenants.newTenant')}
           </h1>
         </div>
         {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
@@ -194,9 +197,9 @@ const Locataires: React.FC = () => {
           onSave={async (data) => {
             try {
               setError(null);
-              if (!data.nom || !data.telephone_principal) throw new Error('Nom et téléphone sont requis');
+              if (!data.nom || !data.telephone_principal) throw new Error(t('tenants.namePhoneRequired'));
               await createLocataire(data);
-              setSuccess('Profil créé avec succès');
+              setSuccess(t('tenants.profileCreated'));
               setShowModal(false);
               fetchData();
             } catch (err: any) { setError(err.message); }
@@ -212,28 +215,28 @@ const Locataires: React.FC = () => {
       {/* Header */}
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-base-content tracking-tight">Locataires & Clients <span className="text-secondary">.</span></h1>
-          <p className="text-base-content/60 font-medium mt-1">Gérez vos locataires, acheteurs et leurs affectations.</p>
+          <h1 className="text-3xl font-extrabold text-base-content tracking-tight">{t('tenants.title')} <span className="text-secondary">.</span></h1>
+          <p className="text-base-content/60 font-medium mt-1">{t('tenants.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
-          <SearchInput placeholder="Rechercher par nom, tél, email..." value={searchQuery} onChange={setSearchQuery} className="w-full md:w-72" />
+          <SearchInput placeholder={t('tenants.searchPlaceholder')} value={searchQuery} onChange={setSearchQuery} className="w-full md:w-72" />
           {canWrite && (
             <>
               <Button variant="ghost"
                 className="rounded-full px-5 border border-primary text-primary hover:bg-primary/10 font-semibold whitespace-nowrap"
                 onClick={() => setShowInviteModal(true)}>
-                <Send size={18} className="mr-2" /> Inviter
+                <Send size={18} className="mr-2" /> {t('common.invite')}
               </Button>
-              <div className="relative group" title={isLimitReached ? "Limite d'abonnement atteinte. Passez au plan Pro." : ''}>
+              <div className="relative group" title={isLimitReached ? t('tenants.limitReachedTitle') : ''}>
                 <Button variant="primary" disabled={isLimitReached}
                   className={`rounded-full px-6 shadow-lg shadow-primary/20 transition-all font-semibold whitespace-nowrap ${isLimitReached ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-primary/40'}`}
                   onClick={() => {
-                    if (isLimitReached) { toast('Limite de locataires atteinte. Veuillez upgrader votre abonnement.', { icon: '👑' }); navigate('/dashboard/abonnement'); return; }
+                    if (isLimitReached) { toast(t('tenants.limitReachedToast'), { icon: '👑' }); navigate('/dashboard/abonnement'); return; }
                     setLocataireForm({ ...EMPTY_FORM, typeProfil: activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire' });
                     setShowModal(true);
                   }}>
                   <UserPlus size={18} className="mr-2" />
-                  Nouveau {activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire'}
+                  {activeTab === 'acheteurs' ? t('tenants.newBuyer') : t('tenants.newTenant')}
                 </Button>
               </div>
             </>
@@ -245,9 +248,9 @@ const Locataires: React.FC = () => {
       <motion.div variants={itemVariants} className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200">
         <div className="flex p-1 bg-base-300/50 rounded-xl overflow-x-auto">
           {([
-            { key: 'locataires',  icon: <Users size={18} />,  label: 'Locataires', count: locataires.length },
-            { key: 'acheteurs',   icon: <Wallet size={18} />, label: 'Acheteurs',  count: acheteurs.length },
-            { key: 'affectation', icon: <Home size={18} />,   label: 'Affectations' },
+            { key: 'locataires',  icon: <Users size={18} />,  label: t('nav.locataires'), count: locataires.length },
+            { key: 'acheteurs',   icon: <Wallet size={18} />, label: t('tenants.buyers'),  count: acheteurs.length },
+            { key: 'affectation', icon: <Home size={18} />,   label: t('tenants.assignments') },
           ] as const).map(tab => (
             <button key={tab.key} type="button"
               onClick={() => { setActiveTab(tab.key); setFilterValues({}); }}
@@ -262,11 +265,11 @@ const Locataires: React.FC = () => {
           {activeTab !== 'affectation' && (
             <>
               <div className="flex bg-base-300 rounded-lg p-1">
-                <button type="button" title="Vue grille" aria-label="Vue grille" onClick={() => setViewMode('grid')}
+                <button type="button" title={t('common.gridView')} aria-label={t('common.gridView')} onClick={() => setViewMode('grid')}
                   className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-base-100 shadow-sm text-primary' : 'text-base-content/50 hover:text-base-content/70'}`}>
                   <LayoutGrid size={18} />
                 </button>
-                <button type="button" title="Vue liste" aria-label="Vue liste" onClick={() => setViewMode('list')}
+                <button type="button" title={t('common.listView')} aria-label={t('common.listView')} onClick={() => setViewMode('list')}
                   className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-base-100 shadow-sm text-primary' : 'text-base-content/50 hover:text-base-content/70'}`}>
                   <List size={18} />
                 </button>
@@ -275,7 +278,7 @@ const Locataires: React.FC = () => {
                 onClick={() => setShowFilters(!showFilters)}
                 className={showFilters ? '' : 'text-base-content/60'}>
                 {showFilters && <X size={16} className="mr-1" />}
-                Filtres
+                {t('common.filters')}
                 {Object.keys(filterValues).length > 0 && (
                   <span className="ml-2 w-5 h-5 rounded-full bg-primary text-white text-xs flex items-center justify-center">
                     {Object.keys(filterValues).length}
@@ -285,7 +288,7 @@ const Locataires: React.FC = () => {
             </>
           )}
           <div className="h-6 w-px bg-base-300" />
-          <span className="text-sm font-semibold text-base-content/60">{filteredList.length} résultats</span>
+          <span className="text-sm font-semibold text-base-content/60">{t('tenants.results', { count: filteredList.length })}</span>
         </div>
       </motion.div>
 
@@ -309,9 +312,9 @@ const Locataires: React.FC = () => {
             <Card className="border-none shadow-xl bg-base-100 text-center py-12">
               <div className="flex flex-col items-center">
                 <div className="w-16 h-16 bg-teal-50 text-teal-500 rounded-full flex items-center justify-center mb-4"><Home size={32} /></div>
-                <h2 className="text-xl font-bold text-base-content/90">Gestion des Affectations</h2>
-                <p className="text-base-content/60 max-w-md mt-2 mb-6">Gérez ici l'attribution des logements à vos locataires.</p>
-                <Button variant="primary" onClick={() => navigate('/dashboard/locations')}>Voir les Baux</Button>
+                <h2 className="text-xl font-bold text-base-content/90">{t('tenants.assignmentsTitle')}</h2>
+                <p className="text-base-content/60 max-w-md mt-2 mb-6">{t('tenants.assignmentsDesc')}</p>
+                <Button variant="primary" onClick={() => navigate('/dashboard/locations')}>{t('tenants.viewLeases')}</Button>
               </div>
             </Card>
           </motion.div>
@@ -320,9 +323,9 @@ const Locataires: React.FC = () => {
             {paginatedList.length === 0 ? (
               <EmptyState
                 icon={<Users size={40} />}
-                title={`Aucun ${activeTab === 'acheteurs' ? 'acheteur' : 'locataire'} trouvé`}
-                description="Il n'y a aucun profil qui correspond à vos critères de recherche. Modifiez vos filtres ou ajoutez un nouveau profil."
-                actionLabel={canWrite ? `Nouveau ${activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire'}` : undefined}
+                title={activeTab === 'acheteurs' ? t('tenants.noBuyersFound') : t('tenants.noTenantsFound')}
+                description={t('tenants.noResultsDesc')}
+                actionLabel={canWrite ? (activeTab === 'acheteurs' ? t('tenants.newBuyer') : t('tenants.newTenant')) : undefined}
                 onAction={canWrite ? () => { setLocataireForm({ ...EMPTY_FORM, typeProfil: activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire' }); setShowModal(true); } : undefined}
                 className="mt-6"
               />
@@ -338,14 +341,14 @@ const Locataires: React.FC = () => {
                   <table className="table w-full">
                     <thead className="bg-base-200/50">
                       <tr>
-                        <th className="py-4 pl-6">Nom</th>
-                        <th className="py-4 hidden md:table-cell">Téléphone</th>
-                        <th className="py-4 hidden lg:table-cell">Email</th>
-                        <th className="py-4">Logement</th>
-                        <th className="py-4 hidden sm:table-cell">Loyer</th>
-                        <th className="py-4 hidden md:table-cell">Paiement</th>
-                        <th className="py-4">Statut</th>
-                        <th className="py-4 pr-6 text-right">Actions</th>
+                        <th className="py-4 pl-6">{t('common.name')}</th>
+                        <th className="py-4 hidden md:table-cell">{t('common.phone')}</th>
+                        <th className="py-4 hidden lg:table-cell">{t('common.email')}</th>
+                        <th className="py-4">{t('tenants.colHousing')}</th>
+                        <th className="py-4 hidden sm:table-cell">{t('tenants.colRent')}</th>
+                        <th className="py-4 hidden md:table-cell">{t('tenants.colPayment')}</th>
+                        <th className="py-4">{t('common.status')}</th>
+                        <th className="py-4 pr-6 text-right">{t('common.actions')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-base-200">
@@ -362,7 +365,7 @@ const Locataires: React.FC = () => {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-8">
-                <button type="button" title="Page précédente" aria-label="Page précédente" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+                <button type="button" title={t('common.prevPage')} aria-label={t('common.prevPage')} onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
                   className="btn btn-ghost btn-sm btn-circle disabled:opacity-40">
                   <ChevronLeft size={18} />
                 </button>
@@ -379,7 +382,7 @@ const Locataires: React.FC = () => {
                     </button>
                   );
                 })}
-                <button type="button" title="Page suivante" aria-label="Page suivante" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+                <button type="button" title={t('common.nextPage')} aria-label={t('common.nextPage')} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
                   className="btn btn-ghost btn-sm btn-circle disabled:opacity-40">
                   <ChevronRight size={18} />
                 </button>
