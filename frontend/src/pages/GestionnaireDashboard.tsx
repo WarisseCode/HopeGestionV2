@@ -35,9 +35,10 @@ import {
     Legend,
     ResponsiveContainer
 } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import { useUser } from '../contexts/UserContext';
-import { 
-  KPICard, 
+import {
+  KPICard,
   QuickActions, 
   ActivityFeed,
   PeriodFilter,
@@ -65,6 +66,7 @@ interface KPIData {
 
 const GestionnaireDashboard: React.FC = () => {
   const { user, stats, loading: userLoading } = useUser();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   
   // States
@@ -242,8 +244,8 @@ const GestionnaireDashboard: React.FC = () => {
   const revenusData = chartData;
 
   const occupationData = [
-    { name: 'Occupé', value: stats?.tauxOccupation || 0, color: '#0d9488' },
-    { name: 'Vacant', value: 100 - (stats?.tauxOccupation || 0), color: '#e2e8f0' },
+    { name: t('dashboard.occupied'), value: stats?.tauxOccupation || 0, color: '#0d9488' },
+    { name: t('dashboard.vacant'), value: 100 - (stats?.tauxOccupation || 0), color: '#e2e8f0' },
   ];
 
   const allKpis = kpis; 
@@ -270,10 +272,10 @@ const GestionnaireDashboard: React.FC = () => {
       <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
-            Tableau de bord <span className="text-primary"></span>
+            {t('nav.tableauDeBord')} <span className="text-primary"></span>
           </h1>
           <p className="text-base-content/60 font-medium mt-1">
-            Bienvenue {user?.nom || ''}, voici votre aperçu global.
+            {t('dashboard.welcome', { name: user?.nom || '' })}
           </p>
         </div>
         
@@ -281,8 +283,8 @@ const GestionnaireDashboard: React.FC = () => {
             {/* Period Filter */}
             <PeriodFilter value={period} onChange={setPeriod} />
             
-            <SearchInput 
-              placeholder="Recherche rapide..." 
+            <SearchInput
+              placeholder={t('dashboard.quickSearch')}
               value={searchQuery}
               onChange={setSearchQuery}
               size="sm"
@@ -304,21 +306,21 @@ const GestionnaireDashboard: React.FC = () => {
           
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <p className="text-white/80 text-sm font-medium">Performance globale (Mois)</p>
+              <p className="text-white/80 text-sm font-medium">{t('dashboard.globalPerformance')}</p>
               <p className="text-3xl font-bold">{new Intl.NumberFormat('fr-FR').format(revenuNet)} FCFA</p>
-              <p className="text-white/60 text-xs mt-1">Revenus encaissés (mois)</p>
+              <p className="text-white/60 text-xs mt-1">{t('dashboard.revenueCollectedMonth')}</p>
             </div>
             <div className="flex gap-4 flex-wrap">
               <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
-                <p className="text-white/80 text-xs font-medium">Encaissements</p>
+                <p className="text-white/80 text-xs font-medium">{t('dashboard.collections')}</p>
                 <p className="text-lg font-bold text-green-300">+{new Intl.NumberFormat('fr-FR').format(totalRevenus)}</p>
               </div>
               <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
-                <p className="text-white/80 text-xs font-medium">Impayés</p>
+                <p className="text-white/80 text-xs font-medium">{t('dashboard.unpaid')}</p>
                 <p className="text-lg font-bold text-orange-300">{new Intl.NumberFormat('fr-FR').format(totalImpayes)}</p>
               </div>
               <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
-                <p className="text-white/80 text-xs font-medium">Taux occupation</p>
+                <p className="text-white/80 text-xs font-medium">{t('dashboard.occupancyRate')}</p>
                 <p className="text-lg font-bold">{stats?.tauxOccupation || 0}%</p>
               </div>
             </div>
@@ -330,9 +332,9 @@ const GestionnaireDashboard: React.FC = () => {
        <motion.div variants={itemVariants} className="relative">
           <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-base-content/90 dark:text-base-content">Indicateurs Stratégiques</span>
+                <span className="text-lg font-bold text-base-content/90 dark:text-base-content">{t('dashboard.strategicIndicators')}</span>
                 <span className="px-2 py-0.5 rounded-full bg-base-300 text-xs font-medium text-base-content/60">
-                    {showAllKpis ? `${allKpis.length} metrics` : `${Math.min(4, allKpis.length)} metrics`}
+                    {showAllKpis ? `${allKpis.length} ${t('dashboard.metrics')}` : `${Math.min(4, allKpis.length)} ${t('dashboard.metrics')}`}
                 </span>
               </div>
               
@@ -342,11 +344,11 @@ const GestionnaireDashboard: React.FC = () => {
                 >
                   {showAllKpis ? (
                       <>
-                        Voir moins <ChevronUp size={16} />
+                        {t('common.seeLess')} <ChevronUp size={16} />
                       </>
                   ) : (
                       <>
-                        Voir tous <ChevronDown size={16} />
+                        {t('common.seeAll')} <ChevronDown size={16} />
                       </>
                   )}
               </button>
@@ -367,11 +369,11 @@ const GestionnaireDashboard: React.FC = () => {
             </div>
           ) : visibleKpis.length === 0 ? (
             <div className="col-span-full py-8">
-              <EmptyState 
+              <EmptyState
                 icon={<AlertTriangle size={48} />}
-                title="Données indisponibles"
-                description="Impossible de charger les indicateurs. Veuillez vérifier votre connexion ou rafraîchir la page."
-                actionLabel="Réessayer"
+                title={t('dashboard.dataUnavailable')}
+                description={t('dashboard.dataUnavailableDesc')}
+                actionLabel={t('common.retry')}
                 onAction={() => window.location.reload()}
               />
             </div>
@@ -418,17 +420,17 @@ const GestionnaireDashboard: React.FC = () => {
                 <Card className="overflow-hidden border-none shadow-xl bg-base-100">
                     <div className="flex justify-between items-center mb-6 px-2">
                         <div>
-                            <h2 className="text-xl font-bold text-base-content/90">Analyse Financière</h2>
-                            <p className="text-sm text-base-content/60">Revenus vs Dépenses ({
-                              period === '7d' ? '7 derniers jours' :
-                              period === '30d' ? '30 derniers jours' :
-                              period === '90d' ? '90 derniers jours' :
-                              period === '1y' ? 'Cette année' : 'Tout'
+                            <h2 className="text-xl font-bold text-base-content/90">{t('dashboard.financialAnalysis')}</h2>
+                            <p className="text-sm text-base-content/60">{t('dashboard.revenueVsExpenses')} ({
+                              period === '7d' ? t('dashboard.period7d') :
+                              period === '30d' ? t('dashboard.period30d') :
+                              period === '90d' ? t('dashboard.period90d') :
+                              period === '1y' ? t('dashboard.period1y') : t('dashboard.periodAll')
                             })</p>
                         </div>
                         <Button variant="ghost" size="sm" className="gap-1" onClick={() => setRefreshKey(k => k + 1)}>
                           <RefreshCw size={14} />
-                          Actualiser
+                          {t('common.refresh')}
                         </Button>
                     </div>
                     <div className="h-[350px] w-full min-h-[350px]">
@@ -457,8 +459,8 @@ const GestionnaireDashboard: React.FC = () => {
                                 iconSize={9}
                                 wrapperStyle={{ paddingTop: '14px', fontSize: '12px', color: '#64748b' }}
                             />
-                            <Area type="monotone" dataKey="revenus"  name="Revenus"  stroke="#3b82f6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRevenusGest)"  dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
-                            <Area type="monotone" dataKey="depenses" name="Dépenses" stroke="#06b6d4" strokeWidth={2.5} fillOpacity={1} fill="url(#colorDepensesGest)" dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+                            <Area type="monotone" dataKey="revenus"  name={t('dashboard.revenue')}  stroke="#3b82f6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRevenusGest)"  dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+                            <Area type="monotone" dataKey="depenses" name={t('dashboard.expenses')} stroke="#06b6d4" strokeWidth={2.5} fillOpacity={1} fill="url(#colorDepensesGest)" dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
                         </AreaChart>
                         </ResponsiveContainer>
                     </div>
@@ -471,10 +473,10 @@ const GestionnaireDashboard: React.FC = () => {
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold text-base-content/90 flex items-center gap-2">
                         <Building2 size={20} className="text-primary" />
-                        Biens en vedette
+                        {t('dashboard.featuredProperties')}
                     </h3>
                     <Button variant="ghost" className="text-primary btn-sm hover:bg-primary/5" onClick={() => navigate('/dashboard/biens')}>
-                        Tout voir <Eye size={16} className="ml-1" />
+                        {t('common.viewAll')} <Eye size={16} className="ml-1" />
                     </Button>
                 </div>
                 
@@ -502,8 +504,8 @@ const GestionnaireDashboard: React.FC = () => {
                                     <h4 className="font-bold text-base-content truncate">{property.name}</h4>
                                     <p className="text-sm text-base-content/60 mb-2 truncate">{property.location}</p>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-xs font-medium bg-teal-50 text-teal-600 px-2 py-1 rounded-lg">{property.units} Lots</span>
-                                        <span className="text-sm font-bold text-base-content">{property.occupancy}% Occ.</span>
+                                        <span className="text-xs font-medium bg-teal-50 text-teal-600 px-2 py-1 rounded-lg">{property.units} {t('dashboard.lots')}</span>
+                                        <span className="text-sm font-bold text-base-content">{property.occupancy}% {t('dashboard.occ')}</span>
                                     </div>
                                 </div>
                             </div>
@@ -511,7 +513,7 @@ const GestionnaireDashboard: React.FC = () => {
                     </div>
                 ) : (
                     <div className="p-8 text-center text-base-content/60 bg-base-200 rounded-xl">
-                        Aucun bien en vedette pour le moment
+                        {t('dashboard.noFeaturedProperties')}
                     </div>
                 )}
             </motion.div>
@@ -523,7 +525,7 @@ const GestionnaireDashboard: React.FC = () => {
             {/* Quick Actions */}
             <motion.div variants={itemVariants}>
                 <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200">
-                    <h3 className="font-bold text-base-content/90 mb-4">Actions Rapides</h3>
+                    <h3 className="font-bold text-base-content/90 mb-4">{t('dashboard.quickActions')}</h3>
                     <QuickActions userType="gestionnaire" />
                 </div>
             </motion.div>
@@ -531,7 +533,7 @@ const GestionnaireDashboard: React.FC = () => {
             {/* Occupation Pie Chart (Compact) */}
             <motion.div variants={itemVariants}>
                  <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200 relative overflow-hidden">
-                    <h3 className="font-bold text-base-content/90 mb-2">Occupation</h3>
+                    <h3 className="font-bold text-base-content/90 mb-2">{t('dashboard.occupancy')}</h3>
                     <div className="h-[200px] flex items-center justify-center relative z-10">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -552,7 +554,7 @@ const GestionnaireDashboard: React.FC = () => {
                         {/* Center Text */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                             <span className="text-3xl font-extrabold text-base-content/90">{stats?.tauxOccupation || 0}%</span>
-                            <span className="text-xs text-base-content/50 font-medium uppercase tracking-wide">Occupé</span>
+                            <span className="text-xs text-base-content/50 font-medium uppercase tracking-wide">{t('dashboard.occupied')}</span>
                         </div>
                     </div>
                 </div>
@@ -562,7 +564,7 @@ const GestionnaireDashboard: React.FC = () => {
             <motion.div variants={itemVariants}>
                 <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="font-bold text-base-content/90">Fil d'actualité</h3>
+                        <h3 className="font-bold text-base-content/90">{t('dashboard.activityFeed')}</h3>
                         <Button variant="ghost" className="btn-xs text-base-content/50">
                             <MoreVertical size={16} />
                         </Button>
@@ -574,7 +576,7 @@ const GestionnaireDashboard: React.FC = () => {
                     ) : activities.length > 0 ? (
                         <ActivityFeed activities={activities} />
                     ) : (
-                        <p className="text-center text-base-content/60 py-4">Aucune activité récente</p>
+                        <p className="text-center text-base-content/60 py-4">{t('dashboard.noRecentActivity')}</p>
                     )}
                 </div>
             </motion.div>
