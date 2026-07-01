@@ -22,9 +22,10 @@ import LotCard from '../components/biens/LotCard';
 import ImmeubleDetailModal from '../components/biens/ImmeubleDetailModal';
 import LotDetailModal from '../components/biens/LotDetailModal';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { saveLot } from '../api/bienApi';
 import type { Immeuble, Lot } from '../api/bienApi';
-import { useBiens, LOT_FILTERS } from '../hooks/useBiens';
+import { useBiens } from '../hooks/useBiens';
 import { getPlaceholderImage, getLotStatut } from '../utils/bienUtils';
 import toast from 'react-hot-toast';
 
@@ -91,6 +92,7 @@ const TableSkeleton = () => (
 
 const Biens: React.FC = () => {
   const b = useBiens();
+  const { t } = useTranslation();
 
   // ── Form views ──────────────────────────────────────────────────────────
 
@@ -100,11 +102,11 @@ const Biens: React.FC = () => {
         <div className="flex items-center gap-4">
           <button type="button" onClick={() => b.setFormView(null)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
             <ArrowLeft size={20} />
-            <span className="text-sm font-medium">Retour au parc immobilier</span>
+            <span className="text-sm font-medium">{t('properties.backToPortfolio')}</span>
           </button>
           <div className="h-5 w-px bg-base-300" />
           <h1 className="text-xl font-bold text-base-content/90">
-            {b.editingImmeuble.id ? "Modifier l'Immeuble" : 'Nouvel Immeuble'}
+            {b.editingImmeuble.id ? t('properties.editBuilding') : t('properties.newBuilding')}
           </h1>
         </div>
         {b.error   && <Alert variant="error"   onClose={() => b.setError(null)}>{b.error}</Alert>}
@@ -137,11 +139,11 @@ const Biens: React.FC = () => {
         <div className="flex items-center gap-4">
           <button type="button" onClick={() => b.setFormView(null)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
             <ArrowLeft size={20} />
-            <span className="text-sm font-medium">Retour au parc immobilier</span>
+            <span className="text-sm font-medium">{t('properties.backToPortfolio')}</span>
           </button>
           <div className="h-5 w-px bg-base-300" />
           <h1 className="text-xl font-bold text-base-content/90">
-            {b.editingLot.id ? 'Modifier le Lot' : 'Nouveau Lot'}
+            {b.editingLot.id ? t('properties.editLot') : t('properties.newLot')}
           </h1>
         </div>
         {b.error   && <Alert variant="error"   onClose={() => b.setError(null)}>{b.error}</Alert>}
@@ -153,7 +155,7 @@ const Biens: React.FC = () => {
             await saveLot(data);
             await b.fetchData();
             b.setFormView(null);
-            b.setSuccess('Lot enregistré avec succès');
+            b.setSuccess(t('properties.lotSaved'));
           }}
           onStatusChange={async (data, newStatus) => {
             if (['loue', 'vendu', 'reserve'].includes(newStatus)) {
@@ -164,7 +166,7 @@ const Biens: React.FC = () => {
               await saveLot({ ...data, statut: newStatus });
               await b.fetchData();
               b.setFormView(null);
-              b.setSuccess(`Statut du lot modifié: ${newStatus}`);
+              b.setSuccess(t('properties.lotStatusChanged', { status: newStatus }));
             }
           }}
           onCancel={() => b.setFormView(null)}
@@ -180,10 +182,10 @@ const Biens: React.FC = () => {
         <div className="flex items-center gap-4">
           <button type="button" onClick={() => b.setFormView(null)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
             <ArrowLeft size={20} />
-            <span className="text-sm font-medium">Retour au parc immobilier</span>
+            <span className="text-sm font-medium">{t('properties.backToPortfolio')}</span>
           </button>
           <div className="h-5 w-px bg-base-300" />
-          <h1 className="text-xl font-bold text-base-content/90">Nouvelle Affectation</h1>
+          <h1 className="text-xl font-bold text-base-content/90">{t('properties.newAssignment')}</h1>
         </div>
         {b.error && <Alert variant="error" onClose={() => b.setError(null)}>{b.error}</Alert>}
         {b.activeAssignmentLot && (
@@ -192,7 +194,7 @@ const Biens: React.FC = () => {
             onSuccess={async () => {
               await b.fetchData();
               b.setFormView(null);
-              b.setSuccess('Affectation réussie ! Contrat généré.');
+              b.setSuccess(t('properties.assignmentSuccess'));
             }}
             onCancel={() => b.setFormView(null)}
           />
@@ -214,31 +216,31 @@ const Biens: React.FC = () => {
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
-            Parc Immobilier <span className="text-primary">.</span>
+            {t('nav.parcImmobilier')} <span className="text-primary">.</span>
           </h1>
-          <p className="text-base-content/60 font-medium mt-1">Gérez vos immeubles, lots et disponibilités.</p>
+          <p className="text-base-content/60 font-medium mt-1">{t('properties.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <SearchInput
-            placeholder="Rechercher un bien..."
+            placeholder={t('properties.searchPlaceholder')}
             value={b.searchQuery}
             onChange={b.setSearchQuery}
             className="w-64"
           />
           {b.canWrite && (
-            <div className="relative group" title={b.isLimitReached ? "Limite d'abonnement atteinte. Passez au plan Pro." : ''}>
+            <div className="relative group" title={b.isLimitReached ? t('properties.limitReachedTitle') : ''}>
               <Button
                 variant="primary"
                 disabled={b.isLimitReached}
                 className={`rounded-full px-6 shadow-lg shadow-primary/20 transition-all font-semibold ${b.isLimitReached ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-primary/40'}`}
                 onClick={() => {
-                  if (b.isLimitReached) { toast('Limite de biens atteinte. Veuillez upgrader votre abonnement.', { icon: '👑' }); return; }
+                  if (b.isLimitReached) { toast(t('properties.limitReachedToast'), { icon: '👑' }); return; }
                   if (b.activeTab === 'immeubles') b.openNewImmeuble();
                   else b.openNewLot();
                 }}
               >
                 <Plus size={18} className="mr-2" />
-                Nouveau {b.activeTab === 'immeubles' ? 'Immeuble' : 'Lot'}
+                {b.activeTab === 'immeubles' ? t('properties.newBuilding') : t('properties.newLot')}
               </Button>
             </div>
           )}
@@ -262,7 +264,7 @@ const Biens: React.FC = () => {
               }`}
             >
               {tab === 'immeubles' ? <Building2 size={18} /> : <Home size={18} />}
-              {tab === 'immeubles' ? 'Immeubles' : 'Lots'}
+              {tab === 'immeubles' ? t('properties.buildings') : t('properties.lots')}
               <span className="ml-1 px-2 py-0.5 rounded-full bg-base-300 text-xs">
                 {tab === 'immeubles' ? b.immeubles.length : b.lots.length}
               </span>
@@ -279,7 +281,7 @@ const Biens: React.FC = () => {
                 type="button"
                 onClick={() => b.setViewMode(mode)}
                 className={`p-2 rounded-md transition-all ${b.viewMode === mode ? 'bg-base-100 shadow-sm text-primary' : 'text-base-content/50 hover:text-base-content/70'}`}
-                title={mode === 'grid' ? 'Vue Grille' : 'Vue Liste'}
+                title={mode === 'grid' ? t('common.gridView') : t('common.listView')}
               >
                 {mode === 'grid' ? <LayoutGrid size={18} /> : <List size={18} />}
               </button>
@@ -294,7 +296,7 @@ const Biens: React.FC = () => {
             className={b.showFilters ? '' : 'text-base-content/60'}
           >
             {b.showFilters && <X size={16} className="mr-1" />}
-            Filtres
+            {t('common.filters')}
             {Object.keys(b.filterValues).length > 0 && (
               <span className="ml-2 w-5 h-5 rounded-full bg-primary text-white text-xs flex items-center justify-center">
                 {Object.keys(b.filterValues).length}
@@ -303,7 +305,7 @@ const Biens: React.FC = () => {
           </Button>
 
           <div className="h-6 w-px bg-base-300" />
-          <span className="text-sm font-semibold text-base-content/60">{b.currentData.length} résultats</span>
+          <span className="text-sm font-semibold text-base-content/60">{t('common.results', { count: b.currentData.length })}</span>
         </div>
       </motion.div>
 
@@ -318,7 +320,7 @@ const Biens: React.FC = () => {
             className="overflow-hidden"
           >
             <FilterPanel
-              filters={b.activeTab === 'immeubles' ? b.dynamicImmeubleFilters : LOT_FILTERS}
+              filters={b.activeTab === 'immeubles' ? b.dynamicImmeubleFilters : b.lotFilters}
               values={b.filterValues}
               onChange={b.setFilterValues}
               onClear={() => b.setFilterValues({})}
@@ -347,9 +349,9 @@ const Biens: React.FC = () => {
                   {b.paginatedData.length === 0 ? (
                     <EmptyState
                       icon={<Building2 size={40} />}
-                      title="Aucun immeuble trouvé"
-                      description="Il n'y a aucun immeuble qui correspond à vos critères. Modifiez vos filtres ou ajoutez un nouvel immeuble."
-                      actionLabel={b.canWrite ? 'Ajouter un immeuble' : undefined}
+                      title={t('properties.noBuildingsFound')}
+                      description={t('properties.noBuildingsDesc')}
+                      actionLabel={b.canWrite ? t('properties.addBuilding') : undefined}
                       onAction={b.canWrite ? () => b.openNewImmeuble() : undefined}
                       className="mt-6"
                     />
@@ -375,12 +377,12 @@ const Biens: React.FC = () => {
                     <table className="table w-full">
                       <thead className="bg-base-200/50">
                         <tr>
-                          <th className="py-4 pl-6">Photo</th>
-                          <th className="py-4">Nom</th>
-                          <th className="py-4 hidden md:table-cell">Ville</th>
-                          <th className="py-4 hidden sm:table-cell">Nb Lots</th>
-                          <th className="py-4 hidden lg:table-cell">Occupation</th>
-                          <th className="py-4 pr-6 text-right">Actions</th>
+                          <th className="py-4 pl-6">{t('properties.colPhoto')}</th>
+                          <th className="py-4">{t('common.name')}</th>
+                          <th className="py-4 hidden md:table-cell">{t('properties.colCity')}</th>
+                          <th className="py-4 hidden sm:table-cell">{t('properties.colNbLots')}</th>
+                          <th className="py-4 hidden lg:table-cell">{t('dashboard.occupancy')}</th>
+                          <th className="py-4 pr-6 text-right">{t('common.actions')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -390,7 +392,7 @@ const Biens: React.FC = () => {
                               <div
                                 className="avatar h-12 w-16 rounded cursor-pointer overflow-hidden relative shadow-sm"
                                 onClick={() => { b.setGallerySelectedBuilding(immeuble); b.setShowGalleryModal(true); }}
-                                title="Ouvrir la galerie"
+                                title={t('properties.openGallery')}
                               >
                                 <img
                                   src={immeuble.photo || (immeuble.photos?.length ? immeuble.photos[0] : getPlaceholderImage(immeuble.id))}
@@ -410,8 +412,8 @@ const Biens: React.FC = () => {
                             </td>
                             <td className="pr-6 text-right">
                               <div className="flex justify-end gap-1">
-                                {b.canWrite && <button type="button" title="Modifier" onClick={() => { b.setEditingImmeuble(immeuble); b.setFormView('immeuble'); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
-                                {b.canWrite && <button type="button" title="Supprimer" onClick={() => b.handleDeleteImmeuble(immeuble.id)} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>}
+                                {b.canWrite && <button type="button" title={t('common.edit')} onClick={() => { b.setEditingImmeuble(immeuble); b.setFormView('immeuble'); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
+                                {b.canWrite && <button type="button" title={t('common.delete')} onClick={() => b.handleDeleteImmeuble(immeuble.id)} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>}
                               </div>
                             </td>
                           </tr>
@@ -427,7 +429,7 @@ const Biens: React.FC = () => {
                   {(b.paginatedData as Lot[]).length === 0 ? (
                     <div className="col-span-full text-center py-12 text-base-content/50">
                       <Home size={48} className="mx-auto mb-4 opacity-50" />
-                      <p className="font-medium">Aucun lot trouvé</p>
+                      <p className="font-medium">{t('properties.noLotsFound')}</p>
                     </div>
                   ) : (
                     (b.paginatedData as Lot[]).map(lot => (
@@ -448,17 +450,17 @@ const Biens: React.FC = () => {
                     <table className="table w-full">
                       <thead className="bg-base-200/50">
                         <tr>
-                          <th className="py-4 pl-6">Photo</th>
-                          <th className="py-4">Référence</th>
-                          <th className="py-4 hidden md:table-cell">Immeuble</th>
-                          <th className="py-4">Statut</th>
-                          <th className="py-4 hidden sm:table-cell">Loyer / Prix</th>
-                          <th className="py-4 pr-6 text-right">Actions</th>
+                          <th className="py-4 pl-6">{t('properties.colPhoto')}</th>
+                          <th className="py-4">{t('properties.colReference')}</th>
+                          <th className="py-4 hidden md:table-cell">{t('properties.colBuilding')}</th>
+                          <th className="py-4">{t('common.status')}</th>
+                          <th className="py-4 hidden sm:table-cell">{t('properties.colRentPrice')}</th>
+                          <th className="py-4 pr-6 text-right">{t('common.actions')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {(b.paginatedData as Lot[]).length === 0 ? (
-                          <tr><td colSpan={6} className="text-center py-12 text-base-content/50">Aucun lot trouvé</td></tr>
+                          <tr><td colSpan={6} className="text-center py-12 text-base-content/50">{t('properties.noLotsFound')}</td></tr>
                         ) : (
                           (b.paginatedData as Lot[]).map(lot => {
                             const s = getLotStatut(lot.statut);
@@ -478,13 +480,13 @@ const Biens: React.FC = () => {
                                 <td>
                                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${s.pill}`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                                    {s.label}
+                                    {t(s.labelKey)}
                                   </span>
                                 </td>
                                 <td className="font-mono font-medium text-base-content/80 hidden sm:table-cell">
                                   {lot.type === 'Vente' || lot.prix_vente
-                                    ? <span className="text-teal-700">{lot.prix_vente?.toLocaleString()} FCFA (Vente)</span>
-                                    : <span>{lot.loyer?.toLocaleString()} FCFA/mois</span>
+                                    ? <span className="text-teal-700">{lot.prix_vente?.toLocaleString()} FCFA ({t('properties.sale')})</span>
+                                    : <span>{lot.loyer?.toLocaleString()} FCFA/{t('properties.perMonth')}</span>
                                   }
                                 </td>
                                 <td className="pr-6 text-right">
@@ -492,16 +494,16 @@ const Biens: React.FC = () => {
                                     {b.canWrite && lot.statut === 'libre' && (
                                       <button
                                         type="button"
-                                        title="Affecter (Louer/Vendre)"
+                                        title={t('properties.assign')}
                                         onClick={e => { e.stopPropagation(); b.setEditingLot(lot); b.setActiveAssignmentLot(lot); b.setFormView('assignment'); }}
                                         className="btn btn-ghost btn-xs btn-square text-primary tooltip tooltip-left"
-                                        data-tip="Affecter (Louer/Vendre)"
+                                        data-tip={t('properties.assign')}
                                       >
                                         <UserPlus size={14} />
                                       </button>
                                     )}
-                                    {b.canWrite && <button type="button" title="Modifier" onClick={e => { e.stopPropagation(); b.setEditingLot(lot); b.setFormView('lot'); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
-                                    {b.canWrite && <button type="button" title="Supprimer" onClick={e => { e.stopPropagation(); b.handleDeleteLot(lot.id); }} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>}
+                                    {b.canWrite && <button type="button" title={t('common.edit')} onClick={e => { e.stopPropagation(); b.setEditingLot(lot); b.setFormView('lot'); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
+                                    {b.canWrite && <button type="button" title={t('common.delete')} onClick={e => { e.stopPropagation(); b.handleDeleteLot(lot.id); }} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>}
                                   </div>
                                 </td>
                               </tr>
@@ -518,21 +520,21 @@ const Biens: React.FC = () => {
             {/* Pagination */}
             {b.totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-8">
-                <button type="button" title="Page précédente" onClick={() => b.setCurrentPage(p => Math.max(1, p - 1))} disabled={b.currentPage === 1} className="btn btn-ghost btn-sm btn-circle disabled:opacity-40">
+                <button type="button" title={t('common.prevPage')} onClick={() => b.setCurrentPage(p => Math.max(1, p - 1))} disabled={b.currentPage === 1} className="btn btn-ghost btn-sm btn-circle disabled:opacity-40">
                   <ChevronLeft size={18} />
                 </button>
                 {Array.from({ length: b.totalPages }, (_, i) => i + 1).map(page => (
                   <button
                     key={page}
                     type="button"
-                    aria-label={`Page ${page}`}
+                    aria-label={t('common.page', { number: page })}
                     onClick={() => b.setCurrentPage(page)}
                     className={`btn btn-sm btn-circle ${b.currentPage === page ? 'btn-primary' : 'btn-ghost'}`}
                   >
                     {page}
                   </button>
                 ))}
-                <button type="button" title="Page suivante" onClick={() => b.setCurrentPage(p => Math.min(b.totalPages, p + 1))} disabled={b.currentPage === b.totalPages} className="btn btn-ghost btn-sm btn-circle disabled:opacity-40">
+                <button type="button" title={t('common.nextPage')} onClick={() => b.setCurrentPage(p => Math.min(b.totalPages, p + 1))} disabled={b.currentPage === b.totalPages} className="btn btn-ghost btn-sm btn-circle disabled:opacity-40">
                   <ChevronRight size={18} />
                 </button>
               </div>
@@ -564,7 +566,7 @@ const Biens: React.FC = () => {
       <Modal
         isOpen={b.showGalleryModal}
         onClose={() => b.setShowGalleryModal(false)}
-        title={`Galerie - ${b.gallerySelectedBuilding?.nom}`}
+        title={t('properties.galleryTitle', { name: b.gallerySelectedBuilding?.nom })}
         size="lg"
       >
         <div className="space-y-6">
@@ -572,17 +574,17 @@ const Biens: React.FC = () => {
             {b.gallerySelectedBuilding?.photos?.length ? (
               b.gallerySelectedBuilding.photos.map((url, idx) => (
                 <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-base-200 shadow-sm hover:shadow-md transition-shadow">
-                  <img src={url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
+                  <img src={url} alt={`${t('properties.photo')} ${idx + 1}`} className="w-full h-full object-cover" />
                 </div>
               ))
             ) : (
               <div className="col-span-full py-12 text-center text-base-content/50">
-                <p>Aucune photo disponible pour cet immeuble.</p>
+                <p>{t('properties.noPhotos')}</p>
               </div>
             )}
           </div>
           <div className="flex justify-end">
-            <Button onClick={() => b.setShowGalleryModal(false)}>Fermer</Button>
+            <Button onClick={() => b.setShowGalleryModal(false)}>{t('common.close')}</Button>
           </div>
         </div>
       </Modal>

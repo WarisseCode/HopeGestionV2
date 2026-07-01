@@ -3,6 +3,7 @@
 // Biens.tsx ne fait que rendre le JSX.
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useUser } from '../contexts/UserContext';
 import { getImmeubles, getLots, saveImmeuble, saveLot, deleteImmeuble, deleteLot } from '../api/bienApi';
 import { getSubscriptionStatus } from '../api/subscriptionApi';
@@ -15,43 +16,7 @@ import type { Proprietaire, Utilisateur } from '../api/accountApi';
 import type { FilterConfig, FilterValues } from '../components/ui/FilterPanel';
 import { ITEMS_PER_PAGE } from '../utils/bienUtils';
 
-// ── Filter configurations (static, defined outside hook) ─────────────────────
-
-export const IMMEUBLE_FILTERS: FilterConfig[] = [
-  {
-    id: 'type', type: 'select', label: 'Type',
-    options: [
-      { value: 'Immeuble', label: 'Immeuble' }, { value: 'Résidence', label: 'Résidence' },
-      { value: 'Villa', label: 'Villa' }, { value: 'Maison', label: 'Maison' },
-      { value: 'Commerce', label: 'Commerce' },
-    ]
-  },
-  { id: 'ville', type: 'select', label: 'Ville', options: [] },
-  {
-    id: 'statut', type: 'select', label: 'Statut',
-    options: [{ value: 'actif', label: 'Actif' }, { value: 'inactif', label: 'Inactif' }]
-  }
-];
-
-export const LOT_FILTERS: FilterConfig[] = [
-  {
-    id: 'type', type: 'select', label: 'Type',
-    options: [
-      { value: 'Appartement', label: 'Appartement' }, { value: 'Studio', label: 'Studio' },
-      { value: 'Chambre', label: 'Chambre' }, { value: 'Boutique', label: 'Boutique' },
-      { value: 'Bureau', label: 'Bureau' },
-    ]
-  },
-  {
-    id: 'statut', type: 'select', label: 'Statut',
-    options: [
-      { value: 'libre', label: 'Libre' }, { value: 'loue', label: 'Loué' },
-      { value: 'reserve', label: 'Réservé' }, { value: 'vendu', label: 'Vendu' },
-      { value: 'hors_service', label: 'Hors service' },
-    ]
-  },
-  { id: 'loyer', type: 'range', label: 'Loyer (FCFA)', min: 0, max: 500000 }
-];
+// Note : les filtres (labels traduisibles) sont construits dans le hook via t().
 
 // ── Default editing states ────────────────────────────────────────────────────
 
@@ -81,7 +46,45 @@ const DEFAULT_CONFIRM: ConfirmConfig = {
 
 export function useBiens() {
   const { user } = useUser();
+  const { t } = useTranslation();
   const canWrite = !['proprietaire', 'locataire'].includes(user?.userType || '');
+
+  // ── Filtres (labels traduits) ─────────────────────────────────────────────
+  const immeubleFilters: FilterConfig[] = useMemo(() => [
+    {
+      id: 'type', type: 'select', label: t('properties.filters.type'),
+      options: [
+        { value: 'Immeuble', label: t('properties.filters.bt_immeuble') }, { value: 'Résidence', label: t('properties.filters.bt_residence') },
+        { value: 'Villa', label: t('properties.filters.bt_villa') }, { value: 'Maison', label: t('properties.filters.bt_maison') },
+        { value: 'Commerce', label: t('properties.filters.bt_commerce') },
+      ]
+    },
+    { id: 'ville', type: 'select', label: t('properties.filters.city'), options: [] },
+    {
+      id: 'statut', type: 'select', label: t('common.status'),
+      options: [{ value: 'actif', label: t('properties.filters.actif') }, { value: 'inactif', label: t('properties.filters.inactif') }]
+    }
+  ], [t]);
+
+  const lotFilters: FilterConfig[] = useMemo(() => [
+    {
+      id: 'type', type: 'select', label: t('properties.filters.type'),
+      options: [
+        { value: 'Appartement', label: t('properties.filters.lt_appartement') }, { value: 'Studio', label: t('properties.filters.lt_studio') },
+        { value: 'Chambre', label: t('properties.filters.lt_chambre') }, { value: 'Boutique', label: t('properties.filters.lt_boutique') },
+        { value: 'Bureau', label: t('properties.filters.lt_bureau') },
+      ]
+    },
+    {
+      id: 'statut', type: 'select', label: t('common.status'),
+      options: [
+        { value: 'libre', label: t('properties.status.libre') }, { value: 'loue', label: t('properties.status.loue') },
+        { value: 'reserve', label: t('properties.status.reserve') }, { value: 'vendu', label: t('properties.status.vendu') },
+        { value: 'hors_service', label: t('properties.status.hors_service') },
+      ]
+    },
+    { id: 'loyer', type: 'range', label: t('properties.filters.rent'), min: 0, max: 500000 }
+  ], [t]);
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const [immeubles, setImmeubles] = useState<Immeuble[]>([]);
@@ -138,11 +141,11 @@ export function useBiens() {
       if (subStatus) setSubscriptionStatus(subStatus);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Erreur lors du chargement des données');
+      setError(err.message || t('properties.loadDataError'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { setCurrentPage(1); }, [searchQuery, filterValues, activeTab]);
@@ -193,10 +196,10 @@ export function useBiens() {
   // Dynamically populate city filter options from loaded data
   const dynamicImmeubleFilters = useMemo(() => {
     const cities = [...new Set(immeubles.map(i => i.ville).filter(Boolean))];
-    return IMMEUBLE_FILTERS.map(f =>
+    return immeubleFilters.map(f =>
       f.id === 'ville' ? { ...f, options: cities.map(c => ({ value: c, label: c })) } : f
     );
-  }, [immeubles]);
+  }, [immeubles, immeubleFilters]);
 
   // ── Subscription limit check ──────────────────────────────────────────────
 
@@ -212,14 +215,14 @@ export function useBiens() {
     const dataToSave = data || editingImmeuble;
     try {
       setError(null);
-      if (!dataToSave.owner_id) throw new Error('Veuillez sélectionner un propriétaire');
+      if (!dataToSave.owner_id) throw new Error(t('properties.selectOwner'));
       const finalData = {
         ...dataToSave,
         owner_id: Number(dataToSave.owner_id),
         nombre_etages: Number(dataToSave.nombre_etages || 1),
       };
       const saved = await saveImmeuble(finalData);
-      setSuccess('Immeuble enregistré avec succès');
+      setSuccess(t('properties.buildingSaved'));
       setEditingImmeuble(DEFAULT_IMMEUBLE);
       fetchData();
       return saved;
@@ -233,11 +236,11 @@ export function useBiens() {
   const handleDeleteImmeuble = (id: number) => {
     setConfirmConfig({
       isOpen: true,
-      title: 'Supprimer cet immeuble',
-      message: 'Voulez-vous vraiment supprimer cet immeuble ? Tous les lots associés pourraient être impactés. Cette action est irréversible.',
+      title: t('properties.deleteBuildingTitle'),
+      message: t('properties.deleteBuildingMsg'),
       type: 'danger',
       action: async () => {
-        try { await deleteImmeuble(id); setSuccess('Immeuble supprimé'); fetchData(); }
+        try { await deleteImmeuble(id); setSuccess(t('properties.buildingDeleted')); fetchData(); }
         catch (err: any) { setError(err.message); }
       },
     });
@@ -246,11 +249,11 @@ export function useBiens() {
   const handleDeleteLot = (id: number) => {
     setConfirmConfig({
       isOpen: true,
-      title: 'Supprimer ce lot',
-      message: 'Voulez-vous vraiment supprimer ce lot ? Cette action est irréversible.',
+      title: t('properties.deleteLotTitle'),
+      message: t('properties.deleteLotMsg'),
       type: 'danger',
       action: async () => {
-        try { await deleteLot(id); setSuccess('Lot supprimé'); fetchData(); }
+        try { await deleteLot(id); setSuccess(t('properties.lotDeleted')); fetchData(); }
         catch (err: any) { setError(err.message); }
       },
     });
@@ -283,7 +286,7 @@ export function useBiens() {
 
     // ── Filtered
     filteredImmeubles, filteredLots,
-    dynamicImmeubleFilters,
+    dynamicImmeubleFilters, lotFilters,
 
     // ── UI
     activeTab, setActiveTab,
