@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Wallet, Building2, Bell, User, Menu } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 interface BottomNavProps {
   toggleSidebar: () => void;
@@ -11,27 +12,28 @@ interface BottomNavProps {
 
 const BottomNav: React.FC<BottomNavProps> = ({ toggleSidebar, userProfile, alertsCount = 0 }) => {
   const location = useLocation();
+  const { t } = useTranslation();
   const role = userProfile?.role || 'user';
   const type = userProfile?.userType;
 
-  // Determine the "Action" tab based on role
+  // `label` contient une clé i18n, traduite au rendu via t(item.label).
   const getActionItem = () => {
     if (type === 'auth_proprietaire' || type === 'proprietaire') {
-      return { icon: <Building2 size={24} />, label: 'Mes Biens', path: '/dashboard/biens' };
+      return { icon: <Building2 size={24} />, label: 'nav.mesBiens', path: '/dashboard/biens' };
     }
     if (type === 'auth_locataire' || type === 'locataire') {
-      return { icon: <Wallet size={24} />, label: 'Paiements', path: '/dashboard/finances' };
+      return { icon: <Wallet size={24} />, label: 'nav.paiements', path: '/dashboard/finances' };
     }
     // Admin / Gestionnaire
-    return { icon: <Bell size={24} />, label: 'Alertes', path: '/dashboard/alertes', badge: alertsCount };
+    return { icon: <Bell size={24} />, label: 'nav.alertes', path: '/dashboard/alertes', badge: alertsCount };
   };
 
   const actionItem = getActionItem();
 
   const navItems = [
-    { icon: <LayoutDashboard size={24} />, label: 'Accueil', path: '/dashboard' },
+    { icon: <LayoutDashboard size={24} />, label: 'nav.accueil', path: '/dashboard' },
     actionItem,
-    { icon: <User size={24} />, label: 'Profil', path: '/dashboard/mon-compte' },
+    { icon: <User size={24} />, label: 'nav.profil', path: '/dashboard/mon-compte' },
   ];
 
   return (
@@ -62,7 +64,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ toggleSidebar, userProfile, alert
                 )}
               </div>
               <span className={`text-[10px] font-medium ${isActive ? 'font-bold' : ''}`}>
-                {item.label}
+                {t(item.label)}
               </span>
               
               {isActive && (
@@ -81,7 +83,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ toggleSidebar, userProfile, alert
           className="flex flex-col items-center gap-1 p-2 text-base-content/50 hover:text-primary transition-colors"
         >
           <Menu size={24} />
-          <span className="text-[10px] font-medium">Menu</span>
+          <span className="text-[10px] font-medium">{t('nav.menu')}</span>
         </button>
 
       </div>

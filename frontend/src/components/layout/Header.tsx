@@ -3,6 +3,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Search, Home, ChevronRight, Settings, Crown, Sun, Moon, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import NotificationBell from '../NotificationBell';
 import SubscriptionBadge from '../SubscriptionBadge';
 import { updateProfile } from '../../api/accountApi';
@@ -18,6 +19,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle, userProfile, onLogout }) => {
   const location = useLocation();
+  const { t } = useTranslation();
   const [theme, setTheme] = React.useState<'hopegestion' | 'dark'>('hopegestion');
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
 
@@ -63,7 +65,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle
         <div className="hidden md:flex items-center gap-2 text-sm text-base-content/60">
             <Link to="/dashboard" className="hover:text-primary flex items-center gap-1">
                 <Home size={14} />
-                <span>Bureau</span>
+                <span>{t('nav.bureau')}</span>
             </Link>
             {location.pathname !== '/dashboard' && location.pathname !== '/dashboard/' && (
                 <>
@@ -82,7 +84,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle
             <button 
               onClick={toggleSidebar} 
               className="p-2 rounded-lg hover:bg-base-200 text-base-content active:scale-95 transition-transform"
-              aria-label="Toggle Menu"
+              aria-label={t('header.toggleMenu')}
             >
                 {isSidebarOpen ? <PanelLeftClose size={22} /> : <PanelLeftOpen size={22} />}
             </button>
@@ -97,7 +99,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle
                 className="hidden lg:flex items-center bg-base-200/50 rounded-full px-4 py-2 w-64 border border-transparent hover:border-primary/30 hover:bg-base-200 transition-all text-left text-sm text-base-content/50"
             >
                 <Search size={16} className="mr-2" />
-                <span>Rechercher...</span>
+                <span>{t('common.search')}</span>
                 <span className="ml-auto text-xs bg-base-100 px-1.5 py-0.5 rounded border border-base-200 shadow-sm font-mono">
                   ⌘K
                 </span>
@@ -122,7 +124,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle
             <button 
                 onClick={handleToggleTheme}
                 className="btn btn-ghost btn-circle"
-                aria-label="Basculer le thème"
+                aria-label={t('header.toggleTheme')}
             >
                 {theme === 'dark' ? <Sun size={20} className="text-warning" /> : <Moon size={20} className="text-base-content/60" />}
             </button>
@@ -135,7 +137,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle
                 <div
                     tabIndex={0}
                     role="button"
-                    aria-label="Profil utilisateur"
+                    aria-label={t('header.userProfile')}
                     aria-haspopup="true"
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}
                     className="btn btn-ghost btn-circle avatar online placeholder ring-2 ring-base-200 ring-offset-1 ring-offset-base-100 hover:ring-primary transition-all"
@@ -149,21 +151,21 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle
                 </div>
                 <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow-lg menu menu-sm dropdown-content bg-base-100 rounded-box w-56 border border-base-200">
                     <li className="menu-title px-4 py-2 border-b border-base-200 mb-2">
-                        <span className="text-xs font-semibold opacity-50 uppercase tracking-wider">Mon Compte</span>
+                        <span className="text-xs font-semibold opacity-50 uppercase tracking-wider">{t('nav.monCompte')}</span>
                         <div className="font-bold text-base-content mt-0.5 truncate">{userProfile?.nom}</div>
                         <div className="font-normal text-xs opacity-60 truncate">{userProfile?.email}</div>
                     </li>
                     <li>
                         <Link to="/dashboard/mon-compte" className="py-2">
                             <Settings size={16} />
-                            Profil et Préférences
+                            {t('header.profileAndPreferences')}
                         </Link>
                     </li>
-                    <li><Link to="/dashboard/abonnement" className="py-2"><Crown size={16} /> Mon Abonnement</Link></li>
-                    <div className="divider my-1"></div> 
+                    <li><Link to="/dashboard/abonnement" className="py-2"><Crown size={16} /> {t('header.mySubscription')}</Link></li>
+                    <div className="divider my-1"></div>
                     <li>
                         <button onClick={onLogout} className="text-error hover:bg-error/10 py-2 font-medium">
-                            Se déconnecter
+                            {t('common.logoutConfirm')}
                         </button>
                     </li>
                 </ul>

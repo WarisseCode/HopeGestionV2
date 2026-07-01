@@ -71,7 +71,18 @@
     "payerEnLigne": "Pay online",
     "mesPaiements": "My Payments",
     "monEquipe": "My Team",
-    "plaintesIncidents": "Complaints / Issues"
+    "plaintesIncidents": "Complaints / Issues",
+    "accueil": "Home",
+    "profil": "Profile",
+    "paiements": "Payments",
+    "menu": "Menu"
+  },
+  "header": {
+    "profileAndPreferences": "Profile & Preferences",
+    "mySubscription": "My Subscription",
+    "toggleMenu": "Toggle menu",
+    "toggleTheme": "Toggle theme",
+    "userProfile": "User profile"
   },
   "layout": {
     "ownerPortal": "Owner portal",
