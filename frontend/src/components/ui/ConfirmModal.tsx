@@ -12,6 +12,9 @@ interface ConfirmModalProps {
     confirmLabel?: string;
     cancelLabel?: string;
     isLoading?: boolean;
+    // Surcharge optionnelle de l'icône (ex. LogOut pour une déconnexion),
+    // sinon icône par défaut selon `type`.
+    icon?: React.ElementType;
 }
 
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -23,7 +26,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     type = 'danger',
     confirmLabel = 'Confirmer',
     cancelLabel = 'Annuler',
-    isLoading = false
+    isLoading = false,
+    icon
 }) => {
     const titleId = useId();
     const descId = useId();
@@ -54,7 +58,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     };
 
     const currentConfig = config[type];
-    const Icon = currentConfig.icon;
+    const Icon = icon ?? currentConfig.icon;
 
     return (
         <AnimatePresence>

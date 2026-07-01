@@ -241,6 +241,7 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
                 title={t('common.logoutTitle')}
                 message={t('common.logoutMessage')}
                 confirmLabel={t('common.logoutConfirm')}
+                icon={LogOut}
             />
         </div>
     );

@@ -257,6 +257,7 @@ const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLog
                 title={t('common.logoutTitle')}
                 message={t('common.logoutMessage')}
                 confirmLabel={t('common.logoutConfirm')}
+                icon={LogOut}
             />
         </div>
     );

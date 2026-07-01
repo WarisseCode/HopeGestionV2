@@ -392,6 +392,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
           confirmLabel={t('common.logoutConfirm')}
           cancelLabel={t('common.cancel')}
           type="danger"
+          icon={LogOut}
         />
     </>
   );
