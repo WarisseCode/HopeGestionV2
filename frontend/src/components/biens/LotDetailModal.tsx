@@ -115,7 +115,7 @@ const LotDetailModal: React.FC<Props> = ({ lot, locations, canWrite, onClose, on
           <Button variant="ghost" onClick={onClose}>Fermer</Button>
           {canWrite && (
             <div className="flex gap-2">
-              {lot.statut === 'libre' && (
+              {(lot.statut === 'disponible' || lot.statut === 'libre') && (
                 <Button variant="ghost" size="sm" onClick={onAssign}>
                   <UserPlus size={14} className="mr-1.5" /> Affecter
                 </Button>

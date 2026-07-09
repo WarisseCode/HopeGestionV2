@@ -78,7 +78,7 @@ export function useBiens() {
     {
       id: 'statut', type: 'select', label: t('common.status'),
       options: [
-        { value: 'libre', label: t('properties.status.libre') }, { value: 'loue', label: t('properties.status.loue') },
+        { value: 'disponible', label: t('properties.status.libre') }, { value: 'occupe', label: t('properties.status.loue') },
         { value: 'reserve', label: t('properties.status.reserve') }, { value: 'vendu', label: t('properties.status.vendu') },
         { value: 'hors_service', label: t('properties.status.hors_service') },
       ]

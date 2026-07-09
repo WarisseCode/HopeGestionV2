@@ -1441,6 +1441,19 @@ const MIGRATIONS: Migration[] = [
             ALTER TABLE manual_quittances ADD COLUMN IF NOT EXISTS proprietaire_adresse TEXT;
             ALTER TABLE manual_quittances ADD COLUMN IF NOT EXISTS proprietaire_tel VARCHAR(50);
         `
+    },
+    {
+        name: '058_normalize_lot_statuts',
+        // Normalisation des valeurs de statut des lots.
+        // Historiquement, le code utilisait 'libre' (résiliation bail) et 'loue' (création bail)
+        // au lieu des valeurs canoniques 'disponible' et 'occupe' définies dans init.sql.
+        // Cette migration corrige les données existantes pour que les KPIs du dashboard
+        // (lotsLibres, lotsOccupes) retournent des valeurs correctes.
+        // Idempotent : UPDATE avec WHERE = pas d'effet si déjà normalisé.
+        sql: `
+            UPDATE lots SET statut = 'disponible' WHERE statut = 'libre';
+            UPDATE lots SET statut = 'occupe'     WHERE statut = 'loue';
+        `
     }
 ];
 

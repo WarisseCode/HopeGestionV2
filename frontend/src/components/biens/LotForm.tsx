@@ -80,9 +80,9 @@ const MODALITES_VENTE = [
 ];
 
 const STATUTS = [
-  { value: 'libre',       label: 'Libre — Disponible à la location' },
+  { value: 'disponible',   label: 'Libre — Disponible à la location' },
   { value: 'reserve',     label: 'Réservé — En cours de signature' },
-  { value: 'loue',        label: 'Loué — Bail en cours' },
+  { value: 'occupe',      label: 'Loué — Bail en cours' },
   { value: 'vendu',       label: 'Vendu' },
   { value: 'hors_service', label: 'Hors service — Indisponible' },
 ];
@@ -116,7 +116,7 @@ const LotForm: React.FC<LotFormProps> = ({
     type:        'Appartement',
     nbPieces:    1,
     periodicite: 'mensuel',
-    statut:      'libre',
+    statut:      'disponible',
     avance:      1,
     ...base,
   });
@@ -697,7 +697,7 @@ const LotForm: React.FC<LotFormProps> = ({
                       />
                       <Select
                         label="Statut actuel"
-                        value={formData.statut || 'libre'}
+                        value={formData.statut || 'disponible'}
                         onChange={e => handleChange('statut', e.target.value)}
                         options={STATUTS}
                       />

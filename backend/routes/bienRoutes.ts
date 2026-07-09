@@ -278,7 +278,7 @@ router.post('/lots', permissions.canWrite('biens'), checkPropertyLimit, tenantGu
                 [reference, type, etage, bloc || null, superficie, nbPieces, 
                  loyer, charges, periodicite || 'mensuel', caution || 0, avance || 1,
                  prix_vente || null, modalite_vente || null, duree_echelonnement || null,
-                 photos || [], statut || 'libre', date_disponibilite || null, description, targetBuildingId, 
+                 photos || [], statut || 'disponible', date_disponibilite || null, description, targetBuildingId, 
                  strictOwnerId, id]
             );
 
@@ -298,7 +298,7 @@ router.post('/lots', permissions.canWrite('biens'), checkPropertyLimit, tenantGu
                 [targetBuildingId, strictOwnerId, reference, type, etage, bloc || null, superficie, nbPieces, 
                  loyer, charges, periodicite || 'mensuel', caution || 0, avance || 1,
                  prix_vente || null, modalite_vente || null, duree_echelonnement || null,
-                 photos || [], statut || 'libre', date_disponibilite || null, description]
+                 photos || [], statut || 'disponible', date_disponibilite || null, description]
             );
             res.status(200).json(result.rows[0]);
         }

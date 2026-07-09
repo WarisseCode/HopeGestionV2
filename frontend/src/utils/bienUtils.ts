@@ -21,6 +21,7 @@ export const getPlaceholderImage = (id: number): string =>
 // `labelKey` = clé i18n à utiliser via t() dans les composants déjà migrés.
 export const LOT_STATUT_CONFIG: Record<string, { label: string; labelKey: string; badge: string; pill: string; dot: string }> = {
   libre:        { label: 'Libre',        labelKey: 'properties.status.libre',        badge: 'bg-green-500', pill: 'bg-green-100 text-green-700',  dot: 'bg-green-500'  },
+  disponible:   { label: 'Libre',        labelKey: 'properties.status.libre',        badge: 'bg-green-500', pill: 'bg-green-100 text-green-700',  dot: 'bg-green-500'  },
   loue:         { label: 'Loué',         labelKey: 'properties.status.loue',         badge: 'bg-teal-500',  pill: 'bg-teal-100 text-teal-700',   dot: 'bg-teal-500'   },
   occupe:       { label: 'Loué',         labelKey: 'properties.status.loue',         badge: 'bg-teal-500',  pill: 'bg-teal-100 text-teal-700',   dot: 'bg-teal-500'   },
   reserve:      { label: 'Réservé',      labelKey: 'properties.status.reserve',      badge: 'bg-amber-500', pill: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500'  },
@@ -29,4 +30,4 @@ export const LOT_STATUT_CONFIG: Record<string, { label: string; labelKey: string
 };
 
 export const getLotStatut = (statut?: string) =>
-  LOT_STATUT_CONFIG[statut?.toLowerCase() ?? ''] ?? LOT_STATUT_CONFIG['libre'];
+  LOT_STATUT_CONFIG[statut?.toLowerCase() ?? ''] ?? LOT_STATUT_CONFIG['disponible'];

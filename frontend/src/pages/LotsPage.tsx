@@ -130,7 +130,7 @@ const LotsPage: React.FC = () => {
   // Stats
   const totalLots = lots.length;
   const lotsOccupes = lots.filter(l => l.statut === 'occupe' || l.statut === 'occupé').length;
-  const lotsVacants = lots.filter(l => l.statut === 'libre' || !l.statut).length;
+  const lotsVacants = lots.filter(l => l.statut === 'disponible' || l.statut === 'libre' || !l.statut).length;
   const loyerTotal = lots.reduce((sum, l) => sum + (l.loyer || 0), 0);
 
   if (loading) {
@@ -249,7 +249,7 @@ const LotsPage: React.FC = () => {
               onChange={(e) => setFilterStatut(e.target.value)}
               placeholder="Tous"
               options={[
-                { value: 'libre', label: 'Libre' },
+                { value: 'disponible', label: 'Libre' },
                 { value: 'occupe', label: 'Occupé' },
                 { value: 'reserve', label: 'Réservé' }
               ]}
@@ -288,8 +288,8 @@ const LotsPage: React.FC = () => {
                     <h3 className="font-bold text-lg">{lot.reference}</h3>
                     <p className="text-sm text-base-content/60">{lot.immeuble}</p>
                   </div>
-                  <span className={`badge ${lot.statut === 'libre' ? 'badge-success' : lot.statut === 'occupe' || lot.statut === 'occupé' ? 'badge-neutral' : 'badge-warning'}`}>
-                    {lot.statut || 'libre'}
+                  <span className={`badge ${ ['disponible','libre'].includes(lot.statut ?? '') ? 'badge-success' : lot.statut === 'occupe' ? 'badge-neutral' : 'badge-warning'}`}>
+                    {lot.statut === 'disponible' ? 'libre' : lot.statut || 'libre'}
                   </span>
                 </div>
                 <div className="divider my-2"></div>
@@ -362,8 +362,8 @@ const LotsPage: React.FC = () => {
                     <td>{lot.superficie} m²</td>
                     <td className="font-mono">{lot.loyer?.toLocaleString()} FCFA</td>
                     <td>
-                      <span className={`badge ${lot.statut === 'libre' ? 'badge-success' : 'badge-neutral'}`}>
-                        {lot.statut || 'libre'}
+                      <span className={`badge ${ ['disponible','libre'].includes(lot.statut ?? '') ? 'badge-success' : 'badge-neutral'}`}>
+                        {lot.statut === 'disponible' ? 'libre' : lot.statut || 'libre'}
                       </span>
                     </td>
                     <td>

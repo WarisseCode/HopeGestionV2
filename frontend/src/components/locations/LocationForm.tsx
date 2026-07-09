@@ -102,7 +102,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
     return {
       value: l.id,
       label: `${ref} — ${l.immeuble ?? ''} (${l.statut ?? ''})`,
-      disabled: l.statut !== 'libre' && l.id !== initialData?.lot_id,
+      disabled: !['disponible', 'libre'].includes(l.statut ?? '') && l.id !== initialData?.lot_id,
     };
   }), [lots, initialData?.lot_id]);
 

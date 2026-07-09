@@ -158,7 +158,7 @@ const Biens: React.FC = () => {
             b.setSuccess(t('properties.lotSaved'));
           }}
           onStatusChange={async (data, newStatus) => {
-            if (['loue', 'vendu', 'reserve'].includes(newStatus)) {
+            if (['occupe', 'vendu', 'reserve'].includes(newStatus)) {
               b.setEditingLot(data as Lot);
               b.setActiveAssignmentLot(data as Lot);
               b.setFormView('assignment');
@@ -491,7 +491,7 @@ const Biens: React.FC = () => {
                                 </td>
                                 <td className="pr-6 text-right">
                                   <div className="flex justify-end gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {b.canWrite && lot.statut === 'libre' && (
+                                    {b.canWrite && (lot.statut === 'disponible' || lot.statut === 'libre') && (
                                       <button
                                         type="button"
                                         title={t('properties.assign')}

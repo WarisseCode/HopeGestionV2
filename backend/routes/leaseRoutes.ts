@@ -183,7 +183,7 @@ router.post('/', permissions.canWrite('locataires'), tenantGuard, validate(lease
         await dbClient.query('UPDATE leases SET reference_bail = $1 WHERE id = $2', [reference_bail, lease.id]);
         lease.reference_bail = reference_bail;
 
-        let newLotStatus = 'loue';
+        let newLotStatus = 'occupe';
         if (type_contrat === 'vente') newLotStatus = 'vendu';
         if (type_contrat === 'reservation') newLotStatus = 'reserve';
 
@@ -266,7 +266,7 @@ router.post('/:id/resilier', permissions.canWrite('locataires'), tenantGuard, va
             return res.status(404).json({ message: 'Bail non trouvé ou accès refusé' });
         }
 
-        await dbClient.query("UPDATE lots SET statut = 'libre' WHERE id = $1", [leaseResult.rows[0].lot_id]);
+        await dbClient.query("UPDATE lots SET statut = 'disponible' WHERE id = $1", [leaseResult.rows[0].lot_id]);
         res.json({ message: 'Bail résilié avec succès' });
     } catch (error) {
         console.error('Error terminating lease:', error);

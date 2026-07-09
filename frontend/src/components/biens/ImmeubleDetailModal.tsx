@@ -20,7 +20,7 @@ const ImmeubleDetailModal: React.FC<Props> = ({ immeuble, lots, canWrite, onClos
 
   const buildingLots   = lots.filter(l => l.building_id === immeuble.id);
   const lotsActifs     = buildingLots.filter(l => ['loue', 'occupe', 'reserve'].includes(l.statut?.toLowerCase() || ''));
-  const lotsLibres     = buildingLots.filter(l => l.statut?.toLowerCase() === 'libre');
+  const lotsLibres     = buildingLots.filter(l => ['disponible', 'libre'].includes(l.statut?.toLowerCase() || ''));
   const lotsReserves   = buildingLots.filter(l => l.statut?.toLowerCase() === 'reserve');
   const totalCapacite  = immeuble.total_lots || buildingLots.length;
   const tauxOccupation = totalCapacite > 0 ? Math.round((lotsActifs.length / totalCapacite) * 100) : 0;
