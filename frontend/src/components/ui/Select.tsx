@@ -161,7 +161,7 @@ const Select: React.FC<SelectProps> = ({
             {...nativeProps}
           >
             {placeholder && (
-              <option value="" disabled>
+              <option value="" disabled hidden>
                 {placeholder}
               </option>
             )}
