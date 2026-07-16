@@ -1,116 +1,113 @@
 // backend/middleware/maintenanceMiddleware.ts
 
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { JWT_SECRET } from '../config/config';
-import { AuthenticatedRequest } from './authMiddleware';
 import pool from '../db/database';
 
-/**
- * Middleware de maintenance
- * 
- * Ce middleware vérifie si le mode maintenance est activé dans la base de données.
- * Si activé, il bloque toutes les requêtes sauf :
- * - Les requêtes des utilisateurs avec le rôle 'admin'
- * - Les routes publiques spécifiques (health check, etc.)
- */
-export const checkMaintenance = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+// Cache en mémoire pour éviter de requêter la DB à chaque appel
+let maintenanceCache: { enabled: boolean; ts: number } = { enabled: false, ts: 0 };
+const CACHE_TTL_MS = 10_000; // 10 secondes
+
+async function isMaintenanceEnabled(): Promise<boolean> {
+    const now = Date.now();
+    if (now - maintenanceCache.ts < CACHE_TTL_MS) {
+        return maintenanceCache.enabled;
+    }
+
     try {
-        // Récupérer l'état de maintenance depuis la base de données
-        let isMaintenanceMode = false;
-        
-        try {
-            const result = await pool.query(
-                "SELECT value FROM system_settings WHERE key = 'maintenance_mode'"
-            );
-            isMaintenanceMode = result.rows.length > 0 && result.rows[0].value === 'true';
-        } catch (dbError) {
-            // Si la table n'existe pas encore (migration pas encore exécutée), on considère que la maintenance est désactivée
-            console.warn('Table system_settings non trouvée, maintenance désactivée par défaut');
-            isMaintenanceMode = false;
-        }
+        const result = await pool.query(
+            "SELECT value FROM system_settings WHERE key = 'maintenance_mode'"
+        );
+        const enabled = result.rows.length > 0 && result.rows[0].value === 'true';
+        maintenanceCache = { enabled, ts: now };
+        return enabled;
+    } catch {
+        // Si la table n'existe pas encore, maintenance désactivée par défaut
+        return false;
+    }
+}
 
-        if (!isMaintenanceMode) {
-            // Mode maintenance désactivé, continuer normalement
+/**
+ * Invalide le cache de maintenance (à appeler quand on toggle la maintenance).
+ */
+export function invalidateMaintenanceCache(): void {
+    maintenanceCache = { enabled: maintenanceCache.enabled, ts: 0 };
+}
+
+/**
+ * Middleware de maintenance.
+ *
+ * Routes toujours autorisées (même en maintenance) :
+ *  - /health
+ *  - /public  (inclut /public/maintenance/status)
+ *  - /auth    (connexion / déconnexion)
+ *  - /admin   (les admins doivent toujours pouvoir se connecter et désactiver la maintenance)
+ *  - /invitations
+ */
+export const checkMaintenance = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const maintenance = await isMaintenanceEnabled();
+
+        if (!maintenance) {
             next();
             return;
         }
 
-        // Mode maintenance activé
-        const authReq = req as AuthenticatedRequest;
-
-        // Autoriser les admins à accéder au site même en maintenance
-        let userRole = authReq.userRole;
-        if (!userRole && req.headers.authorization?.startsWith('Bearer ')) {
-            try {
-                const token = req.headers.authorization.split(' ')[1];
-                if (token) {
-                    const decoded: any = jwt.verify(token, JWT_SECRET as string);
-                    userRole = decoded.role;
-                }
-            } catch (e) {
-                // Ignore parsing errors
-            }
-        }
-
-        if (userRole === 'admin') {
-            next();
-            return;
-        }
-
-        // Routes publiques autorisées même en maintenance
-        const publicPaths = [
-            '/api/health',
-            '/api/public',
-            '/api/maintenance/status',
-            '/api/auth',  // Permettre les routes d'authentification
-            '/api/invitations'  // Permettre les invitations
+        // Chemins toujours accessibles en maintenance
+        const allowedPrefixes = [
+            '/health',
+            '/public',
+            '/auth',
+            '/admin',       // ← les admins passent via leur propre route
+            '/invitations',
         ];
 
-        const isPublicPath = publicPaths.some(path => req.path.startsWith(path));
+        const isAllowed = allowedPrefixes.some(prefix => req.path.startsWith(prefix));
 
-        if (isPublicPath) {
+        if (isAllowed) {
             next();
             return;
         }
 
-        // Pour les requêtes API, retourner une erreur 503
-        if (req.path.startsWith('/api/')) {
-            res.status(503).json({
-                message: 'Site en maintenance',
-                maintenance: true
-            });
-            return;
-        }
-
-        // Pour les requêtes web, continuer (le frontend gérera l'affichage)
-        next();
-
-    } catch (error) {
-        console.error('Erreur lors de la vérification du mode maintenance:', error);
-        // En cas d'erreur, on continue normalement pour ne pas bloquer le site
+        // Toutes les autres routes → 503
+        res.status(503).json({
+            message: 'Site en maintenance. Merci de votre patience.',
+            maintenance: true,
+        });
+    } catch {
+        // En cas d'erreur, ne pas bloquer
         next();
     }
 };
 
 /**
- * Endpoint public pour vérifier le statut de maintenance
- * Cette route doit être ajoutée aux routes publiques
+ * Endpoint public pour connaître le statut de maintenance.
+ * Monté sur GET /api/public/maintenance/status
  */
 export const getMaintenanceStatus = async (req: Request, res: Response): Promise<void> => {
     try {
         const result = await pool.query(
             "SELECT value FROM system_settings WHERE key = 'maintenance_mode'"
         );
+        const enabled = result.rows.length > 0 && result.rows[0].value === 'true';
 
-        const isMaintenanceMode = result.rows.length > 0 && result.rows[0].value === 'true';
+        let message = 'Site en maintenance. Merci de votre patience.';
+        try {
+            const msgResult = await pool.query(
+                "SELECT value FROM system_settings WHERE key = 'maintenance_message'"
+            );
+            if (msgResult.rows.length > 0) {
+                message = msgResult.rows[0].value;
+            }
+        } catch {
+            // Ignorer si le message personnalisé n'existe pas
+        }
 
-        res.json({
-            maintenance: isMaintenanceMode,
-            message: isMaintenanceMode ? 'Site en maintenance' : 'Site opérationnel'
-        });
-    } catch (error) {
-        console.error('Erreur lors de la récupération du statut de maintenance:', error);
+        res.json({ maintenance: enabled, message });
+    } catch {
         res.status(500).json({ message: 'Erreur serveur' });
     }
 };

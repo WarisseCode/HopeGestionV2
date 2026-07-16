@@ -4,6 +4,7 @@ import { body, param } from 'express-validator';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import pool from '../db/database'; // Fix circular dependency
 import { validate } from '../middleware/validate';
+import { invalidateMaintenanceCache } from '../middleware/maintenanceMiddleware';
 
 const router = Router();
 
@@ -1034,6 +1035,9 @@ router.put('/maintenance/toggle', maintenanceRules, validate, async (req: Authen
         } catch (logError) {
             console.warn('Failed to log maintenance toggle:', logError);
         }
+
+        // Invalider le cache de maintenance pour que le changement soit immédiat
+        invalidateMaintenanceCache();
 
         res.json({
             message: `Mode maintenance ${enabled ? 'activé' : 'désactivé'} avec succès`,
