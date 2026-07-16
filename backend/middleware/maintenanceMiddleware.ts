@@ -41,7 +41,7 @@ function decodeJwtRole(authHeader: string): string | null {
     try {
         const parts = authHeader.replace('Bearer ', '').split('.');
         if (parts.length !== 3) return null;
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+        const payload = JSON.parse(Buffer.from(parts[1] ?? '', 'base64url').toString('utf8'));
         return typeof payload.role === 'string' ? payload.role : null;
     } catch {
         return null;
