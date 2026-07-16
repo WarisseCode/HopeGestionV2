@@ -1,6 +1,8 @@
 // backend/middleware/maintenanceMiddleware.ts
 
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '../config/config';
 import { AuthenticatedRequest } from './authMiddleware';
 import pool from '../db/database';
 
@@ -38,8 +40,18 @@ export const checkMaintenance = async (req: Request, res: Response, next: NextFu
         const authReq = req as AuthenticatedRequest;
 
         // Autoriser les admins à accéder au site même en maintenance
-        // Vérifier d'abord si userRole existe avant de comparer
-        if (authReq.userRole && authReq.userRole === 'admin') {
+        let userRole = authReq.userRole;
+        if (!userRole && req.headers.authorization?.startsWith('Bearer ')) {
+            try {
+                const token = req.headers.authorization.split(' ')[1];
+                const decoded: any = jwt.verify(token, JWT_SECRET);
+                userRole = decoded.role;
+            } catch (e) {
+                // Ignore parsing errors
+            }
+        }
+
+        if (userRole === 'admin') {
             next();
             return;
         }

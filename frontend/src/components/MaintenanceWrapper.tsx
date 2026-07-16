@@ -16,13 +16,14 @@ const MaintenanceWrapper: React.FC<MaintenanceWrapperProps> = ({ children }) => 
   useEffect(() => {
     const checkMaintenanceStatus = async () => {
       try {
-        // Vérifier si l'utilisateur est admin
+        let currentIsAdmin = isAdmin;
         const token = localStorage.getItem('token');
         if (token) {
           try {
             const payload = JSON.parse(atob(token.split('.')[1]));
             if (payload.role === 'admin') {
               setIsAdmin(true);
+              currentIsAdmin = true;
             }
           } catch (e) {
             console.error('Error parsing token:', e);
@@ -33,7 +34,7 @@ const MaintenanceWrapper: React.FC<MaintenanceWrapperProps> = ({ children }) => 
         const response = await fetch('/api/public/maintenance/status');
         const data = await response.json();
         
-        if (data.maintenance && !isAdmin) {
+        if (data.maintenance && !currentIsAdmin) {
           setIsMaintenanceMode(true);
           // Rediriger vers la page de maintenance sauf si on y est déjà
           if (location.pathname !== '/maintenance') {
@@ -52,7 +53,7 @@ const MaintenanceWrapper: React.FC<MaintenanceWrapperProps> = ({ children }) => 
     };
 
     checkMaintenanceStatus();
-  }, [navigate, location.pathname, isAdmin]);
+  }, [navigate, location.pathname]);
 
   // Ne rien afficher pendant le chargement
   if (isLoading) {
