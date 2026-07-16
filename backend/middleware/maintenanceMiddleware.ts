@@ -106,7 +106,7 @@ export const getMaintenanceStatus = async (req: Request, res: Response): Promise
             // Ignorer si le message personnalisé n'existe pas
         }
 
-        res.json({ maintenance: enabled, message });
+        res.json({ enabled, message });
     } catch {
         res.status(500).json({ message: 'Erreur serveur' });
     }

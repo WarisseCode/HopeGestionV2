@@ -43,6 +43,10 @@ const MaintenanceWrapper: React.FC<MaintenanceWrapperProps> = ({ children }) => 
           }
         } else {
           setIsMaintenanceMode(false);
+          // Si le mode maintenance est désactivé mais qu'on est sur la page de maintenance, on redirige vers l'accueil
+          if (location.pathname === '/maintenance') {
+            navigate('/', { replace: true });
+          }
         }
       } catch (error) {
         console.error('Error checking maintenance status:', error);
