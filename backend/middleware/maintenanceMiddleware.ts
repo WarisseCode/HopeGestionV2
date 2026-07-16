@@ -5,7 +5,7 @@ import pool from '../db/database';
 
 // Cache en mémoire pour éviter de requêter la DB à chaque appel
 let maintenanceCache: { enabled: boolean; ts: number } = { enabled: false, ts: 0 };
-const CACHE_TTL_MS = 10_000; // 10 secondes
+const CACHE_TTL_MS = 2_000; // 2 secondes
 
 async function isMaintenanceEnabled(): Promise<boolean> {
     const now = Date.now();
