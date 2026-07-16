@@ -65,8 +65,9 @@ const MaintenanceWrapper: React.FC<MaintenanceWrapperProps> = ({ children }) => 
     return null;
   }
 
-  // Si en mode maintenance et non admin, ne rien afficher (la redirection se fait)
-  if (isMaintenanceMode && !isAdmin) {
+  // Si en mode maintenance et non admin, on masque le contenu pour éviter un flash, 
+  // SAUF si on est déjà sur la page de maintenance (pour pouvoir l'afficher)
+  if (isMaintenanceMode && !isAdmin && location.pathname !== '/maintenance') {
     return null;
   }
 
