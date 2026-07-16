@@ -2,7 +2,6 @@
 
 import { Request, Response, NextFunction } from 'express';
 import pool from '../db/database';
-import jwt from 'jsonwebtoken';
 
 // Cache en mémoire pour éviter de requêter la DB à chaque appel
 let maintenanceCache: { enabled: boolean; ts: number } = { enabled: false, ts: 0 };
@@ -35,6 +34,21 @@ export function invalidateMaintenanceCache(): void {
 }
 
 /**
+ * Décode le payload JWT sans vérifier la signature.
+ * Utilisé uniquement pour lire le rôle — la sécurité reste assurée par le middleware protect.
+ */
+function decodeJwtRole(authHeader: string): string | null {
+    try {
+        const parts = authHeader.replace('Bearer ', '').split('.');
+        if (parts.length !== 3) return null;
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+        return typeof payload.role === 'string' ? payload.role : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Middleware de maintenance.
  *
  * Routes toujours autorisées (même en maintenance) :
@@ -43,6 +57,8 @@ export function invalidateMaintenanceCache(): void {
  *  - /auth    (connexion / déconnexion)
  *  - /admin   (les admins doivent toujours pouvoir se connecter et désactiver la maintenance)
  *  - /invitations
+ *
+ * Les utilisateurs avec le rôle 'admin' dans leur JWT passent toujours, quelle que soit la route.
  */
 export const checkMaintenance = async (
     req: Request,
@@ -57,31 +73,22 @@ export const checkMaintenance = async (
             return;
         }
 
-        // Vérifier si l'utilisateur est un admin (il peut tout faire pendant la maintenance)
+        // Si l'utilisateur est admin, il passe toujours (toutes les routes)
         const authHeader = req.headers.authorization;
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            const token: string | undefined = authHeader.split(' ')[1];
-            if (token) {
-                try {
-                    const secret: string = process.env.JWT_SECRET ?? '';
-                    const decoded = jwt.verify(token, secret) as any;
-                    if (decoded && decoded.role === 'admin') {
-                        next();
-                        return;
-                    }
-                } catch {
-                    // Ignore l'erreur de token, on continue vers la logique normale de blocage
-                }
+        if (authHeader) {
+            const role = decodeJwtRole(authHeader);
+            if (role === 'admin') {
+                next();
+                return;
             }
         }
-
 
         // Chemins toujours accessibles en maintenance pour les non-admins
         const allowedPrefixes = [
             '/health',
             '/public',
             '/auth',
-            '/admin',       // ← les admins passent via leur propre route
+            '/admin',
             '/invitations',
         ];
 
