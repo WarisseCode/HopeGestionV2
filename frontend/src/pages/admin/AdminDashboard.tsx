@@ -109,7 +109,10 @@ const AdminDashboard: React.FC = () => {
   };
 
   const toggleMaintenance = async () => {
+    if (loadingMaintenance) return;
     const newState = !maintenanceMode;
+    // Mise à jour optimiste : on change l'état immédiatement pour une réponse visuelle instantanée
+    setMaintenanceMode(newState);
     setLoadingMaintenance(true);
     try {
       const token = getToken();
@@ -121,12 +124,14 @@ const AdminDashboard: React.FC = () => {
         },
         body: JSON.stringify({ enabled: newState }),
       });
-      if (response.ok) {
-        setMaintenanceMode(newState);
-      } else {
+      if (!response.ok) {
+        // Revenir à l'état précédent si l'API échoue
+        setMaintenanceMode(!newState);
         console.error('Erreur lors du toggle maintenance');
       }
     } catch (error) {
+      // Revenir à l'état précédent en cas d'erreur réseau
+      setMaintenanceMode(!newState);
       console.error('Error toggling maintenance mode:', error);
     } finally {
       setLoadingMaintenance(false);
