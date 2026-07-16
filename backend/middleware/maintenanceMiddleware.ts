@@ -15,11 +15,18 @@ import pool from '../db/database';
 export const checkMaintenance = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         // Récupérer l'état de maintenance depuis la base de données
-        const result = await pool.query(
-            "SELECT value FROM system_settings WHERE key = 'maintenance_mode'"
-        );
-
-        const isMaintenanceMode = result.rows.length > 0 && result.rows[0].value === 'true';
+        let isMaintenanceMode = false;
+        
+        try {
+            const result = await pool.query(
+                "SELECT value FROM system_settings WHERE key = 'maintenance_mode'"
+            );
+            isMaintenanceMode = result.rows.length > 0 && result.rows[0].value === 'true';
+        } catch (dbError) {
+            // Si la table n'existe pas encore (migration pas encore exécutée), on considère que la maintenance est désactivée
+            console.warn('Table system_settings non trouvée, maintenance désactivée par défaut');
+            isMaintenanceMode = false;
+        }
 
         if (!isMaintenanceMode) {
             // Mode maintenance désactivé, continuer normalement
@@ -31,7 +38,8 @@ export const checkMaintenance = async (req: Request, res: Response, next: NextFu
         const authReq = req as AuthenticatedRequest;
 
         // Autoriser les admins à accéder au site même en maintenance
-        if (authReq.userRole === 'admin') {
+        // Vérifier d'abord si userRole existe avant de comparer
+        if (authReq.userRole && authReq.userRole === 'admin') {
             next();
             return;
         }
@@ -40,7 +48,9 @@ export const checkMaintenance = async (req: Request, res: Response, next: NextFu
         const publicPaths = [
             '/api/health',
             '/api/public',
-            '/api/maintenance/status'
+            '/api/maintenance/status',
+            '/api/auth',  // Permettre les routes d'authentification
+            '/api/invitations'  // Permettre les invitations
         ];
 
         const isPublicPath = publicPaths.some(path => req.path.startsWith(path));

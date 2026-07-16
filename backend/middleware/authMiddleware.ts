@@ -64,7 +64,8 @@ export const protect = async (req: AuthenticatedRequest, res: Response, next: Ne
                     });
                 }
             } catch (maintenanceError) {
-                console.warn('[AUTH] Could not check maintenance mode:', maintenanceError);
+                // Si la table n'existe pas encore, on continue normalement
+                console.warn('[AUTH] Could not check maintenance mode (table may not exist yet):', maintenanceError);
                 // Continuer même si la vérification échoue pour ne pas bloquer l'accès
             }
             
