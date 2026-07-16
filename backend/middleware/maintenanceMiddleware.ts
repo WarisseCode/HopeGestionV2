@@ -44,7 +44,7 @@ export const checkMaintenance = async (req: Request, res: Response, next: NextFu
         if (!userRole && req.headers.authorization?.startsWith('Bearer ')) {
             try {
                 const token = req.headers.authorization.split(' ')[1];
-                const decoded: any = jwt.verify(token, JWT_SECRET);
+                const decoded: any = jwt.verify(token, JWT_SECRET as string);
                 userRole = decoded.role;
             } catch (e) {
                 // Ignore parsing errors
