@@ -994,7 +994,7 @@ router.get('/maintenance/status', async (req: AuthenticatedRequest, res: Respons
 });
 
 // PUT /api/admin/maintenance/toggle - Activer/désactiver le mode maintenance
-router.put('/maintenance/toggle', maintenanceRules, validate, async (req: AuthenticatedRequest, res: Response) => {
+router.put('/maintenance/toggle', validate(maintenanceRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { enabled, message } = req.body;
 
