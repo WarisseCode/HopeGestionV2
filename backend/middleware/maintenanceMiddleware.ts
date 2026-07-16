@@ -2,6 +2,8 @@
 
 import { Request, Response, NextFunction } from 'express';
 import pool from '../db/database';
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '../config/config';
 
 // Cache en mémoire pour éviter de requêter la DB à chaque appel
 let maintenanceCache: { enabled: boolean; ts: number } = { enabled: false, ts: 0 };
@@ -56,7 +58,22 @@ export const checkMaintenance = async (
             return;
         }
 
-        // Chemins toujours accessibles en maintenance
+        // Vérifier si l'utilisateur est un admin (il peut tout faire pendant la maintenance)
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET) as any;
+                if (decoded && decoded.role === 'admin') {
+                    next();
+                    return;
+                }
+            } catch {
+                // Ignore l'erreur de token, on continue vers la logique normale de blocage
+            }
+        }
+
+        // Chemins toujours accessibles en maintenance pour les non-admins
         const allowedPrefixes = [
             '/health',
             '/public',
