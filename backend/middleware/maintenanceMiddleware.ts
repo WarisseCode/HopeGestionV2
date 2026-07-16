@@ -62,7 +62,8 @@ export const checkMaintenance = async (
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const token = authHeader.split(' ')[1];
             try {
-                const decoded = jwt.verify(token, process.env.JWT_SECRET || '') as any;
+                const secret: string = process.env.JWT_SECRET ?? '';
+                const decoded = jwt.verify(token, secret) as any;
                 if (decoded && decoded.role === 'admin') {
                     next();
                     return;
