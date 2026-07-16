@@ -2,6 +2,7 @@
 // Public routes accessible without authentication
 import { Router, Request, Response } from 'express';
 import pool from '../db/database';
+import { getMaintenanceStatus } from '../middleware/maintenanceMiddleware';
 
 const router = Router();
 
@@ -254,5 +255,8 @@ router.get('/lots/:id', async (req: Request, res: Response) => {
         client.release();
     }
 });
+
+// GET /api/public/maintenance/status - Endpoint public pour vérifier le statut de maintenance
+router.get('/maintenance/status', getMaintenanceStatus);
 
 export default router;

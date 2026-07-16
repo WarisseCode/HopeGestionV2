@@ -29,7 +29,28 @@ interface Migration {
 // ============================================================
 const MIGRATIONS: Migration[] = [
     {
-        name: '000_create_missing_base_tables',
+        name: '000_create_system_settings_table',
+        sql: `
+            -- Table SYSTEM_SETTINGS — configuration système (maintenance, etc.)
+            CREATE TABLE IF NOT EXISTS system_settings (
+                id SERIAL PRIMARY KEY,
+                key VARCHAR(100) UNIQUE NOT NULL,
+                value TEXT,
+                value_type VARCHAR(20) DEFAULT 'string',
+                description TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_by INTEGER REFERENCES users(id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_system_settings_key ON system_settings(key);
+            
+            -- Inserter le paramètre maintenance_mode par défaut
+            INSERT INTO system_settings (key, value, value_type, description)
+            VALUES ('maintenance_mode', 'false', 'boolean', 'Mode maintenance du site')
+            ON CONFLICT (key) DO NOTHING;
+        `
+    },
+    {
+        name: '001_create_missing_base_tables',
         sql: `
             -- Table OWNERS (propriétaires) — nécessaire avant les migrations 001-003
             CREATE TABLE IF NOT EXISTS owners (

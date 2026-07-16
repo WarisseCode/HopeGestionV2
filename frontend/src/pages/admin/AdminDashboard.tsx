@@ -12,7 +12,9 @@ import {
   TrendingUp,
   Clock,
   RefreshCw,
-  Shield
+  Shield,
+  Power,
+  Settings
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { 
@@ -60,6 +62,9 @@ const AdminDashboard: React.FC = () => {
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [maintenanceMessage, setMaintenanceMessage] = useState('Site en maintenance. Merci de votre patience.');
+  const [loadingMaintenance, setLoadingMaintenance] = useState(false);
 
   const fetchAll = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -92,7 +97,92 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchAll(); }, []);
+  const fetchMaintenanceStatus = async () => {
+    try {
+      const token = getToken();
+      const headers = { 'Authorization': `Bearer ${token}` };
+      
+      const response = await fetch(`${API_URL}/admin/maintenance/status`, { headers });
+      if (response.ok) {
+        const data = await response.json();
+        setMaintenanceMode(data.enabled);
+        if (data.message) {
+          setMaintenanceMessage(data.message);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching maintenance status:', error);
+    }
+  };
+
+  const toggleMaintenance = async () => {
+    setLoadingMaintenance(true);
+    try {
+      const token = getToken();
+      const headers = { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+      
+      const response = await fetch(`${API_URL}/admin/maintenance/toggle`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          enabled: !maintenanceMode,
+          message: maintenanceMessage
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMaintenanceMode(data.enabled);
+        // Refresh the maintenance status to get the updated message
+        await fetchMaintenanceStatus();
+      } else {
+        console.error('Error toggling maintenance mode');
+      }
+    } catch (error) {
+      console.error('Error toggling maintenance mode:', error);
+    } finally {
+      setLoadingMaintenance(false);
+    }
+  };
+
+  const updateMaintenanceMessage = async () => {
+    setLoadingMaintenance(true);
+    try {
+      const token = getToken();
+      const headers = { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+      
+      const response = await fetch(`${API_URL}/admin/maintenance/toggle`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          enabled: maintenanceMode,
+          message: maintenanceMessage
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Message updated:', data);
+      } else {
+        console.error('Error updating maintenance message');
+      }
+    } catch (error) {
+      console.error('Error updating maintenance message:', error);
+    } finally {
+      setLoadingMaintenance(false);
+    }
+  };
+
+  useEffect(() => { 
+    fetchAll(); 
+    fetchMaintenanceStatus();
+  }, []);
 
   const formatCurrency = (value: number): string => {
     if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
@@ -173,14 +263,70 @@ const AdminDashboard: React.FC = () => {
           </h1>
           <p className="text-base-content/60 mt-1">Vue en temps réel de votre plateforme HopeGestion</p>
         </div>
-        <button 
-          onClick={() => fetchAll(true)} 
-          className={`btn btn-sm btn-outline gap-2 ${refreshing ? 'loading' : ''}`}
-          disabled={refreshing}
-        >
-          <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-          Actualiser
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => fetchAll(true)} 
+            className={`btn btn-sm btn-outline gap-2 ${refreshing ? 'loading' : ''}`}
+            disabled={refreshing}
+          >
+            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+            Actualiser
+          </button>
+        </div>
+      </div>
+
+      {/* Maintenance Control Card */}
+      <div className="bg-base-100 rounded-2xl p-6 shadow-sm border border-base-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`p-3 rounded-xl ${maintenanceMode ? 'bg-error/10 text-error' : 'bg-success/10 text-success'}`}>
+              <Power size={22} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Mode Maintenance</h3>
+              <p className="text-sm text-base-content/60">
+                {maintenanceMode ? 'Le site est actuellement en maintenance' : 'Le site est opérationnel'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="form-control">
+              <label className="label cursor-pointer gap-3">
+                <span className="label-text text-sm font-medium">Activer</span>
+                <input 
+                  type="checkbox" 
+                  className="toggle toggle-primary toggle-lg" 
+                  checked={maintenanceMode}
+                  onChange={toggleMaintenance}
+                  disabled={loadingMaintenance}
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        {/* Message personnalisé */}
+        <div className="mt-4 pt-4 border-t border-base-200">
+          <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+            <Settings size={16} />
+            Message de maintenance
+          </label>
+          <textarea
+            className="textarea textarea-bordered w-full text-sm"
+            rows={2}
+            value={maintenanceMessage}
+            onChange={(e) => setMaintenanceMessage(e.target.value)}
+            placeholder="Message personnalisé affiché aux visiteurs..."
+            disabled={loadingMaintenance}
+          />
+          <button
+            onClick={updateMaintenanceMessage}
+            className={`btn btn-sm btn-primary mt-2 ${loadingMaintenance ? 'loading' : ''}`}
+            disabled={loadingMaintenance}
+          >
+            Mettre à jour le message
+          </button>
+        </div>
       </div>
 
       {/* KPI Stats Grid */}

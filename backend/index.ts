@@ -22,7 +22,8 @@ import auditRoutes from './routes/auditRoutes';
 import mobileMoneyRoutes from './routes/mobileMoneyRoutes';
 import alertRoutes from './routes/alertRoutes';
 
-import { protect, AuthenticatedRequest } from './middleware/authMiddleware'; 
+import { protect, AuthenticatedRequest } from './middleware/authMiddleware';
+import { checkMaintenance } from './middleware/maintenanceMiddleware'; 
 
 // -------------------------********************-------------------------///
 
@@ -170,6 +171,9 @@ app.use('/uploads', (req, res, next) => {
 }, express.static(path.join(__dirname, '../uploads')));
 
 // --- 2. Routes de l'API ---
+
+// Apply maintenance check to all API routes (before rate limiting)
+app.use('/api', checkMaintenance);
 
 // Apply general rate limiting to all API routes
 app.use('/api', apiLimiter);

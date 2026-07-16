@@ -941,6 +941,111 @@ export async function acceptAdminInvite(req: any, res: Response) {
     }
 }
 
+// ==============================================
+// MAINTENANCE MODE
+// ==============================================
+
+// Règles de validation pour le mode maintenance
+const maintenanceRules = [
+    body('enabled').isBoolean().withMessage('enabled doit être un booléen'),
+    body('message').optional().isString().isLength({ max: 500 }).withMessage('Message trop long')
+];
+
+// GET /api/admin/maintenance/status - Récupérer le statut de maintenance
+router.get('/maintenance/status', async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const result = await pool.query(
+            "SELECT value, description FROM system_settings WHERE key = 'maintenance_mode'"
+        );
+
+        if (result.rows.length === 0) {
+            return res.json({
+                enabled: false,
+                message: 'Mode maintenance non configuré'
+            });
+        }
+
+        const enabled = result.rows[0].value === 'true';
+        
+        // Récupérer aussi le message de maintenance personnalisé s'il existe
+        let customMessage = 'Site en maintenance. Merci de votre patience.';
+        try {
+            const messageResult = await pool.query(
+                "SELECT value FROM system_settings WHERE key = 'maintenance_message'"
+            );
+            if (messageResult.rows.length > 0) {
+                customMessage = messageResult.rows[0].value;
+            }
+        } catch (e) {
+            // Ignorer l'erreur si le message n'existe pas
+        }
+
+        res.json({
+            enabled,
+            message: customMessage,
+            description: result.rows[0].description
+        });
+
+    } catch (error: any) {
+        console.error('Error fetching maintenance status:', error);
+        res.status(500).json({ message: 'Erreur lors de la récupération du statut de maintenance.' });
+    }
+});
+
+// PUT /api/admin/maintenance/toggle - Activer/désactiver le mode maintenance
+router.put('/maintenance/toggle', maintenanceRules, validate, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const { enabled, message } = req.body;
+
+        // Mettre à jour le mode maintenance
+        await pool.query(
+            `UPDATE system_settings 
+             SET value = $1, updated_at = NOW(), updated_by = $2
+             WHERE key = 'maintenance_mode'`,
+            [enabled.toString(), req.userId]
+        );
+
+        // Mettre à jour le message personnalisé si fourni
+        if (message !== undefined) {
+            await pool.query(
+                `INSERT INTO system_settings (key, value, value_type, description, updated_at, updated_by)
+                 VALUES ('maintenance_message', $1, 'string', 'Message personnalisé de maintenance', NOW(), $2)
+                 ON CONFLICT (key) 
+                 DO UPDATE SET value = $1, updated_at = NOW(), updated_by = $2`,
+                [message, req.userId]
+            );
+        }
+
+        // Logger l'action dans les audit logs
+        try {
+            await pool.query(
+                `INSERT INTO audit_logs (action, module, entity_type, entity_id, user_name, details, ip_address)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                [
+                    enabled ? 'MAINTENANCE_ENABLED' : 'MAINTENANCE_DISABLED',
+                    'system',
+                    'maintenance_mode',
+                    null,
+                    req.user?.email || 'Admin',
+                    `Mode maintenance ${enabled ? 'activé' : 'désactivé'}`,
+                    req.ip
+                ]
+            );
+        } catch (logError) {
+            console.warn('Failed to log maintenance toggle:', logError);
+        }
+
+        res.json({
+            message: `Mode maintenance ${enabled ? 'activé' : 'désactivé'} avec succès`,
+            enabled
+        });
+
+    } catch (error: any) {
+        console.error('Error toggling maintenance mode:', error);
+        res.status(500).json({ message: 'Erreur lors de la modification du mode maintenance.' });
+    }
+});
+
 // Export verification function for checking invite validity
 export async function checkAdminInvite(req: any, res: Response) {
     const { code } = req.query;

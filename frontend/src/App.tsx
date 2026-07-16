@@ -8,6 +8,7 @@ import { getToken, logoutUser } from './api/authApi';
 import { UserProvider } from './contexts/UserContext';
 import AdminLayout from './layout/AdminLayout';
 import UserSpecificLayout from './layout/UserSpecificLayout';
+import MaintenanceWrapper from './components/MaintenanceWrapper';
 import { lazyWithReload } from './utils/lazyWithReload';
 
 // Auth & onboarding
@@ -19,6 +20,7 @@ const CompleteProfile = lazyWithReload(() => import('./pages/CompleteProfile'));
 const AcceptInvite = lazyWithReload(() => import('./pages/AcceptInvite'));
 const VerifyEmail = lazyWithReload(() => import('./pages/VerifyEmail'));
 const InvitationPage = lazyWithReload(() => import('./pages/public/InvitationPage'));
+const Maintenance = lazyWithReload(() => import('./pages/Maintenance'));
 
 // Home & marketing
 const HomePage = lazyWithReload(() => import('./HomePage'));
@@ -132,8 +134,9 @@ const App: React.FC = () => {
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
       <Router>
         <Toaster position="top-center" toastOptions={{ duration: 4000, className: 'text-sm font-medium' }} />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
+        <MaintenanceWrapper>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
             {/* Routes publiques */}
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginFormWithNavigation />} />
@@ -152,6 +155,9 @@ const App: React.FC = () => {
             <Route path="/fonctionnalites/modules" element={<ModulesTransversesPage />} />
             <Route path="/a-propos" element={<AboutPage />} />
             <Route path="/biens-disponibles" element={<BiensPublicsPage />} />
+
+            {/* Page de maintenance */}
+            <Route path="/maintenance" element={<Maintenance />} />
 
             {/* Public Reservation */}
             <Route path="/reserver/:lotId" element={<PublicReservation />} />
@@ -246,6 +252,7 @@ const App: React.FC = () => {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
+        </MaintenanceWrapper>
       </Router>
     </GoogleOAuthProvider>
   );
