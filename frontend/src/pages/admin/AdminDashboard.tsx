@@ -62,6 +62,7 @@ const AdminDashboard: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [loadingMaintenance, setLoadingMaintenance] = useState(false);
+  const [maintenanceError, setMaintenanceError] = useState('');
 
   const fetchAll = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -111,7 +112,7 @@ const AdminDashboard: React.FC = () => {
   const toggleMaintenance = async () => {
     if (loadingMaintenance) return;
     const newState = !maintenanceMode;
-    // Mise à jour optimiste : on change l'état immédiatement pour une réponse visuelle instantanée
+    setMaintenanceError('');
     setMaintenanceMode(newState);
     setLoadingMaintenance(true);
     try {
@@ -125,14 +126,14 @@ const AdminDashboard: React.FC = () => {
         body: JSON.stringify({ enabled: newState }),
       });
       if (!response.ok) {
-        // Revenir à l'état précédent si l'API échoue
-        setMaintenanceMode(!newState);
-        console.error('Erreur lors du toggle maintenance');
+        const errData = await response.json().catch(() => ({}));
+        const msg = errData.message || `Erreur HTTP ${response.status}`;
+        setMaintenanceError(msg);
+        setMaintenanceMode(!newState); // revert
       }
-    } catch (error) {
-      // Revenir à l'état précédent en cas d'erreur réseau
-      setMaintenanceMode(!newState);
-      console.error('Error toggling maintenance mode:', error);
+    } catch (error: any) {
+      setMaintenanceError(error?.message || 'Erreur réseau');
+      setMaintenanceMode(!newState); // revert
     } finally {
       setLoadingMaintenance(false);
     }
@@ -222,7 +223,7 @@ const AdminDashboard: React.FC = () => {
           </h1>
           <p className="text-base-content/60 mt-1">Vue en temps réel de votre plateforme HopeGestion</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 relative">
           <button 
             onClick={() => fetchAll(true)} 
             className={`btn btn-sm btn-outline gap-2 ${refreshing ? 'loading' : ''}`}
@@ -252,6 +253,11 @@ const AdminDashboard: React.FC = () => {
               />
             </label>
           </div>
+          {maintenanceError && (
+            <div className="absolute top-full right-0 mt-2 p-2 bg-error/10 text-error text-xs rounded border border-error/20 whitespace-nowrap z-10">
+              {maintenanceError}
+            </div>
+          )}
         </div>
       </div>
 
