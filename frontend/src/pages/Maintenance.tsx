@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Clock, Mail, Phone } from 'lucide-react';
+import { API_URL } from '../config';
 
 const Maintenance: React.FC = () => {
   const navigate = useNavigate();
@@ -26,12 +27,12 @@ const Maintenance: React.FC = () => {
     }
 
     // Récupérer le message de maintenance personnalisé
-    fetch('/api/public/maintenance/status')
+    fetch(`${API_URL}/public/maintenance/status`)
       .then(res => res.json())
       .then(data => {
         if (data.message) {
           setMaintenanceInfo({
-            enabled: data.maintenance,
+            enabled: data.enabled,
             message: data.message || 'Site en maintenance. Merci de votre patience.'
           });
         }

@@ -1,6 +1,7 @@
 // frontend/src/components/MaintenanceWrapper.tsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { API_URL } from '../config';
 
 interface MaintenanceWrapperProps {
   children: React.ReactNode;
@@ -31,10 +32,10 @@ const MaintenanceWrapper: React.FC<MaintenanceWrapperProps> = ({ children }) => 
         }
 
         // Vérifier le statut de maintenance
-        const response = await fetch('/api/public/maintenance/status');
+        const response = await fetch(`${API_URL}/public/maintenance/status`);
         const data = await response.json();
         
-        if (data.maintenance && !currentIsAdmin) {
+        if (data.enabled && !currentIsAdmin) {
           setIsMaintenanceMode(true);
           // Rediriger vers la page de maintenance sauf si on y est déjà
           if (location.pathname !== '/maintenance') {
