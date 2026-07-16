@@ -60,18 +60,21 @@ export const checkMaintenance = async (
         // Vérifier si l'utilisateur est un admin (il peut tout faire pendant la maintenance)
         const authHeader = req.headers.authorization;
         if (authHeader && authHeader.startsWith('Bearer ')) {
-            const token = authHeader.split(' ')[1];
-            try {
-                const secret: string = process.env.JWT_SECRET ?? '';
-                const decoded = jwt.verify(token, secret) as any;
-                if (decoded && decoded.role === 'admin') {
-                    next();
-                    return;
+            const token: string | undefined = authHeader.split(' ')[1];
+            if (token) {
+                try {
+                    const secret: string = process.env.JWT_SECRET ?? '';
+                    const decoded = jwt.verify(token, secret) as any;
+                    if (decoded && decoded.role === 'admin') {
+                        next();
+                        return;
+                    }
+                } catch {
+                    // Ignore l'erreur de token, on continue vers la logique normale de blocage
                 }
-            } catch {
-                // Ignore l'erreur de token, on continue vers la logique normale de blocage
             }
         }
+
 
         // Chemins toujours accessibles en maintenance pour les non-admins
         const allowedPrefixes = [
