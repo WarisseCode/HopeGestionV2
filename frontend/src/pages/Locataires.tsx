@@ -179,7 +179,7 @@ const Locataires: React.FC = () => {
 
   if (showModal) {
     return (
-      <div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto">
+      <div className="space-y-6 max-w-[1600px] mx-auto">
         <div className="flex items-center gap-4">
           <button type="button" onClick={() => setShowModal(false)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
             <ArrowLeft size={20} />
@@ -211,7 +211,7 @@ const Locataires: React.FC = () => {
   }
 
   return (
-    <motion.div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto" variants={containerVariants} initial="hidden" animate="visible">
+    <motion.div className="space-y-6 max-w-[1600px] mx-auto" variants={containerVariants} initial="hidden" animate="visible">
       {/* Header */}
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

@@ -3,7 +3,7 @@ import CompteProprietaires from '../components/CompteProprietaires';
 
 const Proprietaires: React.FC = () => {
   return (
-    <div className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto">
+    <div className="space-y-8 max-w-[1600px] mx-auto">
       <CompteProprietaires 
         showStats={true} 
         title="Liste des Propriétaires" 

@@ -98,7 +98,7 @@ const Biens: React.FC = () => {
 
   if (b.formView === 'immeuble') {
     return (
-      <div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto">
+      <div className="space-y-6 max-w-[1600px] mx-auto">
         <div className="flex items-center gap-4">
           <button type="button" onClick={() => b.setFormView(null)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
             <ArrowLeft size={20} />
@@ -135,7 +135,7 @@ const Biens: React.FC = () => {
 
   if (b.formView === 'lot') {
     return (
-      <div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto">
+      <div className="space-y-6 max-w-[1600px] mx-auto">
         <div className="flex items-center gap-4">
           <button type="button" onClick={() => b.setFormView(null)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
             <ArrowLeft size={20} />
@@ -178,7 +178,7 @@ const Biens: React.FC = () => {
 
   if (b.formView === 'assignment') {
     return (
-      <div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto">
+      <div className="space-y-6 max-w-[1600px] mx-auto">
         <div className="flex items-center gap-4">
           <button type="button" onClick={() => b.setFormView(null)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
             <ArrowLeft size={20} />
@@ -207,7 +207,7 @@ const Biens: React.FC = () => {
 
   return (
     <motion.div
-      className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto"
+      className="space-y-6 max-w-[1600px] mx-auto"
       variants={containerVariants}
       initial="hidden"
       animate="visible"

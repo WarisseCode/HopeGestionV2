@@ -119,7 +119,7 @@ const DelegationsPage: React.FC = () => {
 
   return (
     <motion.div 
-      className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto"
+      className="space-y-8 max-w-[1600px] mx-auto"
       variants={containerVariants}
       initial="hidden"
       animate="visible"

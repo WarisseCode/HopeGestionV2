@@ -268,7 +268,7 @@ const GestionnaireDashboard: React.FC = () => {
 
   return (
     <motion.div 
-      className="p-4 md:p-8 space-y-8 max-w-[1700px] mx-auto"
+      className="space-y-8 max-w-[1700px] mx-auto"
       variants={containerVariants}
       initial="hidden"
       animate="visible"

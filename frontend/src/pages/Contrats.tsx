@@ -139,7 +139,7 @@ const Contrats: React.FC = () => {
 
   return (
     <>
-      <motion.div className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto" variants={containerVariants} initial="hidden" animate="visible">
+      <motion.div className="space-y-8 max-w-[1600px] mx-auto" variants={containerVariants} initial="hidden" animate="visible">
         {/* Header */}
         <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
