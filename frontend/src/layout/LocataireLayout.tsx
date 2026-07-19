@@ -226,7 +226,7 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.15, ease: 'easeOut' }}
-                            className="max-w-7xl mx-auto"
+                            className="max-w-[1600px] mx-auto"
                         >
                             {children}
                         </motion.div>

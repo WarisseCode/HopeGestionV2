@@ -109,7 +109,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
                animate={{ opacity: 1, y: 0 }}
                exit={{ opacity: 0, y: -10 }}
                transition={{ duration: 0.15, ease: "easeOut" }}
-               className="h-full max-w-7xl mx-auto"
+               className="h-full max-w-[1600px] mx-auto"
              >
                {children}
              </motion.div>
