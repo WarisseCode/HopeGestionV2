@@ -1384,6 +1384,18 @@ const MIGRATIONS: Migration[] = [
         `
     },
     {
+        name: '052b_fix_payments_updated_at_trigger',
+        // Un trigger `update_payments_updated_at` existe sur la table payments (posé hors
+        // migrations versionnées) et référence NEW.updated_at à chaque UPDATE — mais la
+        // colonne n'a jamais été créée sur cette table. Résultat : TOUT UPDATE sur payments
+        // échoue avec "record «new» has no field «updated_at»", y compris la migration
+        // suivante (053) qui ne peut donc jamais s'appliquer. Doit rester avant 053 dans
+        // ce tableau pour s'exécuter en premier.
+        sql: `
+            ALTER TABLE payments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+        `
+    },
+    {
         name: '053_payments_statut_paid_to_valide',
         // Backfill : paySchedule insérait historiquement payments.statut = 'paid', valeur
         // ignorée par toutes les lectures de revenus (qui filtrent 'valide') → loyers encaissés
@@ -1529,10 +1541,23 @@ export async function runMigrations(): Promise<void> {
         }
         
         console.log(`✅ [Migrations] Terminé : ${ran} exécutée(s), ${skipped} déjà faite(s).`);
-        
+
     } catch (err) {
         console.error('❌ [Migrations] Erreur critique lors du runner:', err);
     } finally {
         client.release();
     }
+}
+
+// Point d'entrée autonome : `npm run migrate` / `ts-node scripts/runMigrations.ts`
+// exécute ce fichier directement — sans ce garde, la fonction est seulement
+// définie/exportée (utilisée par index.ts au démarrage du serveur) mais jamais
+// appelée quand le script est lancé en standalone.
+if (require.main === module) {
+    runMigrations()
+        .then(() => process.exit(0))
+        .catch((err) => {
+            console.error('❌ [Migrations] Échec du runner autonome:', err);
+            process.exit(1);
+        });
 }
