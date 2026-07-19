@@ -48,27 +48,10 @@ export const protect = async (req: AuthenticatedRequest, res: Response, next: Ne
                 userType?: string 
             };
             console.log(`[AUTH] User authenticated. ID: ${payload.id}, Role: ${payload.role}, IsGuest: ${payload.isGuest || false}`);
-            
-            // Vérifier le mode maintenance avant de continuer
-            try {
-                const maintenanceResult = await pool.query(
-                    "SELECT value FROM system_settings WHERE key = 'maintenance_mode'"
-                );
-                const isMaintenanceMode = maintenanceResult.rows.length > 0 && maintenanceResult.rows[0].value === 'true';
-                
-                if (isMaintenanceMode && payload.role !== 'admin') {
-                    console.log(`[AUTH] Maintenance mode active, blocking non-admin user: ${payload.id}`);
-                    return res.status(503).json({ 
-                        message: 'Site en maintenance', 
-                        maintenance: true 
-                    });
-                }
-            } catch (maintenanceError) {
-                // Si la table n'existe pas encore, on continue normalement
-                console.warn('[AUTH] Could not check maintenance mode (table may not exist yet):', maintenanceError);
-                // Continuer même si la vérification échoue pour ne pas bloquer l'accès
-            }
-            
+
+            // Le mode maintenance est déjà vérifié en amont par checkMaintenance
+            // (middleware global sur /api, avec cache) — pas besoin de le refaire ici.
+
             // Récupérer l'email depuis la DB si pas dans le token
             let userEmail = payload.email || null;
             if (!userEmail) {

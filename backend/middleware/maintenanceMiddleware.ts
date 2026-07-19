@@ -1,6 +1,8 @@
 // backend/middleware/maintenanceMiddleware.ts
 
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '../config/config';
 import pool from '../db/database';
 
 // Cache en mémoire pour éviter de requêter la DB à chaque appel
@@ -34,15 +36,20 @@ export function invalidateMaintenanceCache(): void {
 }
 
 /**
- * Décode le payload JWT sans vérifier la signature.
- * Utilisé uniquement pour lire le rôle — la sécurité reste assurée par le middleware protect.
+ * Vérifie la signature du JWT et en extrait le rôle.
+ * Un token invalide/expiré/forgé renvoie null (donc jamais traité comme admin) —
+ * sans cette vérification, n'importe qui peut forger un payload { role: 'admin' }
+ * non signé pour contourner le 503 de maintenance sur les routes sans middleware `protect`.
  */
 function decodeJwtRole(authHeader: string): string | null {
     try {
-        const parts = authHeader.replace('Bearer ', '').split('.');
-        if (parts.length !== 3) return null;
-        const payload = JSON.parse(Buffer.from(parts[1] ?? '', 'base64url').toString('utf8'));
-        return typeof payload.role === 'string' ? payload.role : null;
+        const token = authHeader.replace('Bearer ', '');
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (typeof decoded === 'object' && decoded !== null && 'role' in decoded) {
+            const role = (decoded as { role: unknown }).role;
+            return typeof role === 'string' ? role : null;
+        }
+        return null;
     } catch {
         return null;
     }

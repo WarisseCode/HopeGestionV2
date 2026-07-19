@@ -51,19 +51,27 @@ const AdminSettings: React.FC = () => {
     defaultUserRole: 'gestionnaire',
   });
   const [email, setEmail] = useState<EmailConfig>({ host: '', port: '', user: '', from: '' });
-  const [system, setSystem] = useState<SystemInfo>({ 
-    nodeVersion: '', environment: '', databaseConnected: false, frontendUrl: '' 
+  const [system, setSystem] = useState<SystemInfo>({
+    nodeVersion: '', environment: '', databaseConnected: false, frontendUrl: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Le mode maintenance réel vit dans system_settings (voir /admin/maintenance/*),
+  // pas dans admin_settings (table générique de cette page) — on le traque à part
+  // pour ne l'envoyer au bon endpoint que s'il a réellement changé.
+  const [initialMaintenanceMode, setInitialMaintenanceMode] = useState(false);
 
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const data = await apiCall<{ platform?: PlatformSettings; email?: EmailConfig; system?: SystemInfo }>(`${API_URL}/admin/settings`);
-      if (data.platform) setPlatform(data.platform);
+      const [data, maintenanceStatus] = await Promise.all([
+        apiCall<{ platform?: PlatformSettings; email?: EmailConfig; system?: SystemInfo }>(`${API_URL}/admin/settings`),
+        apiCall<{ enabled: boolean }>(`${API_URL}/admin/maintenance/status`),
+      ]);
+      if (data.platform) setPlatform({ ...data.platform, maintenanceMode: maintenanceStatus.enabled });
       if (data.email) setEmail(data.email);
       if (data.system) setSystem(data.system);
+      setInitialMaintenanceMode(maintenanceStatus.enabled);
     } catch (error) {
       console.error('Error fetching settings:', error);
     } finally {
@@ -76,21 +84,30 @@ const AdminSettings: React.FC = () => {
   const saveSettings = async () => {
     setSaving(true);
     try {
-      const data = await apiCall<{ message: string }>(`${API_URL}/admin/settings`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          settings: {
-            platform_name: platform.name,
-            platform_description: platform.description,
-            maintenance_mode: platform.maintenanceMode.toString(),
-            allow_registration: platform.allowRegistration.toString(),
-            require_email_verification: platform.requireEmailVerification.toString(),
-            max_properties_per_user: platform.maxPropertiesPerUser.toString(),
-            default_user_role: platform.defaultUserRole,
-          }
+      const calls: Promise<any>[] = [
+        apiCall<{ message: string }>(`${API_URL}/admin/settings`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            settings: {
+              platform_name: platform.name,
+              platform_description: platform.description,
+              allow_registration: platform.allowRegistration.toString(),
+              require_email_verification: platform.requireEmailVerification.toString(),
+              max_properties_per_user: platform.maxPropertiesPerUser.toString(),
+              default_user_role: platform.defaultUserRole,
+            }
+          }),
         }),
-      });
-      toast.success(data.message);
+      ];
+      if (platform.maintenanceMode !== initialMaintenanceMode) {
+        calls.push(apiCall<{ message: string; enabled: boolean }>(`${API_URL}/admin/maintenance/toggle`, {
+          method: 'PUT',
+          body: JSON.stringify({ enabled: platform.maintenanceMode }),
+        }));
+      }
+      await Promise.all(calls);
+      setInitialMaintenanceMode(platform.maintenanceMode);
+      toast.success('Paramètres sauvegardés avec succès.');
     } catch (error: any) {
       toast.error(error.message || 'Erreur réseau');
     } finally {
