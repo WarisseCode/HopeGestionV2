@@ -67,7 +67,7 @@ router.post('/pay', tenantGuard, validate(payRules), async (req: AuthenticatedRe
                  const payResult = await dbClient.query(
                      `INSERT INTO payments 
                      (lease_id, montant, type, mode_paiement, date_paiement, reference_transaction, statut, owner_id)
-                     VALUES ($1, $2, 'Loyer', $3, CURRENT_DATE, $4, 'valide', $5)
+                     VALUES ($1, $2, 'loyer', $3, CURRENT_DATE, $4, 'valide', $5)
                      RETURNING id`,
                      [leaseId, amount, operator, response.transactionId, strictOwnerId]
                  );

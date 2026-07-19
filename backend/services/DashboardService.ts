@@ -60,7 +60,7 @@ export interface KPIData {
 export interface ChartPoint { name: string; revenus: number; depenses: number; }
 
 export interface ActivityItem {
-    id: number; type: string; title: string; description: string; created_at: string;
+    id: number; type: string; title: string; description: string; created_at: string; montant?: number;
 }
 
 export interface FeaturedProperty {
@@ -265,7 +265,7 @@ export class DashboardService {
             dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'reserve' AND ${wO}`, p),
             dbClient.query(`
                 SELECT COALESCE(SUM(montant), 0) as total FROM payments
-                WHERE type = 'Loyer' AND ${wO}
+                WHERE LOWER(type) = 'loyer' AND ${wO}
                 AND EXTRACT(MONTH FROM date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
                 AND EXTRACT(YEAR FROM date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
                 AND statut = 'valide'
@@ -280,7 +280,7 @@ export class DashboardService {
                 SELECT COALESCE(SUM(l.loyer_actuel), 0) as total FROM leases l
                 WHERE l.statut = 'actif' AND ${wOL}
                 AND NOT EXISTS (
-                    SELECT 1 FROM payments p WHERE p.lease_id = l.id AND p.type = 'Loyer'
+                    SELECT 1 FROM payments p WHERE p.lease_id = l.id AND LOWER(p.type) = 'loyer'
                     AND p.statut = 'valide' AND p.date_paiement >= DATE_TRUNC('month', CURRENT_DATE)
                 )
             `, p),
@@ -441,7 +441,7 @@ export class DashboardService {
         const [payments, leases, tickets] = await Promise.all([
             dbClient.query(`
                 SELECT p.id, 'payment' as type, 'Paiement reçu' as title,
-                       CONCAT(t.prenoms, ' ', t.nom, ' - ', p.type) as description, p.created_at
+                       CONCAT(t.prenoms, ' ', t.nom, ' - ', p.type) as description, p.created_at, p.montant
                 FROM payments p JOIN leases l ON p.lease_id = l.id JOIN tenants t ON l.tenant_id = t.id
                 WHERE ${paymentWhere} ORDER BY p.created_at DESC LIMIT 5
             `, activityParams),

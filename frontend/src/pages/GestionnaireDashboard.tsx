@@ -222,8 +222,13 @@ const GestionnaireDashboard: React.FC = () => {
                  id: a.id,
                  type: a.type,
                  title: a.title,
-                 description: a.description,
+                 // Le montant + l'heure précise permettent de distinguer deux entrées
+                 // du même jour pour le même locataire (ex. paiements échelonnés).
+                 description: a.montant != null
+                     ? `${a.description} · ${new Intl.NumberFormat('fr-FR').format(a.montant)} FCFA`
+                     : a.description,
                  time: new Date(a.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+                     + ', ' + new Date(a.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
              }));
              setActivities(mappedActivities);
         }
