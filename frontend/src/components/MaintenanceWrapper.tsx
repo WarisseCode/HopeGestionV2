@@ -18,7 +18,7 @@ const MaintenanceWrapper: React.FC<MaintenanceWrapperProps> = ({ children }) => 
     const checkMaintenanceStatus = async () => {
       try {
         let currentIsAdmin = isAdmin;
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('userToken');
         if (token) {
           try {
             const payload = JSON.parse(atob(token.split('.')[1]));

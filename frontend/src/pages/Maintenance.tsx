@@ -14,7 +14,7 @@ const Maintenance: React.FC = () => {
 
   useEffect(() => {
     // Vérifier si l'utilisateur est admin
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('userToken');
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
