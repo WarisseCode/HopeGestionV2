@@ -314,7 +314,7 @@ export class DashboardService {
         return {
             kpis: [
                 { id: 'total_biens',          label: 'Nombre total de biens',       value: totalBiens,         status: 'success',                                       icon: 'Building2',     modulePath: '/biens' },
-                { id: 'lots_occupation',       label: 'Lots occupés / libres',       value: `${lotsOccupes} / ${lotsLibres}`, status: getStatus('occupation', tauxOccupation), icon: 'Home',          modulePath: '/biens' },
+                { id: 'lots_occupation',       label: 'Lots occupés (sur total)',    value: `${lotsOccupes} / ${totalLots}`, status: getStatus('occupation', tauxOccupation), icon: 'Home',          modulePath: '/biens' },
                 { id: 'loyers_encaisses',      label: 'Loyers encaissés (mois)',     value: loyersEncaisses,    status: loyersEncaisses >= loyersAttendus * 0.8 ? 'success' : loyersEncaisses >= loyersAttendus * 0.5 ? 'warning' : 'danger', icon: 'Wallet', modulePath: '/paiements' },
                 { id: 'loyers_impayes',        label: 'Loyers impayés',              value: loyersImpayes,      status: getStatus('impayes', loyersImpayes, loyersAttendus * 0.2),    icon: 'AlertTriangle', modulePath: '/paiements' },
                 { id: 'taux_occupation',       label: "Taux d'occupation",           value: `${tauxOccupation}%`, status: getStatus('occupation', tauxOccupation),       icon: 'Percent',       modulePath: '/biens' },
