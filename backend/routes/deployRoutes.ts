@@ -4,13 +4,25 @@
 
 import express, { Request, Response } from 'express';
 import { spawn } from 'child_process';
+import crypto from 'crypto';
 
 const router = express.Router();
 
+// Comparaison à temps constant : une comparaison `!==` classique fuit la position
+// du premier caractère différent via le timing, ce qui compte pour un secret qui
+// déclenche l'exécution de code serveur.
+function safeTokenCompare(received: string, expected: string): boolean {
+    const receivedBuf = Buffer.from(received);
+    const expectedBuf = Buffer.from(expected);
+    if (receivedBuf.length !== expectedBuf.length) return false;
+    return crypto.timingSafeEqual(receivedBuf, expectedBuf);
+}
+
 router.post('/', (req: Request, res: Response) => {
     const token = req.headers['x-deploy-token'];
+    const expectedToken = process.env.DEPLOY_TOKEN;
 
-    if (!process.env.DEPLOY_TOKEN || token !== process.env.DEPLOY_TOKEN) {
+    if (!expectedToken || typeof token !== 'string' || !safeTokenCompare(token, expectedToken)) {
         return res.status(403).json({ error: 'Token invalide' });
     }
 
