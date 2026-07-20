@@ -111,7 +111,7 @@ const GestionnaireDashboard: React.FC = () => {
       }
       
       // 2. Percentage or Special String KPIs
-      if (['taux_occupation', 'lots_occupation'].includes(kpi.id)) {
+      if (kpi.id === 'lots_occupation') {
           return kpi.value;
       }
       
@@ -144,7 +144,6 @@ const GestionnaireDashboard: React.FC = () => {
           case 'lots_occupation': return 'teal';
           case 'loyers_encaisses': return 'green';
           case 'loyers_impayes': return 'pink';
-          case 'taux_occupation': return 'blue';
           case 'contrats_actifs': return 'green';
           case 'plaintes_ouvertes': return 'orange';
           case 'reservations': return 'teal';
@@ -312,10 +311,6 @@ const GestionnaireDashboard: React.FC = () => {
               <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
                 <p className="text-white/80 text-xs font-medium">{t('dashboard.unpaid')}</p>
                 <p className="text-lg font-bold text-orange-300">{new Intl.NumberFormat('fr-FR').format(totalImpayes)}</p>
-              </div>
-              <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
-                <p className="text-white/80 text-xs font-medium">{t('dashboard.occupancyRate')}</p>
-                <p className="text-lg font-bold">{stats?.tauxOccupation || 0}%</p>
               </div>
             </div>
           </div>

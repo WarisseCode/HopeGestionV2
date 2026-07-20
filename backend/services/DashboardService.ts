@@ -259,7 +259,9 @@ export class DashboardService {
             encaissesRes, attendusRes, contratsRes, plaintesRes, recouvrementRes,
         ] = await Promise.all([
             dbClient.query(`SELECT COUNT(*) FROM buildings WHERE ${wO}`, p),
-            dbClient.query(`SELECT COUNT(*) FROM lots WHERE ${wO}`, p),
+            // Un lot vendu n'est plus un bien locatif à gérer : exclu du dénominateur du
+            // taux d'occupation (décision produit) — travaux/réservé restent comptés ici.
+            dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut != 'vendu' AND ${wO}`, p),
             dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'occupe' AND ${wO}`, p),
             dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'disponible' AND ${wO}`, p),
             dbClient.query(`SELECT COUNT(*) FROM lots WHERE statut = 'reserve' AND ${wO}`, p),
@@ -317,7 +319,6 @@ export class DashboardService {
                 { id: 'lots_occupation',       label: 'Lots occupés (sur total)',    value: `${lotsOccupes} / ${totalLots}`, status: getStatus('occupation', tauxOccupation), icon: 'Home',          modulePath: '/biens' },
                 { id: 'loyers_encaisses',      label: 'Loyers encaissés (mois)',     value: loyersEncaisses,    status: loyersEncaisses >= loyersAttendus * 0.8 ? 'success' : loyersEncaisses >= loyersAttendus * 0.5 ? 'warning' : 'danger', icon: 'Wallet', modulePath: '/paiements' },
                 { id: 'loyers_impayes',        label: 'Loyers impayés',              value: loyersImpayes,      status: getStatus('impayes', loyersImpayes, loyersAttendus * 0.2),    icon: 'AlertTriangle', modulePath: '/paiements' },
-                { id: 'taux_occupation',       label: "Taux d'occupation",           value: `${tauxOccupation}%`, status: getStatus('occupation', tauxOccupation),       icon: 'Percent',       modulePath: '/biens' },
                 { id: 'contrats_actifs',       label: 'Contrats actifs',             value: contratsActifs,     status: 'success',                                       icon: 'FileText',      modulePath: '/locataires' },
                 { id: 'plaintes_ouvertes',     label: 'Plaintes ouvertes',           value: plaintesOuvertes,   status: getStatus('plaintes', plaintesOuvertes),         icon: 'MessageCircle', modulePath: '/alertes' },
                 { id: 'reservations',          label: 'Réservations en attente',     value: reservationsEnAttente, status: reservationsEnAttente > 0 ? 'warning' : 'success', icon: 'Calendar',   modulePath: '/biens' },
