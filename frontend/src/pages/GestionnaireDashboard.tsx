@@ -48,7 +48,6 @@ import {
 import type { Activity } from '../components/dashboard/ActivityFeed';
 import type { Period } from '../components/dashboard/PeriodFilter';
 import Button from '../components/ui/Button';
-import SearchInput from '../components/ui/SearchInput';
 import { apiCall } from '../utils/apiUtils';
 import { API_URL } from '../config';
 import { getToken } from '../api/authApi';
@@ -75,7 +74,6 @@ const GestionnaireDashboard: React.FC = () => {
   const [period, setPeriod] = useState<Period>('30d');
   const [isLoadingKpis, setIsLoadingKpis] = useState(true);
   const [isLoadingChart, setIsLoadingChart] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
   const handleKpiClick = (kpi: KPIData) => {
@@ -287,16 +285,6 @@ const GestionnaireDashboard: React.FC = () => {
         <div className="flex items-center gap-3 flex-wrap">
             {/* Period Filter */}
             <PeriodFilter value={period} onChange={setPeriod} />
-            
-            <SearchInput
-              placeholder={t('dashboard.quickSearch')}
-              value={searchQuery}
-              onChange={setSearchQuery}
-              size="sm"
-              className="w-48 lg:w-64"
-            />
-            
-
         </div>
       </motion.div>
 
