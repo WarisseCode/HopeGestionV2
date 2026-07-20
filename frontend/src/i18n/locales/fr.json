@@ -194,6 +194,8 @@
     "metrics": "indicateurs",
     "dataUnavailable": "Données indisponibles",
     "dataUnavailableDesc": "Impossible de charger les indicateurs. Veuillez vérifier votre connexion ou rafraîchir la page.",
+    "notEnoughDataTitle": "Pas encore assez de données",
+    "notEnoughDataDesc": "La tendance s'affichera dès qu'il y aura au moins deux mois de paiements ou dépenses enregistrés sur la période choisie.",
     "financialAnalysis": "Analyse Financière",
     "revenueVsExpenses": "Revenus vs Dépenses",
     "period7d": "7 derniers jours",

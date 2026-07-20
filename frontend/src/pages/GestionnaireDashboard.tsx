@@ -19,6 +19,7 @@ import {
   ChevronDown,
   ChevronUp,
   RefreshCw,
+  TrendingUp,
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -275,7 +276,7 @@ const GestionnaireDashboard: React.FC = () => {
       <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
-            {t('nav.tableauDeBord')} <span className="text-primary"></span>
+            {t('nav.tableauDeBord')}
           </h1>
           <p className="text-base-content/60 font-medium mt-1">
             {t('dashboard.welcome', { name: user?.nom || '' })}
@@ -373,7 +374,7 @@ const GestionnaireDashboard: React.FC = () => {
           ) : (
             <motion.div 
               layout
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
             >
               <AnimatePresence>
                   {visibleKpis.map((kpi) => (
@@ -426,6 +427,14 @@ const GestionnaireDashboard: React.FC = () => {
                           {t('common.refresh')}
                         </Button>
                     </div>
+                    {revenusData.length < 2 ? (
+                      <EmptyState
+                        icon={<TrendingUp size={32} />}
+                        title={t('dashboard.notEnoughDataTitle')}
+                        description={t('dashboard.notEnoughDataDesc')}
+                        className="border-none"
+                      />
+                    ) : (
                     <div className="h-[350px] w-full min-h-[350px]">
                         <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={revenusData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -457,6 +466,7 @@ const GestionnaireDashboard: React.FC = () => {
                         </AreaChart>
                         </ResponsiveContainer>
                     </div>
+                    )}
                 </Card>
               )}
             </motion.div>
@@ -491,7 +501,11 @@ const GestionnaireDashboard: React.FC = () => {
                                             <Building2 size={32} />
                                         </div>
                                     )}
-                                     <div className={`absolute top-1 right-1 w-3 h-3 border-2 border-white rounded-full ${property.occupancy >= 80 ? 'bg-green-500' : property.occupancy >= 50 ? 'bg-orange-500' : 'bg-red-500'}`}></div>
+                                     <div
+                                       className={`absolute top-1 right-1 w-3 h-3 border-2 border-white rounded-full ${property.occupancy >= 80 ? 'bg-green-500' : property.occupancy >= 50 ? 'bg-orange-500' : 'bg-red-500'}`}
+                                       role="img"
+                                       aria-label={`Taux d'occupation : ${property.occupancy}%`}
+                                     ></div>
                                 </div>
                                 <div className="flex-1 min-w-0 py-1">
                                     <h4 className="font-bold text-base-content truncate">{property.name}</h4>
