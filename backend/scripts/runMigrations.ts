@@ -1487,6 +1487,34 @@ const MIGRATIONS: Migration[] = [
             UPDATE lots SET statut = 'disponible' WHERE statut = 'libre';
             UPDATE lots SET statut = 'occupe'     WHERE statut = 'loue';
         `
+    },
+    {
+        name: '059_invitations_table',
+        // La table `invitations` (lien d'invitation propriétaire/locataire, utilisée par
+        // invitationRoutes.ts) avait été créée à la main en prod, sans jamais passer par une
+        // migration : reproduite ici à l'identique (schéma récupéré via \d invitations en prod)
+        // pour que la fonctionnalité survive à une reconstruction de base (nouvel environnement,
+        // restauration, staging). IF NOT EXISTS : no-op en prod où la table existe déjà.
+        sql: `
+            CREATE TABLE IF NOT EXISTS invitations (
+                id              SERIAL PRIMARY KEY,
+                token           UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+                type            VARCHAR(20) NOT NULL CHECK (type IN ('owner', 'tenant')),
+                gestionnaire_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                owner_id        INTEGER REFERENCES owners(id) ON DELETE CASCADE,
+                tenant_id       INTEGER REFERENCES tenants(id) ON DELETE CASCADE,
+                email           VARCHAR(255),
+                telephone       VARCHAR(50),
+                nom             VARCHAR(255),
+                prenom          VARCHAR(255),
+                expires_at      TIMESTAMPTZ NOT NULL DEFAULT now() + INTERVAL '7 days',
+                accepted_at     TIMESTAMPTZ,
+                created_at      TIMESTAMPTZ DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS idx_invitations_gestionnaire ON invitations(gestionnaire_id);
+            CREATE INDEX IF NOT EXISTS idx_invitations_owner        ON invitations(owner_id);
+            CREATE INDEX IF NOT EXISTS idx_invitations_tenant       ON invitations(tenant_id);
+        `
     }
 ];
 
