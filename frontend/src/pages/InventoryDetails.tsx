@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-    Printer, Edit, ArrowLeft, Calendar, User, 
-    ClipboardList, Building, Warehouse, CheckCircle 
+import {
+    Printer, Edit, ArrowLeft, Calendar, User,
+    ClipboardList, Building, Warehouse, CheckCircle,
+    FileSignature, Archive, X
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { apiCall } from '../utils/apiUtils';
 import { API_URL } from '../config';
 
 const InventoryDetails: React.FC = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [inventory, setInventory] = useState<any>(null);
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -27,6 +30,32 @@ const InventoryDetails: React.FC = () => {
             console.error(error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Transition de statut (archivage). Le backend valide la transition.
+    const archive = async () => {
+        if (!window.confirm('Archiver cet inventaire ? Il restera consultable mais figé.')) return;
+        try {
+            await apiCall(`${API_URL}/inventories/${id}`, { method: 'PUT', body: JSON.stringify({ statut: 'archive' }) });
+            toast.success('Inventaire archivé.');
+            loadData();
+        } catch (e) {
+            console.error(e);
+            toast.error('Échec de l\'archivage.');
+        }
+    };
+
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case 'valide':
+                return <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 flex items-center gap-1"><CheckCircle size={12} /> Validé</span>;
+            case 'brouillon':
+                return <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">Brouillon</span>;
+            case 'archive':
+                return <span className="px-3 py-1 rounded-full text-xs font-bold bg-base-300 text-base-content/80">Archivé</span>;
+            default:
+                return null;
         }
     };
 
@@ -52,18 +81,38 @@ const InventoryDetails: React.FC = () => {
                     <ArrowLeft size={20} /> Retour
                 </Link>
                 <div className="flex gap-3">
-                    <button 
-                        onClick={() => window.print()} 
+                    <button
+                        onClick={() => window.print()}
                         className="btn-secondary flex items-center gap-2"
                     >
                         <Printer size={18} /> Imprimer
                     </button>
-                    <Link 
-                        to={`/dashboard/inventories/${id}/edit`} 
-                        className="btn-primary flex items-center gap-2"
-                    >
-                        <Edit size={18} /> Modifier
-                    </Link>
+                    {inventory.statut === 'brouillon' && (
+                        <>
+                            <Link
+                                to={`/dashboard/inventories/${id}/edit`}
+                                className="btn-secondary flex items-center gap-2"
+                            >
+                                <Edit size={18} /> Modifier
+                            </Link>
+                            <button
+                                type="button"
+                                className="btn-primary flex items-center gap-2"
+                                onClick={() => navigate(`/dashboard/inventories/${id}/signer`)}
+                            >
+                                <FileSignature size={18} /> Finaliser & Signer
+                            </button>
+                        </>
+                    )}
+                    {inventory.statut === 'valide' && (
+                        <button
+                            type="button"
+                            className="btn-secondary flex items-center gap-2"
+                            onClick={archive}
+                        >
+                            <Archive size={18} /> Archiver
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -81,6 +130,7 @@ const InventoryDetails: React.FC = () => {
                         <div className="inline-block px-3 py-1 bg-base-300 rounded text-sm font-mono mb-2">
                              Réf: INV-{inventory.id.toString().padStart(4, '0')}
                         </div>
+                        <div className="mb-2">{getStatusBadge(inventory.statut)}</div>
                         <p className="text-sm text-base-content/60">{new Date(inventory.date_realisation).toLocaleDateString()}</p>
                     </div>
                 </div>
@@ -168,14 +218,28 @@ const InventoryDetails: React.FC = () => {
                 </div>
 
                 {/* Footer / Signatures */}
-                <div className="mt-12 pt-8 border-t border-base-300 grid grid-cols-2 gap-12 page-break-inside-avoid">
+                <div className={`mt-12 pt-8 border-t border-base-300 grid gap-12 page-break-inside-avoid ${inventory.entity_type === 'lot' ? 'grid-cols-2' : 'grid-cols-1 max-w-xs'}`}>
                     <div className="border rounded-xl h-32 p-4 relative">
                         <span className="text-xs text-base-content/50 uppercase font-bold absolute top-3 left-3">Signature Gestionnaire</span>
-                        {/* Placeholder for Signature */}
+                        {inventory.signatures_json?.agent?.signature_url && (
+                            <img src={inventory.signatures_json.agent.signature_url} className="h-full w-full object-contain" alt="Signature Gestionnaire" />
+                        )}
                     </div>
-                    <div className="border rounded-xl h-32 p-4 relative">
-                        <span className="text-xs text-base-content/50 uppercase font-bold absolute top-3 left-3">Signature Locataire</span>
-                    </div>
+                    {inventory.entity_type === 'lot' && (
+                        <div className="border rounded-xl h-32 p-4 relative">
+                            <span className="text-xs text-base-content/50 uppercase font-bold absolute top-3 left-3">Signature Locataire</span>
+                            {inventory.signatures_json?.locataire?.refused ? (
+                                <div className="h-full w-full flex flex-col items-center justify-center text-center">
+                                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700 flex items-center gap-1"><X size={11} /> Refus de signature</span>
+                                    {inventory.signatures_json.locataire.reason && (
+                                        <p className="text-xs text-base-content/60 mt-2 italic">« {inventory.signatures_json.locataire.reason} »</p>
+                                    )}
+                                </div>
+                            ) : inventory.signatures_json?.locataire?.signature_url && (
+                                <img src={inventory.signatures_json.locataire.signature_url} className="h-full w-full object-contain" alt="Signature Locataire" />
+                            )}
+                        </div>
+                    )}
                 </div>
                 
                 <div className="mt-8 text-center text-xs text-base-content/50 print:block hidden">

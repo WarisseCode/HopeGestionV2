@@ -71,6 +71,7 @@ const InventoriesList = lazyWithReload(() => import('./pages/InventoriesList'));
 const InventoryForm = lazyWithReload(() => import('./pages/InventoryForm'));
 const Corbeille = lazyWithReload(() => import('./pages/Corbeille'));
 const InventoryDetails = lazyWithReload(() => import('./pages/InventoryDetails'));
+const InventorySignature = lazyWithReload(() => import('./pages/InventorySignature'));
 const EdlList = lazyWithReload(() => import('./pages/EdlList'));
 const EdlCreate = lazyWithReload(() => import('./pages/EdlCreate'));
 const EdlDetails = lazyWithReload(() => import('./pages/EdlDetails'));
@@ -213,6 +214,7 @@ const App: React.FC = () => {
                           <Route path="inventories/new" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<InventoryForm />} />} />
                           <Route path="inventaires/new" element={<Navigate to="/dashboard/inventories/new" replace />} />
                           <Route path="inventories/:id/edit" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<InventoryForm />} />} />
+                          <Route path="inventories/:id/signer" element={<RouteProtection allowedUserTypes={['gestionnaire']} children={<InventorySignature />} />} />
                           {/* Routes de consultation — gestionnaire + proprietaire (lecture) */}
                           <Route path="inventories/:id" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<InventoryDetails />} />} />
                           <Route path="etats-des-lieux" element={<RouteProtection allowedUserTypes={['gestionnaire', 'proprietaire']} children={<EdlList />} />} />

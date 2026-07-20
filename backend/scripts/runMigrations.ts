@@ -1515,6 +1515,17 @@ const MIGRATIONS: Migration[] = [
             CREATE INDEX IF NOT EXISTS idx_invitations_owner        ON invitations(owner_id);
             CREATE INDEX IF NOT EXISTS idx_invitations_tenant       ON invitations(tenant_id);
         `
+    },
+    {
+        name: '060_inventory_signatures_json',
+        // UI signature/workflow du module Inventaires : les anciennes colonnes plates
+        // signature_locataire/signature_agent (TEXT) ne permettaient pas de distinguer une
+        // signature d'un refus de signer (cf. EDL). signatures_json reprend le même format
+        // JSONB que edl_inspections.signatures_json : { agent: {signature_url, date},
+        // locataire: {signature_url, date} | {refused, reason, date} }.
+        sql: `
+            ALTER TABLE inventories ADD COLUMN IF NOT EXISTS signatures_json JSONB;
+        `
     }
 ];
 

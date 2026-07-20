@@ -78,10 +78,13 @@ const InventoryForm: React.FC = () => {
     commentaires:     '',
   });
 
-  // Items
+  // Items — items déjà persistés (avec id) chargés en édition ; retirés de la liste
+  // s'ils sont supprimés, pour pouvoir les DELETE côté serveur au moment d'enregistrer.
   const [items, setItems]             = useState<InventoryItem[]>([]);
+  const [removedItemIds, setRemovedItemIds] = useState<number[]>([]);
   const [currentItem, setCurrentItem] = useState<InventoryItem>({ ...BLANK_ITEM });
   const [editIdx, setEditIdx]         = useState<number | null>(null);
+  const [loadingInventory, setLoadingInventory] = useState(isEdit);
 
   // Entity lists
   const [buildings, setBuildings] = useState<any[]>([]);
@@ -104,6 +107,44 @@ const InventoryForm: React.FC = () => {
       .catch(() => {})
       .finally(() => setLoadingEntities(false));
   }, []);
+
+  // En édition, charger l'inventaire existant (header + items) : sans ce chargement,
+  // le formulaire restait vierge et "Enregistrer" recréait un doublon au lieu de modifier.
+  useEffect(() => {
+    if (!isEdit) return;
+    const token = getToken();
+    fetch(`${API_URL}/inventories/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error('Inventaire introuvable')))
+      .then((data) => {
+        if (data.statut !== 'brouillon') {
+          toast.error('Cet inventaire est verrouillé (déjà signé) : modification impossible.');
+          navigate(`/dashboard/inventories/${id}`);
+          return;
+        }
+        setHeader({
+          entity_type:      data.entity_type,
+          entity_id:        data.entity_id,
+          date_realisation: (data.date_realisation || '').split('T')[0],
+          type_inventaire:  data.type_inventaire,
+          commentaires:     data.commentaires || '',
+        });
+        setItems((data.items || []).map((it: any) => ({
+          id: it.id,
+          categorie: it.categorie,
+          nom: it.nom,
+          etat: it.etat,
+          quantite: it.quantite,
+          description: it.description || '',
+          observation: it.observation || '',
+          photos: it.photos || [],
+        })));
+      })
+      .catch(() => {
+        toast.error('Erreur lors du chargement de l\'inventaire');
+        navigate('/dashboard/inventories');
+      })
+      .finally(() => setLoadingInventory(false));
+  }, [id, isEdit]);
 
   const setH = (field: string, value: any) =>
     setHeader(p => ({ ...p, [field]: value }));
@@ -171,6 +212,8 @@ const InventoryForm: React.FC = () => {
   };
 
   const handleDeleteItem = (idx: number) => {
+    const item = items[idx];
+    if (item.id) setRemovedItemIds(p => [...p, item.id!]);
     setItems(p => p.filter((_, i) => i !== idx));
   };
 
@@ -181,6 +224,32 @@ const InventoryForm: React.FC = () => {
     try {
       const token = getToken();
       const h     = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+      if (isEdit) {
+        const res = await fetch(`${API_URL}/inventories/${id}`, {
+          method: 'PUT', headers: h, body: JSON.stringify({ commentaires: header.commentaires }),
+        });
+        if (!res.ok) throw new Error('Erreur mise à jour inventaire');
+
+        for (const itemId of removedItemIds) {
+          await fetch(`${API_URL}/inventories/${id}/items/${itemId}`, { method: 'DELETE', headers: h });
+        }
+        for (const item of items) {
+          if (item.id) {
+            await fetch(`${API_URL}/inventories/${id}/items/${item.id}`, {
+              method: 'PUT', headers: h, body: JSON.stringify(item),
+            });
+          } else {
+            await fetch(`${API_URL}/inventories/${id}/items`, {
+              method: 'POST', headers: h, body: JSON.stringify(item),
+            });
+          }
+        }
+
+        toast.success('Inventaire mis à jour !');
+        navigate(`/dashboard/inventories/${id}`);
+        return;
+      }
 
       const res = await fetch(`${API_URL}/inventories`, {
         method: 'POST', headers: h, body: JSON.stringify(header),
@@ -215,6 +284,14 @@ const InventoryForm: React.FC = () => {
   // ==============================
   // Render
   // ==============================
+  if (loadingInventory) {
+    return (
+      <div className="min-h-screen flex items-center justify-center gap-2 text-base-content/50">
+        <Loader2 size={20} className="animate-spin" /> Chargement de l'inventaire…
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-base-200/40 pb-16">
       {/* Topbar */}
@@ -252,15 +329,16 @@ const InventoryForm: React.FC = () => {
               <h2 className="font-bold text-base-content">Contexte</h2>
             </div>
 
-            {/* Type d'inventaire */}
+            {/* Type d'inventaire — fixé à la création (non modifiable côté serveur) */}
             <Select
               label="Type d'inventaire"
               options={TYPE_INVENTAIRE}
               value={header.type_inventaire}
               onChange={e => setH('type_inventaire', e.target.value)}
+              disabled={isEdit}
             />
 
-            {/* Type de bien */}
+            {/* Type de bien — fixé à la création (non modifiable côté serveur) */}
             <div>
               <p className="text-sm font-semibold text-base-content/80 mb-2">Type de bien</p>
               <div className="flex bg-base-200 p-1 rounded-xl gap-1">
@@ -274,9 +352,10 @@ const InventoryForm: React.FC = () => {
                     <button
                       key={opt.value}
                       type="button"
+                      disabled={isEdit}
                       onClick={() => { setH('entity_type', opt.value); setH('entity_id', 0); }}
                       className={[
-                        'flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all',
+                        'flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed',
                         active
                           ? 'bg-base-100 shadow text-primary font-bold'
                           : 'text-base-content/50 hover:text-base-content/80',
@@ -289,7 +368,7 @@ const InventoryForm: React.FC = () => {
               </div>
             </div>
 
-            {/* Sélection bien */}
+            {/* Sélection bien — fixée à la création (non modifiable côté serveur) */}
             <Select
               label={header.entity_type === 'lot' ? 'Lot' : 'Immeuble'}
               required
@@ -298,15 +377,16 @@ const InventoryForm: React.FC = () => {
               options={entityOptions}
               value={header.entity_id || ''}
               onChange={e => setH('entity_id', parseInt(e.target.value) || 0)}
-              disabled={loadingEntities}
+              disabled={loadingEntities || isEdit}
             />
 
-            {/* Date */}
+            {/* Date — fixée à la création (non modifiable côté serveur) */}
             <Input
               label="Date de réalisation"
               type="date"
               value={header.date_realisation}
               onChange={e => setH('date_realisation', e.target.value)}
+              disabled={isEdit}
             />
 
             {/* Commentaire */}

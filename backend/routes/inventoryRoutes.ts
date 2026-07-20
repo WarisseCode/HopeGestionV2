@@ -20,13 +20,23 @@ function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'
 }
 
 // Vérifie l'existence + l'appartenance de l'inventaire parent (pour les sous-routes /items).
-async function fetchOwnedInventory(req: AuthenticatedRequest, invId: string | undefined): Promise<{ id: number } | null> {
+// Le statut est renvoyé pour permettre le verrouillage post-signature (cf. LOCK_MESSAGE).
+async function fetchOwnedInventory(req: AuthenticatedRequest, invId: string | undefined): Promise<{ id: number; statut: string } | null> {
     const dbClient = (req as any).dbClient;
     const params: any[] = [invId];
     const clause = scopeByOwner(req, params);
-    const r = await dbClient.query(`SELECT id FROM inventories WHERE id = $1${clause}`, params);
+    const r = await dbClient.query(`SELECT id, statut FROM inventories WHERE id = $1${clause}`, params);
     return r.rows[0] || null;
 }
+
+const LOCK_MESSAGE = "Inventaire verrouillé : déjà signé, les éléments ne sont plus modifiables.";
+
+// Transitions de statut autorisées via PUT /:id (la signature passe par /sign, pas par ici).
+const STATUT_TRANSITIONS: Record<string, string[]> = {
+    brouillon: ['archive'],
+    valide: ['archive'],
+    archive: [],
+};
 
 // PK SERIAL (convention de l'app — entités lots/buildings également en int).
 const invIdParam = param('id').isInt({ min: 1 }).withMessage('Identifiant inventaire invalide');
@@ -65,6 +75,10 @@ const inventoryUpdateRules = [
     invIdParam,
     body('statut').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('statut invalide'),
     body('commentaires').optional({ nullable: true }).isString().isLength({ max: 2000 }).withMessage('Commentaires trop longs'),
+];
+const inventorySignRules = [
+    invIdParam,
+    body('signatures').exists({ checkNull: true }).withMessage('signatures requis'),
 ];
 
 // Protect all routes
@@ -209,8 +223,12 @@ router.post('/:id/items', permissions.canWrite('biens'), validate(inventoryItemC
         const { id } = req.params;
 
         // Isolation explicite par owner (et non la seule RLS) sur l'inventaire parent.
-        if (!(await fetchOwnedInventory(req, id))) {
+        const parent = await fetchOwnedInventory(req, id);
+        if (!parent) {
             return res.status(404).json({ message: 'Inventaire non trouvé ou accès refusé' });
+        }
+        if (parent.statut !== 'brouillon') {
+            return res.status(409).json({ message: LOCK_MESSAGE });
         }
 
         const { categorie, nom, etat, quantite, description, observation, photos } = req.body;
@@ -245,8 +263,12 @@ router.put('/:id/items/:itemId', permissions.canWrite('biens'), validate(invento
         const dbClient = (req as any).dbClient;
         const { id, itemId } = req.params;
 
-        if (!(await fetchOwnedInventory(req, id))) {
+        const parent = await fetchOwnedInventory(req, id);
+        if (!parent) {
             return res.status(404).json({ message: 'Accès refusé à cet inventaire' });
+        }
+        if (parent.statut !== 'brouillon') {
+            return res.status(409).json({ message: LOCK_MESSAGE });
         }
 
         const { etat, quantite, description, observation, photos } = req.body;
@@ -287,8 +309,12 @@ router.delete('/:id/items/:itemId', permissions.canWrite('biens'), validate(inve
         const dbClient = (req as any).dbClient;
         const { id, itemId } = req.params;
 
-        if (!(await fetchOwnedInventory(req, id))) {
+        const parent = await fetchOwnedInventory(req, id);
+        if (!parent) {
             return res.status(404).json({ message: 'Accès refusé à cet inventaire' });
+        }
+        if (parent.statut !== 'brouillon') {
+            return res.status(409).json({ message: LOCK_MESSAGE });
         }
 
         const result = await dbClient.query('DELETE FROM inventory_items WHERE id = $1 AND inventory_id = $2 RETURNING id', [itemId, id]);
@@ -303,22 +329,36 @@ router.delete('/:id/items/:itemId', permissions.canWrite('biens'), validate(inve
 });
 
 // PUT /api/inventories/:id - Update header/status
+// Les signatures ne transitent plus par cette route générique : uniquement via PUT /:id/sign
+// (qui verrouille l'inventaire), pour éviter qu'une signature soit écrasée sans passer par le
+// workflow de finalisation.
 router.put('/:id', permissions.canWrite('biens'), validate(inventoryUpdateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
-        const { statut, commentaires, signature_locataire, signature_agent } = req.body;
+        const { statut, commentaires } = req.body;
 
-        const params: any[] = [statut, commentaires, signature_locataire, signature_agent, id];
+        const inv = await fetchOwnedInventory(req, id);
+        if (!inv) {
+            return res.status(404).json({ message: 'Inventaire non trouvé ou accès refusé' });
+        }
+        // Transition de statut contrôlée (archivage), pas de retour arrière.
+        if (statut && statut !== inv.statut && !(STATUT_TRANSITIONS[inv.statut] || []).includes(statut)) {
+            return res.status(409).json({ message: `Transition de statut non autorisée (${inv.statut} → ${statut}).` });
+        }
+        // Les commentaires ne sont éditables qu'en brouillon (preuve figée après signature).
+        if (commentaires !== undefined && inv.statut !== 'brouillon') {
+            return res.status(409).json({ message: LOCK_MESSAGE });
+        }
+
+        const params: any[] = [statut, commentaires, id];
         const ownerClause = scopeByOwner(req, params);
         const result = await dbClient.query(`
             UPDATE inventories SET
                 statut = COALESCE($1, statut),
                 commentaires = COALESCE($2, commentaires),
-                signature_locataire = COALESCE($3, signature_locataire),
-                signature_agent = COALESCE($4, signature_agent),
                 updated_at = NOW()
-            WHERE id = $5${ownerClause}
+            WHERE id = $3${ownerClause}
             RETURNING *
         `, params);
 
@@ -329,6 +369,43 @@ router.put('/:id', permissions.canWrite('biens'), validate(inventoryUpdateRules)
         res.json(result.rows[0]);
     } catch (error) {
         console.error('Error updating inventory:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// PUT /api/inventories/:id/sign - Enregistrer les signatures et finaliser l'inventaire
+router.put('/:id/sign', permissions.canWrite('biens'), validate(inventorySignRules), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const dbClient = (req as any).dbClient;
+        const { id } = req.params;
+        const { signatures } = req.body;
+
+        const inv = await fetchOwnedInventory(req, id);
+        if (!inv) {
+            return res.status(404).json({ message: 'Inventaire non trouvé ou accès refusé' });
+        }
+        if (inv.statut !== 'brouillon') {
+            return res.status(409).json({ message: 'Inventaire déjà signé ou verrouillé.' });
+        }
+
+        const params: any[] = [JSON.stringify(signatures), id];
+        const ownerClause = scopeByOwner(req, params);
+        const result = await dbClient.query(`
+            UPDATE inventories SET
+                signatures_json = $1,
+                statut = 'valide',
+                updated_at = NOW()
+            WHERE id = $2${ownerClause}
+            RETURNING *
+        `, params);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Inventaire non trouvé ou accès refusé' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Error signing inventory:', error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
