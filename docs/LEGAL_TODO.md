@@ -38,8 +38,22 @@ source tel quel en attendant.
 - **Politique de Confidentialité** : mentionnée dans les Mentions Légales (point 5) mais jamais
   transmise comme document séparé. Le lien "Confidentialité" a été retiré du footer en attendant
   ce texte (il n'y a rien à afficher pour l'instant).
-- **Page "Cookies" dédiée** : le contenu existe déjà (CGU section 7 : "le site ne présente aucun
-  cookie") mais il n'y a pas de page séparée — le lien correspondant a été retiré du footer.
+- **Page "Cookies" dédiée** : le contenu existe déjà dans la CGU section 7 mais il n'y a pas de
+  page séparée — le lien correspondant a été retiré du footer.
+
+## Correction (2026-07-22) : la section Cookies du document source était fausse
+
+Le texte fourni affirmait "le site ne présente aucun cookie aux utilisateurs" — or le backend
+pose bien un cookie (`refreshToken`, httpOnly, `authRoutes.ts`/`invitationRoutes.ts`) pour
+maintenir la connexion. Corrigé dans `CguArticles.tsx` : le texte décrit maintenant ce cookie
+(catégorie strictement nécessaire, pas de consentement requis) et précise qu'aucun cookie
+analytics/marketing n'est utilisé aujourd'hui. Un bandeau de consentement générique
+(`CookieConsentBanner.tsx`, monté globalement dans `App.tsx`) a été ajouté en préparation d'un
+ajout futur de ce type de cookie — le choix de l'utilisateur est stocké via
+`utils/cookieConsent.ts` (`hasConsent('analytics' | 'marketing')`), à vérifier avant de charger
+tout script de ce type le jour où l'un est introduit. Version des CGU non incrémentée : cette
+correction a lieu le jour même de la première publication, avant toute acceptation réelle par un
+utilisateur en prod.
 
 ## Décisions techniques prises pendant l'intégration
 

@@ -10,6 +10,7 @@ import AdminLayout from './layout/AdminLayout';
 import UserSpecificLayout from './layout/UserSpecificLayout';
 import MaintenanceWrapper from './components/MaintenanceWrapper';
 import CguGate from './components/CguGate';
+import CookieConsentBanner from './components/CookieConsentBanner';
 import { lazyWithReload } from './utils/lazyWithReload';
 
 // Auth & onboarding
@@ -140,6 +141,7 @@ const App: React.FC = () => {
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
       <Router>
         <Toaster position="top-center" toastOptions={{ duration: 4000, className: 'text-sm font-medium' }} />
+        <CookieConsentBanner />
         <MaintenanceWrapper>
           <Suspense fallback={<PageLoader />}>
             <Routes>

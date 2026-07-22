@@ -126,7 +126,14 @@ const CguArticles: React.FC = () => (
         </p>
 
         <h2>7. Politique de cookies</h2>
-        <p>Le site hopegestion.com ne présente aucun cookie aux utilisateurs.</p>
+        <p>
+            Le site hopegestion.com dépose un cookie strictement nécessaire à l'authentification
+            (maintien de la connexion), qui ne requiert pas de consentement conformément aux
+            usages en vigueur pour les cookies indispensables au fonctionnement du service. Le
+            site n'utilise aujourd'hui aucun cookie de mesure d'audience ou publicitaire. Si de
+            tels cookies optionnels venaient à être introduits, un bandeau de consentement
+            recueillerait votre choix avant leur dépôt.
+        </p>
 
         <h2>8. Litiges</h2>
         <p>
