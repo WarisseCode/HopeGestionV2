@@ -33,3 +33,8 @@ export const REFRESH_TOKEN_SECRET = refreshSecret;
 // Durées des tokens
 export const ACCESS_TOKEN_EXPIRES_IN  = process.env.JWT_EXPIRES_IN        || '15m';
 export const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d';
+
+// Version en vigueur des CGU (cf. cguRoutes.ts). À incrémenter (nouvelle date) à chaque
+// révision substantielle du texte : ça déclenche une nouvelle demande de consentement pour
+// tous les utilisateurs, même ceux ayant déjà accepté une version antérieure.
+export const CGU_CURRENT_VERSION = '2026-07-22';

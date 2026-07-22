@@ -1526,6 +1526,24 @@ const MIGRATIONS: Migration[] = [
         sql: `
             ALTER TABLE inventories ADD COLUMN IF NOT EXISTS signatures_json JSONB;
         `
+    },
+    {
+        name: '061_cgu_acceptances',
+        // Historique d'acceptation des CGU (append-only, jamais écrasé) : permet de prouver
+        // quelle version un utilisateur donné a acceptée et quand. La colonne `version` référence
+        // CGU_CURRENT_VERSION (backend/config/config.ts) — pas de FK, c'est un simple horodatage
+        // de texte versionné, pas une entité relationnelle.
+        sql: `
+            CREATE TABLE IF NOT EXISTS cgu_acceptances (
+                id          SERIAL PRIMARY KEY,
+                user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                version     VARCHAR(20) NOT NULL,
+                accepted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                ip_address  VARCHAR(45),
+                user_agent  TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_cgu_acceptances_user ON cgu_acceptances(user_id, accepted_at DESC);
+        `
     }
 ];
 

@@ -9,6 +9,7 @@ import { UserProvider } from './contexts/UserContext';
 import AdminLayout from './layout/AdminLayout';
 import UserSpecificLayout from './layout/UserSpecificLayout';
 import MaintenanceWrapper from './components/MaintenanceWrapper';
+import CguGate from './components/CguGate';
 import { lazyWithReload } from './utils/lazyWithReload';
 
 // Auth & onboarding
@@ -30,6 +31,10 @@ const LocatairePublicPage = lazyWithReload(() => import('./pages/public/Locatair
 const ModulesTransversesPage = lazyWithReload(() => import('./pages/public/ModulesTransversesPage'));
 const AboutPage = lazyWithReload(() => import('./pages/public/AboutPage'));
 const BiensPublicsPage = lazyWithReload(() => import('./pages/public/BiensPublicsPage'));
+const CguPage = lazyWithReload(() => import('./pages/public/CguPage'));
+const CgvPage = lazyWithReload(() => import('./pages/public/CgvPage'));
+const MentionsLegalesPage = lazyWithReload(() => import('./pages/public/MentionsLegalesPage'));
+const ConditionsReservationPage = lazyWithReload(() => import('./pages/public/ConditionsReservationPage'));
 const PublicReservation = lazyWithReload(() => import('./pages/public/PublicReservation'));
 
 // Admin pages
@@ -101,7 +106,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   if (!token) {
     return <Navigate to="/" replace />;
   }
-  return <>{children}</>;
+  return <CguGate>{children}</CguGate>;
 };
 
 const LoginFormWithNavigation: React.FC = () => {
@@ -156,6 +161,10 @@ const App: React.FC = () => {
             <Route path="/fonctionnalites/modules" element={<ModulesTransversesPage />} />
             <Route path="/a-propos" element={<AboutPage />} />
             <Route path="/biens-disponibles" element={<BiensPublicsPage />} />
+            <Route path="/cgu" element={<CguPage />} />
+            <Route path="/cgv" element={<CgvPage />} />
+            <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
+            <Route path="/conditions-reservation" element={<ConditionsReservationPage />} />
 
             {/* Page de maintenance */}
             <Route path="/maintenance" element={<Maintenance />} />

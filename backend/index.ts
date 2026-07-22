@@ -199,6 +199,10 @@ app.use('/api/public', publicRoutes);
 import invitationRoutes from './routes/invitationRoutes';
 app.use('/api/invitations', invitationRoutes);
 
+// Routes CGU — /version est public, /status et /accept requièrent protect (vérifié dans le handler)
+import cguRoutes from './routes/cguRoutes';
+app.use('/api/cgu', cguRoutes);
+
 // --- Routes Protégées ---
 // Routes Locataires (Nécessite le jeton JWT)
 app.use('/api/locataires', protect, locataireRoutes); // <--- NOUVELLE LIGNE

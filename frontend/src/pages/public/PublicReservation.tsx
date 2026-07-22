@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { MapPin, Calendar, Clock, ArrowRight, User, Phone, Mail, CheckCircle, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 // @ts-ignore
@@ -253,6 +253,10 @@ const PublicReservation: React.FC = () => {
                                 <button type="submit" disabled={loading} className="btn btn-primary text-white w-full py-4 text-lg justify-center shadow-primary/30 shadow-lg hover:shadow-xl transition-all">
                                     {loading ? <span className="loading loading-spinner"></span> : 'Confirmer la Demande'}
                                 </button>
+                                <p className="text-xs text-center text-base-content/50">
+                                    En confirmant, vous acceptez les{' '}
+                                    <Link to="/conditions-reservation" target="_blank" className="text-primary hover:underline">Conditions de Réservation</Link>.
+                                </p>
                             </motion.div>
                         )}
                     </form>

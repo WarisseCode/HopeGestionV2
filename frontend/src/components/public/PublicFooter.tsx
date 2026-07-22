@@ -173,11 +173,11 @@ const PublicFooter: React.FC = () => {
                     <p className="text-xs opacity-60 text-center md:text-left">
                         © {currentYear} Hope Gestion. Tous droits réservés.
                     </p>
-                    <div className="flex flex-wrap justify-center gap-6 text-xs opacity-40">
-                        <span>Mentions Légales</span>
-                        <span>CGU</span>
-                        <span>Confidentialité</span>
-                        <span>Cookies</span>
+                    <div className="flex flex-wrap justify-center gap-6 text-xs opacity-60">
+                        <Link to="/mentions-legales" className="hover:opacity-100 transition-opacity">Mentions Légales</Link>
+                        <Link to="/cgu" className="hover:opacity-100 transition-opacity">CGU</Link>
+                        <Link to="/cgv" className="hover:opacity-100 transition-opacity">CGV</Link>
+                        <Link to="/conditions-reservation" className="hover:opacity-100 transition-opacity">Conditions de Réservation</Link>
                     </div>
                 </div>
             </div>
