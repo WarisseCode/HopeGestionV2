@@ -7,7 +7,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { trashApi } from '../api/trashApi';
-import type { TrashItem } from '../api/trashApi';
+import type { TrashItem, TrashImpact } from '../api/trashApi';
 import { getToken } from '../api/authApi';
 import { API_URL } from '../config';
 import { useUser } from '../contexts/UserContext';
@@ -109,6 +109,10 @@ const Corbeille: React.FC = () => {
   const [confirmText, setConfirmText] = useState('');
   const [working, setWorking] = useState(false);
 
+  // Impact en cascade de la suppression définitive, chargé à l'ouverture de la modale.
+  const [impact, setImpact] = useState<TrashImpact[]>([]);
+  const [impactLoading, setImpactLoading] = useState(false);
+
   useEffect(() => {
     loadItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -197,10 +201,44 @@ const Corbeille: React.FC = () => {
     loadItems();
   };
 
-  // ── Suppression définitive (confirmation par saisie) ──
-  const openPurgeOne = (it: TrashItem) => { setPurgeTarget(it); setBulkPurge(false); setConfirmText(''); };
-  const openPurgeBulk = () => { if (selectedItems.length === 0) return; setBulkPurge(true); setPurgeTarget(null); setConfirmText(''); };
-  const closePurge = () => { setPurgeTarget(null); setBulkPurge(false); setConfirmText(''); };
+  // ── Suppression définitive (impact affiché + confirmation par saisie) ──
+
+  // Agrège les impacts de plusieurs éléments par libellé. Les totaux peuvent se
+  // recouper (sélectionner un immeuble ET l'un de ses lots compte deux fois les
+  // mêmes baux) — d'où la mention « estimé » dans la modale.
+  const loadImpact = async (targets: TrashItem[]) => {
+    setImpact([]);
+    if (targets.length === 0) return;
+    setImpactLoading(true);
+    try {
+      const results = await Promise.all(targets.map(it => trashApi.impact(it.module, it.id)));
+      const totals = new Map<string, number>();
+      for (const rows of results) {
+        for (const r of rows) totals.set(r.label, (totals.get(r.label) || 0) + r.count);
+      }
+      setImpact([...totals].map(([label, count]) => ({ table: label, label, count })));
+    } catch {
+      // L'impact est indicatif : son échec ne doit pas empêcher d'ouvrir la modale.
+      // Le serveur reste la garde ultime (409 si des dépendances existent).
+      setImpact([]);
+    } finally {
+      setImpactLoading(false);
+    }
+  };
+
+  const openPurgeOne = (it: TrashItem) => {
+    setPurgeTarget(it); setBulkPurge(false); setConfirmText('');
+    loadImpact([it]);
+  };
+  const openPurgeBulk = () => {
+    if (selectedItems.length === 0) return;
+    setBulkPurge(true); setPurgeTarget(null); setConfirmText('');
+    loadImpact(selectedItems);
+  };
+  const closePurge = () => {
+    setPurgeTarget(null); setBulkPurge(false); setConfirmText('');
+    setImpact([]); setImpactLoading(false);
+  };
 
   // Le texte attendu : le nom exact (suppression unitaire) ou "SUPPRIMER" (lot).
   const expectedConfirm = bulkPurge ? 'SUPPRIMER' : (purgeTarget?.label || '');
@@ -210,14 +248,15 @@ const Corbeille: React.FC = () => {
     if (!confirmValid) return;
     setWorking(true);
     try {
+      // force = true : l'impact en cascade a été affiché et confirmé par saisie ci-dessus.
       if (bulkPurge) {
         let ok = 0;
         for (const it of selectedItems) {
-          try { await trashApi.purge(it.module, it.id); ok++; } catch { /* on continue */ }
+          try { await trashApi.purge(it.module, it.id, true); ok++; } catch { /* on continue */ }
         }
         toast.success(`${ok}/${selectedItems.length} élément(s) supprimé(s) définitivement`);
       } else if (purgeTarget) {
-        await trashApi.purge(purgeTarget.module, purgeTarget.id);
+        await trashApi.purge(purgeTarget.module, purgeTarget.id, true);
         toast.success(`« ${purgeTarget.label} » supprimé définitivement`);
       }
       closePurge();
@@ -417,6 +456,33 @@ const Corbeille: React.FC = () => {
             <AlertTriangle size={20} className="flex-shrink-0 mt-0.5" />
             <p>Cette action est <strong>irréversible</strong>. Les éléments seront supprimés définitivement de la base de données.</p>
           </div>
+
+          {/* Impact en cascade — affiché AVANT la saisie de confirmation, pour qu'aucune
+              donnée liée (baux, historique de paiements…) ne disparaisse silencieusement. */}
+          {impactLoading ? (
+            <p className="text-sm text-base-content/60 flex items-center gap-2">
+              <span className="loading loading-spinner loading-xs" /> Analyse des données liées...
+            </p>
+          ) : impact.length > 0 && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+              <p className="text-sm font-semibold text-orange-800 flex items-center gap-2">
+                <AlertTriangle size={16} className="flex-shrink-0" />
+                Ces données liées seront supprimées aussi
+              </p>
+              <ul className="mt-2 space-y-1">
+                {impact.map(i => (
+                  <li key={i.label} className="flex justify-between text-sm text-orange-900">
+                    <span>{i.label}</span>
+                    <strong className="tabular-nums">{i.count}</strong>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-orange-700/80 mt-2">
+                Y compris les éléments encore actifs (un lot en corbeille peut avoir un bail en cours).
+                {bulkPurge && ' Totaux estimés : des éléments sélectionnés peuvent se recouper.'}
+              </p>
+            </div>
+          )}
 
           {bulkPurge ? (
             <p className="text-sm text-base-content/80">
