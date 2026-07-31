@@ -83,7 +83,10 @@ router.get('/', protect, tenantGuard, async (req: AuthenticatedRequest, res: Res
                     description: `Loyer de ${row.nom} ${row.prenoms} (${row.ref_lot} - ${row.building_name}) non payé.`,
                     destinataire: 'Gestionnaire', type: 'Paiement',
                     priorite: 'Haute', dateCreation: new Date().toISOString(),
-                    statut: 'Active', link: '/dashboard/finances'
+                    // Lien vers le bail concerné (row.id = leases.id) plutôt que vers le
+                    // module Finances : /dashboard/locations/:id affiche le bail ET son
+                    // échéancier, c'est-à-dire précisément l'échéance en retard.
+                    statut: 'Active', link: `/dashboard/locations/${row.id}`
                 });
             }
         });
@@ -112,7 +115,8 @@ router.get('/', protect, tenantGuard, async (req: AuthenticatedRequest, res: Res
                     destinataire: 'Gestionnaire', type: 'Contrat',
                     priorite: daysLeft < 30 ? 'Haute' : 'Moyenne',
                     dateCreation: new Date().toISOString(),
-                    statut: 'Active', link: '/dashboard/contrats'
+                    // Même principe : le bail qui expire, pas la liste des contrats.
+                    statut: 'Active', link: `/dashboard/locations/${row.id}`
                 });
             }
         });
