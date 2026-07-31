@@ -339,38 +339,41 @@ export class DashboardService {
         isAdmin: boolean,
         period: string
     ): Promise<{ chartData: ChartPoint[]; period: string }> {
-        let interval: string;
-        switch (period) {
-            case '7d':  interval = '7 days';   break;
-            case '30d': interval = '30 days';  break;
-            case '90d': interval = '90 days';  break;
-            case '1y':  interval = '1 year';   break;
-            default:    interval = '6 months';
-        }
+        // Granularité adaptée à la fenêtre. Auparavant le regroupement était TOUJOURS
+        // mensuel, quelle que soit la période : sur 7 ou 30 jours cela ne produit qu'un
+        // ou deux points, et le front masque le graphe en dessous de deux points — d'où
+        // l'écran « Pas encore assez de données » alors que les paiements existent.
+        // `interval` et `bucket` sont interpolés dans le SQL, mais proviennent
+        // exclusivement de cette table close : aucune valeur ne vient de la requête HTTP.
+        const GRANULARITY: Record<string, { interval: string; bucket: 'day' | 'week' | 'month' }> = {
+            '7d':  { interval: '7 days',   bucket: 'day' },
+            '30d': { interval: '30 days',  bucket: 'day' },
+            '90d': { interval: '90 days',  bucket: 'week' },
+            '1y':  { interval: '1 year',   bucket: 'month' },
+        };
+        const { interval, bucket } = GRANULARITY[period] ?? { interval: '6 months', bucket: 'month' as const };
 
         const p = isAdmin || validOwnerIds.length === 0 ? [] as any[] : [validOwnerIds];
         const ownerFilter = isAdmin ? 'TRUE' : validOwnerIds.length > 0 ? 'owner_id = ANY($1::int[])' : 'FALSE';
 
         const [revenusRes, depensesRes] = await Promise.all([
             dbClient.query(`
-                SELECT TO_CHAR(date_paiement, 'Mon') as name,
-                       EXTRACT(MONTH FROM date_paiement) as month_num,
-                       COALESCE(SUM(montant), 0) as revenus
+                SELECT date_trunc('${bucket}', date_paiement) AS bucket,
+                       COALESCE(SUM(montant), 0) AS total
                 FROM payments
                 WHERE date_paiement >= CURRENT_DATE - INTERVAL '${interval}'
                 AND statut = 'valide' AND ${ownerFilter}
-                GROUP BY TO_CHAR(date_paiement, 'Mon'), EXTRACT(MONTH FROM date_paiement)
-                ORDER BY month_num
+                GROUP BY 1
+                ORDER BY 1
             `, p),
             dbClient.query(`
-                SELECT TO_CHAR(date_expense, 'Mon') as name,
-                       EXTRACT(MONTH FROM date_expense) as month_num,
-                       COALESCE(SUM(amount), 0) as depenses
+                SELECT date_trunc('${bucket}', date_expense) AS bucket,
+                       COALESCE(SUM(amount), 0) AS total
                 FROM expenses
                 WHERE date_expense >= CURRENT_DATE - INTERVAL '${interval}'
                 AND ${ownerFilter}
-                GROUP BY TO_CHAR(date_expense, 'Mon'), EXTRACT(MONTH FROM date_expense)
-                ORDER BY month_num
+                GROUP BY 1
+                ORDER BY 1
             `, p),
         ]);
 
@@ -378,28 +381,36 @@ export class DashboardService {
             1: 'Jan', 2: 'Fév', 3: 'Mar', 4: 'Avr', 5: 'Mai', 6: 'Juin',
             7: 'Juil', 8: 'Août', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Déc',
         };
+        // Jour et semaine portent le quantième ; la semaine est étiquetée par son
+        // premier jour (date_trunc('week') renvoie le lundi).
+        const labelOf = (d: Date): string =>
+            bucket === 'month' ? (monthNames[d.getMonth() + 1] ?? '')
+                               : `${d.getDate()} ${monthNames[d.getMonth() + 1] ?? ''}`;
 
+        // Clé = horodatage du seau, et non le seul numéro de mois comme auparavant :
+        // sur une période d'un an, août 2025 et août 2026 partageaient la clé 8 et
+        // s'écrasaient mutuellement, en plus de casser l'ordre chronologique.
         const dataMap = new Map<number, ChartPoint>();
-        revenusRes.rows.forEach((row: any) => {
-            const m = parseInt(row.month_num);
-            dataMap.set(m, { name: monthNames[m] || row.name, revenus: parseFloat(row.revenus) || 0, depenses: 0 });
-        });
-        depensesRes.rows.forEach((row: any) => {
-            const m = parseInt(row.month_num);
-            const existing = dataMap.get(m);
-            if (existing) existing.depenses = parseFloat(row.depenses) || 0;
-            else dataMap.set(m, { name: monthNames[m] || row.name, revenus: 0, depenses: parseFloat(row.depenses) || 0 });
-        });
-
-        let chartData = Array.from(dataMap.entries()).sort((a, b) => a[0] - b[0]).map(([, d]) => d);
-
-        if (chartData.length === 0) {
-            const now = new Date();
-            chartData = Array.from({ length: 6 }, (_, i) => {
-                const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-                return { name: monthNames[d.getMonth() + 1] || 'N/A', revenus: 0, depenses: 0 };
+        const upsert = (rows: any[], field: 'revenus' | 'depenses') => {
+            rows.forEach((row: any) => {
+                const d = new Date(row.bucket);
+                const key = d.getTime();
+                const point = dataMap.get(key)
+                    ?? { name: labelOf(d), revenus: 0, depenses: 0 };
+                point[field] = parseFloat(row.total) || 0;
+                dataMap.set(key, point);
             });
-        }
+        };
+        upsert(revenusRes.rows, 'revenus');
+        upsert(depensesRes.rows, 'depenses');
+
+        // Tri chronologique strict. Un tableau vide est retourné tel quel : le front
+        // affiche alors son état vide, plutôt que six mois de zéros qui donneraient
+        // l'illusion de données à zéro — et dont les libellés seraient de toute façon
+        // incohérents avec une fenêtre de 7 ou 30 jours.
+        const chartData = Array.from(dataMap.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(([, d]) => d);
 
         return { chartData, period };
     }

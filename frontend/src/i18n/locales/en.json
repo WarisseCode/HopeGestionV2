@@ -195,7 +195,7 @@
     "dataUnavailable": "Data unavailable",
     "dataUnavailableDesc": "Unable to load indicators. Please check your connection or refresh the page.",
     "notEnoughDataTitle": "Not enough data yet",
-    "notEnoughDataDesc": "The trend will show up once at least two months of payments or expenses are recorded for the selected period.",
+    "notEnoughDataDesc": "The trend will show up once at least two payments or expenses are recorded on different dates within the selected period.",
     "financialAnalysis": "Financial Analysis",
     "revenueVsExpenses": "Revenue vs Expenses",
     "period7d": "Last 7 days",
