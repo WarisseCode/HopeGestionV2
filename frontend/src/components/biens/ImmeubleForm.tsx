@@ -13,6 +13,7 @@ import Select from '../ui/Select';
 import ImageUpload from '../ui/ImageUpload';
 import type { Immeuble } from '../../api/bienApi';
 import type { Proprietaire, Utilisateur } from '../../api/accountApi';
+import { useUser } from '../../contexts/UserContext';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -102,6 +103,8 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
   onCancel,
   loading = false,
 }) => {
+  const { user } = useUser();
+
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection]     = useState(0);
   const [touched, setTouched]         = useState<Record<string, boolean>>({});
@@ -126,13 +129,28 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
     if (!updated.owner_id && proprietaires.length === 1) {
       updated.owner_id = proprietaires[0].id;
     }
+
+    // Pré-sélection du gestionnaire à la création : l'utilisateur connecté est le cas
+    // courant (on crée un immeuble que l'on gère soi-même). Il reste libre de choisir
+    // un autre gestionnaire ou « Géré directement par le propriétaire ».
+    // Distinction volontaire undefined / null : `undefined` = pas encore choisi,
+    // `null` = « le propriétaire gère » sélectionné explicitement. Le test strict
+    // évite donc d'écraser ce choix. On ne pré-remplit qu'en création, et seulement
+    // si l'utilisateur figure bien dans la liste des gestionnaires assignables.
+    if (!immeuble.id
+        && updated.gestionnaire_id === undefined
+        && user?.id
+        && gestionnaires.some(g => g.id === user.id)) {
+      updated.gestionnaire_id = user.id;
+    }
+
     if (!updated.photo && immeuble.photos && immeuble.photos.length > 0) {
       updated.photo = immeuble.photos[0];
     }
 
     setFormData(updated);
     setPhotoPreviews(immeuble.photos || []);
-  }, [immeuble.id, proprietaires.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [immeuble.id, proprietaires.length, gestionnaires.length, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -516,7 +534,10 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                     />
                   )}
 
-                  {/* Gestionnaire (optionnel) */}
+                  {/* Gestionnaire — pré-rempli avec l'utilisateur connecté (cf. effet ci-dessus).
+                      Le choix « Géré directement par le propriétaire » vient du placeholder de
+                      Select, rendu comme <option value="">, et ne doit PAS être répété dans
+                      `options` sous peine de doubler l'entrée dans la liste. */}
                   {gestionnaires.length > 0 && (
                     <Select
                       label="Gestionnaire"
@@ -524,11 +545,8 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                       value={formData.gestionnaire_id ?? ''}
                       onChange={e => handleChange('gestionnaire_id',
                         e.target.value ? parseInt(e.target.value) : null)}
-                      options={[
-                        { value: '', label: 'Géré directement par le propriétaire' },
-                        ...gestionnaires.map(g => ({ value: g.id, label: g.nom })),
-                      ]}
-                      helperText="Optionnel — laissez vide si le propriétaire gère lui-même"
+                      options={gestionnaires.map(g => ({ value: g.id, label: g.nom }))}
+                      helperText="Modifiable — choisissez « Géré directement par le propriétaire » si personne ne gère le bien"
                     />
                   )}
 
