@@ -2,3 +2,13 @@
 @import "tailwindcss";
 @plugin "daisyui";
 @import "./globals.css";
+
+/* Recâblage du variant `dark:` sur le thème de l'application.
+   Tailwind 4 ne lit plus tailwind.config.js (aucun @config ici), donc le
+   `darkMode: 'class'` qui y figure est inerte : `dark:` retombait sur le défaut
+   `prefers-color-scheme`, c'est-à-dire la préférence de l'OS. Résultat, un
+   utilisateur dont le système est sombre voyait les styles `dark:` s'appliquer
+   même en thème clair.
+   Le basculement se fait via `data-theme` ET la classe `.dark`, toutes deux
+   posées sur <html> (UserContext, Header, Paramètres) — on couvre les deux. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, .dark, .dark *));
