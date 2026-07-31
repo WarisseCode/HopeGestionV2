@@ -334,14 +334,19 @@ const Alertes: React.FC = () => {
                                         </td>
                                         <td className="py-5"><span className="badge badge-ghost badge-sm font-medium px-2.5 py-3 border-none ring-1 ring-base-content/10 bg-base-100">{alerte.type}</span></td>
                                         <td className="py-5">
-                                             <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider ${
-                                                alerte.priorite === 'Urgente' ? 'bg-error/10 text-error ring-1 ring-error/20' : 
-                                                alerte.priorite === 'Haute' ? 'bg-warning/10 text-warning-content ring-1 ring-warning/20' : 
-                                                'bg-info/10 text-info ring-1 ring-info/20'
-                                                } gap-1.5`}>
-                                                {alerte.priorite === 'Urgente' && <div className="w-1.5 h-1.5 rounded-full bg-error animate-pulse"></div>}
-                                                {alerte.priorite === 'Haute' && <div className="w-1.5 h-1.5 rounded-full bg-warning"></div>}
-                                                {(alerte.priorite === 'Moyenne' || alerte.priorite === 'Basse' || (alerte.priorite as string) === 'Normale') && <div className="w-1.5 h-1.5 rounded-full bg-info"></div>}
+                                            {/* Teintes explicites plutôt que les tokens sémantiques : sur fond clair,
+                                                `text-warning-content` vaut oklch(98%) — du quasi-blanc, invisible sur
+                                                `bg-warning/10`. Ces paires fond/texte garantissent un contraste ≥ AA. */}
+                                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider ring-1 ${
+                                                alerte.priorite === 'Urgente' ? 'bg-red-100 text-red-900 ring-red-300 dark:bg-red-500/15 dark:text-red-200 dark:ring-red-500/30' :
+                                                alerte.priorite === 'Haute'   ? 'bg-amber-100 text-amber-900 ring-amber-300 dark:bg-amber-500/15 dark:text-amber-200 dark:ring-amber-500/30' :
+                                                                                'bg-sky-100 text-sky-900 ring-sky-300 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-500/30'
+                                                }`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                                                    alerte.priorite === 'Urgente' ? 'bg-red-600 animate-pulse' :
+                                                    alerte.priorite === 'Haute'   ? 'bg-amber-600' :
+                                                                                    'bg-sky-600'
+                                                }`} />
                                                 {alerte.priorite}
                                             </span>
                                         </td>
@@ -350,8 +355,16 @@ const Alertes: React.FC = () => {
                                         </td>
                                         <td className="pr-8 py-5 text-right">
                                             <div className="flex justify-end gap-2">
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/alertes/${alerte.id}`); }}
+                                                {/* Les alertes sont calculées à la volée, pas persistées : `alerte.id`
+                                                    (ex. « late_2 ») ne désigne aucune entité, donc aucune page de détail
+                                                    ne peut exister. On ouvre le module concerné via `link`, fourni par le
+                                                    backend — même principe que l'onglet Notifications plus bas. */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (alerte.link) navigate(alerte.link);
+                                                        else toast('Aucune page associée à cette alerte.');
+                                                    }}
                                                     className="btn btn-ghost btn-circle btn-sm text-base-content/60 hover:text-primary hover:bg-primary/10 transition-colors tooltip tooltip-left"
                                                     data-tip="Voir les détails"
                                                 >
