@@ -114,7 +114,7 @@ export default {
     themes: [
       {
         hopegestion: {
-          "primary": "#0F5D4E",   // Vert émeraude
+          "primary": "#2CE964",   // Vert émeraude
           "secondary": "#2B2D33", // Anthracite
           "accent": "#E8724C",    // Corail
           "neutral": "#2B2D33",   // Anthracite
