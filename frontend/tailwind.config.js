@@ -8,52 +8,52 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#f0f9f6',
-          100: '#dcf0eb',
-          200: '#bbe0d7',
-          300: '#8ec9bc',
-          400: '#5ba99a',
-          500: '#388e7f',
-          600: '#0F5D4E', // Émeraude primaire (Charte Graphique)
-          700: '#0B4A3E', // Hover
-          800: '#093c32',
-          900: '#073029',
+          50: '#ecfdf5',
+          100: '#d1fae5',
+          200: '#a7f3d0',
+          300: '#6ee7b7',
+          400: '#34d399',
+          500: '#12D897', // Vert émeraude brillant & vibrant
+          600: '#0ebe84', // Hover
+          700: '#047857',
+          800: '#064e3b',
+          900: '#022c22',
         },
         secondary: {
-          50: '#f6f7f8',
-          100: '#eceeef',
-          200: '#d5d7da',
-          300: '#b2b5ba',
-          400: '#898e94',
-          500: '#64686e',
-          600: '#484b51',
-          700: '#3A3D42',
-          800: '#2B2D33', // Anthracite secondaire (Charte Graphique)
-          900: '#1e2024',
-        },
-        accent: {
-          50: '#fdf4f0',
-          100: '#fbe6de',
-          200: '#f7cfbf',
-          300: '#f1b099',
-          400: '#ea8d6f',
-          500: '#E8724C', // Corail accent (Charte Graphique)
-          600: '#d4562e',
-          700: '#b2411f',
-          800: '#8e351b',
-          900: '#752d18',
-        },
-        slate: {
-          50: '#F4F6F5', // Background principal charte
+          50: '#f8fafc',
           100: '#f1f5f9',
-          200: '#E1E4E2', // Bordures charte
+          200: '#e2e8f0',
           300: '#cbd5e1',
           400: '#94a3b8',
-          500: '#5B5F63', // Texte secondaire charte
+          500: '#64748b',
           600: '#475569',
-          700: '#2B2D33',
-          800: '#1e293b',
-          900: '#1A1C1E', // Texte principal charte
+          700: '#334155',
+          800: '#1E293B', // Ardoise moderne
+          900: '#0F172A',
+        },
+        accent: {
+          50: '#fff5f2',
+          100: '#ffe8e2',
+          200: '#ffd4c7',
+          300: '#ffb39e',
+          400: '#ff8a6b',
+          500: '#FF6B4A', // Corail éclatant
+          600: '#f04e28',
+          700: '#c93917',
+          800: '#a43217',
+          900: '#852e19',
+        },
+        slate: {
+          50: '#F8FAFC', // Background principal clair & lumineux
+          100: '#f1f5f9',
+          200: '#E2E8F0', // Bordures
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748B', // Texte secondaire
+          600: '#475569',
+          700: '#334155',
+          800: '#1E293B',
+          900: '#0F172A', // Texte principal
         },
         success: {
           50: '#f0fdf4',
@@ -61,7 +61,7 @@ export default {
           200: '#bbf7d0',
           300: '#86efac',
           400: '#4ade80',
-          500: '#2E7D32', // Succès charte
+          500: '#10B981', // Succès éclatant
           600: '#16a34a',
           700: '#15803d',
           800: '#166534',
@@ -73,7 +73,7 @@ export default {
           200: '#fde68a',
           300: '#fcd34d',
           400: '#fbbf24',
-          500: '#E0A800', // Alerte charte
+          500: '#F59E0B', // Ambre lumineux
           600: '#d97706',
           700: '#b45309',
           800: '#92400e',
@@ -85,7 +85,7 @@ export default {
           200: '#fecaca',
           300: '#fca5a5',
           400: '#f87171',
-          500: '#C0392B', // Erreur charte
+          500: '#EF4444', // Rouge vif
           600: '#dc2626',
           700: '#b91c1c',
           800: '#991b1b',
@@ -114,34 +114,34 @@ export default {
     themes: [
       {
         hopegestion: {
-          "primary": "#2CE964",   // Vert émeraude
-          "secondary": "#2B2D33", // Anthracite
-          "accent": "#E8724C",    // Corail
-          "neutral": "#2B2D33",   // Anthracite
-          "base-100": "#FFFFFF",  // Surface blanche
-          "base-200": "#F4F6F5",  // Background principal
-          "base-300": "#E1E4E2",  // Bordures
-          "info": "#2B2D33",
-          "success": "#2E7D32",   // Succès
-          "warning": "#E0A800",   // Alerte
-          "error": "#C0392B",     // Erreur
+          "primary": "#12D897",   // Vert émeraude brillant
+          "secondary": "#1E293B", // Ardoise moderne
+          "accent": "#FF6B4A",    // Corail éclatant
+          "neutral": "#0F172A",   // Neutre élégant
+          "base-100": "#FFFFFF",  // Blanc éclatant
+          "base-200": "#F8FAFC",  // Fond très clair & lumineux
+          "base-300": "#E2E8F0",  // Bordures délicates
+          "info": "#0284C7",
+          "success": "#10B981",   // Succès
+          "warning": "#F59E0B",   // Alerte
+          "error": "#EF4444",     // Erreur
           "--rounded-box": "1rem",
           "--rounded-btn": "0.5rem",
         },
       },
       {
         dark: {
-          "primary": "#3EA88A",   // Émeraude éclaircie
-          "secondary": "#3A3D42", // Anthracite adouci
-          "accent": "#F08962",    // Corail éclairci
-          "neutral": "#3A3D42",   // Anthracite
-          "base-100": "#1E2225",  // Surface sombre
-          "base-200": "#14171A",  // Background noir doux
-          "base-300": "#2E3236",  // Bordures sombres
-          "info": "#60a5fa",
-          "success": "#4CAF50",
-          "warning": "#F2C14E",
-          "error": "#E57373",
+          "primary": "#2DD4BF",   // Menthe / turquoise
+          "secondary": "#38BDF8", // Ciel
+          "accent": "#FB923C",    // Corail
+          "neutral": "#334155",   // Neutre ardoise
+          "base-100": "#1E293B",  // Surface sombre
+          "base-200": "#0F172A",  // Fond profond
+          "base-300": "#334155",  // Bordures
+          "info": "#60A5FA",
+          "success": "#34D399",
+          "warning": "#FBBF24",
+          "error": "#F87171",
           "--rounded-box": "1rem",
           "--rounded-btn": "0.5rem",
         },
