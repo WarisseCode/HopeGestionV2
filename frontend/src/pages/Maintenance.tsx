@@ -10,22 +10,20 @@ const Maintenance: React.FC = () => {
     enabled: true,
     message: 'Site en maintenance. Merci de votre patience.'
   });
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    // Vérifier si l'utilisateur est admin
+  const [isAdmin] = useState(() => {
     const token = localStorage.getItem('userToken');
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.role === 'admin') {
-          setIsAdmin(true);
-        }
+        return payload.role === 'admin';
       } catch (e) {
         console.error('Error parsing token:', e);
       }
     }
+    return false;
+  });
 
+  useEffect(() => {
     // Récupérer le message de maintenance personnalisé
     fetch(`${API_URL}/public/maintenance/status`)
       .then(res => res.json())
