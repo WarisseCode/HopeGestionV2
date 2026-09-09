@@ -8,9 +8,7 @@ const PublicNavbar: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const location = useLocation();
 
-    useEffect(() => {
-        setIsMobileMenuOpen(false);
-    }, [location.pathname]);
+    const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -37,7 +35,7 @@ const PublicNavbar: React.FC = () => {
                 <div className="navbar-start">
                     <Link to="/" className="hover:opacity-80 transition-opacity flex items-center gap-2">
                         <img src="/logo.png" alt="Hope Gestion" className="h-8 md:h-12 w-auto" />
-                        <span className="font-bold text-xl hidden sm:inline">Hope Gestion</span>
+                        {/* <span className="font-bold text-xl hidden sm:inline">Hope Gestion</span> */}
                     </Link>
                 </div>
 
@@ -59,7 +57,7 @@ const PublicNavbar: React.FC = () => {
                                     location.pathname === '/biens-disponibles' ? 'text-primary font-bold' : ''
                                 }`}
                             >
-                                🏠 Biens disponibles
+                                Biens disponibles
                             </Link>
                         </li>
                     </ul>
@@ -95,13 +93,12 @@ const PublicNavbar: React.FC = () => {
                         transition={{ duration: 0.18 }}
                         className="fixed top-16 left-0 right-0 z-40 bg-base-100/95 backdrop-blur-md shadow-lg border-b border-base-200 lg:hidden"
                     >
-                        <ul className="menu p-4 gap-1">
+                        <ul className="menu p-4 gap-1" onClick={closeMobileMenu}>
                             {navLinks.map((link) => (
                                 <li key={link.name}>
                                     {link.path.startsWith('/#') && location.pathname === '/' ? (
                                         <a
                                             href={link.path.substring(1)}
-                                            onClick={() => setIsMobileMenuOpen(false)}
                                             className="py-3 text-base font-medium"
                                         >
                                             {link.name}

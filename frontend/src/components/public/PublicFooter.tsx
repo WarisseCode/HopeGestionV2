@@ -11,7 +11,7 @@ import {
   ArrowRight,
   Send
 } from 'lucide-react';
-import Button from '../ui/Button';
+// import Button from '../ui/Button';
 import toast from 'react-hot-toast';
 
 const PublicFooter: React.FC = () => {
@@ -48,11 +48,11 @@ const PublicFooter: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity">
                                 <Phone size={18} className="shrink-0 text-primary" />
-                                <span className="text-sm">+229 01 00 00 00</span>
+                                <span className="text-sm">+229 01 96 29 13 61</span>
                             </div>
                             <div className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity">
                                 <Mail size={18} className="shrink-0 text-primary" />
-                                <span className="text-sm">contact@hopegestion.bj</span>
+                                <span className="text-sm">contact@hopegestion.com</span>
                             </div>
                         </div>
                     </div>
