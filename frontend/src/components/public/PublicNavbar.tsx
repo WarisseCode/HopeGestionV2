@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
+import { BRANDING } from '../../config';
 
 const PublicNavbar: React.FC = () => {
     const [scrolled, setScrolled] = useState(false);
@@ -34,8 +35,7 @@ const PublicNavbar: React.FC = () => {
             >
                 <div className="navbar-start">
                     <Link to="/" className="hover:opacity-80 transition-opacity flex items-center gap-2">
-                        <img src="/logo.png" alt="Hope Gestion" className="h-8 md:h-12 w-auto" />
-                        {/* <span className="font-bold text-xl hidden sm:inline">Hope Gestion</span> */}
+                        <img src={BRANDING.logos.main} alt={BRANDING.name} className="h-8 md:h-12 w-auto" />
                     </Link>
                 </div>
 

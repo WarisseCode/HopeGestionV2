@@ -11,8 +11,8 @@ import {
   ArrowRight,
   Send
 } from 'lucide-react';
-// import Button from '../ui/Button';
 import toast from 'react-hot-toast';
+import { BRANDING } from '../../config';
 
 const PublicFooter: React.FC = () => {
     const currentYear = new Date().getFullYear();
@@ -34,25 +34,23 @@ const PublicFooter: React.FC = () => {
                     {/* Column 1: Brand & Contact */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-2">
-                            <img src="/logo.png" alt="Hope Immo" className="h-10 w-auto brightness-0 invert" />
-                            {/* <span className="text-2xl font-bold tracking-tight">Hope Gestion</span> */}
+                            <img src={BRANDING.logos.monoWhite} alt={BRANDING.name} className="h-10 w-auto" />
                         </div>
                         <p className="opacity-70 text-sm leading-relaxed max-w-xs">
-                            La première plateforme de gestion immobilière connectée au Bénin. 
-                            Simplifiez vos locations, sécurisez vos revenus et gérez vos biens en toute sérénité.
+                            {BRANDING.description}
                         </p>
                         <div className="space-y-3 pt-2">
                             <div className="flex items-start gap-3 opacity-80 hover:opacity-100 transition-opacity">
                                 <MapPin size={18} className="mt-1 shrink-0 text-primary" />
-                                <span className="text-sm">Haie Vive, Cotonou, Bénin</span>
+                                <span className="text-sm">{BRANDING.contact.address}</span>
                             </div>
                             <div className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity">
                                 <Phone size={18} className="shrink-0 text-primary" />
-                                <span className="text-sm">+229 01 96 29 13 61</span>
+                                <span className="text-sm">{BRANDING.contact.phoneFormatted}</span>
                             </div>
                             <div className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity">
                                 <Mail size={18} className="shrink-0 text-primary" />
-                                <span className="text-sm">contact@hopegestion.com</span>
+                                <span className="text-sm">{BRANDING.contact.email}</span>
                             </div>
                         </div>
                     </div>
@@ -171,7 +169,7 @@ const PublicFooter: React.FC = () => {
             <div className="border-t border-white/10 bg-black/20">
                 <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
                     <p className="text-xs opacity-60 text-center md:text-left">
-                        © {currentYear} Hope Gestion. Tous droits réservés.
+                        © {currentYear} {BRANDING.name}. Tous droits réservés.
                     </p>
                     <div className="flex flex-wrap justify-center gap-6 text-xs opacity-60">
                         <Link to="/mentions-legales" className="hover:opacity-100 transition-opacity">Mentions Légales</Link>
