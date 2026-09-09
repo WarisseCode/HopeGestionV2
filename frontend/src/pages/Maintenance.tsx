@@ -87,7 +87,7 @@ const Maintenance: React.FC = () => {
             </div>
             <div className="flex items-center justify-center gap-3 text-gray-600">
               <Phone className="w-5 h-5 text-indigo-600" />
-              <span className="text-sm">+225 07 00 00 00 00</span>
+              <span className="text-sm">+229 01 51 17 34 97</span>
             </div>
           </div>
 
