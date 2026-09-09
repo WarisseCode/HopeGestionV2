@@ -380,15 +380,7 @@ const HomePage: React.FC = () => {
                   <label className="block text-sm font-medium mb-2">Email</label>
                   <input type="email" className="input input-bordered w-full" placeholder="votre@email.com" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Sujet</label>
-                  <select className="select select-bordered w-full">
-                    <option>Demande de démo</option>
-                    <option>Support technique</option>
-                    <option>Partenariat</option>
-                    <option>Autre</option>
-                  </select>
-                </div>
+                
                 <div>
                   <label className="block text-sm font-medium mb-2">Message</label>
                   <textarea className="textarea textarea-bordered w-full h-32" placeholder="Votre message..."></textarea>
@@ -417,7 +409,7 @@ const HomePage: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-semibold">Téléphone & WhatsApp</h4>
-                      <p className="text-base-content/70">+229 01 00 00 00</p>
+                      <p className="text-base-content/70">+229 01 96 29 13 61</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -426,28 +418,12 @@ const HomePage: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-semibold">Email</h4>
-                      <p className="text-base-content/70">contact@hopegestion.bj</p>
+                      <p className="text-base-content/70">contact@hopegestion.com</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div>
-                <h3 className="text-xl font-bold mb-4">Heures d'ouverture</h3>
-                <div className="bg-base-100 rounded-xl p-4 space-y-2">
-                  <div className="flex justify-between">
-                    <span>Lundi - Vendredi</span>
-                    <span className="font-semibold">8h00 - 18h00</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Samedi</span>
-                    <span className="font-semibold">9h00 - 14h00</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Dimanche</span>
-                    <span className="font-semibold text-base-content/50">Fermé</span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
