@@ -39,10 +39,13 @@ const MaintenanceWrapper: React.FC<MaintenanceWrapperProps> = ({ children }) => 
           setIsMaintenanceMode(true);
           // Rediriger vers la page de maintenance sauf si on y est déjà
           // ou si on est sur une route admin (laissée à ProtectedRoute)
-          if (
-            location.pathname !== '/maintenance' &&
-            !location.pathname.startsWith('/admin')
-          ) {
+          // Ne pas bloquer : la page maintenance elle-même, les routes admin
+          // et la page de login (sinon un admin déconnecté ne peut plus se reconnecter)
+          const isExcluded =
+            location.pathname === '/maintenance' ||
+            location.pathname.startsWith('/admin') ||
+            location.pathname === '/login';
+          if (!isExcluded) {
             navigate('/maintenance', { replace: true });
           }
         } else {
