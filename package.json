@@ -1,6 +1,26 @@
 {
+  "name": "hopegestion-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "engines": {
     "node": ">=20.10.0"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "dev:web": "turbo dev --filter=@hopegestion/web",
+    "dev:backend": "turbo dev --filter=@hopegestion/backend",
+    "dev:mobile": "turbo dev --filter=@hopegestion/mobile",
+    "build:packages": "turbo build --filter=./packages/*"
+  },
+  "devDependencies": {
+    "turbo": "^2.10.12"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.18"

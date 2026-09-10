@@ -1,0 +1,11 @@
+{
+  "name": "@hopegestion/utils",
+  "version": "1.0.0",
+  "description": "Utilitaires partagés — formatage, dates, validation",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "private": true,
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

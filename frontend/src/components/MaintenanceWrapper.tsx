@@ -38,13 +38,20 @@ const MaintenanceWrapper: React.FC<MaintenanceWrapperProps> = ({ children }) => 
         if (data.enabled && !currentIsAdmin) {
           setIsMaintenanceMode(true);
           // Rediriger vers la page de maintenance sauf si on y est déjà
-          if (location.pathname !== '/maintenance') {
+          // ou si on est sur une route admin (laissée à ProtectedRoute)
+          if (
+            location.pathname !== '/maintenance' &&
+            !location.pathname.startsWith('/admin')
+          ) {
             navigate('/maintenance', { replace: true });
           }
         } else {
           setIsMaintenanceMode(false);
-          // Si le mode maintenance est désactivé mais qu'on est sur la page de maintenance, on redirige vers l'accueil
-          if (location.pathname === '/maintenance') {
+          // Si le mode maintenance est désactivé (ou si on est admin) et qu'on est
+          // sur la page de maintenance, rediriger vers l'accueil
+          // SAUF si la maintenance est encore active (l'admin peut rester sur /maintenance
+          // pour voir la page, mais en pratique ce cas ne se produit pas)
+          if (location.pathname === '/maintenance' && !data.enabled) {
             navigate('/', { replace: true });
           }
         }

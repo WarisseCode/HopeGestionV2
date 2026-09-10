@@ -1,0 +1,17 @@
+{
+  "name": "@hopegestion/api-client",
+  "version": "1.0.0",
+  "description": "Client API partagé — fonctions d'appel HTTP pour web et mobile",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "private": true,
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hopegestion/shared-types": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
