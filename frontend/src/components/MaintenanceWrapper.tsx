@@ -1,88 +1,139 @@
 // frontend/src/components/MaintenanceWrapper.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '../config';
+import MaintenanceWarningBanner from './MaintenanceWarningBanner';
+import AdminMaintenanceBanner from './AdminMaintenanceBanner';
 
 interface MaintenanceWrapperProps {
   children: React.ReactNode;
 }
 
+export type MaintenanceState = 'idle' | 'scheduled' | 'active';
+
+/** Routes exclues du redirect maintenance (accessibles même en maintenance active) */
+const EXCLUDED_PATHS = [
+  '/maintenance',
+  '/maintenance/emergency',
+  '/login',
+];
+const EXCLUDED_PREFIXES = ['/admin'];
+
+function isExcluded(pathname: string): boolean {
+  return (
+    EXCLUDED_PATHS.includes(pathname) ||
+    EXCLUDED_PREFIXES.some(p => pathname.startsWith(p))
+  );
+}
+
+/** Décode le role depuis le JWT local (sans vérification signature — côté serveur c'est vérifié) */
+function getLocalRole(): string | null {
+  try {
+    const token = localStorage.getItem('userToken');
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return typeof payload.role === 'string' ? payload.role : null;
+  } catch {
+    return null;
+  }
+}
+
+const POLL_INTERVAL_MS = 30_000; // 30 secondes
+
 const MaintenanceWrapper: React.FC<MaintenanceWrapperProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+
+  const [maintenanceState, setMaintenanceState] = useState<MaintenanceState>('idle');
+  const [scheduledAt, setScheduledAt] = useState<string | null>(null);
+  const [message, setMessage] = useState('Site en maintenance. Merci de votre patience.');
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const checkMaintenanceStatus = async () => {
-      try {
-        let currentIsAdmin = isAdmin;
-        const token = localStorage.getItem('userToken');
-        if (token) {
-          try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            if (payload.role === 'admin') {
-              setIsAdmin(true);
-              currentIsAdmin = true;
-            }
-          } catch (e) {
-            console.error('Error parsing token:', e);
-          }
-        }
+  const checkStatus = useCallback(async () => {
+    try {
+      const role = getLocalRole();
+      const admin = role === 'admin';
+      setIsAdmin(admin);
 
-        // Vérifier le statut de maintenance
-        const response = await fetch(`${API_URL}/public/maintenance/status`);
-        const data = await response.json();
-        
-        if (data.enabled && !currentIsAdmin) {
-          setIsMaintenanceMode(true);
-          // Rediriger vers la page de maintenance sauf si on y est déjà
-          // ou si on est sur une route admin (laissée à ProtectedRoute)
-          // Ne pas bloquer : la page maintenance elle-même, les routes admin
-          // et la page de login (sinon un admin déconnecté ne peut plus se reconnecter)
-          const isExcluded =
-            location.pathname === '/maintenance' ||
-            location.pathname.startsWith('/admin') ||
-            location.pathname === '/login';
-          if (!isExcluded) {
-            navigate('/maintenance', { replace: true });
-          }
-        } else {
-          setIsMaintenanceMode(false);
-          // Si le mode maintenance est désactivé (ou si on est admin) et qu'on est
-          // sur la page de maintenance, rediriger vers l'accueil
-          // SAUF si la maintenance est encore active (l'admin peut rester sur /maintenance
-          // pour voir la page, mais en pratique ce cas ne se produit pas)
-          if (location.pathname === '/maintenance' && !data.enabled) {
-            navigate('/', { replace: true });
-          }
+      const res = await fetch(`${API_URL}/public/maintenance/status`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: { enabled: boolean; message: string; scheduledAt: string | null } = await res.json();
+
+      if (data.message) setMessage(data.message);
+
+      const now = Date.now();
+      const scheduled = data.scheduledAt ? new Date(data.scheduledAt).getTime() : null;
+
+      if (data.enabled) {
+        // Maintenance active
+        setMaintenanceState('active');
+        setScheduledAt(null);
+        if (!admin && !isExcluded(location.pathname)) {
+          navigate('/maintenance', { replace: true });
         }
-      } catch (error) {
-        console.error('Error checking maintenance status:', error);
-        // En cas d'erreur, on continue normalement
-        setIsMaintenanceMode(false);
-      } finally {
-        setIsLoading(false);
+      } else if (scheduled && scheduled > now) {
+        // Maintenance programmée dans le futur
+        setMaintenanceState('scheduled');
+        setScheduledAt(data.scheduledAt);
+        // On ne redirige pas — juste le bandeau de countdown
+      } else {
+        // Aucune maintenance
+        setMaintenanceState('idle');
+        setScheduledAt(null);
+        // Si on est sur /maintenance alors que tout est off, retourner à l'accueil
+        if (location.pathname === '/maintenance') {
+          navigate('/', { replace: true });
+        }
       }
-    };
-
-    checkMaintenanceStatus();
+    } catch {
+      // Fail-open : erreur réseau → laisser passer, ne pas bloquer
+      setMaintenanceState('idle');
+    } finally {
+      setIsLoading(false);
+    }
   }, [navigate, location.pathname]);
 
-  // Ne rien afficher pendant le chargement
-  if (isLoading) {
+  // Vérification initiale
+  useEffect(() => {
+    checkStatus();
+  }, [checkStatus]);
+
+  // Polling toutes les 30 secondes
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    intervalRef.current = setInterval(checkStatus, POLL_INTERVAL_MS);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [checkStatus]);
+
+  // Pendant le chargement initial : rien (évite le flash de contenu)
+  if (isLoading) return null;
+
+  // Maintenance active, non-admin, et pas sur une route exclue → null (le redirect se fait dans checkStatus)
+  if (maintenanceState === 'active' && !isAdmin && !isExcluded(location.pathname)) {
     return null;
   }
 
-  // Si en mode maintenance et non admin, on masque le contenu pour éviter un flash, 
-  // SAUF si on est déjà sur la page de maintenance (pour pouvoir l'afficher)
-  if (isMaintenanceMode && !isAdmin && location.pathname !== '/maintenance') {
-    return null;
-  }
+  return (
+    <>
+      {/* Bandeau rouge pour l'admin quand maintenance active */}
+      {maintenanceState === 'active' && isAdmin && (
+        <AdminMaintenanceBanner onDisabled={checkStatus} />
+      )}
 
-  // Sinon, afficher les enfants normalement
-  return <>{children}</>;
+      {/* Bandeau orange countdown pour les users connectés quand maintenance programmée */}
+      {maintenanceState === 'scheduled' && !isAdmin && scheduledAt && (
+        <MaintenanceWarningBanner scheduledAt={scheduledAt} message={message} />
+      )}
+
+      {children}
+    </>
+  );
 };
 
 export default MaintenanceWrapper;
+
+
+

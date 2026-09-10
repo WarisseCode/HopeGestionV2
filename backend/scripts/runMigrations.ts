@@ -1544,6 +1544,21 @@ const MIGRATIONS: Migration[] = [
             );
             CREATE INDEX IF NOT EXISTS idx_cgu_acceptances_user ON cgu_acceptances(user_id, accepted_at DESC);
         `
+    },
+    {
+        name: '062_maintenance_scheduled_and_emergency_token',
+        sql: `
+            -- Champ pour la maintenance programmée (timestamp ISO, NULL = pas programmé)
+            INSERT INTO system_settings (key, value, value_type, description)
+            VALUES ('maintenance_scheduled_at', NULL, 'timestamp', 'Date/heure d''activation programmée de la maintenance')
+            ON CONFLICT (key) DO NOTHING;
+
+            -- Token de secours pour désactiver la maintenance sans être connecté
+            -- La valeur sera hashée et stockée par le backend au 1er démarrage
+            INSERT INTO system_settings (key, value, value_type, description)
+            VALUES ('maintenance_emergency_token', NULL, 'string', 'Token de secours hashé pour désactiver la maintenance')
+            ON CONFLICT (key) DO NOTHING;
+        `
     }
 ];
 

@@ -45,6 +45,7 @@ console.log('✅ JWT_SECRET validation passed');
 // Auto-seed Super Admin if none exists
 import { seedSuperAdmin } from './scripts/seedAdmin';
 import { runMigrations } from './scripts/runMigrations';
+import { ensureEmergencyToken } from './middleware/maintenanceMiddleware';
 
 pool.connect()
     .then(async client => {
@@ -52,6 +53,7 @@ pool.connect()
         client.release();
         await runMigrations();
         await seedSuperAdmin();
+        await ensureEmergencyToken();
         startServer();
     })
     .catch(err => {

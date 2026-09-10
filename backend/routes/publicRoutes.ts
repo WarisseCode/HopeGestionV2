@@ -1,8 +1,9 @@
 // backend/routes/publicRoutes.ts
 // Public routes accessible without authentication
 import { Router, Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import pool from '../db/database';
-import { getMaintenanceStatus } from '../middleware/maintenanceMiddleware';
+import { getMaintenanceStatus, emergencyDisableMaintenance } from '../middleware/maintenanceMiddleware';
 
 const router = Router();
 
@@ -256,7 +257,18 @@ router.get('/lots/:id', async (req: Request, res: Response) => {
     }
 });
 
-// GET /api/public/maintenance/status - Endpoint public pour vérifier le statut de maintenance
+// GET /api/public/maintenance/status - Statut de maintenance (enabled, message, scheduledAt)
 router.get('/maintenance/status', getMaintenanceStatus);
+
+// POST /api/public/maintenance/emergency-disable - Désactiver la maintenance via token de secours
+// Rate-limit strict : 5 tentatives par heure par IP
+const emergencyRateLimit = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 heure
+    max: 5,
+    message: { message: 'Trop de tentatives. Réessayez dans 1 heure.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+router.post('/maintenance/emergency-disable', emergencyRateLimit, emergencyDisableMaintenance);
 
 export default router;

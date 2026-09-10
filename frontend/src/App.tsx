@@ -23,6 +23,7 @@ const AcceptInvite = lazyWithReload(() => import('./pages/AcceptInvite'));
 const VerifyEmail = lazyWithReload(() => import('./pages/VerifyEmail'));
 const InvitationPage = lazyWithReload(() => import('./pages/public/InvitationPage'));
 const Maintenance = lazyWithReload(() => import('./pages/Maintenance'));
+const EmergencyDisablePage = lazyWithReload(() => import('./pages/EmergencyDisablePage'));
 
 // Home & marketing
 const HomePage = lazyWithReload(() => import('./HomePage'));
@@ -168,8 +169,9 @@ const App: React.FC = () => {
             <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
             <Route path="/conditions-reservation" element={<ConditionsReservationPage />} />
 
-            {/* Page de maintenance */}
+            {/* Page de maintenance + accès d'urgence */}
             <Route path="/maintenance" element={<Maintenance />} />
+            <Route path="/maintenance/emergency" element={<EmergencyDisablePage />} />
 
             {/* Public Reservation */}
             <Route path="/reserver/:lotId" element={<PublicReservation />} />

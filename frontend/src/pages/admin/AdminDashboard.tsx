@@ -61,8 +61,11 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState<string | null>(null);
   const [loadingMaintenance, setLoadingMaintenance] = useState(false);
   const [maintenanceError, setMaintenanceError] = useState('');
+  const [showSchedulePanel, setShowSchedulePanel] = useState(false);
+  const [customScheduleDate, setCustomScheduleDate] = useState('');
 
   const fetchAll = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -103,15 +106,16 @@ const AdminDashboard: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         setMaintenanceMode(data.enabled);
+        setScheduledAt(data.scheduledAt ?? null);
       }
     } catch (error) {
       console.error('Error fetching maintenance status:', error);
     }
   };
 
-  const toggleMaintenance = async () => {
+  const toggleMaintenance = async (forceEnabled?: boolean) => {
     if (loadingMaintenance) return;
-    const newState = !maintenanceMode;
+    const newState = forceEnabled !== undefined ? forceEnabled : !maintenanceMode;
     setMaintenanceError('');
     setMaintenanceMode(newState);
     setLoadingMaintenance(true);
@@ -119,22 +123,70 @@ const AdminDashboard: React.FC = () => {
       const token = getToken();
       const response = await fetch(`${API_URL}/admin/maintenance/toggle`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: newState }),
       });
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        const msg = errData.message || `Erreur HTTP ${response.status}`;
-        setMaintenanceError(msg);
-        setMaintenanceMode(!newState); // revert
+        setMaintenanceError(errData.message || `Erreur HTTP ${response.status}`);
+        setMaintenanceMode(!newState);
+      } else {
+        const data = await response.json();
+        setScheduledAt(data.scheduledAt ?? null);
       }
     } catch (error: any) {
       setMaintenanceError(error?.message || 'Erreur réseau');
-      setMaintenanceMode(!newState); // revert
+      setMaintenanceMode(!newState);
     } finally {
+      setLoadingMaintenance(false);
+    }
+  };
+
+  const scheduleMaintenance = async (minutesFromNow: number | null, isoDate?: string) => {
+    if (loadingMaintenance) return;
+    setMaintenanceError('');
+    setLoadingMaintenance(true);
+    try {
+      const token = getToken();
+      let targetIso: string | null = null;
+      if (minutesFromNow !== null) {
+        const target = new Date(Date.now() + minutesFromNow * 60 * 1000);
+        targetIso = target.toISOString();
+      } else if (isoDate) {
+        targetIso = new Date(isoDate).toISOString();
+      }
+      const response = await fetch(`${API_URL}/admin/maintenance/toggle`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduledAt: targetIso }),
+      });
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        setMaintenanceError(errData.message || `Erreur HTTP ${response.status}`);
+      } else {
+        const data = await response.json();
+        setScheduledAt(data.scheduledAt ?? null);
+        setShowSchedulePanel(false);
+        setCustomScheduleDate('');
+      }
+    } catch (error: any) {
+      setMaintenanceError(error?.message || 'Erreur réseau');
+    } finally {
+      setLoadingMaintenance(false);
+    }
+  };
+
+  const cancelSchedule = async () => {
+    if (loadingMaintenance) return;
+    setLoadingMaintenance(true);
+    try {
+      const token = getToken();
+      await fetch(`${API_URL}/admin/maintenance/schedule`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      setScheduledAt(null);
+    } catch { /* non bloquant */ } finally {
       setLoadingMaintenance(false);
     }
   };
@@ -233,31 +285,100 @@ const AdminDashboard: React.FC = () => {
             Actualiser
           </button>
 
-          {/* Maintenance toggle simple */}
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-              maintenanceMode 
-                ? 'bg-error/15 text-error' 
-                : 'bg-success/15 text-success'
-            }`}>
-              {maintenanceMode ? 'Maintenance ON' : 'Site en ligne'}
-            </span>
-            <label className="flex items-center gap-2 cursor-pointer" title="Activer / désactiver le mode maintenance">
-              <span className="text-sm font-medium text-base-content/60">Maintenance</span>
-              <input
-                type="checkbox"
-                className="toggle toggle-error toggle-sm"
-                checked={maintenanceMode}
-                onChange={toggleMaintenance}
-                disabled={loadingMaintenance}
-              />
-            </label>
-          </div>
-          {maintenanceError && (
-            <div className="absolute top-full right-0 mt-2 p-2 bg-error/10 text-error text-xs rounded border border-error/20 whitespace-nowrap z-10">
-              {maintenanceError}
+          {/* Maintenance block */}
+          <div className="flex flex-col gap-2 relative">
+            {/* Toggle rapide */}
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                maintenanceMode
+                  ? 'bg-error/15 text-error'
+                  : scheduledAt
+                  ? 'bg-warning/15 text-warning'
+                  : 'bg-success/15 text-success'
+              }`}>
+                {maintenanceMode ? 'Maintenance ON' : scheduledAt ? 'Programmée' : 'Site en ligne'}
+              </span>
+              <label className="flex items-center gap-2 cursor-pointer" title="Activer / désactiver le mode maintenance">
+                <span className="text-sm font-medium text-base-content/60">Maintenance</span>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-error toggle-sm"
+                  checked={maintenanceMode}
+                  onChange={() => toggleMaintenance()}
+                  disabled={loadingMaintenance}
+                />
+              </label>
+              {/* Bouton programmer */}
+              {!maintenanceMode && (
+                <button
+                  className="btn btn-xs btn-ghost gap-1 text-base-content/50 hover:text-warning"
+                  onClick={() => setShowSchedulePanel(p => !p)}
+                  title="Programmer une maintenance"
+                >
+                  🕐 Programmer
+                </button>
+              )}
             </div>
-          )}
+
+            {/* Infos programmation active */}
+            {scheduledAt && !maintenanceMode && (
+              <div className="flex items-center gap-2 text-xs text-warning bg-warning/10 px-2 py-1 rounded-lg">
+                <span>⏰ Prévue le {new Date(scheduledAt).toLocaleString('fr-FR')}</span>
+                <button
+                  className="btn btn-xs btn-ghost text-error px-1"
+                  onClick={cancelSchedule}
+                  disabled={loadingMaintenance}
+                  title="Annuler la programmation"
+                >
+                  ✕ Annuler
+                </button>
+              </div>
+            )}
+
+            {/* Panneau de programmation */}
+            {showSchedulePanel && !maintenanceMode && (
+              <div className="absolute top-full right-0 mt-2 p-3 bg-base-100 border border-base-300 rounded-xl shadow-xl z-20 min-w-[240px]">
+                <p className="text-xs font-semibold text-base-content/70 mb-2">Activer dans…</p>
+                <div className="grid grid-cols-2 gap-1 mb-2">
+                  {[5, 15, 30, 60].map(min => (
+                    <button
+                      key={min}
+                      className="btn btn-xs btn-outline"
+                      onClick={() => scheduleMaintenance(min)}
+                      disabled={loadingMaintenance}
+                    >
+                      {min < 60 ? `${min} min` : '1 heure'}
+                    </button>
+                  ))}
+                </div>
+                <div className="border-t border-base-200 pt-2">
+                  <p className="text-xs text-base-content/50 mb-1">Date/heure précise :</p>
+                  <div className="flex gap-1">
+                    <input
+                      type="datetime-local"
+                      className="input input-xs input-bordered flex-1 text-xs"
+                      value={customScheduleDate}
+                      onChange={e => setCustomScheduleDate(e.target.value)}
+                      min={new Date().toISOString().slice(0, 16)}
+                    />
+                    <button
+                      className="btn btn-xs btn-warning"
+                      onClick={() => scheduleMaintenance(null, customScheduleDate)}
+                      disabled={!customScheduleDate || loadingMaintenance}
+                    >
+                      OK
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {maintenanceError && (
+              <div className="text-error text-xs bg-error/10 px-2 py-1 rounded border border-error/20">
+                {maintenanceError}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

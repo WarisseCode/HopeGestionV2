@@ -4,7 +4,7 @@ import { body, param } from 'express-validator';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import pool from '../db/database'; // Fix circular dependency
 import { validate } from '../middleware/validate';
-import { invalidateMaintenanceCache } from '../middleware/maintenanceMiddleware';
+import { invalidateMaintenanceCache, ensureEmergencyToken } from '../middleware/maintenanceMiddleware';
 
 const router = Router();
 
@@ -948,44 +948,27 @@ export async function acceptAdminInvite(req: any, res: Response) {
 
 // Règles de validation pour le mode maintenance
 const maintenanceRules = [
-    body('enabled').isBoolean().withMessage('enabled doit être un booléen'),
-    body('message').optional().isString().isLength({ max: 500 }).withMessage('Message trop long')
+    body('enabled').optional().isBoolean().withMessage('enabled doit être un booléen'),
+    body('message').optional().isString().isLength({ max: 500 }).withMessage('Message trop long'),
+    body('scheduledAt').optional({ nullable: true }).isISO8601().withMessage('scheduledAt doit être une date ISO 8601 valide'),
 ];
 
 // GET /api/admin/maintenance/status - Récupérer le statut de maintenance
 router.get('/maintenance/status', async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const result = await pool.query(
-            "SELECT value, description FROM system_settings WHERE key = 'maintenance_mode'"
-        );
+        const [modeResult, schedResult, msgResult] = await Promise.all([
+            pool.query("SELECT value, description FROM system_settings WHERE key = 'maintenance_mode'"),
+            pool.query("SELECT value FROM system_settings WHERE key = 'maintenance_scheduled_at'"),
+            pool.query("SELECT value FROM system_settings WHERE key = 'maintenance_message'"),
+        ]);
 
-        if (result.rows.length === 0) {
-            return res.json({
-                enabled: false,
-                message: 'Mode maintenance non configuré'
-            });
-        }
+        const enabled = modeResult.rows.length > 0 && modeResult.rows[0].value === 'true';
+        const scheduledAt = schedResult.rows.length > 0 ? schedResult.rows[0].value : null;
+        const message = msgResult.rows.length > 0 && msgResult.rows[0].value
+            ? msgResult.rows[0].value
+            : 'Site en maintenance. Merci de votre patience.';
 
-        const enabled = result.rows[0].value === 'true';
-        
-        // Récupérer aussi le message de maintenance personnalisé s'il existe
-        let customMessage = 'Site en maintenance. Merci de votre patience.';
-        try {
-            const messageResult = await pool.query(
-                "SELECT value FROM system_settings WHERE key = 'maintenance_message'"
-            );
-            if (messageResult.rows.length > 0) {
-                customMessage = messageResult.rows[0].value;
-            }
-        } catch (e) {
-            // Ignorer l'erreur si le message n'existe pas
-        }
-
-        res.json({
-            enabled,
-            message: customMessage,
-            description: result.rows[0].description
-        });
+        res.json({ enabled, message, scheduledAt: scheduledAt ?? null });
 
     } catch (error: any) {
         console.error('Error fetching maintenance status:', error);
@@ -993,60 +976,118 @@ router.get('/maintenance/status', async (req: AuthenticatedRequest, res: Respons
     }
 });
 
-// PUT /api/admin/maintenance/toggle - Activer/désactiver le mode maintenance
+// PUT /api/admin/maintenance/toggle - Activer/désactiver ou programmer la maintenance
+// Body: { enabled?: boolean, message?: string, scheduledAt?: string | null }
 router.put('/maintenance/toggle', validate(maintenanceRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const { enabled, message } = req.body;
+        const { enabled, message, scheduledAt } = req.body as {
+            enabled?: boolean;
+            message?: string;
+            scheduledAt?: string | null;
+        };
 
-        // Mettre à jour le mode maintenance
-        await pool.query(
-            `UPDATE system_settings 
-             SET value = $1, updated_at = NOW(), updated_by = $2
-             WHERE key = 'maintenance_mode'`,
-            [enabled.toString(), req.userId]
-        );
+        // --- Cas 1 : activation/désactivation immédiate ---
+        if (typeof enabled === 'boolean') {
+            await pool.query(
+                `UPDATE system_settings
+                 SET value = $1, updated_at = NOW(), updated_by = $2
+                 WHERE key = 'maintenance_mode'`,
+                [enabled.toString(), req.userId]
+            );
+            // Si on active manuellement, effacer la programmation éventuelle
+            if (enabled) {
+                await pool.query(
+                    `UPDATE system_settings SET value = NULL, updated_at = NOW()
+                     WHERE key = 'maintenance_scheduled_at'`
+                );
+            }
+        }
 
-        // Mettre à jour le message personnalisé si fourni
+        // --- Cas 2 : programmation à une date future ---
+        if (scheduledAt !== undefined) {
+            // scheduledAt = null → annuler la programmation
+            // scheduledAt = ISO string → programmer
+            await pool.query(
+                `INSERT INTO system_settings (key, value, value_type, description, updated_at, updated_by)
+                 VALUES ('maintenance_scheduled_at', $1, 'timestamp', 'Date/heure d''activation programmée', NOW(), $2)
+                 ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW(), updated_by = $2`,
+                [scheduledAt ?? null, req.userId]
+            );
+            // Si on programme, s'assurer que maintenance_mode est false
+            if (scheduledAt) {
+                await pool.query(
+                    `UPDATE system_settings SET value = 'false', updated_at = NOW()
+                     WHERE key = 'maintenance_mode'`
+                );
+            }
+        }
+
+        // --- Message personnalisé ---
         if (message !== undefined) {
             await pool.query(
                 `INSERT INTO system_settings (key, value, value_type, description, updated_at, updated_by)
                  VALUES ('maintenance_message', $1, 'string', 'Message personnalisé de maintenance', NOW(), $2)
-                 ON CONFLICT (key) 
-                 DO UPDATE SET value = $1, updated_at = NOW(), updated_by = $2`,
+                 ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW(), updated_by = $2`,
                 [message, req.userId]
             );
         }
 
-        // Logger l'action dans les audit logs
+        // --- Audit log ---
         try {
+            let action = 'MAINTENANCE_UPDATED';
+            let details = 'Paramètres de maintenance mis à jour';
+            if (typeof enabled === 'boolean') {
+                action = enabled ? 'MAINTENANCE_ENABLED' : 'MAINTENANCE_DISABLED';
+                details = `Mode maintenance ${enabled ? 'activé' : 'désactivé'} immédiatement`;
+            } else if (scheduledAt) {
+                action = 'MAINTENANCE_SCHEDULED';
+                details = `Maintenance programmée pour ${scheduledAt}`;
+            } else if (scheduledAt === null) {
+                action = 'MAINTENANCE_SCHEDULE_CANCELLED';
+                details = 'Programmation de maintenance annulée';
+            }
             await pool.query(
                 `INSERT INTO audit_logs (action, module, entity_type, entity_id, user_name, details, ip_address)
                  VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                [
-                    enabled ? 'MAINTENANCE_ENABLED' : 'MAINTENANCE_DISABLED',
-                    'system',
-                    'maintenance_mode',
-                    null,
-                    req.user?.email || 'Admin',
-                    `Mode maintenance ${enabled ? 'activé' : 'désactivé'}`,
-                    req.ip
-                ]
+                [action, 'system', 'maintenance_mode', null, req.user?.email || 'Admin', details, req.ip]
             );
         } catch (logError) {
             console.warn('Failed to log maintenance toggle:', logError);
         }
 
-        // Invalider le cache de maintenance pour que le changement soit immédiat
         invalidateMaintenanceCache();
 
+        // Retourner l'état mis à jour
+        const [modeRes, schedRes] = await Promise.all([
+            pool.query("SELECT value FROM system_settings WHERE key = 'maintenance_mode'"),
+            pool.query("SELECT value FROM system_settings WHERE key = 'maintenance_scheduled_at'"),
+        ]);
+        const newEnabled = modeRes.rows.length > 0 && modeRes.rows[0].value === 'true';
+        const newScheduledAt = schedRes.rows.length > 0 ? schedRes.rows[0].value : null;
+
         res.json({
-            message: `Mode maintenance ${enabled ? 'activé' : 'désactivé'} avec succès`,
-            enabled
+            message: 'Paramètres de maintenance mis à jour avec succès',
+            enabled: newEnabled,
+            scheduledAt: newScheduledAt ?? null,
         });
 
     } catch (error: any) {
         console.error('Error toggling maintenance mode:', error);
         res.status(500).json({ message: 'Erreur lors de la modification du mode maintenance.' });
+    }
+});
+
+// DELETE /api/admin/maintenance/schedule - Annuler une maintenance programmée
+router.delete('/maintenance/schedule', async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        await pool.query(
+            "UPDATE system_settings SET value = NULL, updated_at = NOW() WHERE key = 'maintenance_scheduled_at'"
+        );
+        invalidateMaintenanceCache();
+        res.json({ message: 'Programmation de maintenance annulée.' });
+    } catch (error: any) {
+        console.error('Error cancelling maintenance schedule:', error);
+        res.status(500).json({ message: 'Erreur lors de l\'annulation.' });
     }
 });
 
