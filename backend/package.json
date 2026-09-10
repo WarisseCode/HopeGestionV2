@@ -18,6 +18,8 @@
     "dev": "nodemon index.ts",
     "migrate": "ts-node scripts/runMigrations.ts",
     "migrate-prod": "node dist/scripts/runMigrations.js",
+    "token:emergency": "ts-node scripts/generateEmergencyToken.ts",
+    "token:emergency-prod": "node dist/scripts/generateEmergencyToken.js",
     "db:export": "ts-node scripts/migrate_database.ts export",
     "db:import": "ts-node scripts/migrate_database.ts import",
     "db:backup-prod": "ts-node scripts/migrate_database.ts backup-prod",
