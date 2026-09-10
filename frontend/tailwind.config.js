@@ -8,52 +8,40 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#ecfdf5',
-          100: '#d1fae5',
-          200: '#a7f3d0',
-          300: '#6ee7b7',
-          400: '#34d399',
-          500: '#12D897', // Vert émeraude brillant & vibrant
-          600: '#0ebe84', // Hover
-          700: '#047857',
-          800: '#064e3b',
-          900: '#022c22',
+          50: '#f0fdfa',
+          100: '#ccfbf1',
+          200: '#99f6e4',
+          300: '#5eead4',
+          400: '#2dd4bf',
+          500: '#14b8a6',
+          600: '#0d9488',
+          700: '#0f766e',
+          800: '#115e59',
+          900: '#134e4a',
         },
         secondary: {
-          50: '#f8fafc',
+          50: '#f0f9ff',
+          100: '#e0f2fe',
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#0ea5e9',
+          600: '#0284c7',
+          700: '#0369a1',
+          800: '#075985',
+          900: '#0c4a6e',
+        },
+        slate: {
+          50: '#f8fafc', // Main background
           100: '#f1f5f9',
           200: '#e2e8f0',
           300: '#cbd5e1',
           400: '#94a3b8',
-          500: '#64748b',
+          500: '#64748b', 
           600: '#475569',
           700: '#334155',
-          800: '#1E293B', // Ardoise moderne
-          900: '#0F172A',
-        },
-        accent: {
-          50: '#fff5f2',
-          100: '#ffe8e2',
-          200: '#ffd4c7',
-          300: '#ffb39e',
-          400: '#ff8a6b',
-          500: '#FF6B4A', // Corail éclatant
-          600: '#f04e28',
-          700: '#c93917',
-          800: '#a43217',
-          900: '#852e19',
-        },
-        slate: {
-          50: '#F8FAFC', // Background principal clair & lumineux
-          100: '#f1f5f9',
-          200: '#E2E8F0', // Bordures
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748B', // Texte secondaire
-          600: '#475569',
-          700: '#334155',
-          800: '#1E293B',
-          900: '#0F172A', // Texte principal
+          800: '#1e293b',
+          900: '#0f172a',
         },
         success: {
           50: '#f0fdf4',
@@ -61,7 +49,7 @@ export default {
           200: '#bbf7d0',
           300: '#86efac',
           400: '#4ade80',
-          500: '#10B981', // Succès éclatant
+          500: '#22c55e',
           600: '#16a34a',
           700: '#15803d',
           800: '#166534',
@@ -73,7 +61,7 @@ export default {
           200: '#fde68a',
           300: '#fcd34d',
           400: '#fbbf24',
-          500: '#F59E0B', // Ambre lumineux
+          500: '#f59e0b',
           600: '#d97706',
           700: '#b45309',
           800: '#92400e',
@@ -85,7 +73,7 @@ export default {
           200: '#fecaca',
           300: '#fca5a5',
           400: '#f87171',
-          500: '#EF4444', // Rouge vif
+          500: '#ef4444',
           600: '#dc2626',
           700: '#b91c1c',
           800: '#991b1b',
@@ -94,7 +82,7 @@ export default {
       },
       fontFamily: {
         sans: ['"Inter"', 'system-ui', 'sans-serif'],
-        heading: ['"Inter"', 'system-ui', 'sans-serif'],
+        heading: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
@@ -114,34 +102,33 @@ export default {
     themes: [
       {
         hopegestion: {
-          "primary": "#12D897",   // Vert émeraude brillant
-          "secondary": "#1E293B", // Ardoise moderne
-          "accent": "#FF6B4A",    // Corail éclatant
-          "neutral": "#0F172A",   // Neutre élégant
-          "base-100": "#FFFFFF",  // Blanc éclatant
-          "base-200": "#F8FAFC",  // Fond très clair & lumineux
-          "base-300": "#E2E8F0",  // Bordures délicates
-          "info": "#0284C7",
-          "success": "#10B981",   // Succès
-          "warning": "#F59E0B",   // Alerte
-          "error": "#EF4444",     // Erreur
+          "primary": "#0d9488",   // Teal 600
+          "secondary": "#0ea5e9", // Sky 500
+          "accent": "#14b8a6",    // Teal 500
+          "neutral": "#1e293b",   // Slate 800
+          "base-100": "#ffffff",
+          "base-200": "#f0fdfa",  // Teal 50 — fond légèrement chaleureux
+          "info": "#3b82f6",
+          "success": "#22c55e",
+          "warning": "#f59e0b",
+          "error": "#ef4444",
           "--rounded-box": "1rem",
           "--rounded-btn": "0.5rem",
         },
       },
       {
         dark: {
-          "primary": "#2DD4BF",   // Menthe / turquoise
-          "secondary": "#38BDF8", // Ciel
-          "accent": "#FB923C",    // Corail
-          "neutral": "#334155",   // Neutre ardoise
-          "base-100": "#1E293B",  // Surface sombre
-          "base-200": "#0F172A",  // Fond profond
-          "base-300": "#334155",  // Bordures
-          "info": "#60A5FA",
-          "success": "#34D399",
-          "warning": "#FBBF24",
-          "error": "#F87171",
+          "primary": "#2dd4bf",   // Teal 400 (plus lumineux sur fond sombre)
+          "secondary": "#38bdf8", // Sky 400
+          "accent": "#5eead4",    // Teal 300
+          "neutral": "#94a3b8",   // Slate 400
+          "base-100": "#0f172a",  // Slate 900
+          "base-200": "#1e293b",  // Slate 800
+          "base-300": "#334155",  // Slate 700
+          "info": "#60a5fa",
+          "success": "#4ade80",
+          "warning": "#fbbf24",
+          "error": "#f87171",
           "--rounded-box": "1rem",
           "--rounded-btn": "0.5rem",
         },

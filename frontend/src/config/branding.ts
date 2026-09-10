@@ -69,9 +69,9 @@ export const BRANDING: BrandingConfig = {
   },
   theme: {
     fontSans: 'Inter',
-    fontHeading: 'Inter',
+    fontHeading: 'Plus Jakarta Sans',
     defaultTheme: 'hopegestion',
-    primaryColorName: 'Émeraude',
+    primaryColorName: 'Teal',
   },
 };
 
