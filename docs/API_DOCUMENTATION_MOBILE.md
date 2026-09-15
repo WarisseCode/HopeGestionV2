@@ -708,3 +708,4 @@ export function openWhatsApp(phone: string, message?: string) {
 
 ---
 *Documentation rédigée pour HopeGestionV2 — Prête pour l'intégration mobile autonome.*
+
