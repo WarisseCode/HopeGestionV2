@@ -44,19 +44,38 @@ const spacesConfigured = !!(
 
 // --- Routes ---
 
-// GET /api/documents - List documents (filtered by owner via RLS)
+// GET /api/documents - List documents (isolation multi-tenant explicite)
+// ⚠️ On ne se repose PAS sur RLS (aucune policy active sur la table documents).
+// Le filtrage est appliqué explicitement selon le rôle / les owners gérés.
 router.get('/', permissions.canRead('documents'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { entity_type, entity_id, categorie } = req.query;
-        
-        let query = `
-            SELECT * FROM documents
-            WHERE 1=1 AND deleted_at IS NULL
-        `;
+        const isAdmin = (req as any).userRole === 'admin';
+        const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+        const userId = req.userId as number;
+
+        let query = `SELECT * FROM documents WHERE deleted_at IS NULL`;
         const params: any[] = [];
         let paramIndex = 1;
 
+        // --- Isolation multi-tenant ---
+        if (!isAdmin) {
+            if (validOwnerIds.length > 0) {
+                // Gestionnaire/propriétaire : voit ses documents ET ceux rattachés à ses owners
+                query += ` AND (owner_id = ANY($${paramIndex}::int[]) OR (owner_id IS NULL AND user_id = $${paramIndex + 1}))`;
+                params.push(validOwnerIds, userId);
+                paramIndex += 2;
+            } else {
+                // Locataire ou gestionnaire sans owner lié : seulement ses propres uploads
+                query += ` AND user_id = $${paramIndex}`;
+                params.push(userId);
+                paramIndex++;
+            }
+        }
+        // Admin : pas de filtre supplémentaire (voit tout)
+
+        // --- Filtres optionnels ---
         if (entity_type && entity_id) {
             query += ` AND entity_type = $${paramIndex} AND entity_id = $${paramIndex + 1}`;
             params.push(entity_type, entity_id);
@@ -133,18 +152,33 @@ router.post('/upload', permissions.canWrite('documents'), tenantGuard, upload.si
     }
 });
 
-// DELETE /api/documents/:id - Delete document
+// DELETE /api/documents/:id - Delete document (soft-delete avec vérification de propriété)
 router.delete('/:id', permissions.canWrite('documents'), tenantGuard, validate(documentIdParam), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
+        const isAdmin = (req as any).userRole === 'admin';
+        const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+        const userId = req.userId as number;
 
         // Soft-delete : déplacé vers la corbeille. On NE supprime PAS le fichier physique
         // (Spaces/disque) pour permettre la restauration ; le fichier ne sera nettoyé qu'à
         // la suppression définitive depuis la corbeille.
+        // Sécurité : la clause de propriété évite de supprimer le document d'un autre tenant.
+        let ownerClause = '';
+        let ownerParams: any[] = [id, userId];
+        if (!isAdmin) {
+            if (validOwnerIds.length > 0) {
+                ownerClause = ` AND (owner_id = ANY($3::int[]) OR (owner_id IS NULL AND user_id = $2))`;
+                ownerParams = [id, userId, validOwnerIds];
+            } else {
+                ownerClause = ` AND user_id = $2`;
+            }
+        }
+
         const result = await dbClient.query(
-            'UPDATE documents SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING id',
-            [id, req.userId]
+            `UPDATE documents SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND deleted_at IS NULL${ownerClause} RETURNING id`,
+            isAdmin ? [id, userId] : ownerParams
         );
 
         if (result.rowCount === 0) {
@@ -274,9 +308,10 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), tenantGuar
         const strictOwnerId = (req as any).resolvedOwnerId;
         const leaseId = req.params.id;
 
-        // Check if document already exists for this lease
+        // Check if a non-deleted document already exists for this lease
+        // ⚠️ Inclure deleted_at IS NULL : un bail supprimé en corbeille ne doit pas bloquer la régénération
         const existingDoc = await dbClient.query(
-            "SELECT id FROM documents WHERE entity_type = 'lease' AND entity_id = $1 AND categorie = 'baux'",
+            "SELECT id FROM documents WHERE entity_type = 'lease' AND entity_id = $1 AND categorie = 'baux' AND deleted_at IS NULL",
             [leaseId]
         );
 

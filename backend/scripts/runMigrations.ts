@@ -1559,6 +1559,37 @@ const MIGRATIONS: Migration[] = [
             VALUES ('maintenance_emergency_token', NULL, 'string', 'Token de secours hashé pour désactiver la maintenance')
             ON CONFLICT (key) DO NOTHING;
         `
+    },
+    {
+        name: '063_locataire_proprietaire_permissions',
+        // Les rôles 'locataire' et 'proprietaire' n'avaient aucune entrée dans permission_matrix.
+        // Sans ces lignes, permissions.canRead() renvoyait 403 Accès refusé pour tout accès
+        // à /dashboard/documents, /dashboard/contrats etc. depuis un compte locataire/propriétaire.
+        // Politique :
+        //   - locataire : lecture seule sur ses propres documents, contrats et finances.
+        //   - proprietaire : lecture seule sur l'ensemble de ses données déléguées.
+        sql: `
+            INSERT INTO permission_matrix (role, module, can_read, can_write, can_delete, can_validate)
+            VALUES
+            -- Locataire : accès lecture seule aux modules qui le concernent
+            ('locataire', 'dashboard',    TRUE,  FALSE, FALSE, FALSE),
+            ('locataire', 'documents',    TRUE,  FALSE, FALSE, FALSE),
+            ('locataire', 'contrats',     TRUE,  FALSE, FALSE, FALSE),
+            ('locataire', 'finance',      TRUE,  FALSE, FALSE, FALSE),
+            ('locataire', 'locataires',   TRUE,  FALSE, FALSE, FALSE),
+            ('locataire', 'biens',        FALSE, FALSE, FALSE, FALSE),
+            ('locataire', 'owners',       FALSE, FALSE, FALSE, FALSE),
+
+            -- Proprietaire : lecture de l'ensemble de son patrimoine délégué
+            ('proprietaire', 'dashboard',  TRUE,  FALSE, FALSE, FALSE),
+            ('proprietaire', 'documents',  TRUE,  FALSE, FALSE, FALSE),
+            ('proprietaire', 'contrats',   TRUE,  FALSE, FALSE, FALSE),
+            ('proprietaire', 'finance',    TRUE,  FALSE, FALSE, FALSE),
+            ('proprietaire', 'locataires', TRUE,  FALSE, FALSE, FALSE),
+            ('proprietaire', 'biens',      TRUE,  FALSE, FALSE, FALSE),
+            ('proprietaire', 'owners',     TRUE,  FALSE, FALSE, FALSE)
+            ON CONFLICT (role, module) DO NOTHING;
+        `
     }
 ];
 

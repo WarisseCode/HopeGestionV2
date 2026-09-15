@@ -155,7 +155,8 @@ const Documents: React.FC = () => {
     { id: 'baux', label: 'Baux' },
     { id: 'quittances', label: 'Quittances' },
     { id: 'identite', label: 'Identité' },
-    { id: 'generated', label: 'Générés' }, // New tab for generated docs
+    { id: 'facture', label: 'Factures' },
+    { id: 'generated', label: 'Générés' },
     { id: 'autre', label: 'Autre' }
   ];
 
@@ -347,13 +348,13 @@ const Documents: React.FC = () => {
                             <p className="text-sm text-base-content/60">
                                 {uploadFile ? uploadFile.name : "Cliquez pour upload"}
                             </p>
-                            <p className="text-xs text-base-content/60">PDF, PNG, JPG (Max 10MB)</p>
+                            <p className="text-xs text-base-content/60">PDF, PNG, JPG, WEBP (Max 10 Mo)</p>
                         </div>
                         <input 
                             type="file" 
                             className="hidden" 
                             onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                            accept=".pdf,.jpg,.jpeg,.png,.webp"
                         />
                     </label>
                 </div>

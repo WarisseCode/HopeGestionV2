@@ -19,7 +19,7 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
     if (ALLOWED_TYPES.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error('Format non supporté. Utilisez JPG, PNG, WEBP, GIF ou PDF.'));
+        cb(new Error('Format non supporté. Utilisez JPG, PNG, WEBP, GIF ou PDF. Les fichiers Word (.doc, .docx) ne sont pas acceptés.'));
     }
 };
 
