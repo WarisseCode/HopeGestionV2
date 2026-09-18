@@ -23,7 +23,8 @@ import mobileMoneyRoutes from './routes/mobileMoneyRoutes';
 import alertRoutes from './routes/alertRoutes';
 
 import { protect, AuthenticatedRequest } from './middleware/authMiddleware';
-import { checkMaintenance } from './middleware/maintenanceMiddleware'; 
+import { checkMaintenance } from './middleware/maintenanceMiddleware';
+import { createMobileAuthCorsGate } from './middleware/mobileAuthCorsGate';
 
 // -------------------------********************-------------------------///
 
@@ -135,11 +136,11 @@ const allowedOrigins = [
     'https://www.hopegestion.com'
 ];
 
-app.use(cors({
+const corsMiddleware = cors({
     origin: (origin, callback) => {
         // Allow requests with no origin (mobile apps, Postman, etc.)
         if (!origin) return callback(null, true);
-        
+
         if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
@@ -151,7 +152,9 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     maxAge: 86400, // 24h preflight cache
-}));
+});
+
+app.use(createMobileAuthCorsGate(corsMiddleware));
 
 // Security logging middleware
 app.use((req, res, next) => {

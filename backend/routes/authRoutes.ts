@@ -43,6 +43,16 @@ const resetPasswordRules = [
     body('token').notEmpty().withMessage('Token requis'),
     body('newPassword').isString().isLength({ min: 6 }).withMessage('Le nouveau mot de passe doit contenir au moins 6 caractères'),
 ];
+// Format exact de AuthService.issueTokenPair : crypto.randomBytes(40).toString('hex')
+// = 40 octets = 80 caractères hex minuscules.
+const mobileRefreshRules = [
+    body('refreshToken')
+        .notEmpty().withMessage('Refresh token manquant.')
+        .bail()
+        .isString().withMessage('Refresh token invalide.')
+        .bail()
+        .matches(/^[a-f0-9]{80}$/).withMessage('Refresh token invalide.'),
+];
 
 // ── Cookie configuration ──────────────────────────────────────────────────────
 
@@ -181,6 +191,45 @@ router.post('/logout', async (req, res) => {
         sameSite: 'strict',
         path: '/api/auth',
     });
+    res.json({ message: 'Déconnexion réussie.' });
+});
+
+// ── Mobile (client natif) — cycle de vie du token ────────────────────────────
+// Aucune de ces trois routes ne lit ni n'écrit le cookie refreshToken. Le refresh
+// token voyage exclusivement dans le corps JSON, canal 'mobile' distinct du web
+// (voir AuthService : rotation/révocation filtrées par client_type).
+
+router.post('/mobile/login', validate(loginRules), async (req: Request, res: Response) => {
+    const { email, password } = req.body;
+    try {
+        const { accessToken, refreshToken, role, userId } = await authService.login(
+            email, password,
+            req.ip || 'unknown',
+            (req.headers['user-agent'] as string) || 'unknown',
+            { clientType: 'mobile' }
+        );
+        res.json({ message: 'Connexion réussie.', token: accessToken, refreshToken, role, userId });
+    } catch (error) {
+        sendAuthError(res, error);
+    }
+});
+
+router.post('/mobile/refresh', validate(mobileRefreshRules), async (req: Request, res: Response) => {
+    const { refreshToken } = req.body;
+    try {
+        const { accessToken, refreshToken: newRefreshToken } = await authService.rotateRefreshToken(
+            refreshToken,
+            { clientType: 'mobile' }
+        );
+        res.json({ token: accessToken, refreshToken: newRefreshToken });
+    } catch (error) {
+        sendAuthError(res, error);
+    }
+});
+
+router.post('/mobile/logout', validate(mobileRefreshRules), async (req: Request, res: Response) => {
+    const { refreshToken } = req.body;
+    await authService.revokeRefreshToken(refreshToken, { clientType: 'mobile' });
     res.json({ message: 'Déconnexion réussie.' });
 });
 

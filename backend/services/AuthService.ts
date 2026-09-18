@@ -28,6 +28,8 @@ export class AuthError extends Error {
     }
 }
 
+export type ClientType = 'web' | 'mobile';
+
 export interface TokenPair {
     accessToken: string;
     refreshToken: string;
@@ -52,7 +54,7 @@ export interface RegisterInput {
 class AuthService {
     // ── Token management ──────────────────────────────────────────────────────────
 
-    async issueTokenPair(userId: number, role: string, userType: string): Promise<TokenPair> {
+    async issueTokenPair(userId: number, role: string, userType: string, clientType: ClientType = 'web'): Promise<TokenPair> {
         const accessToken = jwt.sign(
             { id: userId, role, userType },
             JWT_SECRET,
@@ -64,15 +66,17 @@ class AuthService {
         const expiresAt  = new Date(Date.now() + REFRESH_TOKEN_MS);
 
         await pool.query(
-            `INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
-            [userId, tokenHash, expiresAt]
+            `INSERT INTO refresh_tokens (user_id, token_hash, expires_at, client_type) VALUES ($1, $2, $3, $4)`,
+            [userId, tokenHash, expiresAt, clientType]
         );
 
         return { accessToken, refreshToken: rawRefresh };
     }
 
     // Atomically revokes old token and issues a new pair (rotation).
-    async rotateRefreshToken(rawToken: string): Promise<TokenPair> {
+    // A token issued for one channel (web/mobile) cannot be rotated from the other.
+    async rotateRefreshToken(rawToken: string, options?: { clientType?: ClientType }): Promise<TokenPair> {
+        const clientType = options?.clientType ?? 'web';
         const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
         // Single UPDATE … RETURNING is atomic in PostgreSQL — no explicit transaction needed.
@@ -82,10 +86,11 @@ class AuthService {
              FROM users u
              WHERE u.id = rt.user_id
                AND rt.token_hash = $1
+               AND rt.client_type = $2
                AND rt.revoked_at IS NULL
                AND rt.expires_at > NOW()
              RETURNING rt.user_id, u.role, u.user_type`,
-            [tokenHash]
+            [tokenHash, clientType]
         );
 
         if (result.rows.length === 0) {
@@ -93,16 +98,17 @@ class AuthService {
         }
 
         const stored = result.rows[0];
-        return this.issueTokenPair(stored.user_id, stored.role, stored.user_type || 'gestionnaire');
+        return this.issueTokenPair(stored.user_id, stored.role, stored.user_type || 'gestionnaire', clientType);
     }
 
-    async revokeRefreshToken(rawToken?: string): Promise<void> {
+    async revokeRefreshToken(rawToken?: string, options?: { clientType?: ClientType }): Promise<void> {
         if (!rawToken) return;
         try {
+            const clientType = options?.clientType ?? 'web';
             const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
             await pool.query(
-                `UPDATE refresh_tokens SET revoked_at = NOW() WHERE token_hash = $1`,
-                [tokenHash]
+                `UPDATE refresh_tokens SET revoked_at = NOW() WHERE token_hash = $1 AND client_type = $2`,
+                [tokenHash, clientType]
             );
         } catch (err) {
             console.error('Erreur révocation refresh token:', err);
@@ -111,7 +117,10 @@ class AuthService {
 
     // ── Authentication ────────────────────────────────────────────────────────────
 
-    async login(email: string, password: string, ipAddress: string, userAgent: string): Promise<LoginResult> {
+    async login(
+        email: string, password: string, ipAddress: string, userAgent: string,
+        options?: { clientType?: ClientType }
+    ): Promise<LoginResult> {
         if (!email || !password) throw new AuthError(400, 'Email et mot de passe sont requis.');
 
         const sanitizedEmail = email.trim().toLowerCase();
@@ -148,7 +157,7 @@ class AuthService {
             throw new AuthError(401, 'Email ou mot de passe incorrect.');
         }
 
-        const tokens = await this.issueTokenPair(user.id, user.role, user.user_type || 'gestionnaire');
+        const tokens = await this.issueTokenPair(user.id, user.role, user.user_type || 'gestionnaire', options?.clientType);
 
         await AuditService.log({
             userId: user.id.toString(), action: 'LOGIN', entityType: 'USER', entityId: user.id.toString(),

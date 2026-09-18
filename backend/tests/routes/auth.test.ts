@@ -253,3 +253,155 @@ describe('POST /api/auth/register', () => {
         expect(res.body).toHaveProperty('message');
     });
 });
+
+// ── POST /mobile/login ───────────────────────────────────────────────────────
+// Format exact attendu du refresh token : 40 octets → 80 caractères hex minuscules
+// (crypto.randomBytes(40).toString('hex') dans AuthService.issueTokenPair).
+const VALID_HEX_TOKEN = (fill: string) => fill.repeat(80);
+
+describe('POST /api/auth/mobile/login', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    it('connecte avec succès : refreshToken en JSON, aucun cookie, client_type = mobile en DB', async () => {
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({ rows: [mockUserRow] }) // SELECT user
+            .mockResolvedValueOnce({ rows: [] });           // INSERT refresh_token
+        (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
+
+        const res = await request(app)
+            .post('/api/auth/mobile/login')
+            .send({ email: 'test@test.com', password: 'correct' });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('token');
+        expect(res.body.refreshToken).toMatch(/^[a-f0-9]{80}$/);
+        expect(res.body).toHaveProperty('role');
+        expect(res.body).toHaveProperty('userId');
+        expect(res.headers['set-cookie']).toBeUndefined();
+
+        const insertCall = (pool.query as jest.Mock).mock.calls[1];
+        expect(insertCall[0]).toMatch(/client_type/i);
+        expect(insertCall[1][3]).toBe('mobile');
+    });
+
+    it('identifiants invalides : même statut et même corps que /login web', async () => {
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [mockUserRow] });
+        (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
+
+        const res = await request(app)
+            .post('/api/auth/mobile/login')
+            .send({ email: 'test@test.com', password: 'mauvais' });
+
+        expect(res.status).toBe(401);
+        expect(res.body.message).toMatch(/incorrect/i);
+    });
+});
+
+// ── POST /mobile/refresh ──────────────────────────────────────────────────────
+
+describe('POST /api/auth/mobile/refresh', () => {
+    beforeEach(() => jest.clearAllMocks());
+    const validRefreshToken = VALID_HEX_TOKEN('a');
+
+    it('succès : UPDATE appelé avec [hash, "mobile"], réponse { token, refreshToken }, aucun cookie', async () => {
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({ rows: [{ user_id: 42, role: 'gestionnaire', user_type: 'gestionnaire' }] }) // UPDATE RETURNING
+            .mockResolvedValueOnce({ rows: [] }); // INSERT nouveau refresh_token
+
+        const res = await request(app)
+            .post('/api/auth/mobile/refresh')
+            .send({ refreshToken: validRefreshToken });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('token');
+        expect(res.body.refreshToken).toMatch(/^[a-f0-9]{80}$/);
+        expect(res.headers['set-cookie']).toBeUndefined();
+
+        const updateCall = (pool.query as jest.Mock).mock.calls[0];
+        expect(updateCall[0]).toMatch(/client_type/i);
+        expect(updateCall[1][1]).toBe('mobile');
+    });
+
+    it('cookie refreshToken (web) valide mais body vide : 400 "Refresh token manquant.", aucun appel DB', async () => {
+        const res = await request(app)
+            .post('/api/auth/mobile/refresh')
+            .set('Cookie', `refreshToken=${validRefreshToken}`)
+            .send({});
+
+        expect(res.status).toBe(400);
+        expect(res.body.errors?.[0]?.msg).toBe('Refresh token manquant.');
+        expect(pool.query).not.toHaveBeenCalled();
+    });
+
+    it('token mal formé : 400, aucun appel DB', async () => {
+        const res = await request(app)
+            .post('/api/auth/mobile/refresh')
+            .send({ refreshToken: 'not-hex' });
+
+        expect(res.status).toBe(400);
+        expect(pool.query).not.toHaveBeenCalled();
+    });
+
+    it('UPDATE retourne 0 ligne : 401, même message que le web', async () => {
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+
+        const res = await request(app)
+            .post('/api/auth/mobile/refresh')
+            .send({ refreshToken: validRefreshToken });
+
+        expect(res.status).toBe(401);
+        expect(res.body.message).toMatch(/invalide|expiré/i);
+    });
+});
+
+describe('POST /api/auth/refresh — canal web (non-régression client_type)', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    it('UPDATE appelé avec [hash, "web"]', async () => {
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({ rows: [{ user_id: 42, role: 'gestionnaire', user_type: 'gestionnaire' }] })
+            .mockResolvedValueOnce({ rows: [] });
+
+        await request(app).post('/api/auth/refresh').set('Cookie', 'refreshToken=tokenValide');
+
+        const updateCall = (pool.query as jest.Mock).mock.calls[0];
+        expect(updateCall[1][1]).toBe('web');
+    });
+});
+
+// ── POST /mobile/logout ───────────────────────────────────────────────────────
+
+describe('POST /api/auth/mobile/logout', () => {
+    beforeEach(() => jest.clearAllMocks());
+    const validRefreshToken = VALID_HEX_TOKEN('b');
+
+    it('révoque avec client_type mobile, 200, aucun cookie', async () => {
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+
+        const res = await request(app)
+            .post('/api/auth/mobile/logout')
+            .send({ refreshToken: validRefreshToken });
+
+        expect(res.status).toBe(200);
+        expect(res.body.message).toMatch(/déconnexion/i);
+        expect(res.headers['set-cookie']).toBeUndefined();
+
+        const call = (pool.query as jest.Mock).mock.calls[0];
+        expect(call[0]).toMatch(/revoked_at/i);
+        expect(call[0]).toMatch(/client_type/i);
+        expect(call[1][1]).toBe('mobile');
+    });
+});
+
+describe('POST /api/auth/logout — canal web (non-régression client_type)', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    it('révoque avec client_type web', async () => {
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+
+        await request(app).post('/api/auth/logout').set('Cookie', 'refreshToken=tokenARevoquer');
+
+        const call = (pool.query as jest.Mock).mock.calls[0];
+        expect(call[1][1]).toBe('web');
+    });
+});

@@ -1590,6 +1590,18 @@ const MIGRATIONS: Migration[] = [
             ('proprietaire', 'owners',     TRUE,  FALSE, FALSE, FALSE)
             ON CONFLICT (role, module) DO NOTHING;
         `
+    },
+    {
+        name: '064_refresh_tokens_client_type',
+        // Prépare l'auth mobile (endpoints /api/auth/mobile/*, à venir) : un refresh token
+        // est désormais émis pour un canal ('web' ou 'mobile') et ne doit pouvoir être tourné
+        // que depuis ce même canal. DEFAULT 'web' classe toutes les lignes existantes et tous
+        // les appels actuels côté web — comportement inchangé, aucune régression possible.
+        sql: `
+            ALTER TABLE refresh_tokens
+              ADD COLUMN IF NOT EXISTS client_type VARCHAR(10) NOT NULL DEFAULT 'web'
+              CONSTRAINT refresh_tokens_client_type_check CHECK (client_type IN ('web', 'mobile'));
+        `
     }
 ];
 
