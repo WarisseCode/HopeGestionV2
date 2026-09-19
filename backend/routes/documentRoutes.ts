@@ -44,7 +44,6 @@ const spacesConfigured = !!(
 
 // --- Routes ---
 
-// GET /api/documents - List documents (filtered by owner via RLS)
 // GET /api/documents - List documents (isolation multi-tenant explicite)
 // ⚠️ On ne se repose PAS sur RLS (aucune policy active sur la table documents).
 // Le filtrage est appliqué explicitement selon le rôle / les owners gérés.
@@ -52,11 +51,7 @@ router.get('/', permissions.canRead('documents'), tenantGuard, async (req: Authe
     try {
         const dbClient = (req as any).dbClient;
         const { entity_type, entity_id, categorie } = req.query;
-        
-        let query = `
-            SELECT * FROM documents
-            WHERE 1=1 AND deleted_at IS NULL
-        `;
+
         const isAdmin = (req as any).userRole === 'admin';
         const validOwnerIds: number[] = (req as any).validOwnerIds || [];
         const userId = req.userId as number;
@@ -158,7 +153,6 @@ router.post('/upload', permissions.canWrite('documents'), tenantGuard, upload.si
     }
 });
 
-// DELETE /api/documents/:id - Delete document
 // DELETE /api/documents/:id - Delete document (soft-delete avec vérification de propriété)
 router.delete('/:id', permissions.canWrite('documents'), tenantGuard, validate(documentIdParam), async (req: AuthenticatedRequest, res: Response) => {
     try {
@@ -184,8 +178,6 @@ router.delete('/:id', permissions.canWrite('documents'), tenantGuard, validate(d
         }
 
         const result = await dbClient.query(
-            'UPDATE documents SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND deleted_at IS NULL RETURNING id',
-            [id, req.userId]
             `UPDATE documents SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND deleted_at IS NULL${ownerClause} RETURNING id`,
             isAdmin ? [id, userId] : ownerParams
         );
@@ -317,11 +309,9 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), tenantGuar
         const strictOwnerId = (req as any).resolvedOwnerId;
         const leaseId = req.params.id;
 
-        // Check if document already exists for this lease
         // Check if a non-deleted document already exists for this lease
         // ⚠️ Inclure deleted_at IS NULL : un bail supprimé en corbeille ne doit pas bloquer la régénération
         const existingDoc = await dbClient.query(
-            "SELECT id FROM documents WHERE entity_type = 'lease' AND entity_id = $1 AND categorie = 'baux'",
             "SELECT id FROM documents WHERE entity_type = 'lease' AND entity_id = $1 AND categorie = 'baux' AND deleted_at IS NULL",
             [leaseId]
         );
@@ -571,9 +561,9 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), tenantGuar
  * ═══════════════════════════════════════════════════
  * ✅ Import pool supprimé et remplacé par l'avertissement réglementaire.
  * ✅ tenantGuard ajouté post-authMiddleware sur toutes les méthodes.
- * ✅ Suppression du helper 'getManagedOwnerIds' très verbeux. RLS fait le travail invisiblement dans le GET.
+ * ✅ GET : isolation multi-tenant explicite (aucune policy RLS active sur documents).
  * ✅ Remplacement de tous les pool.query par req.dbClient.query.
- * ✅ 'DELETE /' complété par vérifier rowCount = 0 (RLS refus).
+ * ✅ 'DELETE /:id' : soft-delete avec clause de propriété explicite + rowCount = 0 → 404.
  * ✅ Routes PDF modifiées pour incorporer la variable dbClient ET user_id, mais la création PDF ne subit pas d'interruption.
  * ✅ 'strictOwnerId' systématiquement injecté dans les requêtes de créations de documents en BDD via 'INSERT INTO documents'.
  * ═══════════════════════════════════════════════════
