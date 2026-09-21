@@ -30,10 +30,10 @@ Le backend HopeGestionV2 expose une API RESTful JSON.
 
 | Environnement | Base URL | Usage |
 |---|---|---|
-| **Développement Local (Émulateur Android)** | `http://10.0.2.2:5000/api` | Émulateur Android Studio vers localhost |
-| **Développement Local (Simulateur iOS / Web)** | `http://localhost:5000/api` | Simulateur iOS ou navigateur web |
-| **Développement Local (Appareil Physique Expo)** | `http://<IP_LOCALE_MACHINE>:5000/api` | Test WiFi sur smartphone physique |
-| **Production (Serveur Cloud)** | `https://hope-gestion-backend.onrender.com/api` | API de production déployée |
+| **Développement Local (Émulateur Android)** | `http://10.0.2.2:5001/api` | Émulateur Android Studio vers localhost |
+| **Développement Local (Simulateur iOS / Web)** | `http://localhost:5001/api` | Simulateur iOS ou navigateur web |
+| **Développement Local (Appareil Physique Expo)** | `http://<IP_LOCALE_MACHINE>:5001/api` | Test WiFi sur smartphone physique |
+| **Production (Serveur Cloud)** | `https://hopegestion.com/api` | API de production déployée |
 
 ### En-têtes HTTP Requis
 

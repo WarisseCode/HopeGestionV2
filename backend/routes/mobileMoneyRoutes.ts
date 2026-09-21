@@ -33,14 +33,23 @@ router.post('/pay', tenantGuard, validate(payRules), async (req: AuthenticatedRe
         return res.status(400).json({ message: "Données manquantes" });
     }
 
+    // Une transaction Mobile Money doit être rattachée à un propriétaire dès sa création,
+    // sinon elle devient invisible à tout non-admin (mobile_money_transactions n'est pas
+    // sous RLS forcée, voir audit sécurité). Si le gestionnaire gère plusieurs owners et
+    // n'a pas précisé lequel (en-tête X-Owner-Id ou owner_id en body), on refuse plutôt
+    // que de créer une transaction financière orpheline en silence.
+    if (!strictOwnerId) {
+        return res.status(400).json({ message: "Propriétaire non déterminé. Précisez owner_id ou l'en-tête X-Owner-Id." });
+    }
+
     try {
         // 1. Créer la transaction en BDD (Status pending)
         const txResult = await dbClient.query(
-            `INSERT INTO mobile_money_transactions 
-            (amount, phone_number, operator, status, transaction_type, external_reference)
-            VALUES ($1, $2, $3, 'pending', 'collection', $4)
+            `INSERT INTO mobile_money_transactions
+            (amount, phone_number, operator, status, transaction_type, external_reference, owner_id)
+            VALUES ($1, $2, $3, 'pending', 'collection', $4, $5)
             RETURNING id, transaction_id`,
-            [amount, phoneNumber, operator, description]
+            [amount, phoneNumber, operator, description, strictOwnerId]
         );
         const internalId = txResult.rows[0].id;
 
@@ -93,10 +102,24 @@ router.post('/pay', tenantGuard, validate(payRules), async (req: AuthenticatedRe
 });
 
 // GET /api/mobile-money/transactions - Historique
+// ⚠️ Isolation multi-tenant explicite : mobile_money_transactions n'a pas de policy RLS
+// forcée (voir audit sécurité). dbClient seul ne suffit pas, il faut filtrer par owner_id.
 router.get('/transactions', tenantGuard, async (req: AuthenticatedRequest, res) => {
     const dbClient = (req as any).dbClient;
+    const isAdmin = req.userRole === 'admin';
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
     try {
-        const result = await dbClient.query('SELECT * FROM mobile_money_transactions ORDER BY created_at DESC LIMIT 50');
+        // Pas de colonne user_id sur mobile_money_transactions (contrairement à
+        // documents) : pas de repli possible pour un non-admin sans owner valide.
+        if (!isAdmin && validOwnerIds.length === 0) {
+            return res.json([]);
+        }
+        const result = isAdmin
+            ? await dbClient.query('SELECT * FROM mobile_money_transactions ORDER BY created_at DESC LIMIT 50')
+            : await dbClient.query(
+                'SELECT * FROM mobile_money_transactions WHERE owner_id = ANY($1::int[]) ORDER BY created_at DESC LIMIT 50',
+                [validOwnerIds]
+            );
         res.json(result.rows);
     } catch (error) {
         console.error('Erreur historique MoMo:', error);

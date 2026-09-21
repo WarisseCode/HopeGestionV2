@@ -31,8 +31,10 @@ export const checkOwnerAccess = async (
             });
         }
 
-        // Admin et Manager ont accès à tous les propriétaires
-        if (userRole === 'admin' || userRole === 'manager') {
+        // Admin a accès à tous les propriétaires. 'manager' n'est PAS un bypass global :
+        // un manager doit être lié activement (owner_user), comme un gestionnaire.
+        // (Aucun compte 'manager' en prod actuellement — correctif préventif, cf. audit.)
+        if (userRole === 'admin') {
             return next();
         }
 

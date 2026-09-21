@@ -44,11 +44,21 @@ const ticketCloseRules = [
 ];
 
 // GET /api/tickets?page=1&limit=20&statut=&priorite=&category=
+// ⚠️ Isolation multi-tenant explicite : tickets n'a pas de policy RLS forcée
+// (voir audit sécurité). dbClient seul ne suffit pas, il faut filtrer par owner_id.
 router.get('/', protect, tenantGuard, async (req: any, res) => {
     try {
         const dbClient = (req as any).dbClient;
+        const isAdmin = req.userRole === 'admin';
+        const validOwnerIds: number[] = req.validOwnerIds || [];
         const { statut, priorite, category } = req.query;
         const pg = parsePagination(req.query);
+
+        // Pas de colonne user_id sur tickets : pas de repli possible pour un
+        // non-admin sans owner valide (locataires : voir GET /tenant dédiée).
+        if (!isAdmin && validOwnerIds.length === 0) {
+            return res.json(paginate([], 0, pg));
+        }
 
         const joins = `
             FROM tickets t
@@ -63,6 +73,7 @@ router.get('/', protect, tenantGuard, async (req: any, res) => {
         const params: any[] = [];
         let paramIndex = 1;
 
+        if (!isAdmin) { where += ` AND t.owner_id = ANY($${paramIndex++}::int[])`; params.push(validOwnerIds); }
         if (statut)   { where += ` AND t.statut = $${paramIndex++}`;    params.push(statut); }
         if (priorite) { where += ` AND t.priorite = $${paramIndex++}`;  params.push(priorite); }
         if (category) { where += ` AND t.category = $${paramIndex++}`;  params.push(category); }
@@ -146,7 +157,34 @@ router.post('/', protect, validate(ticketCreateRules), async (req: any, res: Res
             return res.status(404).json({ message: 'Lot introuvable' });
         }
         const deducedOwnerId = lotRes.rows[0].owner_id;
-        
+
+        // IDOR : l'owner_id est bien déduit côté serveur (jamais fourni par le client),
+        // mais rien ne vérifiait jusqu'ici que l'appelant a un droit réel sur ce lot.
+        // 404 (pas 403) pour ne pas confirmer l'existence d'un lot tiers.
+        let authorized = req.userRole === 'admin';
+        // 'proprietaire' inclus : lié via owner_user (role='owner') comme un gestionnaire
+        // (role='gestionnaire') — même requête, sans quoi un propriétaire perdrait la
+        // possibilité de créer un ticket sur ses propres lots (régression).
+        if (!authorized && ['gestionnaire', 'manager', 'proprietaire'].includes(req.userRole)) {
+            const ownerLink = await pool.query(
+                'SELECT 1 FROM owner_user WHERE owner_id = $1 AND user_id = $2 AND is_active = TRUE',
+                [deducedOwnerId, req.userId]
+            );
+            authorized = ownerLink.rows.length > 0;
+        } else if (!authorized && req.userRole === 'locataire') {
+            // 'signe' inclus : un bail signé mais pas encore passé en statut 'actif'
+            // reste un bail réel du locataire (valeurs constatées en prod : actif, signe).
+            const leaseLink = await pool.query(
+                `SELECT 1 FROM leases le JOIN tenants t ON le.tenant_id = t.id
+                 WHERE le.lot_id = $1 AND t.user_id = $2 AND le.statut IN ('actif', 'signe')`,
+                [lotIdValue, req.userId]
+            );
+            authorized = leaseLink.rows.length > 0;
+        }
+        if (!authorized) {
+            return res.status(404).json({ message: 'Lot introuvable' });
+        }
+
         const result = await pool.query(
             `INSERT INTO tickets (lot_id, titre, category, description, priorite, urgency, photos_before, requester_name, requester_phone, statut, date_creation, owner_id)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Ouvert', NOW(), $10) RETURNING *`,

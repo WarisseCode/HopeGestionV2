@@ -579,7 +579,20 @@ router.get('/proprietaires/:id/biens', async (req: AuthenticatedRequest, res: Re
 
     try {
         const { id } = req.params;
-        
+        const isAdmin = req.userRole === 'admin';
+
+        // IDOR : le rôle seul autorisait l'appel, pas le lien réel à cet owner précis.
+        // 404 (pas 403) pour ne pas confirmer l'existence d'un propriétaire tiers.
+        if (!isAdmin) {
+            const access = await db.query(
+                'SELECT 1 FROM owner_user WHERE owner_id = $1 AND user_id = $2 AND is_active = TRUE',
+                [id, req.userId]
+            );
+            if (access.rows.length === 0) {
+                return res.status(404).json({ message: 'Propriétaire introuvable.' });
+            }
+        }
+
         // Get buildings
         const buildingsQuery = `
             SELECT id, nom as name, adresse as address, ville as city, 
