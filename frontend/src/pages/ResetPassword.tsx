@@ -29,8 +29,8 @@ const ResetPassword: React.FC = () => {
                 if (!data.valid) {
                     setError(data.message || 'Token invalide');
                 }
-            } catch (err) {
-                setError('Impossible de valider le token');
+            } catch (err: any) {
+                setError(err.message || 'Impossible de valider le token');
                 setTokenValid(false);
             } finally {
                 setValidating(false);
@@ -88,8 +88,8 @@ const ResetPassword: React.FC = () => {
             });
             setSuccess(true);
             setTimeout(() => navigate('/login'), 3000);
-        } catch (err) {
-            setError('Impossible de contacter le serveur');
+        } catch (err: any) {
+            setError(err.message || 'Impossible de contacter le serveur');
         } finally {
             setLoading(false);
         }

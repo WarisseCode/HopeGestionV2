@@ -70,7 +70,14 @@ export async function apiCall<T>(
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             const parts: string[] = [];
-            if (errorData.message) parts.push(errorData.message);
+            if (errorData.message) {
+                parts.push(errorData.message);
+            } else if (Array.isArray(errorData.errors) && errorData.errors[0]?.msg) {
+                // Forme express-validator sur les 400 de validation : { errors: [{ msg, path, ... }] },
+                // pas de champ `message`. Sans ce repli, ces réponses tombaient dans le message
+                // générique "Erreur HTTP 400" plus bas, masquant la raison réelle du rejet.
+                parts.push(errorData.errors[0].msg);
+            }
             if (errorData.detail)    parts.push(`[Détail: ${errorData.detail}]`);
             if (errorData.errorCode) parts.push(`[Code: ${errorData.errorCode}]`);
 

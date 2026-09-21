@@ -4,18 +4,21 @@ import { Router, Request, Response } from 'express';
 import { body } from 'express-validator';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import pool from '../db/database';
 import { AuditService } from '../services/AuditService';
 import { JWT_SECRET } from '../config/config';
 import { validate } from '../middleware/validate';
+import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 
 const router = Router();
 
 const googleLoginRules = [
     body('credential').notEmpty().withMessage('Google credential requis').bail().isString().withMessage('credential invalide'),
 ];
+// userId retiré : l'identité vient exclusivement de req.userId (token), jamais du corps
+// (voir audit sécurité — cette route acceptait auparavant n'importe quel userId fourni).
 const completeProfileRules = [
-    body('userId').notEmpty().withMessage('UserID requis').bail().isInt({ min: 1 }).withMessage('userId invalide'),
     body('userType').notEmpty().withMessage('Type de compte requis').bail().isIn(['gestionnaire', 'proprietaire', 'locataire']).withMessage('Type de compte invalide'),
     body('telephone').notEmpty().withMessage('Téléphone requis').bail().isString().isLength({ max: 40 }).withMessage('Téléphone invalide'),
 ];
@@ -168,27 +171,44 @@ router.post('/google', validate(googleLoginRules), async (req: Request, res: Res
 /**
  * PATCH /api/auth/complete-profile
  * Complete user profile after Google OAuth
+ *
+ * ⚠️ SÉCURITÉ : cette route n'utilise `protect` que pour authentifier l'appelant
+ * (n'importe quel rôle, y compris 'pending', est accepté par `protect` — c'est
+ * volontaire, un compte 'pending' doit pouvoir compléter son propre profil).
+ * L'identité modifiée est TOUJOURS `req.userId`, jamais une valeur du corps.
  */
-router.patch('/complete-profile', validate(completeProfileRules), async (req: Request, res: Response) => {
-    const { userId, userType, telephone } = req.body;
+router.patch('/complete-profile', protect, validate(completeProfileRules), async (req: AuthenticatedRequest, res: Response) => {
+    const { userType, telephone } = req.body;
+    const userId = req.userId!;
+
+    // Un userId présent dans le corps et différent du token est un signal de tentative
+    // de prise de contrôle d'un autre compte (pending, séquentiel) — refusé explicitement,
+    // pas simplement ignoré. Absent : OK, comportement normal du client actuel.
+    if (req.body.userId !== undefined && Number(req.body.userId) !== userId) {
+        return res.status(403).json({
+            message: 'Accès refusé : ce compte ne correspond pas au token fourni.'
+        });
+    }
 
     try {
-        // Validate phone (format strict via regex, au-delà de la présence)
-        const cleanPhone = telephone.replace(/[^\d+]/g, '');
-        const phoneRegex = /^(\+|00)?[1-9]\d{8,14}$/;
-        if (!phoneRegex.test(cleanPhone)) {
-            return res.status(400).json({ 
-                message: 'Numéro de téléphone invalide.' 
+        // Validation + normalisation E.164 (libphonenumber-js, région par défaut Bénin) :
+        // accepte un format local ('01 97 00 00 00') comme international, contrairement à
+        // l'ancienne regex maison qui n'acceptait que des numéros déjà préfixés à l'international.
+        const parsedPhone = parsePhoneNumberFromString(telephone, 'BJ');
+        if (!parsedPhone || !parsedPhone.isValid()) {
+            return res.status(400).json({
+                message: "Numéro de téléphone invalide. Exemple de format valide : +229 01 97 00 00 00 (ou 01 97 00 00 00 en local)."
             });
         }
+        const e164Phone = parsedPhone.number; // ex. "+22901970000 00" (format E.164, sans espaces)
 
         // 2. Update user
         const result = await pool.query(
-            `UPDATE users 
-             SET user_type = $1, role = $1, telephone = $2 
+            `UPDATE users
+             SET user_type = $1, role = $1, telephone = $2
              WHERE id = $3 AND user_type = 'pending'
              RETURNING id, email, nom, user_type, role`,
-            [userType, cleanPhone, userId]
+            [userType, e164Phone, userId]
         );
 
         if (result.rows.length === 0) {
@@ -216,7 +236,7 @@ router.patch('/complete-profile', validate(completeProfileRules), async (req: Re
             action: 'PROFILE_COMPLETED',
             entityType: 'USER',
             entityId: user.id.toString(),
-            details: { userType, telephone: cleanPhone },
+            details: { userType, telephone: e164Phone },
             ipAddress: req.ip || 'unknown',
             userAgent: (req.headers['user-agent'] as string) || 'unknown'
         });

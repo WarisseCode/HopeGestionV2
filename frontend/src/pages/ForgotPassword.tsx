@@ -26,8 +26,8 @@ const ForgotPassword: React.FC = () => {
                 body: JSON.stringify({ email }),
             });
             setSubmitted(true);
-        } catch (err) {
-            setError('Impossible de contacter le serveur. Vérifiez votre connexion.');
+        } catch (err: any) {
+            setError(err.message || 'Impossible de contacter le serveur. Vérifiez votre connexion.');
         } finally {
             setLoading(false);
         }

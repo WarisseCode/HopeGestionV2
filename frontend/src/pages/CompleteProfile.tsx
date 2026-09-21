@@ -36,13 +36,13 @@ const CompleteProfile: React.FC = () => {
         try {
             const data = await apiCall<{ token: string }>(`${API_URL}/auth/complete-profile`, {
                 method: 'PATCH',
-                body: JSON.stringify({ userId: tokenPayload.id, userType, telephone }),
+                body: JSON.stringify({ userType, telephone }),
             });
             localStorage.setItem('userToken', data.token);
             window.dispatchEvent(new Event('auth-change'));
             window.location.href = '/dashboard';
-        } catch (err) {
-            setError('Impossible de contacter le serveur');
+        } catch (err: any) {
+            setError(err.message || 'Impossible de contacter le serveur');
         } finally {
             setLoading(false);
         }
@@ -154,7 +154,7 @@ const CompleteProfile: React.FC = () => {
                                     </div>
                                     <input
                                         type="tel"
-                                        placeholder="+229 XX XX XX XX"
+                                        placeholder="01 XX XX XX XX"
                                         className="input input-bordered w-full pl-11"
                                         value={telephone}
                                         onChange={(e) => setTelephone(e.target.value)}
@@ -163,7 +163,7 @@ const CompleteProfile: React.FC = () => {
                                 </div>
                                 <label className="label">
                                     <span className="label-text-alt text-base-content/60">
-                                        Format international recommandé (ex: +229 97 00 00 00)
+                                        Format béninois actuel à 10 chiffres (ex : 01 97 00 00 00, ou +229 01 97 00 00 00)
                                     </span>
                                 </label>
                             </motion.div>
