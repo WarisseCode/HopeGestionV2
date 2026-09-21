@@ -4,7 +4,14 @@
  *   - authentification obligatoire (`protect`), identité prise sur req.userId uniquement ;
  *   - un userId de corps différent du token est refusé (403), pas simplement ignoré ;
  *   - validation + normalisation E.164 du téléphone via libphonenumber-js (région BJ).
+ * POST /api/auth/google :
+ *   - email_verified strictement true exigé, avant toute requête SQL ;
+ *   - liaison d'un compte existant non-Google à Google -> audit GOOGLE_ACCOUNT_LINKED dédié.
  */
+
+// GOOGLE_CLIENT_ID est lu au chargement du module googleAuthRoutes.ts (avant tout mock) :
+// doit être défini avant l'import plus bas, sinon la route répond 500 "non configuré".
+process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
 
 import request from 'supertest';
 import express from 'express';
@@ -22,7 +29,17 @@ jest.mock('../../services/AuditService', () => ({
     AuditService: { log: jest.fn() },
 }));
 
+// verifyIdToken mocké : une seule instance partagée, peu importe combien de fois
+// `new OAuth2Client(...)` est appelé (googleAuthRoutes.ts le fait une fois au chargement).
+const mockVerifyIdToken = jest.fn();
+jest.mock('google-auth-library', () => ({
+    OAuth2Client: jest.fn().mockImplementation(() => ({
+        verifyIdToken: mockVerifyIdToken,
+    })),
+}));
+
 import pool from '../../db/database';
+import { AuditService } from '../../services/AuditService';
 import googleAuthRouter from '../../routes/googleAuthRoutes';
 
 // ── App de test ───────────────────────────────────────────────────────────────
@@ -133,5 +150,94 @@ describe('PATCH /api/auth/complete-profile — validation téléphone (libphonen
             .send({ userType: 'gestionnaire', telephone: '01 97 00 00 00' });
 
         expect(res.status).toBe(409);
+    });
+});
+
+// ── POST /google ─────────────────────────────────────────────────────────────
+
+const googlePayload = (overrides: Record<string, any> = {}) => ({
+    sub: 'google-sub-id',
+    email: 'user@example.com',
+    name: 'Test User',
+    given_name: 'Test',
+    family_name: 'User',
+    picture: 'https://example.com/pic.jpg',
+    email_verified: true,
+    ...overrides,
+});
+
+describe('POST /api/auth/google — email_verified et liaison de compte', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    it('email_verified: false -> 401, aucune requête SQL déclenchée', async () => {
+        mockVerifyIdToken.mockResolvedValueOnce({
+            getPayload: () => googlePayload({ email_verified: false }),
+        });
+
+        const res = await request(app)
+            .post('/api/auth/google')
+            .send({ credential: 'fake-credential' });
+
+        expect(res.status).toBe(401);
+        expect(res.body.message).toContain('non vérifiée');
+        expect(pool.query).not.toHaveBeenCalled();
+    });
+
+    it('email_verified: true, nouvel utilisateur : création comme avant', async () => {
+        mockVerifyIdToken.mockResolvedValueOnce({
+            getPayload: () => googlePayload({ email: 'nouveau@example.com' }),
+        });
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({ rows: [] }) // SELECT par email -> personne
+            .mockResolvedValueOnce({
+                rows: [{ id: 200, email: 'nouveau@example.com', nom: 'Test User', user_type: 'pending', role: 'pending' }],
+            }); // INSERT
+
+        const res = await request(app)
+            .post('/api/auth/google')
+            .send({ credential: 'fake-credential' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.needsProfileCompletion).toBe(true);
+        expect(pool.query).toHaveBeenNthCalledWith(
+            2,
+            expect.stringContaining('INSERT INTO users'),
+            expect.any(Array),
+        );
+        expect(AuditService.log).toHaveBeenCalledWith(
+            expect.objectContaining({ action: 'GOOGLE_REGISTER' }),
+        );
+    });
+
+    it("email_verified: true, compte email existant sans google_id : liaison + audit GOOGLE_ACCOUNT_LINKED", async () => {
+        mockVerifyIdToken.mockResolvedValueOnce({
+            getPayload: () => googlePayload({ email: 'existant@example.com' }),
+        });
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({
+                rows: [{
+                    id: 300, email: 'existant@example.com', nom: 'Existant',
+                    user_type: 'gestionnaire', role: 'gestionnaire', google_id: null, statut: 'actif',
+                }],
+            }) // SELECT par email -> trouvé, pas encore lié à Google
+            .mockResolvedValueOnce({ rows: [] }); // UPDATE google_id
+
+        const res = await request(app)
+            .post('/api/auth/google')
+            .send({ credential: 'fake-credential' });
+
+        expect(res.status).toBe(200);
+        expect(pool.query).toHaveBeenNthCalledWith(
+            2,
+            expect.stringContaining('UPDATE users SET google_id'),
+            expect.any(Array),
+        );
+        expect(AuditService.log).toHaveBeenCalledWith(
+            expect.objectContaining({ action: 'GOOGLE_ACCOUNT_LINKED', userId: '300' }),
+        );
+        // La liaison ne remplace pas le log de connexion existant, elle s'y ajoute.
+        expect(AuditService.log).toHaveBeenCalledWith(
+            expect.objectContaining({ action: 'GOOGLE_LOGIN', userId: '300' }),
+        );
     });
 });

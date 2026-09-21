@@ -61,9 +61,12 @@ router.post('/google', validate(googleLoginRules), async (req: Request, res: Res
             email_verified
         } = payload;
 
-        if (!email_verified) {
-            return res.status(403).json({ 
-                message: 'Email non vérifié par Google.' 
+        // Strict : seule une valeur booléenne true est acceptée comme preuve de
+        // propriété de l'adresse email. La liaison automatique à un compte existant
+        // (juste en dessous) n'est sûre que si Google garantit cette propriété.
+        if (email_verified !== true) {
+            return res.status(401).json({
+                message: 'Adresse email Google non vérifiée.'
             });
         }
 
@@ -87,6 +90,19 @@ router.post('/google', validate(googleLoginRules), async (req: Request, res: Res
                     [googleId, 'google', photoUrl, user.id]
                 );
                 user.google_id = googleId;
+
+                // Événement dédié : un compte créé hors Google vient d'être lié à un
+                // compte Google (par égalité d'email, garantie par email_verified ci-dessus).
+                // Traçable séparément d'un simple login — comportement de liaison inchangé.
+                await AuditService.log({
+                    userId: user.id.toString(),
+                    action: 'GOOGLE_ACCOUNT_LINKED',
+                    entityType: 'USER',
+                    entityId: user.id.toString(),
+                    details: { email, provider: 'google' },
+                    ipAddress: req.ip || 'unknown',
+                    userAgent: (req.headers['user-agent'] as string) || 'unknown'
+                });
             }
 
             // Log successful login
@@ -200,7 +216,7 @@ router.patch('/complete-profile', protect, validate(completeProfileRules), async
                 message: "Numéro de téléphone invalide. Exemple de format valide : +229 01 97 00 00 00 (ou 01 97 00 00 00 en local)."
             });
         }
-        const e164Phone = parsedPhone.number; // ex. "+22901970000 00" (format E.164, sans espaces)
+        const e164Phone = parsedPhone.number; // ex. "+2290197000000" (format E.164, sans espaces)
 
         // 2. Update user
         const result = await pool.query(
