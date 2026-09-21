@@ -52,15 +52,19 @@ Authorization: Bearer <access_token>
 
 ## 2. Authentification & Cycle de Vie des Tokens
 
-Le système d'authentification repose sur un modèle à double jeton :
-* **Access Token (JWT)** : Courte durée de vie (**15 minutes**). Transmis dans le header `Authorization: Bearer <token>`.
-* **Refresh Token** : Longue durée de vie (**7 jours**). Stocké de manière sécurisée sur le mobile (`expo-secure-store` / Keychain / Keystore) et hashé en base (SHA-256) pour éviter tout rejeu.
+Le mobile utilise un ensemble d'endpoints **dédiés** (`/api/auth/mobile/*`), distincts des endpoints web (`/api/auth/login`, `/api/auth/refresh`, `/api/auth/logout`). Ces derniers reposent sur un cookie `httpOnly` que le mobile ne peut ni lire ni renvoyer : ils sont **inutilisables** depuis l'application mobile, et réciproquement un token émis pour le mobile est refusé par les routes web.
 
-### 2.1 Connexion (`POST /api/auth/login`)
+* **Access Token (JWT)** : durée de vie **15 minutes**. Transmis dans le header `Authorization: Bearer <token>` sur chaque requête protégée.
+* **Refresh Token** : durée de vie **7 jours**. Chaîne hexadécimale de **80 caractères** (40 octets aléatoires), hashée en SHA-256 côté serveur. Renvoyé dans le corps JSON — jamais en cookie — et doit être stocké côté mobile via `flutter_secure_storage` uniquement (Keychain sur iOS, Keystore sur Android).
+* **Rotation à chaque refresh** : chaque appel à `/mobile/refresh` invalide immédiatement l'ancien refresh token et en émet un nouveau. Réutiliser un refresh token déjà consommé renvoie systématiquement `401`.
+
+> ⚠️ **Contrainte critique** : ne jamais envoyer d'en-tête `Origin` vers `/api/auth/mobile/*`. Toute requête qui en porte un — quelle que soit sa valeur, y compris `"null"` — est rejetée en `403` avant même d'atteindre la logique métier (garde CORS dédiée, voir `ARCHITECTURE_RULES.md` § 4). Les clients HTTP natifs (`dio`, `http`) n'ajoutent pas cet en-tête par défaut : ne le configurez pas manuellement. Conséquence directe : ces endpoints ne sont **pas utilisables depuis un navigateur**, donc pas depuis **Flutter Web** — un navigateur envoie systématiquement `Origin` sur ce type de requête.
+
+### 2.1 Connexion (`POST /api/auth/mobile/login`)
 
 **Requête :**
 ```http
-POST /api/auth/login HTTP/1.1
+POST /api/auth/mobile/login HTTP/1.1
 Content-Type: application/json
 
 {
@@ -69,33 +73,37 @@ Content-Type: application/json
 }
 ```
 
-**Réponse avec succès (200 OK) :**
+**Réponse (200 OK) :**
 ```json
 {
   "message": "Connexion réussie.",
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "7a8f9e0b1c2d3e4f5a6b7c8d9e0f1a2b...",
-  "userId": 42,
+  "refreshToken": "7a8f9e0b1c2d3e4f5a6b7c8d9e0f1a2b... (80 caractères hex)",
   "role": "gestionnaire",
-  "user": {
-    "id": 42,
-    "nom": "Waris Immobilier",
-    "email": "gestionnaire@example.com",
-    "user_type": "gestionnaire",
-    "role": "gestionnaire",
-    "telephone": "+22997000000",
-    "avatar_url": "https://bucket.ams3.digitaloceanspaces.com/avatars/user-42.jpg"
-  }
+  "userId": 42
 }
 ```
+Aucun cookie n'est posé, et aucun objet `user` détaillé n'est renvoyé ici : appelez ensuite `GET /api/auth/profile` avec l'access token pour récupérer le profil complet.
 
-### 2.2 Rafraîchissement Automatique du Token (`POST /api/auth/refresh`)
+**Erreurs possibles :**
+| Code | Corps | Cas |
+|---|---|---|
+| `400` | `{ "errors": [...] }` (voir 2.5) | Email/mot de passe manquant, ou email au format invalide |
+| `401` | `{ "message": "Email ou mot de passe incorrect." }` | Identifiants invalides |
+| `401` | `{ "message": "Votre compte est inactif ou suspendu..." }` | Compte désactivé |
+| `403` | `{ "message": "Veuillez vérifier votre adresse email...", "isVerified": false }` | Email non vérifié — voir 2.4 |
+| `403` | `{ "message": "Origine non autorisée." }` | En-tête `Origin` présent |
+| `429` | `{ "error": "Trop de tentatives de connexion, réessayez dans 15 minutes." }` | Quota `authLimiter` dépassé — voir encadré ci-dessous |
 
-Lorsque le backend renvoie un code d'erreur **`401 Unauthorized`** avec un token expiré, le client mobile doit automatiquement appeler cet endpoint avant de relancer la requête originale.
+> **Limitation de débit (`authLimiter`)** : `/mobile/login`, `/mobile/refresh` et `/mobile/logout` partagent le même quota que **tout** `/api/auth/*` (y compris les routes web) : **20 requêtes / 15 minutes par IP**, avec `skipSuccessfulRequests: true` — seules les requêtes qui échouent consomment le quota. Réponse `429`, corps `{ "error": "..." }` (et non `{ "message": ... }`, à distinguer des erreurs 401/403). Des en-têtes `RateLimit-Limit` / `RateLimit-Remaining` / `RateLimit-Reset` sont présents sur chaque réponse.
+
+### 2.2 Rafraîchissement (`POST /api/auth/mobile/refresh`)
+
+Sur toute réponse `401` d'un endpoint protégé, rafraîchissez avant de rejouer la requête originale.
 
 **Requête :**
 ```http
-POST /api/auth/refresh HTTP/1.1
+POST /api/auth/mobile/refresh HTTP/1.1
 Content-Type: application/json
 
 {
@@ -106,31 +114,91 @@ Content-Type: application/json
 **Réponse (200 OK) :**
 ```json
 {
-  "message": "Token rafraîchi avec succès.",
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...(nouveau)",
-  "refreshToken": "8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e...(nouveau tournant)"
+  "refreshToken": "8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e...(nouveau, tournant)"
 }
 ```
+> Pas de champ `message` sur cette réponse, contrairement à `/mobile/login`.
 
-> [!NOTE]
-> Le Refresh Token fait l'objet d'une **rotation atomique** : chaque appel à `/refresh` invalide l'ancien refresh token et en délivre un nouveau. Le mobile doit sauvegarder immédiatement le nouveau couple (token, refreshToken).
+**Erreurs possibles :**
+| Code | Corps | Cas |
+|---|---|---|
+| `400` | `{ "errors": [{ "msg": "Refresh token manquant.", ... }] }` | `refreshToken` absent du corps |
+| `400` | `{ "errors": [{ "msg": "Refresh token invalide.", ... }] }` | Format incorrect (pas 80 caractères hex minuscules) |
+| `401` | `{ "message": "Refresh token invalide ou expiré." }` | Token révoqué, expiré, déjà consommé (rotation), ou émis pour l'autre canal (web) |
+| `403` | `{ "message": "Origine non autorisée." }` | En-tête `Origin` présent |
+| `429` | `{ "error": "Trop de tentatives de connexion, réessayez dans 15 minutes." }` | Quota `authLimiter` dépassé (voir § 2.1) |
 
-### 2.3 Mot de Passe Oublié & Réinitialisation
+Un token émis par `/mobile/login` ne peut être rafraîchi que via `/mobile/refresh` — jamais via `/api/auth/refresh` (web), et inversement. Le message d'erreur `401` est volontairement identique dans tous les cas d'échec, pour ne donner aucun indice distinctif à un attaquant.
 
-1. **Demande d'envoi du lien/code** :
+### 2.3 Déconnexion (`POST /api/auth/mobile/logout`)
+
+```http
+POST /api/auth/mobile/logout HTTP/1.1
+Content-Type: application/json
+
+{ "refreshToken": "..." }
+```
+**Réponse (200 OK) :** `{ "message": "Déconnexion réussie." }` — toujours `200`, même si le token était déjà invalide, révoqué ou absent en base. Effacez les tokens stockés localement immédiatement après l'appel, sans dépendre du résultat.
+
+### 2.4 Vérification d'Email
+
+Il n'existe **pas** de `/api/auth/mobile/verify-email`. Le flux est :
+1. Appelez `POST /api/auth/verify-email` (`{ "email", "otp" }`) — c'est un endpoint **web**, partagé : sa réponse contient un `token` d'accès et pose un cookie `refreshToken` (canal `web`). Ce token d'accès est valide 15 minutes mais aucun refresh token mobile ne lui est associé : la session ne pourrait pas être prolongée. Ignorez-le et appelez `/mobile/login`.
+2. Appelez immédiatement `POST /api/auth/mobile/login` avec les mêmes identifiants pour obtenir la première paire de tokens du canal mobile.
+
+### 2.5 Formats d'Erreur
+
+Deux formes selon l'origine de l'erreur — à distinguer côté Flutter en testant la présence de `errors` (tableau) vs `message` (chaîne) :
+
+* **Erreurs de validation (`400`)**, produites par `express-validator` :
+  ```json
+  { "errors": [ { "type": "field", "msg": "...", "path": "refreshToken", "location": "body", "value": "..." } ] }
+  ```
+  Le champ `value` est **absent** quand le champ manquait entièrement dans la requête ; il n'apparaît que si une valeur invalide a été fournie.
+* **Erreurs métier/auth (`401`, `403`, `404`, `409`, ...)** :
+  ```json
+  { "message": "Texte lisible pour l'utilisateur." }
+  ```
+  Parfois enrichi de champs additionnels (ex. `isVerified` sur le `403` de `/mobile/login`).
+
+### 2.6 Recommandations d'Implémentation Flutter
+
+* **Stockage** : access token et refresh token **uniquement** via `flutter_secure_storage`. Jamais dans `SharedPreferences`, un provider en mémoire persistant sans chiffrement, ou un log.
+* **Intercepteur `dio`** : sur une réponse `401`, déclenchez un refresh puis rejouez la requête initiale. À cause de la rotation (2.2), **deux refresh concurrents invalident mutuellement leurs tokens et cassent la session** — protégez l'appel à `/mobile/refresh` par un verrou (`Completer`/mutex) ou une file d'attente partagée, de sorte qu'**un seul refresh soit en vol à la fois** ; les requêtes qui échouent en `401` pendant qu'un refresh est déjà en cours doivent attendre son résultat puis rejouer avec le nouveau token, sans déclencher leur propre refresh.
+* **Échec du refresh (`401`)** : effacez immédiatement les tokens stockés et redirigez vers l'écran de connexion — ne retentez pas.
+* **Quota dépassé pendant un refresh (`429`)** : ce n'est **pas** un échec d'authentification — ne pas effacer les tokens ni déconnecter l'utilisateur. Attendez (voir `RateLimit-Reset`) puis réessayez plus tard.
+* **Après vérification d'email** : suivez le flux 2.4 (`verify-email` puis `mobile/login`).
+* **Aucun cookie jar** (`CookieManager`/`PersistCookieJar`) ne doit être attaché au client `dio` utilisé pour `/api/auth/mobile/*` : ces endpoints n'utilisent pas de cookies, et un cookie jar stockerait inutilement le cookie `refreshToken` web posé par `verify-email` (2.4).
+
+### 2.7 Limites Connues (Hors Périmètre Actuel)
+
+* **Pas de révocation automatique** des refresh tokens actifs lors d'un changement de mot de passe (`/api/auth/change-password`) ou d'une réinitialisation (`/api/auth/reset-password`) — un ancien refresh token mobile reste valide après un changement de mot de passe.
+* **Pas de détection de réutilisation (reuse detection)** : présenter un refresh token déjà révoqué échoue simplement en `401`, sans invalider les autres sessions actives de l'utilisateur.
+* **Pas de purge automatique** des refresh tokens expirés en base.
+
+Ces points sont identifiés et prévus pour un chantier ultérieur séparé.
+
+### 2.8 Mot de Passe Oublié & Réinitialisation
+
+Ces endpoints sont partagés entre web et mobile (pas de notion de canal) :
+
+1. **Demande d'envoi du code** :
    ```http
    POST /api/auth/forgot-password
    Content-Type: application/json
 
    { "email": "gestionnaire@example.com" }
    ```
+   Réponse toujours `200` (anti-énumération), que l'email existe ou non.
 2. **Réinitialisation effective** :
    ```http
-   POST /api/auth/reset-password/:token
+   POST /api/auth/reset-password
    Content-Type: application/json
 
-   { "password": "NouveauMotDePasse1!" }
+   { "token": "...", "newPassword": "NouveauMotDePasse1!" }
    ```
+   Le token est transmis dans le **corps**, pas dans l'URL ; le champ s'appelle `newPassword`, pas `password`.
 
 ---
 
@@ -613,81 +681,7 @@ export interface DashboardKPIs {
 
 ## 13. Exemple de Client HTTP Isomorphe (Axios / Fetch + Refresh Automatique)
 
-Voici l'architecture recommandée pour votre nouveau dépôt mobile afin de gérer automatiquement les tokens et le rafraîchissement sur erreur 401 :
-
-```typescript
-// src/services/apiClient.ts
-import * as SecureStore from 'expo-secure-store';
-
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://hope-gestion-backend.onrender.com/api';
-
-async function getToken(): Promise<string | null> {
-  return await SecureStore.getItemAsync('access_token');
-}
-
-async function getRefreshToken(): Promise<string | null> {
-  return await SecureStore.getItemAsync('refresh_token');
-}
-
-async function saveTokens(token: string, refreshToken: string): Promise<void> {
-  await SecureStore.setItemAsync('access_token', token);
-  await SecureStore.setItemAsync('refresh_token', refreshToken);
-}
-
-export async function clearTokens(): Promise<void> {
-  await SecureStore.deleteItemAsync('access_token');
-  await SecureStore.deleteItemAsync('refresh_token');
-}
-
-export async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  let token = await getToken();
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string> || {}),
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const url = `${BASE_URL}${endpoint}`;
-  let response = await fetch(url, { ...options, headers });
-
-  // Si le token est expiré (401), on tente de le rafraîchir
-  if (response.status === 401) {
-    const refreshToken = await getRefreshToken();
-    if (refreshToken) {
-      const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      if (refreshRes.ok) {
-        const data = await refreshRes.json();
-        await saveTokens(data.token, data.refreshToken);
-
-        // On rejoue la requête initiale avec le nouveau token
-        headers['Authorization'] = `Bearer ${data.token}`;
-        response = await fetch(url, { ...options, headers });
-      } else {
-        // Refresh token invalide -> déconnexion forcée
-        await clearTokens();
-        throw new Error('Session expirée. Veuillez vous reconnecter.');
-      }
-    }
-  }
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Erreur serveur (${response.status})`);
-  }
-
-  if (response.status === 204) return {} as T;
-  return response.json() as Promise<T>;
-}
-```
+> Exemple obsolète supprimé. Voir la section 2 pour le contrat d'authentification mobile ; un exemple d'intercepteur `dio` sera ajouté lors de l'intégration Flutter.
 
 ### Utilitaires WhatsApp et Téléphone Natif
 ```typescript

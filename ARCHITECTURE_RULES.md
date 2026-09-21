@@ -20,3 +20,7 @@ Toute requête vers la base de données **DOIT** inclure un filtre sur l'identif
 Avant de répondre "c'est corrigé" à l'utilisateur, je m'engage à :
 - Montrer le diff exact des lignes qui ont été modifiées.
 - Confirmer de manière explicite que le filtre tenant est bien présent dans ces modifications (en lien avec la Règle 1).
+
+## 4. RÈGLE DE SÉPARATION DES CANAUX D'AUTHENTIFICATION
+
+Aucun endpoint qui lit le cookie `refreshToken` ne doit renvoyer de refresh token dans le corps de la réponse. Les endpoints `/api/auth/mobile/*` ne lisent ni n'écrivent de cookie, rejettent toute requête portant un en-tête `Origin` (garde `mobileAuthCorsGate`, insensible à la casse) et n'acceptent que des tokens `client_type = 'mobile'`. Toute nouvelle route d'authentification doit respecter cette séparation.
