@@ -1,0 +1,58 @@
+# Journal d'évolution du projet
+Mis à jour automatiquement après chaque tâche.
+
+### T-000 : État initial du projet
+- **Date** : 2026-09-23
+- **Statut** : Terminée
+- **Type** : Documentation
+
+**Objectif et périmètre.** HopeGestionV2 est une application web de gestion immobilière (Bénin, Cotonou notamment) : gestion des biens (immeubles/lots), locataires, baux, paiements de loyer, dépenses, documents, états des lieux, mobile money, avec des tableaux de bord différenciés par rôle (gestionnaire/manager, propriétaire, locataire, admin). Un client mobile Flutter dédié (`HopeGestionMobile`, dépôt séparé) consomme une partie de cette même API via des routes `/api/auth/mobile/*` isolées du flux web (cookies httpOnly côté web, JSON pur côté mobile — voir T-004 à T-006 ci-dessous, chantier mené depuis le dépôt mobile). Monorepo avec deux applications indépendantes : `backend/` et `frontend/`.
+
+**Stack technique.**
+- Backend : Node.js (≥20.10), Express 5, TypeScript, PostgreSQL (`pg`, requêtes paramétrées, pas d'ORM), JWT (`jsonwebtoken`) + refresh tokens en base, `bcrypt`, `multer` (upload, stockage mémoire), Digital Ocean Spaces (`@aws-sdk/client-s3`) avec repli disque local en dev, `helmet`/`express-rate-limit`/`cors` pour le durcissement, `express-validator`, `nodemailer` (emails transactionnels/OTP), `node-cron` (tâches planifiées), `pdfkit`/`exceljs` (génération de documents), `twilio`/`fedapay` (intégrations tierces — usage exact à confirmer), tests avec `jest`+`supertest`+`ts-jest`.
+- Frontend : React 19, Vite 7, TypeScript, TailwindCSS 4 + DaisyUI (le `README.md` racine mentionne encore "Material-UI", obsolète — vérifié dans `package.json`, c'est Tailwind/DaisyUI), TanStack Query (état serveur), React Router 7, `axios`/`fetch` mixtes selon les fichiers, `framer-motion`, `recharts`, `i18next` (multilingue), `react-signature-canvas` (signatures états des lieux), Storybook (composants UI).
+- Déploiement : plusieurs docs présentes (`DEPLOYMENT.md`, `RAILWAY_DEPLOYMENT.md`, `OVH_DEPLOYMENT.md`, `CUSTOM_DOMAIN_SETUP.md`) suggérant une migration progressive d'hébergeur — Render mentionné comme cible historique (disque persistant évoqué dans le code d'upload), Railway et OVH comme cibles plus récentes (à confirmer laquelle est active en production aujourd'hui). Domaine de production observé dans le code : `hopegestion.com`.
+
+**Modules/fonctionnalités présents (déduit des routes montées dans `backend/index.ts`)** : authentification (email/mot de passe + Google OAuth + comptes invités), profil/compte, biens (immeubles/lots), locataires, baux/locations, paiements, dépenses, documents (upload + génération PDF de baux/quittances), tableaux de bord par rôle, délégations d'accès, calendrier, audit-logs, mobile money, notifications, accès locataire (portail), alertes, permissions (matrice), affectations utilisateur↔propriétaire, finances, prêts (loans), tickets (interventions), inventaires/états des lieux (EDL) avec signature électronique, réservations publiques (page vitrine), CGU, invitations, upload de fichiers centralisé, mode maintenance avec token d'urgence.
+
+**Grandes étapes passées (d'après `git log`, 712 commits, premier commit le 2025-12-08).**
+- 2025-12 : initialisation du projet (backend CRUD biens/locataires/paiements/dépenses/baux, frontend refondu en Tailwind/DaisyUI).
+- 2026-01→03 (approx.) : mode maintenance avec token d'urgence, ajustements de charte graphique, premières corrections de fuite de données.
+- 2026-02 : durcissement progressif (erreurs SQL détaillées en debug, gestion des hôtes de connexion pour Render).
+- Vers avril 2026 : retrait puis réintroduction d'un client mobile (`apps/mobile` supprimé au profit du dépôt séparé `HopeGestionMobile`), restructuration des API pour le préparer (`eb7d39bc`), correctif du code HTTP 401 vs 403 sur l'expiration de token (pour permettre l'auto-refresh).
+- Mai-juin 2026 : corrections d'isolation propriétaire sur les documents, doublons d'upload de documents, soft-delete ("corbeille") pour documents/tâches/EDL/interventions/messages, affichage des taux d'occupation.
+- 2026-09 (session courante et immédiatement précédente) : chantier sécurité multi-parties mené depuis le dépôt `HopeGestionMobile` mais appliqué à ce backend — audit et correctifs RLS/IDOR (mobile money, tickets, comptes propriétaires), isolation web/mobile des tokens (routes `/api/auth/mobile/*`, garde CORS dédiée), faille de prise de contrôle de compte sur `complete-profile`, durcissement Google OAuth, préparation de l'authentification mobile Flutter (phases 2-4). Ce travail est journalisé en détail dans `HopeGestionMobile/docs/JOURNAL_PROJET.md` (entrées T-001 à T-020 environ) plutôt qu'ici, car piloté depuis ce second dépôt — ce présent journal (`HopeGestionV2/docs/JOURNAL_PROJET.md`) n'existait pas encore avant cette entrée T-000 et démarre donc l'historique propre à ce dépôt à partir de maintenant.
+
+**Points fragiles / dette technique constatés** (par lecture directe du code, au fil des sessions précédentes et de celle-ci) :
+- Row-Level Security PostgreSQL appliquée de façon incohérente : certaines tables sensibles n'étaient pas sous `FORCE ROW LEVEL SECURITY` et deux endpoints laissaient fuiter des données cross-tenant (`mobile_money_transactions`, `tickets`) avant correctif ; le dispositif RLS lui-même (fonctions `get_current_*_id`, `FORCE`) n'est capturé dans aucune migration versionnée — appliqué manuellement en base à un moment non tracé.
+- Le rôle `manager` reçoit un traitement incohérent selon les fichiers : équivalent strict de `gestionnaire` dans la plupart des routes, mais bypass global façon `admin` dans `middleware/ownerIsolation.ts` (`filterByOwner`, non corrigé) et dans `routes/ownerRoutes.ts` (`GET /`, non corrigé).
+- Schéma de production non reproductible localement : plusieurs migrations échouent sur une base amorcée uniquement via `db/init.sql` + les migrations (colonnes/tables intermédiaires manquantes) — aucune base locale de référence fiable actuellement.
+- `POST /api/upload` (upload de fichiers, 10 Mo × 10, images+PDF) était montée sans authentification depuis sa création (janvier 2026), y compris à travers un commit de durcissement sécurité dédié qui a ajouté la vérification des magic bytes sans remarquer l'absence totale de `protect` — corrigé en T-001 ci-dessous.
+- Deux implémentations locales quasi identiques de récupération du token web (`localStorage.getItem('userToken')`) coexistent : l'export centralisé `getToken` de `api/authApi.ts`, et une constante privée dupliquée dans `api/documentApi.ts` — sans conséquence fonctionnelle (même clé), mais source de divergence future si la clé de stockage change un jour.
+- Le README.md racine décrit une stack partiellement obsolète (Material-UI au lieu de Tailwind/DaisyUI) — à mettre à jour séparément si souhaité.
+
+**Méthode d'exploration pour cet état des lieux** : lecture de `README.md`, `docs/STATUS.md` (partiellement), `backend/package.json`/`frontend/package.json`, `backend/index.ts` (montage complet des routes), `git log` (chronologie et volumétrie), et report des constats déjà établis par audit direct du code lors des sessions de sécurité précédentes (RLS, IDOR, isolation mobile/web) et de la session courante (upload). Pas d'exécution de l'application ni de la base de données locale (indisponible, voir point de dette technique ci-dessus).
+
+### T-001 : Correctif — `POST /api/upload` exige désormais une authentification
+- **Date** : 2026-09-23
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : `POST /api/upload` (upload générique de fichiers — avatars, photos de biens/lots/locataires, documents, photos et signatures d'inventaires/états des lieux) était accessible sans aucune authentification depuis sa création, permettant à quiconque d'uploader des fichiers arbitraires (images/PDF, jusqu'à 10 Mo × 10) sans attribution à un compte. Corrigé en ajoutant `protect` à son montage dans `index.ts`. Les 8 appels frontend recensés qui utilisaient cette route sans jamais envoyer de jeton ont été corrigés en parallèle pour ne pas casser la production.
+- **Fichiers touchés** :
+  - `backend/index.ts` (ajout de `protect` au montage de `uploadRoutes`)
+  - `backend/tests/routes/upload.test.ts` (nouveau, 3 tests)
+  - `frontend/src/components/ui/ImageUpload.tsx`
+  - `frontend/src/components/ui/AvatarUpload.tsx`
+  - `frontend/src/components/ui/DocumentUpload.tsx`
+  - `frontend/src/pages/Parametres.tsx`
+  - `frontend/src/pages/InventoryForm.tsx`
+  - `frontend/src/pages/InventorySignature.tsx`
+  - `frontend/src/pages/EdlCreate.tsx`
+  - `frontend/src/pages/EdlSignature.tsx`
+- **Décisions & justifications** :
+  - Diagnostic préalable (lecture seule) confirmé avant tout correctif : `git log -p --follow` sur `uploadRoutes.ts` et sur la ligne de montage dans `index.ts` montre qu'aucune authentification n'y a jamais été appliquée, à aucun moment de l'historique — y compris dans le commit `d20f85b2` ("security(backend): corrections bloc 3"), qui a pourtant modifié ce fichier précis pour ajouter la vérification des magic bytes sans traiter l'absence d'authentification. Aucun usage pré-authentification légitime trouvé (tous les appelants identifiés sont des formulaires internes accessibles uniquement à un utilisateur déjà connecté).
+  - Correctif backend minimal : uniquement `protect` ajouté au montage (`app.use('/api/upload', protect, uploadRoutes);`), comme demandé — pas de journalisation de `req.userId` sur chaque upload dans cette passe (proposé, non imposé) : ajouterait une trace d'audit utile (qui a uploadé quoi), mais change le contrat de la route (nouveau champ dans la réponse ou en base) et n'a pas été validé par l'utilisateur ; à faire dans une passe séparée si souhaité.
+  - Récupération du jeton côté frontend : import de l'export centralisé `getToken` de `api/authApi.ts` (déjà utilisé par `apiUtils.ts` et `InventoryForm.tsx`) dans les 8 fichiers, plutôt que dupliquer `localStorage.getItem('userToken')` une 8ᵉ fois (demande explicite de ne pas dupliquer). Pas de passage par `apiCall`/l'utilitaire à refresh automatique (`utils/apiUtils.ts`) pour ces appels : celui-ci fixe `Content-Type: application/json` par défaut, incompatible avec un `FormData` multipart (le navigateur doit poser lui-même l'en-tête avec sa boundary) — modèle suivi : `documentApi.ts`, qui pose directement l'en-tête `Authorization` sur la requête sans passer par cet utilitaire, pour la même raison (upload multipart).
+  - Les trois composants réutilisables (`ImageUpload`, `AvatarUpload`, `DocumentUpload`) ont été corrigés à la source (pas seulement dans une page appelante), donc tous leurs usages indirects (formulaires biens/lots/locataires/propriétaires) héritent automatiquement du correctif.
+  - Test backend : application Express isolée (`protect` + `uploadRoutes` seuls montés, sans passer par `index.ts` qui tenterait une connexion PostgreSQL réelle au chargement — même contrainte que documentée pour `compteRoutes.ts` dans le chantier RLS), jeton signé avec `email` dans le payload pour éviter l'aller-retour DB de secours dans `protect`. Fichier PNG 1×1 réel (magic bytes valides) utilisé pour passer `verifyMagicBytes` sans le contourner. Nettoyage du fichier réellement écrit sur le disque local après le test (`uploads/` est gitignored, mais autant ne rien laisser).
+- **Problèmes rencontrés** : aucun bloquant. `npm test -- upload.test.ts` : 3/3 verts. `npx tsc --noEmit` (backend) : propre. `npm run build` (frontend, `tsc -b && vite build`) : succès. Pas de commit ni de push : livraison en attente de relecture par l'utilisateur. **STOP**, comme demandé.

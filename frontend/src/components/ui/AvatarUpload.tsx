@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Camera, Loader2, X } from 'lucide-react';
 import { API_URL, API_BASE } from '../../config';
+import { getToken } from '../../api/authApi';
 
 interface AvatarUploadProps {
   value?: string;
@@ -33,7 +34,11 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({ value, onChange, size = 112
     fd.append('file', file);
 
     try {
-      const res  = await fetch(`${API_URL}/upload`, { method: 'POST', body: fd });
+      const res  = await fetch(`${API_URL}/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: fd,
+      });
       const data = await res.json();
       if (res.ok) {
         const url = `${API_BASE}${data.files[0].path}`;

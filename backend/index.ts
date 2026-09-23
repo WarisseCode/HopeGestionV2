@@ -183,9 +183,11 @@ app.use('/api', checkMaintenance);
 // Apply general rate limiting to all API routes
 app.use('/api', apiLimiter);
 
-// Routes d'upload
+// Routes d'upload — authentification requise (voir audit sécurité : cette route
+// était montée sans `protect` depuis sa création, seule route de ressource interne
+// dans ce fichier à ne pas l'être sans commentaire justifiant un accès public).
 import uploadRoutes from './routes/uploadRoutes';
-app.use('/api/upload', uploadRoutes);
+app.use('/api/upload', protect, uploadRoutes);
 
 // Routes d'authentification (Publiques) - WITH STRICT RATE LIMITING
 app.use('/api/auth', authLimiter, authRoutes);

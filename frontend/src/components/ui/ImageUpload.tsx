@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { API_URL, API_BASE } from '../../config';
+import { getToken } from '../../api/authApi';
 
 interface ImageUploadProps {
     value?: string;           // URL de l'image existante
@@ -56,6 +57,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         try {
             const response = await fetch(`${API_URL}/upload`, {
                 method: 'POST',
+                headers: { Authorization: `Bearer ${getToken()}` },
                 body: formData,
                 // Pas de Content-Type header, le navigateur le met automatiquement avec boundary
             });

@@ -172,7 +172,11 @@ const InventoryForm: React.FC = () => {
     fd.append('type', 'inventory');
     fd.append('file', e.target.files[0]);
     try {
-      const res  = await fetch(`${API_URL}/upload`, { method: 'POST', body: fd });
+      const res  = await fetch(`${API_URL}/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: fd,
+      });
       const data = await res.json();
       if (res.ok) {
         const url = `${API_BASE}${data.files[0].path}`;

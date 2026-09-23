@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiCall } from '../utils/apiUtils';
+import { getToken } from '../api/authApi';
 import { compressImage } from '../utils/imageCompress';
 import { API_URL, API_BASE } from '../config';
 import { toast } from 'react-hot-toast';
@@ -150,7 +151,11 @@ const EdlCreate: React.FC = () => {
                 const formData = new FormData();
                 formData.append('type', 'document'); // 'type' AVANT 'file' (lecture Multer)
                 formData.append('file', new File([blob], `edl-${Date.now()}.jpg`, { type: 'image/jpeg' }));
-                const resp = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
+                const resp = await fetch(`${API_URL}/upload`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${getToken()}` },
+                    body: formData,
+                });
                 const data = await resp.json();
                 if (!resp.ok) throw new Error(data.message || 'Upload échoué');
                 urls.push(`${API_BASE}${data.files[0].path}`);

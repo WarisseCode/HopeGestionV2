@@ -19,6 +19,7 @@ import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import { useUser } from '../contexts/UserContext';
 import { accountApi } from '../api/accountApi';
+import { getToken } from '../api/authApi';
 import { API_BASE, API_URL } from '../config';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -135,7 +136,11 @@ const Parametres: React.FC = () => {
     fd.append('type', 'avatar');
     const tid = toast.loading(t('settings.photoUploading'));
     try {
-      const res = await fetch(`${API_URL}/upload`, { method: 'POST', body: fd });
+      const res = await fetch(`${API_URL}/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: fd,
+      });
       const data = await res.json();
       if (res.ok && data.files?.[0]) {
         const url = `${API_BASE}${data.files[0].path}`;

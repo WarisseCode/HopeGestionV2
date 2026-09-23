@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, FileText, Loader2, FileCheck } from 'lucide-react';
 import { API_URL, API_BASE } from '../../config';
+import { getToken } from '../../api/authApi';
 
 interface DocumentUploadProps {
     value?: string;           // URL du document existant
@@ -51,6 +52,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
         try {
             const response = await fetch(`${API_URL}/upload`, {
                 method: 'POST',
+                headers: { Authorization: `Bearer ${getToken()}` },
                 body: formData
             });
 

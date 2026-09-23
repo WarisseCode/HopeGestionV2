@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import SignatureCanvas from 'react-signature-canvas';
 import { apiCall } from '../utils/apiUtils';
+import { getToken } from '../api/authApi';
 import { API_URL, API_BASE } from '../config';
 import { toast } from 'react-hot-toast';
 import { Check, X, ArrowLeft, PenTool, User, Building, Loader2 } from 'lucide-react';
@@ -14,7 +15,11 @@ async function uploadSignature(canvas: HTMLCanvasElement, role: string): Promise
     const formData = new FormData();
     formData.append('type', 'document'); // 'type' AVANT 'file' (lecture Multer)
     formData.append('file', new File([blob], `signature-inv-${role}-${Date.now()}.png`, { type: 'image/png' }));
-    const resp = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
+    const resp = await fetch(`${API_URL}/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: formData,
+    });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.message || 'Upload signature échoué');
     return `${API_BASE}${data.files[0].path}`;
