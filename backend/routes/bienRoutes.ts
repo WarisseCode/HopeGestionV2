@@ -234,9 +234,8 @@ router.post('/immeubles', permissions.canWrite('biens'), tenantGuard, validate(i
 // POST /api/biens/lots : Créer ou mettre à jour un lot
 router.post('/lots', permissions.canWrite('biens'), checkPropertyLimit, tenantGuard, validate(lotRules), async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
-    const strictOwnerId = (req as any).resolvedOwnerId;
 
-    const { 
+    const {
         id, immeuble, building_id, reference, type, etage, bloc, superficie, nbPieces, 
         loyer, charges, periodicite, caution, avance, prix_vente, modalite_vente, duree_echelonnement,
         photos, statut, date_disponibilite, description 
@@ -261,9 +260,26 @@ router.post('/lots', permissions.canWrite('biens'), checkPropertyLimit, tenantGu
              return res.status(400).json({ message: 'Immeuble invalide, introuvable ou non autorisé.' });
         }
 
-        // [PATTERN RLS] - Plus de vérification croisée fastidieuse (accessCheck de cible d'immeuble),
-        // Si PostgreSQL RLS est activé et limite l'accès aux buildings de ce locataire, 
-        // l'affectation à cet immeuble ou mise à jour du lot sera sécurisée nativement.
+        // [FIX RLS] owner_id d'un lot hérite toujours de son immeuble parent,
+        // jamais re-résolu depuis req.resolvedOwnerId (session courante) :
+        // ce dernier peut être NULL selon le mode de résolution de
+        // tenantGuard (ex. gestionnaire multi-propriétaires sans owner_id
+        // re-fourni dans CETTE requête précise), alors que l'immeuble, lui,
+        // a déjà un owner_id fixé de façon définitive. Un client n'a aucune
+        // raison de re-fournir owner_id pour créer un lot : il est déjà
+        // déterminé par l'immeuble auquel il est rattaché.
+        // Cette lecture sert aussi de vérification d'existence/autorisation
+        // RLS sur targetBuildingId (0 ligne si l'immeuble n'existe pas ou
+        // n'est pas visible pour cette session) — remplace la vérification
+        // croisée manuelle qu'on ferait sans RLS.
+        const buildingOwnerRes = await dbClient.query(
+            `SELECT owner_id FROM buildings WHERE id = $1`,
+            [targetBuildingId]
+        );
+        if (buildingOwnerRes.rows.length === 0) {
+            return res.status(400).json({ message: 'Immeuble invalide, introuvable ou non autorisé.' });
+        }
+        const inheritedOwnerId = buildingOwnerRes.rows[0].owner_id;
 
         if (id) {
             const result = await dbClient.query(
@@ -278,8 +294,8 @@ router.post('/lots', permissions.canWrite('biens'), checkPropertyLimit, tenantGu
                 [reference, type, etage, bloc || null, superficie, nbPieces, 
                  loyer, charges, periodicite || 'mensuel', caution || 0, avance || 1,
                  prix_vente || null, modalite_vente || null, duree_echelonnement || null,
-                 photos || [], statut || 'disponible', date_disponibilite || null, description, targetBuildingId, 
-                 strictOwnerId, id]
+                 photos || [], statut || 'disponible', date_disponibilite || null, description, targetBuildingId,
+                 inheritedOwnerId, id]
             );
 
             if (result.rows.length === 0) {
@@ -295,7 +311,7 @@ router.post('/lots', permissions.canWrite('biens'), checkPropertyLimit, tenantGu
                     photos, statut, date_disponibilite, description
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) 
                  RETURNING *`,
-                [targetBuildingId, strictOwnerId, reference, type, etage, bloc || null, superficie, nbPieces, 
+                [targetBuildingId, inheritedOwnerId, reference, type, etage, bloc || null, superficie, nbPieces,
                  loyer, charges, periodicite || 'mensuel', caution || 0, avance || 1,
                  prix_vente || null, modalite_vente || null, duree_echelonnement || null,
                  photos || [], statut || 'disponible', date_disponibilite || null, description]
