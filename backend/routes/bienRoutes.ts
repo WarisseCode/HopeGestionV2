@@ -40,6 +40,11 @@ const lotRules = [
 ];
 const bienIdParam = [param('id').isInt({ min: 1 }).withMessage('Identifiant invalide')];
 
+// Repli sur 1 étage uniquement si la valeur est absente : `nombre_etages || 1`
+// transformait 0 (plain-pied, accepté par immeubleRules : isInt({ min: 0 })) en 1.
+const etagesOuDefaut = (value: unknown) =>
+    value === undefined || value === null || value === '' ? 1 : value;
+
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
@@ -74,7 +79,9 @@ router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: 
                 COUNT(l.id) as nb_lots,
                 COUNT(CASE WHEN l.statut IN ('loue', 'occupe', 'reserve') THEN 1 END) as lots_occupes
              FROM buildings b
-             LEFT JOIN lots l ON l.building_id = b.id
+             -- Filtre corbeille dans la condition de jointure (pas dans le WHERE) :
+             -- les immeubles sans lot actif restent listés, avec 0 lot.
+             LEFT JOIN lots l ON l.building_id = b.id AND l.deleted_at IS NULL
              LEFT JOIN owners o ON b.owner_id = o.id
              LEFT JOIN users g ON b.gestionnaire_id = g.id
              WHERE b.deleted_at IS NULL ${ownerFilter}
@@ -97,7 +104,9 @@ router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: 
                 ? `${immeuble.owner_name} ${immeuble.owner_first_name || ''}`.trim()
                 : immeuble.owner_name;
 
-            const etatOccupation = totalLots === 0 ? 'Vide'
+            // Aucun lot réellement créé → 'Vide', même avec une capacité déclarée
+            // (sinon « Disponible » à 0/total_lots alors qu'il n'y a rien à louer).
+            const etatOccupation = createdLots === 0 ? 'Vide'
                 : lotsOccupes === totalLots ? 'Complet'
                 : lotsOccupes > 0 ? 'En location'
                 : 'Disponible';
@@ -105,6 +114,9 @@ router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: 
             return {
                 ...immeuble,
                 nbLots: totalLots,
+                // Nouveau champ : lots réellement créés (hors corbeille). `nbLots`
+                // (capacité déclarée, repli sur les lots créés) reste inchangé pour le web.
+                lotsCrees: createdLots,
                 lotsOccupes,
                 occupation,
                 etatOccupation,
@@ -194,7 +206,13 @@ router.post('/immeubles', permissions.canWrite('biens'), tenantGuard, validate(i
             // Mise à jour (le update ne procèdera que si l'immeuble cible est à lui grace à la Policy RLS)
             const result = await dbClient.query(
                 `UPDATE buildings 
-                 SET nom = $1, type = $2, adresse = $3, ville = $4, pays = $5, description = $6, owner_id = $7,
+                 SET nom = $1, type = $2, adresse = $3, ville = $4, pays = $5, description = $6,
+                     -- resolvedOwnerId peut être NULL (gestionnaire multi-propriétaires ou sans
+                     -- propriétaire lié, sans owner_id dans le corps) : ne jamais écraser un
+                     -- propriétaire existant par NULL. Compatible RLS (tenant_isolation_policy,
+                     -- USING owner_id = get_current_owner_id(), sans WITH CHECK dédié) : la ligne
+                     -- mise à jour garde l'owner_id qui l'a rendue visible à cette session.
+                     owner_id = COALESCE($7, owner_id),
                      latitude = $8, longitude = $9, quartier = $10, gestionnaire_id = $11, statut = $12,
                      photos = $13, video_url = $14, plan_masse_url = $15, nombre_etages = $16,
                      photo_url = $17, total_lots = $18, updated_at = CURRENT_TIMESTAMP
@@ -202,7 +220,7 @@ router.post('/immeubles', permissions.canWrite('biens'), tenantGuard, validate(i
                  RETURNING *`,
                 [nom, type, adresse, ville, pays, description, strictOwnerId,
                  latitude || null, longitude || null, quartier || null, gestionnaire_id || null, statut || 'actif',
-                 photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, nombre_etages || 1,
+                 photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, etagesOuDefaut(nombre_etages),
                  photo || null, total_lots || 0, id]
             );
 
@@ -220,7 +238,7 @@ router.post('/immeubles', permissions.canWrite('biens'), tenantGuard, validate(i
                  RETURNING *`,
                 [strictOwnerId, nom, type, adresse, ville, pays, description,
                  latitude || null, longitude || null, quartier || null, gestionnaire_id || null, statut || 'actif',
-                 photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, nombre_etages || 1,
+                 photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, etagesOuDefaut(nombre_etages),
                  photo || null, total_lots || 0]
             );
             res.status(200).json(result.rows[0]);

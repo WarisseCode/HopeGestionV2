@@ -143,3 +143,125 @@ describe('POST /api/biens/lots — owner_id hérité de l\'immeuble parent', () 
         },
     );
 });
+
+// ── Correctifs immeubles (T-005) ─────────────────────────────────────────────
+
+describe('POST /api/biens/immeubles — mise à jour, owner_id jamais écrasé par NULL', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockResolvedOwnerId = null;
+    });
+
+    it('sans owner_id résolu : COALESCE conserve le propriétaire existant', async () => {
+        (pool.query as jest.Mock).mockResolvedValueOnce({
+            rows: [{ id: 5, nom: 'Résidence', owner_id: 3 }],
+        });
+
+        const res = await request(app)
+            .post('/api/biens/immeubles')
+            .set('Authorization', `Bearer ${authToken()}`)
+            .send({ id: 5, nom: 'Résidence' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.owner_id).toBe(3);
+        const [sql, params] = (pool.query as jest.Mock).mock.calls[0];
+        expect(sql).toContain('UPDATE buildings');
+        expect(sql).toContain('owner_id = COALESCE($7, owner_id)');
+        expect(params[6]).toBeNull(); // $7 : NULL → COALESCE garde owner_id
+    });
+
+    it('avec owner_id résolu : la valeur résolue est bien transmise', async () => {
+        mockResolvedOwnerId = 8;
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ id: 5, owner_id: 8 }] });
+
+        await request(app)
+            .post('/api/biens/immeubles')
+            .set('Authorization', `Bearer ${authToken()}`)
+            .send({ id: 5, nom: 'Résidence', owner_id: 8 });
+
+        const [, params] = (pool.query as jest.Mock).mock.calls[0];
+        expect(params[6]).toBe(8);
+    });
+});
+
+describe('POST /api/biens/immeubles — nombre_etages', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockResolvedOwnerId = 3;
+        (pool.query as jest.Mock).mockResolvedValue({ rows: [{ id: 1 }] });
+    });
+
+    const etagesEnvoyes = async (body: Record<string, unknown>) => {
+        await request(app)
+            .post('/api/biens/immeubles')
+            .set('Authorization', `Bearer ${authToken()}`)
+            .send({ nom: 'Résidence', ...body });
+        // $16 dans l'INSERT comme dans l'UPDATE.
+        return (pool.query as jest.Mock).mock.calls[0][1][15];
+    };
+
+    it('création : 0 (plain-pied) est conservé', async () => {
+        expect(await etagesEnvoyes({ nombre_etages: 0 })).toBe(0);
+    });
+
+    it('mise à jour : 0 (plain-pied) est conservé', async () => {
+        expect(await etagesEnvoyes({ id: 5, nombre_etages: 0 })).toBe(0);
+    });
+
+    it('valeur fournie conservée', async () => {
+        expect(await etagesEnvoyes({ nombre_etages: 4 })).toBe(4);
+    });
+
+    it.each([
+        ['absent', {}],
+        ['null', { nombre_etages: null }],
+        ['chaîne vide', { nombre_etages: '' }],
+    ])('%s : repli sur 1', async (_label, body) => {
+        expect(await etagesEnvoyes(body)).toBe(1);
+    });
+});
+
+describe('GET /api/biens/immeubles — lots en corbeille et état d\'occupation', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    it('filtre la corbeille dans la jointure, pas dans le WHERE', async () => {
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+
+        await request(app)
+            .get('/api/biens/immeubles')
+            .set('Authorization', `Bearer ${authToken()}`);
+
+        const [sql] = (pool.query as jest.Mock).mock.calls[0];
+        expect(sql).toMatch(/LEFT JOIN lots l ON l\.building_id = b\.id AND l\.deleted_at IS NULL/);
+        // Le WHERE ne filtre que les immeubles supprimés : un immeuble sans lot
+        // actif reste listé (LEFT JOIN).
+        const whereClause = sql.slice(sql.indexOf('WHERE b.deleted_at'), sql.indexOf('GROUP BY'));
+        expect(whereClause).not.toContain('l.deleted_at');
+    });
+
+    it('aucun lot créé → Vide, même avec une capacité déclarée ; lotsCrees ajouté', async () => {
+        (pool.query as jest.Mock).mockResolvedValueOnce({
+            rows: [
+                // capacité 20, aucun lot créé
+                { id: 1, nom: 'A', total_lots: 20, nb_lots: '0', lots_occupes: '0' },
+                // pas de capacité, 3 lots tous occupés
+                { id: 2, nom: 'B', total_lots: 0, nb_lots: '3', lots_occupes: '3' },
+                // capacité 10, 4 lots dont 2 occupés
+                { id: 3, nom: 'C', total_lots: 10, nb_lots: '4', lots_occupes: '2' },
+            ],
+        });
+
+        const res = await request(app)
+            .get('/api/biens/immeubles')
+            .set('Authorization', `Bearer ${authToken()}`);
+
+        expect(res.status).toBe(200);
+        const [a, b, c] = res.body.immeubles;
+
+        expect(a).toMatchObject({ etatOccupation: 'Vide', lotsCrees: 0, nbLots: 20, occupation: 0 });
+        expect(b).toMatchObject({ etatOccupation: 'Complet', lotsCrees: 3, nbLots: 3, occupation: 100 });
+        // Champs existants inchangés (utilisés par le web) : nbLots = capacité,
+        // occupation calculée sur la capacité.
+        expect(c).toMatchObject({ etatOccupation: 'En location', lotsCrees: 4, nbLots: 10, occupation: 20 });
+    });
+});
