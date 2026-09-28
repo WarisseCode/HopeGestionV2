@@ -85,7 +85,8 @@ export async function apiCall<T>(
                 ? parts.join(' — ')
                 : `Erreur HTTP ${response.status}: ${response.statusText}`;
 
-            throw new Error(errorMessage);
+            // Code HTTP exposé (error.status) pour les appelants qui distinguent 409, 400…
+            throw Object.assign(new Error(errorMessage), { status: response.status });
         }
 
         return await response.json();
