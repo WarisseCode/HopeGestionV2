@@ -27,6 +27,27 @@ interface Schedule {
     online_paid_at: string | null;
 }
 
+type EtatEcheance = 'paid' | 'partial' | 'pending';
+
+/**
+ * État d'une échéance déduit de amount_paid (seule valeur tenue à jour par toutes les
+ * routes d'encaissement) : 'paid' si soldée, 'partial' si un acompte a été versé
+ * (status 'partial' écrit par paySchedule, ou paiement via /paiements qui n'écrit que
+ * statut), sinon 'pending' (y compris 'overdue').
+ */
+const montantVerse = (s: Schedule) => Number(s.amount_paid) || 0;
+const etatEcheance = (s: Schedule): EtatEcheance => {
+    const total = Number(s.total_amount);
+    const verse = montantVerse(s);
+    if (s.status === 'paid' || (total > 0 && verse >= total)) return 'paid';
+    if (s.status === 'partial' || verse > 0) return 'partial';
+    return 'pending';
+};
+/** Montant encaissé, plafonné au total ; une échéance soldée compte pour son total. */
+const montantEncaisse = (s: Schedule) =>
+    etatEcheance(s) === 'paid' ? Number(s.total_amount) : Math.min(montantVerse(s), Number(s.total_amount));
+const resteDu = (s: Schedule) => Math.max(0, Number(s.total_amount) - montantEncaisse(s));
+
 interface FinanceSchedulesProps {
     month: number;
     year: number;
@@ -90,17 +111,19 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
         return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
     };
 
+    // « À payer » = en attente + en acompte (reste dû > 0).
     const filteredSchedules = schedules.filter(s => {
-        if (filter === 'pending') return s.status === 'pending';
-        if (filter === 'paid') return s.status === 'paid';
+        if (filter === 'pending') return etatEcheance(s) !== 'paid';
+        if (filter === 'paid') return etatEcheance(s) === 'paid';
         return true;
     });
 
     const totalExpected = schedules.reduce((sum, s) => sum + Number(s.total_amount), 0);
-    const totalPaid = schedules.filter(s => s.status === 'paid').reduce((sum, s) => sum + Number(s.total_amount), 0);
+    const totalPaid = schedules.reduce((sum, s) => sum + montantEncaisse(s), 0);
     const totalPending = totalExpected - totalPaid;
-    const paidCount = schedules.filter(s => s.status === 'paid').length;
-    const pendingCount = schedules.filter(s => s.status === 'pending').length;
+    const paidCount = schedules.filter(s => etatEcheance(s) === 'paid').length;
+    const pendingCount = schedules.filter(s => etatEcheance(s) !== 'paid').length;
+    const partialCount = schedules.filter(s => etatEcheance(s) === 'partial').length;
 
     const isOverdue = (dateStr: string) => {
         return new Date(dateStr) < new Date() && true;
@@ -168,7 +191,9 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
                         <span className="text-sm font-semibold text-orange-700">En Attente</span>
                     </div>
                     <p className="text-2xl font-extrabold text-orange-900">{formatCurrency(totalPending)}</p>
-                    <p className="text-xs text-orange-600 mt-1">{pendingCount} en attente</p>
+                    <p className="text-xs text-orange-600 mt-1">
+                        {pendingCount} à payer{partialCount > 0 && ` · dont ${partialCount} en acompte`}
+                    </p>
                 </motion.div>
             </div>
 
@@ -204,7 +229,7 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
                                 : 'bg-base-200 text-base-content/60 hover:bg-base-300 border border-transparent'
                         }`}
                     >
-                        {f === 'all' ? `Tout (${schedules.length})` : f === 'pending' ? `En attente (${pendingCount})` : `Payé (${paidCount})`}
+                        {f === 'all' ? `Tout (${schedules.length})` : f === 'pending' ? `À payer (${pendingCount})` : `Payé (${paidCount})`}
                     </button>
                 ))}
             </div>
@@ -212,7 +237,9 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
             {/* Schedules List */}
             <div className="space-y-3">
                 <AnimatePresence>
-                    {filteredSchedules.map((schedule, i) => (
+                    {filteredSchedules.map((schedule, i) => {
+                        const etat = etatEcheance(schedule);
+                        return (
                         <motion.div
                             key={schedule.id}
                             initial={{ opacity: 0, y: 10 }}
@@ -221,17 +248,18 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
                             transition={{ delay: i * 0.03 }}
                         >
                             <Card className={`border-none shadow-sm hover:shadow-md transition-all ${
-                                schedule.status === 'paid' ? 'bg-green-50/50 border-l-4 border-l-green-400' : 
+                                etat === 'paid' ? 'bg-green-50/50 border-l-4 border-l-green-400' : 
                                 isOverdue(schedule.due_date) ? 'bg-red-50/30 border-l-4 border-l-red-400' :
+                                etat === 'partial' ? 'bg-base-100 border-l-4 border-l-amber-400' :
                                 'bg-base-100 border-l-4 border-l-orange-400'
                             }`}>
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4">
                                     {/* Tenant Info */}
                                     <div className="flex items-center gap-4 flex-1">
                                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                                            schedule.status === 'paid' ? 'bg-green-100' : 'bg-orange-100'
+                                            etat === 'paid' ? 'bg-green-100' : 'bg-orange-100'
                                         }`}>
-                                            <User size={20} className={schedule.status === 'paid' ? 'text-green-600' : 'text-orange-600'} />
+                                            <User size={20} className={etat === 'paid' ? 'text-green-600' : 'text-orange-600'} />
                                         </div>
                                         <div>
                                             <h4 className="font-bold text-base-content">
@@ -256,6 +284,11 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
                                     {/* Amount & Date */}
                                     <div className="text-right flex-shrink-0">
                                         <p className="text-lg font-extrabold text-base-content">{formatCurrency(schedule.total_amount)}</p>
+                                        {etat === 'partial' && (
+                                            <p className="text-xs font-semibold text-amber-700">
+                                                Versé : {formatCurrency(montantEncaisse(schedule))} · Reste : {formatCurrency(resteDu(schedule))}
+                                            </p>
+                                        )}
                                         <p className="text-xs text-base-content/60">
                                             Échéance : {formatDate(schedule.due_date)}
                                         </p>
@@ -263,7 +296,12 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
 
                                     {/* Status & Action */}
                                     <div className="flex items-center gap-3 flex-shrink-0">
-                                        {schedule.status === 'paid' ? (
+                                        {etat === 'partial' && (
+                                            <span className="bg-amber-100 text-amber-700 px-3 py-2 rounded-xl text-sm font-bold">
+                                                Acompte
+                                            </span>
+                                        )}
+                                        {etat === 'paid' ? (
                                             <div className="flex items-center gap-2">
                                                 <span className="bg-green-100 text-green-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
                                                     <CheckCircle size={16} /> Payé
@@ -295,7 +333,7 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
                                             </Button>
                                         )}
                                         {/* Online payment badge */}
-                                        {schedule.online_payment_status && schedule.status !== 'paid' && (
+                                        {schedule.online_payment_status && etat !== 'paid' && (
                                             <span className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border ${
                                                 schedule.online_payment_status === 'pending'
                                                     ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
@@ -313,7 +351,8 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
                                 </div>
                             </Card>
                         </motion.div>
-                    ))}
+                        );
+                    })}
                 </AnimatePresence>
             </div>
 
@@ -330,9 +369,20 @@ const FinanceSchedules: React.FC<FinanceSchedulesProps> = ({ month, year }) => {
                                 <span className="text-sm text-base-content/60">Locataire</span>
                                 <span className="font-bold">{selectedSchedule.tenant_prenoms} {selectedSchedule.tenant_nom}</span>
                             </div>
+                            {etatEcheance(selectedSchedule) === 'partial' && (
+                                <div className="flex justify-between">
+                                    <span className="text-sm text-base-content/60">Déjà versé</span>
+                                    <span className="font-semibold">
+                                        {formatCurrency(montantEncaisse(selectedSchedule))} sur {formatCurrency(selectedSchedule.total_amount)}
+                                    </span>
+                                </div>
+                            )}
                             <div className="flex justify-between">
-                                <span className="text-sm text-base-content/60">Montant</span>
-                                <span className="font-extrabold text-primary text-lg">{formatCurrency(selectedSchedule.total_amount)}</span>
+                                {/* paySchedule sans montant encaisse le reste dû (T-006). */}
+                                <span className="text-sm text-base-content/60">
+                                    {etatEcheance(selectedSchedule) === 'partial' ? 'Reste à encaisser' : 'Montant'}
+                                </span>
+                                <span className="font-extrabold text-primary text-lg">{formatCurrency(resteDu(selectedSchedule))}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-sm text-base-content/60">Échéance</span>

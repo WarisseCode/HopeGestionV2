@@ -36,10 +36,13 @@ export interface ReceiptData {
         type: string;
     };
     payment: {
+        /** Montant imprimé : total de l'échéance si elle est soldée, sinon le montant du paiement. */
         amount: number;
         method: string;
         period: string;
         reference?: string;
+        /** Nombre de versements ayant soldé l'échéance (1 si paiement sans échéance ou non soldée). */
+        installments: number;
     };
     lease: {
         startDate: Date;
@@ -97,6 +100,15 @@ class ReceiptService {
                 p.reference_transaction,
                 ps.description as period_description,
                 ps.due_date,
+                ps.id as schedule_id,
+                ps.total_amount as schedule_total,
+                ps.amount_paid as schedule_paid,
+                ps.status as schedule_status,
+                ps.statut as schedule_statut,
+                (
+                    SELECT COUNT(*) FROM payments p2
+                    WHERE p2.schedule_id = ps.id AND COALESCE(p2.statut, 'valide') = 'valide'
+                ) as schedule_payments_count,
                 l.id as lease_id,
                 l.loyer_actuel as monthly_rent,
                 l.date_debut as lease_start,
@@ -131,11 +143,36 @@ class ReceiptService {
             throw new Error(`Payment ${paymentId} not found`);
         }
 
-        const row = result.rows[0];
+        return this.buildReceiptData(result.rows[0], paymentId);
+    }
 
+    /**
+     * Montant de la quittance.
+     * Paiement rattaché à une échéance soldée : total de l'échéance (loyer de la période)
+     * et nombre de versements valides, l'échéance ayant pu être réglée par acomptes.
+     * Soldée = même règle que FinanceService.paySchedule : status 'paid' OU statut 'paye'
+     * OU amount_paid >= total_amount. Sinon (paiement sans échéance, acompte) : montant
+     * du paiement seul, comme avant.
+     */
+    private receiptAmount(row: any): { amount: number; installments: number } {
+        const montant = parseFloat(row.montant);
+        if (row.schedule_id == null) return { amount: montant, installments: 1 };
+
+        const total = parseFloat(row.schedule_total);
+        const paye = parseFloat(row.schedule_paid) || 0;
+        const soldee = row.schedule_status === 'paid' || row.schedule_statut === 'paye'
+            || (total > 0 && paye >= total);
+        if (!soldee || !(total > 0)) return { amount: montant, installments: 1 };
+
+        return { amount: total, installments: Math.max(1, parseInt(row.schedule_payments_count, 10) || 1) };
+    }
+
+    /** Transforme la ligne SQL de getReceiptData en données de quittance. */
+    buildReceiptData(row: any, paymentId: number): ReceiptData {
         // Generate receipt number (format: YYYYMM-PAYMENT_ID)
         const date = new Date(row.date_paiement);
         const receiptNumber = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}-${paymentId}`;
+        const { amount, installments } = this.receiptAmount(row);
 
         return {
             paymentId,
@@ -154,10 +191,11 @@ class ReceiptService {
                 type: row.lot_type
             },
             payment: {
-                amount: parseFloat(row.montant),
+                amount,
                 method: this.getPaymentMethodLabel(row.mode_paiement),
                 period: row.period_description || this.formatPeriod(date),
-                reference: row.reference_transaction
+                reference: row.reference_transaction,
+                installments
             },
             lease: {
                 startDate: new Date(row.lease_start),
@@ -279,11 +317,7 @@ class ReceiptService {
                 y += 28;
 
                 // Table rows
-                const rows: [string, string][] = [
-                    ['Période concernée', data.payment.period],
-                    ['Loyer Principal', this.formatCurrency(data.payment.amount)],
-                    ['Charges locatives', this.formatCurrency(charges)],
-                ];
+                const rows = this.paymentRows(data, charges);
 
                 rows.forEach((row, i) => {
                     const rowBg = i % 2 === 0 ? '#FAFBFD' : '#FFFFFF';
@@ -374,6 +408,19 @@ class ReceiptService {
     // ============================================================================
     // HELPER METHODS
     // ============================================================================
+
+    /** Lignes du tableau de la quittance ; mention des versements si l'échéance a été réglée en plusieurs fois. */
+    paymentRows(data: ReceiptData, charges = 0): [string, string][] {
+        const rows: [string, string][] = [
+            ['Période concernée', data.payment.period],
+            ['Loyer Principal', this.formatCurrency(data.payment.amount)],
+            ['Charges locatives', this.formatCurrency(charges)],
+        ];
+        if (data.payment.installments > 1) {
+            rows.push(['Modalité de règlement', `Réglé en ${data.payment.installments} versements`]);
+        }
+        return rows;
+    }
 
     private formatCurrency(amount: number): string {
         // Replace narrow no-break space (U+202F) and no-break space (U+00A0) with regular space

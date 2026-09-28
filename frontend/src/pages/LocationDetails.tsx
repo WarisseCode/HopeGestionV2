@@ -16,6 +16,42 @@ import type { Location, PaymentScheduleItem } from '../api/locationApi';
 import Alert from '../components/ui/Alert';
 import Card from '../components/ui/Card';
 
+/**
+ * Les routes GET /api/locations/:id et /:id/echeancier renvoient les colonnes brutes de
+ * payment_schedules (SELECT *) : total_amount / amount_paid (NUMERIC → chaînes),
+ * due_date, status (pending/partial/paid/overdue) et statut (en_attente/partiel/paye).
+ * On les ramène au format PaymentScheduleItem attendu par la page.
+ * Statut : même règle que FinanceService.paySchedule — soldée si status 'paid' OU
+ * statut 'paye' OU amount_paid >= total_amount ; un acompte versé donne 'partiel'.
+ */
+const toScheduleItem = (raw: any): PaymentScheduleItem => {
+    const montant = Number(raw.total_amount ?? raw.montant) || 0;
+    const montantPaye = Number(raw.amount_paid ?? raw.montant_paye) || 0;
+    let statut: string;
+    if (raw.status === 'paid' || raw.statut === 'paye' || (montant > 0 && montantPaye >= montant)) statut = 'paye';
+    else if (raw.status === 'partial' || raw.statut === 'partiel' || montantPaye > 0) statut = 'partiel';
+    else if (raw.status === 'overdue') statut = 'retard';
+    else statut = raw.statut || 'en_attente';
+    return {
+        id: raw.id,
+        lease_id: raw.lease_id,
+        numero_echeance: raw.numero_echeance,
+        date_echeance: raw.due_date ?? raw.date_echeance,
+        montant,
+        montant_paye: montantPaye,
+        statut,
+        date_paiement: raw.date_reglement_final ?? raw.date_paiement ?? undefined,
+    };
+};
+
+const STATUT_LABELS: Record<string, string> = {
+    paye: 'Payé',
+    partiel: 'Partiel',
+    retard: 'En retard',
+    impaye: 'Impayé',
+    en_attente: 'En attente',
+};
+
 const LocationDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -25,13 +61,15 @@ const LocationDetails: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'echeancier' | 'infos'>('echeancier');
+    const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+const [activeTab, setActiveTab] = useState<'echeancier' | 'infos'>('echeancier');
     
     // Payment modal state
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [selectedSchedule, setSelectedSchedule] = useState<PaymentScheduleItem | null>(null);
     const [paymentAmount, setPaymentAmount] = useState<number>(0);
     const [paymentMode, setPaymentMode] = useState<string>('especes');
+    const [paymentError, setPaymentError] = useState<string | null>(null);
 
     useEffect(() => {
         if (id) loadLocationDetails();
@@ -42,7 +80,7 @@ const LocationDetails: React.FC = () => {
             setLoading(true);
             const data = await locationApi.getLocation(parseInt(id!));
             setLocation(data.location);
-            setEcheancier(data.echeancier || []);
+            setEcheancier((data.echeancier || []).map(toScheduleItem));
         } catch (err: any) {
             setError(err.message || 'Erreur chargement');
         } finally {
@@ -54,6 +92,7 @@ const LocationDetails: React.FC = () => {
         setSelectedSchedule(schedule);
         const remaining = schedule.montant - (schedule.montant_paye || 0);
         setPaymentAmount(remaining > 0 ? remaining : schedule.montant);
+        setPaymentError(null);
         setShowPaymentModal(true);
     };
 
@@ -62,22 +101,35 @@ const LocationDetails: React.FC = () => {
         
         try {
             setLoading(true);
-            await apiCall(`${API_URL}/paiements`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    lease_id: location.id,
-                    montant: paymentAmount,
-                    type: 'loyer',
-                    mode_paiement: paymentMode,
-                    schedule_id: selectedSchedule.id
-                })
-            });
-            
-            setSuccess('Paiement enregistré !');
+            setPaymentError(null);
+            // Encaissement par échéance (T-006) : verrou, montant plafonné au reste dû
+            // (400 au-delà), 409 si déjà soldée, quittance générée au solde.
+            const result = await apiCall<{ message: string; receiptUrl: string | null }>(
+                `${API_URL}/finances/schedules/${selectedSchedule.id}/pay`,
+                {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        montant: paymentAmount,
+                        mode_paiement: paymentMode
+                    })
+                }
+            );
+
+            setSuccess(result.message || 'Paiement enregistré !');
+            setReceiptUrl(result.receiptUrl || null);
             setShowPaymentModal(false);
             loadLocationDetails(); // Refresh data
         } catch (err: any) {
-            setError(err.message);
+            if (err.status === 409) {
+                // Déjà soldée (autre onglet, double clic…) : on ferme et on rafraîchit.
+                setShowPaymentModal(false);
+                setReceiptUrl(null);
+                setError(err.message);
+                loadLocationDetails();
+            } else {
+                // 400 (montant au-delà du reste dû, invalide…) : message du serveur dans la fenêtre.
+                setPaymentError(err.message);
+            }
         } finally {
             setLoading(false);
         }
@@ -144,7 +196,19 @@ const LocationDetails: React.FC = () => {
 
             {/* Alerts */}
             {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
-            {success && <Alert variant="success" onClose={() => setSuccess(null)}>{success}</Alert>}
+            {success && (
+                <Alert variant="success" onClose={() => { setSuccess(null); setReceiptUrl(null); }}>
+                    {success}
+                    {receiptUrl && (
+                        <button
+                            onClick={() => window.open(`${import.meta.env.VITE_API_URL}${receiptUrl}`, '_blank')}
+                            className="ml-3 inline-flex items-center gap-1 font-semibold text-primary underline"
+                        >
+                            <FileText size={14} /> Ouvrir la quittance
+                        </button>
+                    )}
+                </Alert>
+            )}
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -268,7 +332,7 @@ const LocationDetails: React.FC = () => {
                                                 <td className="p-4">
                                                     <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${statusBadge.color}`}>
                                                         {statusBadge.icon}
-                                                        {item.statut}
+                                                        {STATUT_LABELS[item.statut] || item.statut}
                                                     </span>
                                                 </td>
                                                 <td className="p-4 text-right">
@@ -376,6 +440,10 @@ const LocationDetails: React.FC = () => {
                                     </div>
                                 </div>
 
+                                {paymentError && (
+                                    <Alert variant="error" onClose={() => setPaymentError(null)}>{paymentError}</Alert>
+                                )}
+
                                 <div>
                                     <label className="block text-sm font-medium text-base-content/80 mb-1">Montant à payer</label>
                                     <input
@@ -384,6 +452,7 @@ const LocationDetails: React.FC = () => {
                                         value={paymentAmount}
                                         onChange={e => setPaymentAmount(parseFloat(e.target.value))}
                                         min={0}
+                                        max={Math.max(0, selectedSchedule.montant - (selectedSchedule.montant_paye || 0))}
                                     />
                                 </div>
 
@@ -411,7 +480,7 @@ const LocationDetails: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={handleRecordPayment}
-                                    disabled={loading || paymentAmount <= 0}
+                                    disabled={loading || !(paymentAmount > 0)}
                                     className="px-5 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition flex items-center gap-2 disabled:opacity-50"
                                 >
                                     <Check size={18} />
