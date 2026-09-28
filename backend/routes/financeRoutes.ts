@@ -48,12 +48,16 @@ const generateSchedulesRules = [
     body('year').optional({ nullable: true }).isInt({ min: 2000, max: 2100 }).withMessage('Année invalide'),
 ];
 
-// :id de l'échéance + champs de règlement optionnels typés.
+// :id de l'échéance + champs de règlement optionnels typés. Deux jeux de noms acceptés
+// (voir FinanceService.SchedulePayData) : montant / mode_paiement / date_paiement, et
+// payment_method / reference envoyés par la page Échéances du web.
 const payScheduleRules = [
     param('id').isInt({ min: 1 }).withMessage("Identifiant d'échéance invalide"),
     body('montant').optional({ nullable: true }).isFloat({ gt: 0 }).withMessage('Montant invalide'),
     body('mode_paiement').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Mode de paiement invalide'),
     body('date_paiement').optional({ nullable: true }).isISO8601().withMessage('Date invalide (ISO 8601)'),
+    body('payment_method').optional({ nullable: true }).isString().isLength({ max: 50 }).withMessage('Mode de paiement invalide'),
+    body('reference').optional({ nullable: true }).isString().isLength({ max: 255 }).withMessage('Référence trop longue'),
 ];
 
 // GET /api/finances - Liste des paiements
@@ -245,10 +249,13 @@ router.put('/schedules/:id/pay', permissions.canWrite('finance'), tenantGuard, v
             return res.status(403).json({ message: 'Aucun propriétaire associé à ce compte.' });
         }
 
-        const { schedule, receiptUrl } = await FinanceService.paySchedule(
+        const result = await FinanceService.paySchedule(
             dbClient, req.params.id as string, effectiveOwnerIds, req.body
         );
-        res.json({ message: 'Échéance marquée comme payée', schedule, receiptUrl });
+        res.json({
+            message: result.soldee ? 'Échéance marquée comme payée' : 'Acompte enregistré',
+            ...result,
+        });
     } catch (error: any) {
         console.error('Error paying schedule:', error);
         res.status(error.statusCode || 500).json({

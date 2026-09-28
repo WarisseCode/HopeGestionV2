@@ -28,10 +28,19 @@ export interface CreatePaymentData {
     description?: string;
 }
 
+// Deux jeux de noms acceptés : ceux du web (FinanceSchedules.tsx → payment_method,
+// reference) et ceux des règles de validation de la route (montant, mode_paiement,
+// date_paiement). Si les deux sont fournis, les noms français l'emportent.
 export interface SchedulePayData {
     payment_method?: string;
     reference?: string;
+    montant?: number | string;
+    mode_paiement?: string;
+    date_paiement?: string;
 }
+
+/** Arrondi au centime : évite les écarts flottants sur les comparaisons de montants. */
+const toCents = (value: number) => Math.round(value * 100) / 100;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -326,7 +335,20 @@ export class FinanceService {
         return result.rows;
     }
 
-    /** Marque une échéance comme payée, insère le paiement et génère la quittance PDF. */
+    /**
+     * Encaisse tout ou partie d'une échéance : insère le paiement, met à jour
+     * `amount_paid` et le statut, et génère la quittance PDF **uniquement** quand
+     * l'échéance est entièrement soldée.
+     *
+     * Colonnes de statut (`payment_schedules` en a deux, sans migration possible ici) :
+     * - `status` (pending/partial/paid) : lu par getSchedules, getStats, RentPaymentService
+     *   et la page Échéances du web ;
+     * - `statut` (en_attente/partiel/paye) : lu par la page détail du bail du web
+     *   (LocationDetails.tsx) et écrit par POST /api/paiements.
+     * Cette méthode écrit les deux, et considère l'échéance soldée si l'une OU l'autre le
+     * dit, ou si `amount_paid` atteint `total_amount` (seule valeur tenue à jour par toutes
+     * les routes d'encaissement).
+     */
     static async paySchedule(
         dbClient: PoolClient,
         scheduleId: string,
@@ -335,27 +357,61 @@ export class FinanceService {
     ) {
         await dbClient.query('BEGIN');
         try {
-            // [SÉCURITÉ] Vérifie que l'échéance appartient à cet owner — empêche l'IDOR cross-tenant
+            // [SÉCURITÉ] Vérifie que l'échéance appartient à cet owner — empêche l'IDOR cross-tenant.
+            // FOR UPDATE OF ps : verrouille la ligne de l'échéance jusqu'au COMMIT/ROLLBACK. Un
+            // second encaissement simultané de la même échéance attend ici, puis relit
+            // amount_paid à jour (→ 409 si le premier l'a soldée) au lieu d'encaisser deux fois.
             const scheduleRes = await dbClient.query(
                 `SELECT ps.*, l.tenant_id, l.owner_id
                  FROM payment_schedules ps JOIN leases l ON ps.lease_id = l.id
-                 WHERE ps.id = $1 AND l.owner_id = ANY($2::int[])`,
+                 WHERE ps.id = $1 AND l.owner_id = ANY($2::int[])
+                 FOR UPDATE OF ps`,
                 [scheduleId, effectiveOwnerIds]
             );
             if (scheduleRes.rows.length === 0) {
                 throw Object.assign(new Error('Échéance non trouvée'), { statusCode: 404 });
             }
             const schedule = scheduleRes.rows[0];
-            if (schedule.status === 'paid') {
-                throw Object.assign(new Error('Échéance déjà payée'), { statusCode: 400 });
+
+            const total = toCents(parseFloat(schedule.total_amount) || 0);
+            const dejaPaye = toCents(parseFloat(schedule.amount_paid) || 0);
+            const resteDu = toCents(total - dejaPaye);
+
+            if (schedule.status === 'paid' || schedule.statut === 'paye' || resteDu <= 0) {
+                throw Object.assign(new Error('Échéance déjà soldée'), { statusCode: 409 });
             }
 
+            // Montant facultatif : reste dû par défaut (comportement attendu par le web, qui
+            // n'envoie jamais de montant). Fourni : strictement positif et ≤ reste dû.
+            const montantFourni = data.montant !== undefined && data.montant !== null && data.montant !== '';
+            const montant = montantFourni ? toCents(Number(data.montant)) : resteDu;
+            if (!Number.isFinite(montant) || montant <= 0 || montant > resteDu) {
+                throw Object.assign(
+                    new Error(`Montant invalide : il doit être supérieur à 0 et au plus égal au reste dû (${resteDu}).`),
+                    { statusCode: 400 }
+                );
+            }
+
+            const nouveauPaye = toCents(dejaPaye + montant);
+            const estSoldee = nouveauPaye >= total;
+
             await dbClient.query(
+                // $4 (booléen dédié) plutôt que de réutiliser $2 dans le CASE : un même paramètre
+                // employé dans deux contextes de type différents provoque l'erreur 42P08
+                // (déjà rencontrée dans paiementRoutes.ts).
                 `UPDATE payment_schedules
-                 SET status = 'paid', amount_paid = total_amount, date_reglement_final = NOW()
-                 WHERE id = $1`,
-                [scheduleId]
+                 SET amount_paid = $1,
+                     status = $2,
+                     statut = $3,
+                     date_reglement_final = CASE WHEN $4::boolean THEN NOW() ELSE date_reglement_final END
+                 WHERE id = $5`,
+                [nouveauPaye, estSoldee ? 'paid' : 'partial', estSoldee ? 'paye' : 'partiel', estSoldee, scheduleId]
             );
+
+            // Contexte RLS sur l'owner du bail (transaction-local), comme createPayment : pour un
+            // gestionnaire multi-propriétaires, sans lui, la WITH CHECK de la policy payments
+            // rejetterait l'INSERT (owner_id ≠ get_current_owner_id()).
+            await dbClient.query(`SELECT set_config('app.current_owner_id', $1, true)`, [String(schedule.owner_id)]);
 
             // statut = 'valide' (et non 'paid') : c'est la valeur reconnue par toutes les
             // lectures de revenus (getStats, getMonthlyStats, lookup quittance) et la convention
@@ -366,26 +422,44 @@ export class FinanceService {
                     lease_id, schedule_id, montant, date_paiement, mode_paiement,
                     reference_transaction, type, statut, owner_id, description
                  )
-                 VALUES ($1, $2, $3, NOW(), $4, $5, 'loyer', 'valide', $6, $7)
+                 VALUES ($1, $2, $3, $4, $5, $6, 'loyer', 'valide', $7, $8)
                  RETURNING id`,
                 [
-                    schedule.lease_id, scheduleId, schedule.total_amount,
-                    data.payment_method || 'especes', data.reference || null,
+                    schedule.lease_id, scheduleId, montant,
+                    data.date_paiement || new Date(),
+                    data.mode_paiement || data.payment_method || 'especes',
+                    data.reference || null,
                     schedule.owner_id, schedule.description || 'Paiement loyer',
                 ]
             );
+            const paymentId = paymentRes.rows[0].id;
 
             await dbClient.query('COMMIT');
 
-            // Génération quittance après COMMIT (non bloquant pour la réponse)
+            // Quittance uniquement au solde (après COMMIT, non bloquante pour la réponse) :
+            // un acompte n'en produit pas.
             let receiptUrl: string | null = null;
-            try {
-                receiptUrl = await receiptService.generateReceipt(paymentRes.rows[0].id);
-            } catch (err) {
-                console.error('Error generating receipt:', err);
+            if (estSoldee) {
+                try {
+                    receiptUrl = await receiptService.generateReceipt(paymentId);
+                } catch (err) {
+                    console.error('Error generating receipt:', err);
+                }
             }
 
-            return { schedule: { ...schedule, status: 'paid', quittance_url: receiptUrl }, receiptUrl };
+            return {
+                schedule: {
+                    ...schedule,
+                    amount_paid: nouveauPaye,
+                    status: estSoldee ? 'paid' : 'partial',
+                    statut: estSoldee ? 'paye' : 'partiel',
+                    quittance_url: receiptUrl,
+                },
+                receiptUrl,
+                payment: { id: paymentId, montant },
+                reste_du: toCents(total - nouveauPaye),
+                soldee: estSoldee,
+            };
         } catch (err) {
             await dbClient.query('ROLLBACK');
             throw err;

@@ -415,22 +415,45 @@ GET /api/finances/stats
 ```
 *Réponse :* Montant total des loyers perçus, loyers impayés, charges décaissées sur le mois en cours.
 
-### 8.2 Enregistrement Manuel d'un Paiement
-Utilisé sur le terrain par le gestionnaire pour enregistrer un paiement en liquide, chèque ou virement :
+### 8.2 Encaissement manuel d'un loyer (par échéance)
+Utilisé sur le terrain par le gestionnaire pour enregistrer un loyer reçu hors plateforme (espèces, chèque, virement, Mobile Money reçu directement). L'encaissement se fait **sur une échéance** (`payment_schedules`) : c'est la seule route qui met à jour l'échéance de façon cohérente et produit une quittance PDF côté serveur.
+
+1. Lister les échéances du mois : `GET /api/finances/schedules?month=9&year=2026` (ou celles d'un bail : `GET /api/locations/:leaseId/echeancier`).
+2. Encaisser :
 ```http
-POST /api/paiements
+PUT /api/finances/schedules/:id/pay
 Content-Type: application/json
 
 {
-  "lease_id": 8,
   "montant": 150000,
+  "mode_paiement": "especes",
   "date_paiement": "2026-09-15",
-  "type": "Loyer",
-  "mode_paiement": "Especes",
-  "reference_transaction": "RECU-ESPECE-0926"
+  "reference": "RECU-ESPECE-0926"
 }
 ```
-*Réponse :* Enregistre le paiement et génère automatiquement l'URL de la quittance PDF associée.
+Tous les champs sont facultatifs :
+- `montant` : par défaut le **reste dû** (`total_amount - amount_paid`). S'il est fourni, il doit être > 0 et ≤ reste dû (sinon **400**). Un montant inférieur au reste dû enregistre un **acompte** (échéance `partial`).
+- `mode_paiement` (ou `payment_method`) : texte libre, `especes` par défaut.
+- `date_paiement` : ISO 8601, date du jour par défaut.
+- `reference` : référence libre (n° de reçu, ID de transaction Mobile Money…).
+
+*Réponse (200) :*
+```json
+{
+  "message": "Échéance marquée comme payée",
+  "schedule": { "id": 12, "amount_paid": 185000, "status": "paid", "statut": "paye", "quittance_url": "/uploads/receipts/quittance_202609-101_….pdf" },
+  "receiptUrl": "/uploads/receipts/quittance_202609-101_….pdf",
+  "payment": { "id": 101, "montant": 135000 },
+  "reste_du": 0,
+  "soldee": true
+}
+```
+- La quittance PDF est générée **uniquement quand l'échéance est entièrement soldée** (`receiptUrl` vaut `null` pour un acompte, et aussi si la génération du PDF échoue : le paiement reste enregistré). Limite connue : la quittance porte le montant du **dernier** paiement, pas le total de l'échéance, quand celle-ci a été réglée en plusieurs fois.
+- Pour un acompte, `message` vaut `"Acompte enregistré"` et `reste_du` indique le solde restant.
+- **409** si l'échéance est déjà soldée, **404** si elle est introuvable ou n'appartient pas aux propriétaires gérés.
+- Aucune route ne permet de modifier ou d'annuler un paiement : afficher un récapitulatif et désactiver le bouton pendant l'envoi pour éviter un double encaissement.
+
+> ⚠️ **Ne pas utiliser `POST /api/paiements`** (ancienne version de cette section) : elle ne met à jour que la colonne `statut` de l'échéance (les pages Échéances, statistiques et paiement en ligne lisent la colonne `status`) et ne génère **aucune** quittance. Elle n'est plus appelée que par la page détail du bail du web. `POST /api/finances` (encaissement sans échéance, utilisé par la page Finances du web) ne génère pas non plus de quittance.
 
 ### 8.3 Initialisation d'un Paiement Mobile Money (FedaPay)
 Pour le portail locataire sur mobile :

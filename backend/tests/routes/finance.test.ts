@@ -50,8 +50,18 @@ jest.mock('../../services/ReceiptService', () => ({
     receiptService: { generateReceipt: jest.fn() },
 }));
 
+// FinanceService mocké : la route ne fait plus de requête SQL elle-même, elle délègue
+// au service (getPayments, paySchedule…). L'ancien mock n'exposait que
+// `generateSchedules` (nom obsolète) → `getPayments is not a function` → 500.
+// La logique SQL de paySchedule est testée directement dans
+// tests/services/financeService.paySchedule.test.ts.
 jest.mock('../../services/FinanceService', () => ({
-    FinanceService: { generateSchedules: jest.fn() },
+    FinanceService: {
+        getPayments: jest.fn(),
+        createPayment: jest.fn(),
+        paySchedule: jest.fn(),
+        generateMonthlySchedules: jest.fn(),
+    },
 }));
 
 jest.mock('exceljs', () => ({
@@ -65,6 +75,7 @@ jest.mock('exceljs', () => ({
 }));
 
 import pool from '../../db/database';
+import { FinanceService } from '../../services/FinanceService';
 import { protect } from '../../middleware/authMiddleware';
 import financeRouter from '../../routes/financeRoutes';
 
@@ -102,8 +113,8 @@ describe('GET /api/finances — contrôle d\'accès', () => {
 
     it('renvoie 200 avec un token gestionnaire valide', async () => {
         (pool.query as jest.Mock)
-            .mockResolvedValueOnce({ rows: [{ email: 'test@test.com' }] }) // authMiddleware SELECT email
-            .mockResolvedValueOnce({ rows: mockPaymentRows });              // dbClient SELECT payments
+            .mockResolvedValueOnce({ rows: [{ email: 'test@test.com' }] }); // authMiddleware SELECT email
+        (FinanceService.getPayments as jest.Mock).mockResolvedValueOnce(mockPaymentRows);
 
         const res = await request(app)
             .get('/api/finances')
@@ -121,8 +132,8 @@ describe('GET /api/finances — structure de la réponse', () => {
 
     it('renvoie { payments: [...] } avec les paiements', async () => {
         (pool.query as jest.Mock)
-            .mockResolvedValueOnce({ rows: [{ email: 'test@test.com' }] })
-            .mockResolvedValueOnce({ rows: mockPaymentRows });
+            .mockResolvedValueOnce({ rows: [{ email: 'test@test.com' }] });
+        (FinanceService.getPayments as jest.Mock).mockResolvedValueOnce(mockPaymentRows);
 
         const res = await request(app)
             .get('/api/finances')
@@ -132,12 +143,14 @@ describe('GET /api/finances — structure de la réponse', () => {
         expect(Array.isArray(res.body.payments)).toBe(true);
         expect(res.body.payments).toHaveLength(1);
         expect(res.body.payments[0]).toHaveProperty('amount', 150000);
+        // Filtre propriétaire transmis au service (resolvedOwnerId = 1 dans le mock tenantGuard).
+        expect(FinanceService.getPayments).toHaveBeenCalledWith(expect.anything(), [1], expect.any(Object));
     });
 
     it('renvoie { payments: [] } si aucun paiement', async () => {
         (pool.query as jest.Mock)
-            .mockResolvedValueOnce({ rows: [{ email: 'test@test.com' }] })
-            .mockResolvedValueOnce({ rows: [] });
+            .mockResolvedValueOnce({ rows: [{ email: 'test@test.com' }] });
+        (FinanceService.getPayments as jest.Mock).mockResolvedValueOnce([]);
 
         const res = await request(app)
             .get('/api/finances')
@@ -169,5 +182,75 @@ describe('POST /api/finances — création', () => {
             .send({}); // body vide — déclenche le 400 avant toute query métier
 
         expect(res.status).toBe(400);
+    });
+});
+
+// ── Tests : encaissement d'une échéance (route) ──────────────────────────────
+
+describe('PUT /api/finances/schedules/:id/pay — route', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    const pay = (body: Record<string, unknown>, id = 12) => {
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ email: 'test@test.com' }] });
+        return request(app)
+            .put(`/api/finances/schedules/${id}/pay`)
+            .set('Authorization', `Bearer ${authToken()}`)
+            .send(body);
+    };
+
+    it('transmet au service les champs du web (payment_method, reference)', async () => {
+        (FinanceService.paySchedule as jest.Mock).mockResolvedValueOnce({
+            schedule: { id: 12, status: 'paid' }, receiptUrl: '/uploads/receipts/q.pdf',
+            payment: { id: 99, montant: 185000 }, reste_du: 0, soldee: true,
+        });
+
+        const res = await pay({ payment_method: 'mobile_money', reference: 'MM-123' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.message).toBe('Échéance marquée comme payée');
+        expect(res.body.receiptUrl).toBe('/uploads/receipts/q.pdf');
+        expect(FinanceService.paySchedule).toHaveBeenCalledWith(
+            expect.anything(), '12', [1],
+            expect.objectContaining({ payment_method: 'mobile_money', reference: 'MM-123' }),
+        );
+    });
+
+    it('acompte : message dédié, reste dû renvoyé', async () => {
+        (FinanceService.paySchedule as jest.Mock).mockResolvedValueOnce({
+            schedule: { id: 12, status: 'partial' }, receiptUrl: null,
+            payment: { id: 98, montant: 50000 }, reste_du: 135000, soldee: false,
+        });
+
+        const res = await pay({ montant: 50000, mode_paiement: 'especes' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.message).toBe('Acompte enregistré');
+        expect(res.body.reste_du).toBe(135000);
+        expect(res.body.receiptUrl).toBeNull();
+    });
+
+    it('échéance déjà soldée : le 409 du service est propagé', async () => {
+        (FinanceService.paySchedule as jest.Mock).mockRejectedValueOnce(
+            Object.assign(new Error('Échéance déjà soldée'), { statusCode: 409 }),
+        );
+
+        const res = await pay({});
+
+        expect(res.status).toBe(409);
+        expect(res.body.message).toBe('Échéance déjà soldée');
+    });
+
+    it('montant négatif ou nul : 400 dès la validation, service non appelé', async () => {
+        const res = await pay({ montant: 0 });
+
+        expect(res.status).toBe(400);
+        expect(FinanceService.paySchedule).not.toHaveBeenCalled();
+    });
+
+    it('date invalide : 400 dès la validation', async () => {
+        const res = await pay({ date_paiement: 'pas-une-date' });
+
+        expect(res.status).toBe(400);
+        expect(FinanceService.paySchedule).not.toHaveBeenCalled();
     });
 });
