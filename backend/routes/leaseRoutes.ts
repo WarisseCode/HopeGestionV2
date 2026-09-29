@@ -307,6 +307,15 @@ router.get('/:id/echeancier', permissions.canRead('locataires'), tenantGuard, as
     const dbClient = (req as any).dbClient;
     try {
         const { id } = req.params;
+
+        // [SÉCURITÉ] payment_schedules n'a pas de politique RLS : sans ce contrôle, l'échéancier
+        // de n'importe quel bail était lisible en devinant son id (IDOR). On vérifie d'abord que
+        // le bail est visible via la même requête (RLS sur leases) que GET /:id.
+        const leaseCheck = await dbClient.query('SELECT id FROM leases WHERE id = $1', [id]);
+        if (leaseCheck.rows.length === 0) {
+            return res.status(404).json({ message: 'Contrat non trouvé ou accès refusé' });
+        }
+
         const result = await dbClient.query(
             'SELECT * FROM payment_schedules WHERE lease_id = $1 ORDER BY numero_echeance',
             [id]

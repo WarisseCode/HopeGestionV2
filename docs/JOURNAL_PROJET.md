@@ -208,3 +208,40 @@ Mis à jour automatiquement après chaque tâche.
 - **Décisions & justifications** : `SELECT_PAYMENTS_FIELDS` n'est utilisée que par `getPayments` (vérifié : seul usage dans le code source) ; `getPaymentsForExport` (export Excel) a sa propre requête, non affectée. Simple ajout de colonne, aucune migration ni changement de comportement pour les lignes où `quittance_url` est `NULL` (paiement non soldé ou sans échéance).
 - **Tests** : `financeService.getPayments.test.ts` (SQL généré contient `p.quittance_url` ; une valeur renseignée et une valeur `NULL` sont transmises telles quelles) ; `finance.test.ts` (le mock de `getPayments` renvoie `quittance_url` et la route le restitue tel quel dans `payments[]`).
 - **Problèmes rencontrés** : aucun. `npx tsc --noEmit` : propre. `npm test` : **160/162** (157 + 3 nouveaux tests) ; les 2 échecs de `permissionMiddleware.test.ts` sont préexistants. Pas de commit.
+
+### T-009 : Correctif IDOR — échéancier d'un bail lisible sans filtre propriétaire
+- **Date** : 2026-09-29
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : `payment_schedules` n'a aucune politique RLS. `GET /api/locations/:id/echeancier` lisait `SELECT * FROM payment_schedules WHERE lease_id = $1` sans jamais vérifier que le bail `:id` était visible pour l'utilisateur : un compte ayant seulement la permission `locataires:read` pouvait lire l'échéancier de n'importe quel bail, y compris d'un autre propriétaire, en devinant son id (IDOR). Trouvaille remontée par la session mobile T-044 (encaissement par échéance), qui ne l'exploite pas (son `leaseId` provient toujours d'une réponse déjà filtrée par propriétaire) mais l'a signalée comme faille latente pour tout autre appelant.
+- **Diagnostic (lecture seule, avant correctif)** : toutes les routes/services lisant ou écrivant `payment_schedules` ont été relus pour vérifier le filtrage par propriétaire (jointure `leases.owner_id` ou équivalent) :
+  - **Filtrés, sans changement** : `FinanceService.paySchedule` (`l.owner_id = ANY($2)`), `FinanceService.getStats`/`getBuildingStats` (vérification explicite d'appartenance de l'immeuble, commentaire anti-IDOR déjà présent), `FinanceService.generateMonthlySchedules` (`effectiveOwnerIds`, commentaire anti-IDOR déjà présent), tout `RentPaymentService` (portail locataire : chaque chemin résout d'abord `t.user_id`/`tenant_id` avant de lire `payment_schedules`), `TrashService.purge`/`restore` (`canAccess` vérifie l'appartenance de l'élément racine avant toute suppression en cascade, y compris sur `payment_schedules`).
+  - **Non filtrés directement, mais non exploitables** : `ReceiptService.getReceiptData` (`WHERE p.id = $1`) — `paymentId` n'est jamais fourni par le client, toujours celui qu'un service vient de créer lui-même après avoir validé le bail/locataire.
+  - **Vulnérable, corrigé ci-dessous** : `GET /api/locations/:id/echeancier` (`leaseRoutes.ts`).
+  - **Déjà protégée, aucun changement nécessaire** : la partie échéancier de `GET /api/locations/:id` interroge aussi `payment_schedules` sans filtre, mais seulement après un premier `SELECT ... FROM leases WHERE l.id = $1` (protégé par la RLS de `leases` via `dbClient`) qui renvoie déjà 404 si le bail n'est pas visible — la requête `payment_schedules` n'est donc jamais atteinte pour un bail d'un autre propriétaire.
+  - **Autre trouvaille, signalée mais non corrigée (hors périmètre de cette tâche)** : `POST /api/paiements` (`paiementRoutes.ts`) et `POST /api/finances` (`FinanceService.createPayment`) vérifient que `lease_id` appartient à l'appelant, mais utilisent ensuite un `schedule_id` fourni par le client pour lire puis **modifier** (`amount_paid`, `statut`/`status`, `date_reglement_final`) une échéance sans jamais vérifier qu'elle appartient à ce même bail. Un appelant autorisé sur son propre bail pourrait donc altérer l'échéance d'un bail appartenant à un autre propriétaire en indiquant un `schedule_id` arbitraire. Écriture, donc plus sérieux que la lecture corrigée ici ; nécessite son propre correctif (vérifier `schedule_id` contre `lease_id`), à traiter séparément.
+- **Correctif appliqué (minimal)** : `GET /:id/echeancier` (`backend/routes/leaseRoutes.ts`) vérifie désormais l'accès au bail via `SELECT id FROM leases WHERE id = $1` (même connexion `dbClient` protégée par la RLS de `leases` que `GET /:id`), et renvoie 404 (`Contrat non trouvé ou accès refusé`) avant de lire `payment_schedules` si le bail n'est pas visible. Aucun changement de format de réponse (`{ echeancier: [...] }` inchangé en cas de succès).
+- **Fichiers touchés** : `backend/routes/leaseRoutes.ts`, `backend/tests/routes/lease.echeancier.test.ts` (nouveau).
+- **RLS proposée pour `payment_schedules` (texte à valider, non appliquée — le dispositif RLS de production n'est pas versionné dans ce dépôt)** :
+  ```sql
+  ALTER TABLE payment_schedules ENABLE ROW LEVEL SECURITY;
+
+  CREATE POLICY tenant_isolation_policy ON payment_schedules
+      USING (
+          lease_id IN (
+              SELECT l.id FROM leases l
+              JOIN owner_user ou ON ou.owner_id = l.owner_id AND ou.is_active = TRUE
+              WHERE ou.user_id = current_setting('app.current_user_id', true)::int
+          )
+      )
+      WITH CHECK (
+          lease_id IN (
+              SELECT l.id FROM leases l
+              JOIN owner_user ou ON ou.owner_id = l.owner_id AND ou.is_active = TRUE
+              WHERE ou.user_id = current_setting('app.current_user_id', true)::int
+          )
+      );
+  ```
+  Filtre sur `app.current_user_id` (toujours positionné par `tenantGuard`, y compris en mode multi-propriétaires sans `app.current_owner_id`) plutôt que sur `get_current_owner_id()` (fonction non versionnée dans ce dépôt, comportement exact en multi-owner non vérifiable ici) : cette formulation reste correcte que l'utilisateur gère un seul propriétaire ou plusieurs, en réutilisant `owner_user` telle que `tenantGuard` l'interroge déjà. Une fois cette policy posée, le correctif applicatif ci-dessus devient une redondance défensive (double filtrage), pas un point de faille à lui seul.
+- **Tests** : `lease.echeancier.test.ts` (nouveau, 4 tests) — `GET /:id/echeancier` : bail d'un autre propriétaire → 404 sans qu'aucune requête ne lise `payment_schedules` ; bail visible → réponse `{ echeancier }` inchangée. `GET /:id` : mêmes deux cas, pour verrouiller par un test le comportement déjà correct (pas de régression future).
+- **Problèmes rencontrés** : aucun. `npx tsc --noEmit` : propre. `npm test` : **164/166** ; les 2 échecs (`permissionMiddleware.test.ts`, DB error/`canWrite`) sont préexistants et sans rapport, confirmés en relançant ce fichier seul (échoue à l'identique hors de toute modification de cette tâche). Pas de `dart format` (N/A, dépôt backend). Pas de commit.
