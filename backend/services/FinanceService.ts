@@ -48,7 +48,7 @@ const SELECT_PAYMENTS_FIELDS = `
     p.id, p.lease_id, p.schedule_id,
     p.montant as amount, p.date_paiement as payment_date,
     p.mode_paiement as payment_method, p.reference_transaction as reference,
-    p.type, p.statut, p.description, p.created_at, p.owner_id
+    p.type, p.statut, p.description, p.created_at, p.owner_id, p.quittance_url
 `;
 
 // ── Service ───────────────────────────────────────────────────────────────────

@@ -98,6 +98,7 @@ const mockPaymentRows = [
         payment_method: 'cash', statut: 'payé', type: 'loyer',
         locataire_nom: 'Kodjovi', locataire_prenoms: 'Eric',
         proprietaire_nom: 'Dupont', reference_bail: 'BAIL-001', loyer_mensuel: 150000,
+        quittance_url: '/uploads/receipts/quittance_202601-1.pdf',
     },
 ];
 
@@ -143,6 +144,11 @@ describe('GET /api/finances — structure de la réponse', () => {
         expect(Array.isArray(res.body.payments)).toBe(true);
         expect(res.body.payments).toHaveLength(1);
         expect(res.body.payments[0]).toHaveProperty('amount', 150000);
+        // quittance_url transmis tel quel (route en pur passe-plat) — voir aussi
+        // financeService.getPayments.test.ts pour la présence de la colonne en SQL.
+        expect(res.body.payments[0]).toHaveProperty(
+            'quittance_url', '/uploads/receipts/quittance_202601-1.pdf'
+        );
         // Filtre propriétaire transmis au service (resolvedOwnerId = 1 dans le mock tenantGuard).
         expect(FinanceService.getPayments).toHaveBeenCalledWith(expect.anything(), [1], expect.any(Object));
     });
