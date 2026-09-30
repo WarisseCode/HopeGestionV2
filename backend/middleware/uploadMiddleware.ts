@@ -33,6 +33,20 @@ export const upload = multer({
     },
 });
 
+// Middleware d'erreur ciblé, à placer juste après upload.single(...)/upload.array(...)
+// sur une route précise. Toute erreur qui arrive ici vient forcément de multer (limite
+// de taille/nombre de fichiers, ou format refusé par fileFilter) : sans err.status, elle
+// tombait dans le gestionnaire d'erreurs générique de index.ts et ressortait en 500 —
+// masquant un refus de saisie utilisateur derrière une "erreur serveur". On répond 400
+// directement ici, sans toucher au gestionnaire d'erreurs global (inchangé pour le reste
+// de l'API).
+export function handleUploadErrors(err: unknown, _req: Request, res: Response, next: NextFunction) {
+    if (!err) return next();
+    res.status(400).json({
+        message: 'Justificatif refusé : format non accepté ou fichier trop volumineux (10 Mo maximum).',
+    });
+}
+
 // Middleware post-multer : vérifie les magic bytes réels du fichier.
 // Le Content-Type déclaré par le client peut être falsifié — les magic bytes ne mentent pas.
 export async function verifyMagicBytes(req: Request, res: Response, next: NextFunction) {

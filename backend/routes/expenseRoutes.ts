@@ -8,9 +8,10 @@ import { body, param } from 'express-validator';
 import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
-import { upload } from '../middleware/uploadMiddleware';
+import { handleUploadErrors, upload } from '../middleware/uploadMiddleware';
 import { validate } from '../middleware/validate';
 import { uploadToSpaces } from '../services/spacesUploadService';
+import { cache } from '../utils/cache';
 
 // Champs multipart (parsés par multer) : montant > 0, date et catégorie requis.
 const expenseCreateRules = [
@@ -100,7 +101,7 @@ router.get('/categories', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // POST /api/expenses - Create expense (with optional proof upload)
-router.post('/', permissions.canWrite('finance'), upload.single('proof'), validate(expenseCreateRules), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', permissions.canWrite('finance'), upload.single('proof'), handleUploadErrors, validate(expenseCreateRules), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const resolvedOwnerId = (req as any).resolvedOwnerId;
@@ -194,6 +195,7 @@ router.post('/', permissions.canWrite('finance'), upload.single('proof'), valida
                 proofUrl
             ]);
             await dbClient.query('COMMIT');
+            cache.invalidatePrefix('dashboard:');
             res.status(201).json(result.rows[0]);
         } catch (txErr) {
             await dbClient.query('ROLLBACK');
@@ -215,6 +217,7 @@ router.delete('/:id', permissions.canWrite('finance'), validate(expenseIdParam),
         if (result.rowCount === 0) {
              return res.status(404).json({ message: 'Dépense introuvable ou accès refusé' });
         }
+        cache.invalidatePrefix('dashboard:');
         res.json({ message: 'Dépense supprimée' });
     } catch (error) {
         console.error('Error deleting expense:', error);
