@@ -11,6 +11,7 @@ import { tenantGuard } from '../middleware/tenantGuard';
 import { validate } from '../middleware/validate';
 import * as ExcelJS from 'exceljs';
 import { FinanceService } from '../services/FinanceService';
+import { cache } from '../utils/cache';
 
 const router = Router();
 
@@ -84,6 +85,7 @@ router.post('/', permissions.canWrite('finance'), tenantGuard, validate(paymentC
             return res.status(403).json({ message: 'Aucun propriétaire associé à ce compte.' });
         }
         const payment = await FinanceService.createPayment(dbClient, effectiveOwnerIds, req.body, req.userId!);
+        cache.invalidatePrefix('dashboard:');
         res.status(201).json(payment);
     } catch (error: any) {
         console.error('Error recording payment:', error);
@@ -252,6 +254,7 @@ router.put('/schedules/:id/pay', permissions.canWrite('finance'), tenantGuard, v
         const result = await FinanceService.paySchedule(
             dbClient, req.params.id as string, effectiveOwnerIds, req.body
         );
+        cache.invalidatePrefix('dashboard:');
         res.json({
             message: result.soldee ? 'Échéance marquée comme payée' : 'Acompte enregistré',
             ...result,

@@ -74,10 +74,15 @@ jest.mock('exceljs', () => ({
     })),
 }));
 
+jest.mock('../../utils/cache', () => ({
+    cache: { invalidatePrefix: jest.fn() },
+}));
+
 import pool from '../../db/database';
 import { FinanceService } from '../../services/FinanceService';
 import { protect } from '../../middleware/authMiddleware';
 import financeRouter from '../../routes/financeRoutes';
+import { cache } from '../../utils/cache';
 
 // ── App de test ───────────────────────────────────────────────────────────────
 
@@ -258,5 +263,74 @@ describe('PUT /api/finances/schedules/:id/pay — route', () => {
 
         expect(res.status).toBe(400);
         expect(FinanceService.paySchedule).not.toHaveBeenCalled();
+    });
+});
+
+// ── Tests : invalidation du cache tableau de bord ────────────────────────────
+// POST /api/finances (paiement manuel) et PUT /schedules/:id/pay (encaissement
+// d'échéance) doivent invalider 'dashboard:*' comme le fait déjà POST /api/paiements
+// (paiementRoutes.ts) — sinon le tableau de bord reste périmé après un encaissement.
+
+describe('Invalidation du cache tableau de bord (finances)', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    it('POST /api/finances : invalide le cache après un paiement enregistré', async () => {
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({ rows: [{ email: 'test@test.com' }] }); // authMiddleware
+        (FinanceService.createPayment as jest.Mock).mockResolvedValueOnce({
+            id: 1, lease_id: 10, amount: 150000, payment_date: '2026-01-01', statut: 'payé',
+        });
+
+        const res = await request(app)
+            .post('/api/finances')
+            .set('Authorization', `Bearer ${authToken()}`)
+            .send({ lease_id: 10, amount: 150000 });
+
+        expect(res.status).toBe(201);
+        expect(cache.invalidatePrefix).toHaveBeenCalledWith('dashboard:');
+    });
+
+    it("POST /api/finances : n'invalide pas le cache si la validation échoue (400)", async () => {
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({ rows: [{ email: 'test@test.com' }] });
+
+        const res = await request(app)
+            .post('/api/finances')
+            .set('Authorization', `Bearer ${authToken()}`)
+            .send({});
+
+        expect(res.status).toBe(400);
+        expect(cache.invalidatePrefix).not.toHaveBeenCalled();
+    });
+
+    it('PUT /schedules/:id/pay : invalide le cache après un encaissement réussi', async () => {
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ email: 'test@test.com' }] });
+        (FinanceService.paySchedule as jest.Mock).mockResolvedValueOnce({
+            schedule: { id: 12, status: 'paid' }, receiptUrl: null,
+            payment: { id: 99, montant: 185000 }, reste_du: 0, soldee: true,
+        });
+
+        const res = await request(app)
+            .put('/api/finances/schedules/12/pay')
+            .set('Authorization', `Bearer ${authToken()}`)
+            .send({ payment_method: 'mobile_money' });
+
+        expect(res.status).toBe(200);
+        expect(cache.invalidatePrefix).toHaveBeenCalledWith('dashboard:');
+    });
+
+    it("PUT /schedules/:id/pay : n'invalide pas le cache si le service échoue (échéance déjà soldée)", async () => {
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ email: 'test@test.com' }] });
+        (FinanceService.paySchedule as jest.Mock).mockRejectedValueOnce(
+            Object.assign(new Error('Échéance déjà soldée'), { statusCode: 409 }),
+        );
+
+        const res = await request(app)
+            .put('/api/finances/schedules/12/pay')
+            .set('Authorization', `Bearer ${authToken()}`)
+            .send({});
+
+        expect(res.status).toBe(409);
+        expect(cache.invalidatePrefix).not.toHaveBeenCalled();
     });
 });
