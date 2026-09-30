@@ -13,6 +13,7 @@ import { validate } from '../middleware/validate';
 import { cache } from '../utils/cache';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { NotificationService } from '../services/notificationService';
 import { LeaseService } from '../services/leaseService';
 import { tenantGuard } from '../middleware/tenantGuard';
@@ -61,6 +62,21 @@ const leaseSignRules = [
     body('signatureImage').notEmpty().withMessage('Image de signature manquante').bail().isString().withMessage('Signature invalide'),
 ];
 
+// ─── Isolation par propriétaire (défense en profondeur) ──────────────────────
+// [SÉCURITÉ] `leases` n'a pas de politique RLS versionnée et le rôle DB peut avoir
+// BYPASSRLS (même constat que edlRoutes.ts/inventoryRoutes.ts) : la RLS seule ne
+// protège donc pas. GET/PUT/:id, /resilier, /renouveler et /sign lisaient ou
+// modifiaient un bail par son seul id, sans vérifier qu'il appartient à un
+// propriétaire géré par l'appelant (IDOR, même classe de faille que celle déjà
+// corrigée sur /:id/echeancier). Admin : accès global (pas de clause). Gestionnaire
+// sans owner : ANY('{}') → 0 ligne.
+function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
+    if ((req as any).userRole === 'admin') return '';
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    params.push(validOwnerIds);
+    return ` AND ${col} = ANY($${params.length}::int[])`;
+}
+
 // GET /api/locations - Liste des baux/contrats
 router.get('/', permissions.canRead('locataires'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
@@ -80,9 +96,11 @@ router.get('/:id', permissions.canRead('locataires'), tenantGuard, async (req: A
     const dbClient = (req as any).dbClient;
     try {
         const { id } = req.params;
-        
+
+        const params: any[] = [id];
+        const ownerClause = scopeByOwner(req, params, 'l.owner_id');
         const result = await dbClient.query(`
-            SELECT 
+            SELECT
                 l.*,
                 l.loyer_actuel as loyer_mensuel,
                 t.nom as locataire_nom,
@@ -99,8 +117,8 @@ router.get('/:id', permissions.canRead('locataires'), tenantGuard, async (req: A
             LEFT JOIN lots lot ON l.lot_id = lot.id
             LEFT JOIN buildings b ON lot.building_id = b.id
             LEFT JOIN owners o ON l.owner_id = o.id
-            WHERE l.id = $1
-        `, [id]);
+            WHERE l.id = $1${ownerClause}
+        `, params);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Contrat non trouvé ou accès refusé' });
@@ -214,6 +232,8 @@ router.put('/:id', permissions.canWrite('locataires'), tenantGuard, validate(lea
         const { id } = req.params;
         const { date_fin, loyer_mensuel, charges_mensuelles, jour_echeance, penalite_retard, tolerance_jours, statut, type_charges } = req.body;
 
+        const params: any[] = [date_fin, loyer_mensuel, charges_mensuelles, jour_echeance, penalite_retard, tolerance_jours, statut, id, type_charges];
+        const ownerClause = scopeByOwner(req, params);
         const result = await dbClient.query(`
             UPDATE leases SET
                 date_fin = COALESCE($1, date_fin),
@@ -225,9 +245,9 @@ router.put('/:id', permissions.canWrite('locataires'), tenantGuard, validate(lea
                 tolerance_jours = COALESCE($6, tolerance_jours),
                 statut = COALESCE($7, statut),
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = $8
+            WHERE id = $8${ownerClause}
             RETURNING *
-        `, [date_fin, loyer_mensuel, charges_mensuelles, jour_echeance, penalite_retard, tolerance_jours, statut, id, type_charges]);
+        `, params);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Bail non trouvé ou accès refusé' });
@@ -247,20 +267,24 @@ router.post('/:id/resilier', permissions.canWrite('locataires'), tenantGuard, va
         const { id } = req.params;
         const { motif, date_resiliation } = req.body;
 
-        const leaseResult = await dbClient.query('SELECT lot_id FROM leases WHERE id = $1', [id]);
+        const leaseParams: any[] = [id];
+        const leaseOwnerClause = scopeByOwner(req, leaseParams);
+        const leaseResult = await dbClient.query(`SELECT lot_id FROM leases WHERE id = $1${leaseOwnerClause}`, leaseParams);
         if (leaseResult.rows.length === 0) {
             return res.status(404).json({ message: 'Bail non trouvé ou accès refusé' });
         }
 
+        const updateParams: any[] = [motif || 'Résiliation', date_resiliation || new Date(), id];
+        const updateOwnerClause = scopeByOwner(req, updateParams);
         const result = await dbClient.query(`
-            UPDATE leases SET 
+            UPDATE leases SET
                 statut = 'resilie',
                 motif_resiliation = $1,
                 date_resiliation = $2,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = $3
+            WHERE id = $3${updateOwnerClause}
             RETURNING id
-        `, [motif || 'Résiliation', date_resiliation || new Date(), id]);
+        `, updateParams);
 
         if (result.rowCount === 0) {
             return res.status(404).json({ message: 'Bail non trouvé ou accès refusé' });
@@ -281,15 +305,17 @@ router.post('/:id/renouveler', permissions.canWrite('locataires'), tenantGuard, 
         const { id } = req.params;
         const { nouvelle_date_fin, nouveau_loyer } = req.body;
 
+        const params: any[] = [nouvelle_date_fin, nouveau_loyer, id];
+        const ownerClause = scopeByOwner(req, params);
         const result = await dbClient.query(`
-            UPDATE leases SET 
+            UPDATE leases SET
                 date_fin = $1,
                 loyer_actuel = COALESCE($2, loyer_actuel),
                 statut = 'actif',
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = $3
+            WHERE id = $3${ownerClause}
             RETURNING *
-        `, [nouvelle_date_fin, nouveau_loyer, id]);
+        `, params);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Bail non trouvé ou accès refusé' });
@@ -338,27 +364,40 @@ router.post('/:id/sign', permissions.canWrite('locataires'), tenantGuard, valida
             return res.status(400).json({ message: 'Image de signature manquante' });
         }
 
+        // [SÉCURITÉ] Vérifie l'accès au bail AVANT d'écrire quoi que ce soit sur le
+        // disque : un appel non autorisé ne doit plus laisser de fichier orphelin.
+        const checkParams: any[] = [id];
+        const checkOwnerClause = scopeByOwner(req, checkParams);
+        const leaseCheck = await dbClient.query(`SELECT id FROM leases WHERE id = $1${checkOwnerClause}`, checkParams);
+        if (leaseCheck.rows.length === 0) {
+            return res.status(404).json({ message: 'Bail non trouvé ou accès refusé' });
+        }
+
         const signatureDir = path.join(__dirname, '../../uploads/signatures');
         if (!fs.existsSync(signatureDir)) {
             fs.mkdirSync(signatureDir, { recursive: true });
         }
 
         const base64Data = signatureImage.replace(/^data:image\/png;base64,/, "");
-        const fileName = `signature_${id}_${Date.now()}.png`;
+        // Jeton aléatoire cryptographique (pas Date.now()) : le nom de fichier ne doit
+        // pas être devinable, ces fichiers étant servis sans authentification.
+        const fileName = `signature_${id}_${crypto.randomBytes(16).toString('hex')}.png`;
         const filePath = path.join(signatureDir, fileName);
         const relativeUrl = `/uploads/signatures/${fileName}`;
 
         fs.writeFileSync(filePath, base64Data, 'base64');
 
+        const params: any[] = [relativeUrl, id];
+        const ownerClause = scopeByOwner(req, params);
         const dbResult = await dbClient.query(`
-            UPDATE leases 
-            SET 
-                signature_url = $1, 
+            UPDATE leases
+            SET
+                signature_url = $1,
                 date_signature_electronique = CURRENT_TIMESTAMP,
-                statut = 'signe' 
-            WHERE id = $2
+                statut = 'signe'
+            WHERE id = $2${ownerClause}
             RETURNING id, reference_bail, owner_id
-        `, [relativeUrl, id]);
+        `, params);
 
         if (dbResult.rows.length === 0) {
             return res.status(404).json({ message: 'Bail non trouvé ou accès refusé' });

@@ -7,6 +7,7 @@ import { body, param } from 'express-validator';
 import * as dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs-extra';
+import crypto from 'crypto';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
@@ -121,7 +122,7 @@ router.post('/upload', permissions.canWrite('documents'), tenantGuard, upload.si
             const folder = `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
             const localDir = path.join(__dirname, '../../uploads', folder);
             await fs.ensureDir(localDir);
-            const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(req.file.originalname)}`;
+            const uniqueName = `${crypto.randomBytes(16).toString('hex')}${path.extname(req.file.originalname)}`;
             await fs.writeFile(path.join(localDir, uniqueName), req.file.buffer);
             url = `/uploads/${folder}/${uniqueName}`;
         }
@@ -262,7 +263,7 @@ router.post('/generate', permissions.canWrite('documents'), tenantGuard, validat
             const date = new Date();
             const year = date.getFullYear();
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const fileName = `${template.name.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+            const fileName = `${template.name.replace(/\s+/g, '_')}_${crypto.randomBytes(16).toString('hex')}.pdf`;
 
             let url: string;
             if (spacesConfigured) {
@@ -365,7 +366,7 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), tenantGuar
             const date = new Date();
             const year = date.getFullYear();
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const fileName = `Bail_${leaseId}_${Date.now()}.pdf`;
+            const fileName = `Bail_${leaseId}_${crypto.randomBytes(16).toString('hex')}.pdf`;
 
             let url: string;
             if (spacesConfigured) {

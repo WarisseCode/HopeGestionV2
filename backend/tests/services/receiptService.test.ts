@@ -3,7 +3,10 @@
  *
  * Échéance soldée → total de l'échéance + mention des versements ; paiement sans
  * échéance ou échéance non soldée → montant du paiement seul (inchangé).
- * La génération PDF n'est pas testée : on vérifie les données et les lignes du tableau.
+ * La génération PDF elle-même (mise en page) n'est pas testée, mais le nom de
+ * fichier produit par `generateReceipt` l'est (voir describe dédié) : ces fichiers
+ * sont servis sans authentification (`/uploads`), leur nom doit donc être un jeton
+ * aléatoire, pas un timestamp devinable (Date.now()).
  */
 
 jest.mock('../../db/database', () => ({
@@ -121,5 +124,28 @@ describe('ReceiptService — montant de la quittance', () => {
         expect(sql).toMatch(/COALESCE\(p2\.statut, 'valide'\) = 'valide'/);
         expect(data.payment.amount).toBe(185000);
         expect(data.payment.installments).toBe(2);
+    });
+});
+
+describe('ReceiptService — nom de fichier (jeton aléatoire, pas de timestamp devinable)', () => {
+    it("generateReceipt produit une URL avec un jeton hexadécimal de 32 caractères, pas Date.now()", async () => {
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({ rows: [row()] }) // getReceiptData
+            .mockResolvedValueOnce({ rows: [] });      // UPDATE payments SET quittance_url
+
+        // La génération PDF réelle (mise en page, écriture disque) n'est pas
+        // l'objet de ce test : seul le nom de fichier produit nous intéresse ici.
+        jest.spyOn(receiptService as any, 'createPDF').mockResolvedValue(undefined);
+
+        const url = await receiptService.generateReceipt(101);
+
+        expect(url).toMatch(/^\/uploads\/receipts\/quittance_.+_[0-9a-f]{32}\.pdf$/);
+
+        // Dernier appel = l'UPDATE (ce fichier ne réinitialise pas les mocks entre
+        // tests ; `mock.calls` peut donc déjà contenir des appels des tests précédents).
+        const calls = (pool.query as jest.Mock).mock.calls;
+        const [updateSql, updateParams] = calls[calls.length - 1];
+        expect(String(updateSql)).toMatch(/UPDATE payments SET quittance_url/);
+        expect(updateParams[0]).toBe(url);
     });
 });

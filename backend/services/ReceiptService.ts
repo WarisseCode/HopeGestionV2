@@ -4,6 +4,7 @@
 import PDFDocument from 'pdfkit';
 import fs from 'fs-extra';
 import path from 'path';
+import crypto from 'crypto';
 import pool from '../db/database';
 
 // ============================================================================
@@ -66,7 +67,7 @@ class ReceiptService {
             const receiptData = await this.getReceiptData(paymentId);
 
             // 2. Generate PDF
-            const filename = `quittance_${receiptData.receiptNumber}_${Date.now()}.pdf`;
+            const filename = `quittance_${receiptData.receiptNumber}_${crypto.randomBytes(16).toString('hex')}.pdf`;
             const filepath = path.join(RECEIPTS_DIR, filename);
 
             await this.createPDF(receiptData, filepath);

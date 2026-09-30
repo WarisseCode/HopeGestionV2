@@ -8,6 +8,7 @@
 import { Router, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs-extra';
+import crypto from 'crypto';
 import { upload, verifyMagicBytes } from '../middleware/uploadMiddleware';
 import { uploadToSpaces } from '../services/spacesUploadService';
 
@@ -73,7 +74,7 @@ router.post('/', upload.any(), verifyMagicBytes, async (req: Request, res: Respo
                 const localDir = path.join(__dirname, '../../uploads', folder);
                 await fs.ensureDir(localDir);
 
-                const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}${path.extname(file.originalname)}`;
+                const uniqueName = `${crypto.randomBytes(16).toString('hex')}${path.extname(file.originalname)}`;
                 const localPath  = path.join(localDir, uniqueName);
                 await fs.writeFile(localPath, file.buffer);
 

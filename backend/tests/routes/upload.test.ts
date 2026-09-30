@@ -81,6 +81,9 @@ describe('POST /api/upload — authentification requise', () => {
         expect(res.body.files).toHaveLength(1);
         expect(res.body.files[0].path).toMatch(/^\/uploads\/avatars\//);
         expect(res.body.files[0].mimetype).toBe('image/png');
+        // Nom de fichier local : jeton hexadécimal de 32 caractères, pas un
+        // timestamp devinable (ce dossier est servi sans authentification).
+        expect(res.body.files[0].filename).toMatch(/^[0-9a-f]{32}\.png$/);
 
         uploadedPaths.push(res.body.files[0].path);
     });

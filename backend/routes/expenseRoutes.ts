@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import path from 'path';
 import fs from 'fs-extra';
+import crypto from 'crypto';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
@@ -166,7 +167,7 @@ router.post('/', permissions.canWrite('finance'), upload.single('proof'), handle
                 // Fallback local (dev uniquement)
                 const localDir = path.join(__dirname, '../../uploads/expenses');
                 await fs.ensureDir(localDir);
-                const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}${path.extname(req.file.originalname)}`;
+                const uniqueName = `${crypto.randomBytes(16).toString('hex')}${path.extname(req.file.originalname)}`;
                 await fs.writeFile(path.join(localDir, uniqueName), req.file.buffer);
                 proofUrl = `/uploads/expenses/${uniqueName}`;
             }
