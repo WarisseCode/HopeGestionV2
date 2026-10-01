@@ -241,3 +241,141 @@ describe('POST /api/auth/google — email_verified et liaison de compte', () => 
         );
     });
 });
+
+// ── POST /mobile/google ──────────────────────────────────────────────────────
+
+describe('POST /api/auth/mobile/google', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    const gestionnaireRow = {
+        id: 42, role: 'gestionnaire', user_type: 'gestionnaire', statut: 'actif',
+    };
+
+    it('jeton valide, gestionnaire existant : 200, format identique à /mobile/login', async () => {
+        mockVerifyIdToken.mockResolvedValueOnce({
+            getPayload: () => googlePayload({ email: 'gestionnaire@example.com' }),
+        });
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({ rows: [gestionnaireRow] }) // SELECT par email
+            .mockResolvedValueOnce({ rows: [] }); // INSERT refresh_tokens (issueTokenPair)
+
+        const res = await request(app)
+            .post('/api/auth/mobile/google')
+            .send({ idToken: 'fake-id-token' });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toEqual({
+            message: 'Connexion réussie.',
+            token: expect.any(String),
+            refreshToken: expect.any(String),
+            role: 'gestionnaire',
+            userId: 42,
+        });
+        expect(AuditService.log).toHaveBeenCalledWith(
+            expect.objectContaining({ action: 'GOOGLE_LOGIN_MOBILE', userId: '42' }),
+        );
+        // Aucune création de compte sur ce canal : une seule requête de lecture
+        // avant l'émission des tokens (pas d'INSERT/UPDATE users).
+        expect(pool.query).toHaveBeenNthCalledWith(
+            1, expect.stringContaining('SELECT'), ['gestionnaire@example.com'],
+        );
+    });
+
+    it('jeton Google invalide (verifyIdToken rejette) : 401, aucune requête SQL', async () => {
+        mockVerifyIdToken.mockRejectedValueOnce(new Error('Invalid token signature'));
+
+        const res = await request(app)
+            .post('/api/auth/mobile/google')
+            .send({ idToken: 'malformed' });
+
+        expect(res.status).toBe(401);
+        expect(res.body.message).toBe('Jeton Google invalide.');
+        expect(pool.query).not.toHaveBeenCalled();
+    });
+
+    it('audience incorrecte (verifyIdToken rejette "Wrong recipient") : 401, même message, pas le détail', async () => {
+        mockVerifyIdToken.mockRejectedValueOnce(new Error('Wrong recipient, payload audience != requiredAudience'));
+
+        const res = await request(app)
+            .post('/api/auth/mobile/google')
+            .send({ idToken: 'wrong-audience' });
+
+        expect(res.status).toBe(401);
+        expect(res.body.message).toBe('Jeton Google invalide.');
+        expect(res.body.message).not.toContain('audience');
+    });
+
+    it('email non vérifié : 401, aucune requête SQL', async () => {
+        mockVerifyIdToken.mockResolvedValueOnce({
+            getPayload: () => googlePayload({ email_verified: false }),
+        });
+
+        const res = await request(app)
+            .post('/api/auth/mobile/google')
+            .send({ idToken: 'fake-id-token' });
+
+        expect(res.status).toBe(401);
+        expect(res.body.message).toContain('non vérifiée');
+        expect(pool.query).not.toHaveBeenCalled();
+    });
+
+    it('email inconnu : 404, aucune création de compte', async () => {
+        mockVerifyIdToken.mockResolvedValueOnce({
+            getPayload: () => googlePayload({ email: 'inconnu@example.com' }),
+        });
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] }); // SELECT -> personne
+
+        const res = await request(app)
+            .post('/api/auth/mobile/google')
+            .send({ idToken: 'fake-id-token' });
+
+        expect(res.status).toBe(404);
+        expect(res.body.message).toContain("n'existe");
+        // Une seule requête (la lecture) : jamais d'INSERT.
+        expect(pool.query).toHaveBeenCalledTimes(1);
+    });
+
+    it('rôle non pris en charge (locataire) : 403, aucun token émis', async () => {
+        mockVerifyIdToken.mockResolvedValueOnce({
+            getPayload: () => googlePayload({ email: 'locataire@example.com' }),
+        });
+        (pool.query as jest.Mock).mockResolvedValueOnce({
+            rows: [{ id: 55, role: 'locataire', user_type: 'locataire', statut: 'actif' }],
+        });
+
+        const res = await request(app)
+            .post('/api/auth/mobile/google')
+            .send({ idToken: 'fake-id-token' });
+
+        expect(res.status).toBe(403);
+        expect(res.body.message).toContain('pas pris en charge');
+        // Une seule requête (la lecture) : pas d'émission de tokens (pas d'INSERT refresh_tokens).
+        expect(pool.query).toHaveBeenCalledTimes(1);
+    });
+
+    it('compte suspendu : 401, aucun token émis', async () => {
+        mockVerifyIdToken.mockResolvedValueOnce({
+            getPayload: () => googlePayload({ email: 'suspendu@example.com' }),
+        });
+        (pool.query as jest.Mock).mockResolvedValueOnce({
+            rows: [{ id: 60, role: 'gestionnaire', user_type: 'gestionnaire', statut: 'suspendu' }],
+        });
+
+        const res = await request(app)
+            .post('/api/auth/mobile/google')
+            .send({ idToken: 'fake-id-token' });
+
+        expect(res.status).toBe(401);
+        expect(pool.query).toHaveBeenCalledTimes(1);
+    });
+
+    it('idToken manquant : 400 (validation), aucune requête', async () => {
+        const res = await request(app)
+            .post('/api/auth/mobile/google')
+            .send({});
+
+        expect(res.status).toBe(400);
+        expect(pool.query).not.toHaveBeenCalled();
+        expect(mockVerifyIdToken).not.toHaveBeenCalled();
+    });
+});

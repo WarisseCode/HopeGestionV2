@@ -10,12 +10,19 @@ import { AuditService } from '../services/AuditService';
 import { JWT_SECRET } from '../config/config';
 import { validate } from '../middleware/validate';
 import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
+import { authService } from '../services/AuthService';
 
 const router = Router();
 
 const googleLoginRules = [
     body('credential').notEmpty().withMessage('Google credential requis').bail().isString().withMessage('credential invalide'),
 ];
+const googleMobileLoginRules = [
+    body('idToken').notEmpty().withMessage('idToken requis').bail().isString().withMessage('idToken invalide'),
+];
+// v1 : gestionnaires uniquement — mêmes valeurs que `_allowedRoles` côté mobile
+// (`HopeGestionMobile/lib/features/auth/data/auth_repository.dart`).
+const MOBILE_ALLOWED_ROLES = ['gestionnaire', 'manager'];
 // userId retiré : l'identité vient exclusivement de req.userId (token), jamais du corps
 // (voir audit sécurité — cette route acceptait auparavant n'importe quel userId fourni).
 const completeProfileRules = [
@@ -178,6 +185,121 @@ router.post('/google', validate(googleLoginRules), async (req: Request, res: Res
         }
 
         res.status(500).json({ 
+            message: 'Erreur lors de l\'authentification Google.',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+/**
+ * POST /api/auth/mobile/google
+ * Connexion Google — canal mobile natif (`client_type = 'mobile'`).
+ *
+ * Différences volontaires avec `POST /google` (web) ci-dessus :
+ *  - **Aucune création de compte** : un email inconnu est refusé (404), jamais
+ *    inséré dans `users`.
+ *  - Rôle restreint aux gestionnaires (v1, [MOBILE_ALLOWED_ROLES]) : tout
+ *    autre rôle existant est refusé (403) avant toute émission de token —
+ *    même politique que `_isRoleAllowed` côté mobile (`auth_repository.dart`),
+ *    mais appliquée ici pour qu'aucune paire de tokens non autorisée ne soit
+ *    jamais émise (le login web/mot de passe, lui, laisse le client mobile
+ *    révoquer après coup — voir le journal).
+ *  - Compte inactif/suspendu refusé (401), comme le login mot de passe
+ *    (`AuthService.login`) — absent de `POST /google` aujourd'hui.
+ *  - Réponse au format de `POST /auth/mobile/login` (`token`, `refreshToken`,
+ *    `role`, `userId`) via `authService.issueTokenPair(..., 'mobile')`, pas
+ *    celui de `POST /google` (un seul `token`, pas de refresh token).
+ *
+ * Le jeton Google (`idToken`) n'est jamais journalisé, y compris en cas de
+ * refus — seuls l'email, l'IP et l'identifiant utilisateur le sont.
+ */
+router.post('/mobile/google', validate(googleMobileLoginRules), async (req: Request, res: Response) => {
+    const { idToken } = req.body;
+
+    try {
+        if (!GOOGLE_CLIENT_ID) {
+            return res.status(500).json({
+                message: 'Google OAuth non configuré. Contactez l\'administrateur.'
+            });
+        }
+
+        let payload;
+        try {
+            const ticket = await client.verifyIdToken({
+                idToken,
+                audience: GOOGLE_CLIENT_ID,
+            });
+            payload = ticket.getPayload();
+        } catch {
+            console.warn(`🚨 SECURITY: Jeton Google mobile invalide depuis IP: ${req.ip}`);
+            return res.status(401).json({ message: 'Jeton Google invalide.' });
+        }
+
+        if (!payload) {
+            return res.status(401).json({ message: 'Jeton Google invalide.' });
+        }
+
+        const { email, email_verified } = payload;
+
+        if (email_verified !== true) {
+            console.warn(`🚨 SECURITY: Email Google non vérifié (mobile) depuis IP: ${req.ip}`);
+            return res.status(401).json({ message: 'Adresse email Google non vérifiée.' });
+        }
+
+        const userResult = await pool.query(
+            'SELECT id, role, user_type, statut FROM users WHERE email = $1',
+            [email]
+        );
+
+        if (userResult.rows.length === 0) {
+            console.warn(`🚨 SECURITY: Connexion Google mobile pour email inconnu (${email}) depuis IP: ${req.ip}`);
+            return res.status(404).json({
+                message: "Aucun compte gestionnaire n'existe avec cette adresse email."
+            });
+        }
+
+        const user = userResult.rows[0];
+
+        if (user.statut === 'inactif' || user.statut === 'suspendu') {
+            return res.status(401).json({
+                message: "Votre compte est inactif ou suspendu. Veuillez contacter l'administrateur."
+            });
+        }
+
+        if (!MOBILE_ALLOWED_ROLES.includes(user.role)) {
+            console.warn(`🚨 SECURITY: Rôle non pris en charge sur mobile (${user.role}) pour userId:${user.id}`);
+            return res.status(403).json({
+                message: 'Ce type de compte n\'est pas pris en charge sur mobile.'
+            });
+        }
+
+        const { accessToken, refreshToken } = await authService.issueTokenPair(
+            user.id, user.role, user.user_type || 'gestionnaire', 'mobile'
+        );
+
+        await AuditService.log({
+            userId: user.id.toString(),
+            action: 'GOOGLE_LOGIN_MOBILE',
+            entityType: 'USER',
+            entityId: user.id.toString(),
+            details: { email },
+            ipAddress: req.ip || 'unknown',
+            userAgent: (req.headers['user-agent'] as string) || 'unknown'
+        });
+
+        console.log(`✅ Google OAuth mobile login for userId:${user.id} from IP: ${req.ip}`);
+
+        res.json({
+            message: 'Connexion réussie.',
+            token: accessToken,
+            refreshToken,
+            role: user.role,
+            userId: user.id
+        });
+
+    } catch (error: any) {
+        console.error('❌ Error in Google OAuth (mobile):', error);
+        res.status(500).json({
             message: 'Erreur lors de l\'authentification Google.',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
