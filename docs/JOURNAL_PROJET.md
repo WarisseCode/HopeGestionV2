@@ -345,3 +345,13 @@ Mis à jour automatiquement après chaque tâche.
   - Réutilise `authService.issueTokenPair` (déjà `client_type`-aware) plutôt que de dupliquer la logique de refresh token.
 - **Problèmes rencontrés** : aucun blocage. `npx tsc --noEmit` : propre. `npm test` : **194/196** passent ; 2 échecs dans `tests/middleware/permissionMiddleware.test.ts` (`canRead`/`canWrite`), **préexistants et sans rapport** avec ce changement (fichier non touché, diff de cette tâche = ajouts purs sur `googleAuthRoutes.ts`/`googleAuth.test.ts` uniquement, vérifié par `git diff --stat`) — signalé, non corrigé (hors périmètre).
 - **Remplace / modifie** : aucune route existante modifiée ; `POST /google` (web) reste inchangé.
+
+### T-015 : Correctif IDOR — `PUT /api/notifications/:id/read` filtré par `user_id`
+- **Date** : 2026-10-05
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : `NotificationService.markAsRead` faisait `UPDATE notifications SET is_read = TRUE WHERE id = $1` sans filtre propriétaire : tout utilisateur authentifié pouvait marquer comme lue la notification d'un autre. La requête devient `... WHERE id = $1 AND user_id = $2 RETURNING id`, la méthode reçoit `userId` et renvoie un booléen ; la route répond 404 si aucune ligne de l'appelant n'est mise à jour (succès inchangé : `{ success: true }`).
+- **Fichiers touchés** : `backend/services/notificationService.ts`, `backend/routes/notificationRoutes.ts`, `backend/tests/routes/notification.markAsRead.test.ts` (nouveau, 3 tests).
+- **Décisions & justifications** : 404 et non 403, pour ne pas confirmer l'existence d'une notification tierce (même logique que `/leases/:id/sign`). `userId` pris de `req.userId` (posé par `protect`), avec garde 401 explicite comme `read-all`. Seul appelant de `markAsRead` : cette route (vérifié par grep).
+- **Problèmes rencontrés** : aucun. `npx tsc --noEmit` propre. `npm test` : 197/199 ; les 2 échecs (`tests/middleware/permissionMiddleware.test.ts`) sont préexistants et sans rapport (déjà signalés en T-014).
+- **Remplace / modifie** : aucune entrée antérieure.

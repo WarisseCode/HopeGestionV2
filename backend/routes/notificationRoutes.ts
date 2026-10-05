@@ -49,7 +49,10 @@ router.get('/', protect, async (req: AuthenticatedRequest, res) => {
 // PUT /api/notifications/:id/read - Mark as read
 router.put('/:id/read', protect, validate(notifIdParam), async (req: AuthenticatedRequest, res: Response) => {
     try {
-        await NotificationService.markAsRead(parseInt(req.params.id || '0'));
+        if (!req.userId) return res.status(401).json({ message: 'Non authentifié' });
+        const updated = await NotificationService.markAsRead(parseInt(req.params.id || '0'), req.userId);
+        // 404 (pas 403) : ne pas confirmer l'existence d'une notification d'un autre utilisateur.
+        if (!updated) return res.status(404).json({ message: 'Notification introuvable' });
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ message: 'Erreur serveur' });

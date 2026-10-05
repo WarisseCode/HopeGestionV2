@@ -74,10 +74,15 @@ export class NotificationService {
     }
 
     /**
-     * Mark notification as read
+     * Mark notification as read — scoped to its owner (IDOR fix).
+     * Returns false when no notification with this id belongs to userId.
      */
-    static async markAsRead(id: number) {
-        await pool.query('UPDATE notifications SET is_read = TRUE WHERE id = $1', [id]);
+    static async markAsRead(id: number, userId: number): Promise<boolean> {
+        const result = await pool.query(
+            'UPDATE notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2 RETURNING id',
+            [id, userId]
+        );
+        return (result.rowCount ?? result.rows.length) > 0;
     }
 
     /**
