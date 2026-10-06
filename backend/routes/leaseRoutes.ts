@@ -67,9 +67,9 @@ const leaseSignRules = [
 // BYPASSRLS (même constat que edlRoutes.ts/inventoryRoutes.ts) : la RLS seule ne
 // protège donc pas. GET/PUT/:id, /resilier, /renouveler et /sign lisaient ou
 // modifiaient un bail par son seul id, sans vérifier qu'il appartient à un
-// propriétaire géré par l'appelant (IDOR, même classe de faille que celle déjà
-// corrigée sur /:id/echeancier). Admin : accès global (pas de clause). Gestionnaire
-// sans owner : ANY('{}') → 0 ligne.
+// propriétaire géré par l'appelant (IDOR). /:id/echeancier, dont le contrôle
+// reposait sur cette RLS absente, applique désormais aussi ce filtre.
+// Admin : accès global (pas de clause). Gestionnaire sans owner : ANY('{}') → 0 ligne.
 function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
     if ((req as any).userRole === 'admin') return '';
     const validOwnerIds: number[] = (req as any).validOwnerIds || [];
@@ -340,8 +340,12 @@ router.get('/:id/echeancier', permissions.canRead('locataires'), tenantGuard, as
 
         // [SÉCURITÉ] payment_schedules n'a pas de politique RLS : sans ce contrôle, l'échéancier
         // de n'importe quel bail était lisible en devinant son id (IDOR). On vérifie d'abord que
-        // le bail est visible via la même requête (RLS sur leases) que GET /:id.
-        const leaseCheck = await dbClient.query('SELECT id FROM leases WHERE id = $1', [id]);
+        // le bail est visible avant de lire payment_schedules. `leases` n'a pas non plus de RLS
+        // versionnée : le contrôle s'appuie donc sur scopeByOwner, comme GET /:id. Un bail hors
+        // périmètre renvoie le même 404 qu'un bail inexistant (aucune fuite d'existence).
+        const leaseParams: any[] = [id];
+        const leaseOwnerClause = scopeByOwner(req, leaseParams);
+        const leaseCheck = await dbClient.query(`SELECT id FROM leases WHERE id = $1${leaseOwnerClause}`, leaseParams);
         if (leaseCheck.rows.length === 0) {
             return res.status(404).json({ message: 'Contrat non trouvé ou accès refusé' });
         }

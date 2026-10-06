@@ -211,7 +211,7 @@ Mis à jour automatiquement après chaque tâche.
 
 ### T-009 : Correctif IDOR — échéancier d'un bail lisible sans filtre propriétaire
 - **Date** : 2026-09-29
-- **Statut** : Terminée
+- **Statut** : Modifiée (voir T-017)
 - **Type** : Correction
 - **Description** : `payment_schedules` n'a aucune politique RLS. `GET /api/locations/:id/echeancier` lisait `SELECT * FROM payment_schedules WHERE lease_id = $1` sans jamais vérifier que le bail `:id` était visible pour l'utilisateur : un compte ayant seulement la permission `locataires:read` pouvait lire l'échéancier de n'importe quel bail, y compris d'un autre propriétaire, en devinant son id (IDOR). Trouvaille remontée par la session mobile T-044 (encaissement par échéance), qui ne l'exploite pas (son `leaseId` provient toujours d'une réponse déjà filtrée par propriétaire) mais l'a signalée comme faille latente pour tout autre appelant.
 - **Diagnostic (lecture seule, avant correctif)** : toutes les routes/services lisant ou écrivant `payment_schedules` ont été relus pour vérifier le filtrage par propriétaire (jointure `leases.owner_id` ou équivalent) :
@@ -365,3 +365,13 @@ Mis à jour automatiquement après chaque tâche.
 - **Décisions & justifications** : portée passée en paramètre obligatoire (pas optionnel) pour qu'un appelant qui l'oublie échoue à la compilation au lieu de fuiter. Le grep a trouvé un second appelant, `GET /api/baux` (`bauxRoutes.ts`, monté dans `index.ts`), qui avait la même faille ; il a été corrigé de la même façon. Numérotation des paramètres SQL rendue dynamique (`params.length`), au lieu d'un `$1` fixe pour `statut`.
 - **Problèmes rencontrés** : aucun. `npx tsc --noEmit` propre. `npm test` : 201/203 ; les 2 échecs (`tests/middleware/permissionMiddleware.test.ts`) sont préexistants et sans rapport (ils échouent aussi sans ces changements, voir T-014/T-015).
 - **Remplace / modifie** : complète T-012 (qui couvrait `GET/PUT /:id`, `/resilier`, `/renouveler` et `/sign`, mais pas la liste).
+
+### T-017 : Correctif IDOR — `GET /api/locations/:id/echeancier` sans filtre propriétaire
+- **Date** : 2026-10-06
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : Le contrôle ajouté en T-009 (`SELECT id FROM leases WHERE id = $1` avant de lire `payment_schedules`) reposait sur une RLS de `leases` qui n'existe pas (aucune politique versionnée, voir T-011/T-016) : l'échéancier de n'importe quel bail restait lisible en devinant son id. Même classe de faille IDOR que T-012/T-015/T-016. La vérification applique désormais `scopeByOwner` (`owner_id = ANY(validOwnerIds)`, pas de clause pour l'admin) ; un bail hors périmètre renvoie le même 404 que `GET /:id` (`Contrat non trouvé ou accès refusé`), sans lire `payment_schedules`.
+- **Fichiers touchés** : `backend/routes/leaseRoutes.ts`, `backend/tests/routes/lease.ownerScope.test.ts` (+3 tests sur `GET /:id/echeancier`).
+- **Décisions & justifications** : filtre ajouté à la vérification préalable existante plutôt qu'une jointure `payment_schedules`/`leases` : diff minimal et même pattern que `/resilier` et `/sign`. Appelants vérifiés par grep : mobile `FinancesRepository.listEcheances` (`encaisser_screen.dart`, encaissement / quittance manuelle) ; web `locationApi.getEcheancier` défini mais jamais appelé (`LocationDetails.tsx` passe par `GET /:id`). Aucun autre appelant backend : la requête est inline dans la route.
+- **Problèmes rencontrés** : aucun. `lease.echeancier.test.ts` (T-009) passe sans modification (son mock ne fournit pas `validOwnerIds`, donc filtre sur `[]`, résultats mockés). `npx tsc --noEmit` propre. `npm test` : 204/206 ; les 2 échecs (`tests/middleware/permissionMiddleware.test.ts`) sont préexistants et sans rapport (voir T-014 à T-016).
+- **Remplace / modifie** : T-009 (contrôle d'accès inopérant sans RLS sur `leases`, remplacé par `scopeByOwner`).

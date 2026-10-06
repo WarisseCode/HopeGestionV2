@@ -1,7 +1,7 @@
 /**
  * Tests d'intégration — Correctif de sécurité IDOR sur les routes de bail
- * (GET / [liste], GET /:id, PUT /:id, POST /:id/resilier, POST /:id/renouveler,
- * POST /:id/sign).
+ * (GET / [liste], GET /:id, GET /:id/echeancier, PUT /:id, POST /:id/resilier,
+ * POST /:id/renouveler, POST /:id/sign).
  *
  * `leases` n'a pas de politique RLS versionnée et le rôle DB peut avoir BYPASSRLS
  * (même constat que edlRoutes.ts/inventoryRoutes.ts) : avant ce correctif, ces
@@ -203,6 +203,64 @@ describe('GET /api/locations/:id — filtre owner_id', () => {
         const [sql, params] = (pool.query as jest.Mock).mock.calls[1];
         expect(sql).not.toContain('owner_id = ANY(');
         expect(params).toEqual(['42']);
+    });
+});
+
+describe('GET /api/locations/:id/echeancier — filtre owner_id', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockValidOwnerIds = [1];
+    });
+
+    const scheduleRows = [{ id: 1, lease_id: 42, numero_echeance: 1 }];
+
+    it('gestionnaire multi-propriétaires : vérification filtrée sur owner_id = ANY([1, 2]), 200', async () => {
+        mockValidOwnerIds = [1, 2];
+        mockAuthLookup();
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ id: 42 }] }); // vérification du bail
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: scheduleRows }); // payment_schedules
+
+        const res = await request(app)
+            .get('/api/locations/42/echeancier')
+            .set('Authorization', `Bearer ${authToken()}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toEqual({ echeancier: scheduleRows });
+        const [checkSql, checkParams] = (pool.query as jest.Mock).mock.calls[1];
+        expect(checkSql).toContain('FROM leases');
+        expect(checkSql).toContain('owner_id = ANY($2::int[])');
+        expect(checkParams).toEqual(['42', [1, 2]]);
+    });
+
+    it('admin : aucun filtre owner_id (accès global)', async () => {
+        mockAuthLookup();
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ id: 42 }] });
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: scheduleRows });
+
+        const res = await request(app)
+            .get('/api/locations/42/echeancier')
+            .set('Authorization', `Bearer ${authToken('admin')}`);
+
+        expect(res.status).toBe(200);
+        const [checkSql, checkParams] = (pool.query as jest.Mock).mock.calls[1];
+        expect(checkSql).not.toContain('owner_id = ANY(');
+        expect(checkParams).toEqual(['42']);
+    });
+
+    it("bail existant mais d'un autre propriétaire (exclu par le filtre) → 404, payment_schedules jamais lu", async () => {
+        mockAuthLookup();
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] }); // vérification exclut la ligne
+
+        const res = await request(app)
+            .get('/api/locations/42/echeancier')
+            .set('Authorization', `Bearer ${authToken()}`);
+
+        expect(res.status).toBe(404);
+        expect(res.body).toEqual({ message: 'Contrat non trouvé ou accès refusé' });
+        // auth + vérification seulement : aucune lecture de payment_schedules.
+        expect(pool.query).toHaveBeenCalledTimes(2);
+        const calls = (pool.query as jest.Mock).mock.calls.map((c) => String(c[0]));
+        expect(calls.some((sql) => sql.includes('FROM payment_schedules'))).toBe(false);
     });
 });
 
