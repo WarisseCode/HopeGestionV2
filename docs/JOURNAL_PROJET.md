@@ -355,3 +355,13 @@ Mis à jour automatiquement après chaque tâche.
 - **Décisions & justifications** : 404 et non 403, pour ne pas confirmer l'existence d'une notification tierce (même logique que `/leases/:id/sign`). `userId` pris de `req.userId` (posé par `protect`), avec garde 401 explicite comme `read-all`. Seul appelant de `markAsRead` : cette route (vérifié par grep).
 - **Problèmes rencontrés** : aucun. `npx tsc --noEmit` propre. `npm test` : 197/199 ; les 2 échecs (`tests/middleware/permissionMiddleware.test.ts`) sont préexistants et sans rapport (déjà signalés en T-014).
 - **Remplace / modifie** : aucune entrée antérieure.
+
+### T-016 : Correctif IDOR — liste des baux (`GET /api/locations`, `GET /api/baux`) sans filtre propriétaire
+- **Date** : 2026-10-06
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : `LeaseService.findAll` listait les baux sans aucun filtre propriétaire (la table `leases` n'a pas de RLS versionnée) : un gestionnaire voyait les baux de tous les propriétaires. Même classe de faille IDOR que T-012/T-013/T-015. `findAll` reçoit désormais une portée obligatoire `{ isAdmin, validOwnerIds }` et ajoute `l.owner_id = ANY($n::int[])` sauf pour l'admin, comme `scopeByOwner` dans `GET /:id`.
+- **Fichiers touchés** : `backend/services/leaseService.ts`, `backend/routes/leaseRoutes.ts`, `backend/routes/bauxRoutes.ts`, `backend/tests/routes/lease.ownerScope.test.ts` (+4 tests sur `GET /`).
+- **Décisions & justifications** : portée passée en paramètre obligatoire (pas optionnel) pour qu'un appelant qui l'oublie échoue à la compilation au lieu de fuiter. Le grep a trouvé un second appelant, `GET /api/baux` (`bauxRoutes.ts`, monté dans `index.ts`), qui avait la même faille ; il a été corrigé de la même façon. Numérotation des paramètres SQL rendue dynamique (`params.length`), au lieu d'un `$1` fixe pour `statut`.
+- **Problèmes rencontrés** : aucun. `npx tsc --noEmit` propre. `npm test` : 201/203 ; les 2 échecs (`tests/middleware/permissionMiddleware.test.ts`) sont préexistants et sans rapport (ils échouent aussi sans ces changements, voir T-014/T-015).
+- **Remplace / modifie** : complète T-012 (qui couvrait `GET/PUT /:id`, `/resilier`, `/renouveler` et `/sign`, mais pas la liste).

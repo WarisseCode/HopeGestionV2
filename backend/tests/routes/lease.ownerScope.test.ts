@@ -1,6 +1,7 @@
 /**
  * Tests d'intégration — Correctif de sécurité IDOR sur les routes de bail
- * (GET /:id, PUT /:id, POST /:id/resilier, POST /:id/renouveler, POST /:id/sign).
+ * (GET / [liste], GET /:id, PUT /:id, POST /:id/resilier, POST /:id/renouveler,
+ * POST /:id/sign).
  *
  * `leases` n'a pas de politique RLS versionnée et le rôle DB peut avoir BYPASSRLS
  * (même constat que edlRoutes.ts/inventoryRoutes.ts) : avant ce correctif, ces
@@ -46,13 +47,16 @@ jest.mock('../../services/notificationService', () => ({
 // tenantGuard : dbClient pointe vers le même pool mocké, validOwnerIds exposé
 // comme le fait le vrai middleware (voir tenantGuard.ts L83) pour que
 // scopeByOwner() puisse filtrer.
+// mockValidOwnerIds : modifiable par test (cas gestionnaire multi-propriétaires),
+// lu à l'exécution de la requête, remis à [1] avant chaque test.
+let mockValidOwnerIds: number[] = [1];
 jest.mock('../../middleware/tenantGuard', () => {
     const poolModule = require('../../db/database');
     return {
         tenantGuard: (req: any, _res: any, next: any) => {
             req.dbClient        = poolModule.default;
             req.resolvedOwnerId = 1;
-            req.validOwnerIds   = [1];
+            req.validOwnerIds   = mockValidOwnerIds;
             next();
         },
     };
@@ -99,6 +103,74 @@ const mockAuthLookup = () =>
 
 const TINY_PNG_DATA_URL =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
+describe('GET /api/locations (liste) — filtre owner_id', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockValidOwnerIds = [1];
+    });
+
+    it('gestionnaire multi-propriétaires : la requête inclut l.owner_id = ANY([1, 2])', async () => {
+        mockValidOwnerIds = [1, 2];
+        mockAuthLookup();
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ id: 42, owner_id: 2 }] });
+
+        const res = await request(app)
+            .get('/api/locations')
+            .set('Authorization', `Bearer ${authToken()}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body.locations).toEqual([{ id: 42, owner_id: 2 }]);
+        const [sql, params] = (pool.query as jest.Mock).mock.calls[1];
+        expect(sql).toContain('l.owner_id = ANY($1::int[])');
+        expect(params).toEqual([[1, 2]]);
+    });
+
+    it('gestionnaire + filtre statut : owner_id en $1, statut en $2', async () => {
+        mockValidOwnerIds = [1, 2];
+        mockAuthLookup();
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+
+        const res = await request(app)
+            .get('/api/locations?statut=actif')
+            .set('Authorization', `Bearer ${authToken()}`);
+
+        expect(res.status).toBe(200);
+        const [sql, params] = (pool.query as jest.Mock).mock.calls[1];
+        expect(sql).toContain('l.owner_id = ANY($1::int[])');
+        expect(sql).toContain('l.statut = $2');
+        expect(params).toEqual([[1, 2], 'actif']);
+    });
+
+    it('gestionnaire sans propriétaire : ANY({}) → filtre présent avec tableau vide', async () => {
+        mockValidOwnerIds = [];
+        mockAuthLookup();
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+
+        const res = await request(app)
+            .get('/api/locations')
+            .set('Authorization', `Bearer ${authToken()}`);
+
+        expect(res.status).toBe(200);
+        const [sql, params] = (pool.query as jest.Mock).mock.calls[1];
+        expect(sql).toContain('l.owner_id = ANY(');
+        expect(params).toEqual([[]]);
+    });
+
+    it('admin : aucun filtre owner_id (accès global)', async () => {
+        mockAuthLookup();
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+
+        const res = await request(app)
+            .get('/api/locations')
+            .set('Authorization', `Bearer ${authToken('admin')}`);
+
+        expect(res.status).toBe(200);
+        const [sql, params] = (pool.query as jest.Mock).mock.calls[1];
+        expect(sql).not.toContain('owner_id = ANY(');
+        expect(params).toEqual([]);
+    });
+});
 
 describe('GET /api/locations/:id — filtre owner_id', () => {
     beforeEach(() => jest.clearAllMocks());

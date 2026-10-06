@@ -1,14 +1,27 @@
 import { PoolClient } from 'pg';
 
+/**
+ * Portée propriétaire de l'appelant. Paramètre OBLIGATOIRE de findAll : un
+ * oubli doit être une erreur de compilation, pas une fuite silencieuse.
+ * - isAdmin = true  → accès global (aucune clause)
+ * - isAdmin = false → `l.owner_id = ANY(validOwnerIds)` (tableau vide → 0 ligne)
+ */
+export interface LeaseOwnerScope {
+    isAdmin: boolean;
+    validOwnerIds: number[];
+}
+
 export class LeaseService {
     /**
      * Retrieve all leases filtered by owner access and optional status.
-     * @param dbClient - The isolated PostgreSQL client configured with RLS.
+     * @param dbClient - The isolated PostgreSQL client (tenantGuard).
+     * @param scope - Owner scope of the caller (admin bypass or validOwnerIds).
      * @param filters - Optional filters (e.g., status).
      */
-    static async findAll(dbClient: PoolClient, filters: { statut?: string } = {}) {
-        // [RLS] Filtrage automatique par tenant via PostgreSQL Row-Level Security. 
-        // Inutile de récupérer ni d'appliquer un ownerIds.
+    static async findAll(dbClient: PoolClient, scope: LeaseOwnerScope, filters: { statut?: string } = {}) {
+        // [SÉCURITÉ] `leases` n'a pas de politique RLS versionnée et le rôle DB peut
+        // avoir BYPASSRLS : la RLS ne protège pas. Filtre explicite par propriétaire
+        // (même pattern que scopeByOwner dans leaseRoutes.ts), sauf pour l'admin.
         let query = `
             SELECT
                 l.id,
@@ -50,11 +63,15 @@ export class LeaseService {
         `;
 
         const params: any[] = [];
-        const paramIndex = 1;
+
+        if (!scope.isAdmin) {
+            params.push(scope.validOwnerIds || []);
+            query += ` AND l.owner_id = ANY($${params.length}::int[])`;
+        }
 
         if (filters.statut) {
-            query += ` AND l.statut = $${paramIndex}`;
             params.push(filters.statut);
+            query += ` AND l.statut = $${params.length}`;
         }
 
         query += ` ORDER BY l.created_at DESC`;
