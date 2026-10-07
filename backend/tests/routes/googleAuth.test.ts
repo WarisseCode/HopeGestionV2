@@ -242,6 +242,121 @@ describe('POST /api/auth/google — email_verified et liaison de compte', () => 
     });
 });
 
+// Même bug que /mobile/google (T-022), sur la route web : aucun statut n'était vérifié.
+describe('POST /api/auth/google — compte inactif / suspendu', () => {
+    // Espion sur jwt.sign (même objet module que celui utilisé par la route) : prouve
+    // qu'aucun token n'est émis en interne, pas seulement absent de la réponse.
+    let signSpy: jest.SpyInstance;
+    beforeEach(() => {
+        jest.clearAllMocks();
+        signSpy = jest.spyOn(jwt, 'sign');
+    });
+    afterEach(() => signSpy.mockRestore());
+
+    const existingRow = (statut: string, google_id: string | null) => ({
+        id: 400, email: 'existant@example.com', nom: 'Existant',
+        user_type: 'gestionnaire', role: 'gestionnaire', google_id, statut,
+    });
+
+    const blockedStatuses = ['Suspendu', 'suspendu', 'SUSPENDU', ' suspendu ', 'Inactif', 'INACTIF '];
+
+    it.each(blockedStatuses)(
+        'compte déjà lié à Google, statut "%s" : 401, aucun token émis',
+        async (statut) => {
+            mockVerifyIdToken.mockResolvedValueOnce({
+                getPayload: () => googlePayload({ email: 'existant@example.com' }),
+            });
+            (pool.query as jest.Mock).mockResolvedValueOnce({
+                rows: [existingRow(statut, 'google-sub-id')],
+            });
+
+            const res = await request(app)
+                .post('/api/auth/google')
+                .send({ credential: 'fake-credential' });
+
+            expect(res.status).toBe(401);
+            expect(res.body.message).toContain('inactif ou suspendu');
+            expect(res.body.token).toBeUndefined();
+            expect(signSpy).not.toHaveBeenCalled();
+            // Seule la lecture du compte : aucun UPDATE, aucun audit de connexion.
+            expect(pool.query).toHaveBeenCalledTimes(1);
+            expect(AuditService.log).not.toHaveBeenCalled();
+        },
+    );
+
+    it.each(blockedStatuses)(
+        'compte non lié à Google, statut "%s" : 401, aucune liaison google_id, aucun token',
+        async (statut) => {
+            mockVerifyIdToken.mockResolvedValueOnce({
+                getPayload: () => googlePayload({ email: 'existant@example.com' }),
+            });
+            (pool.query as jest.Mock).mockResolvedValueOnce({
+                rows: [existingRow(statut, null)],
+            });
+
+            const res = await request(app)
+                .post('/api/auth/google')
+                .send({ credential: 'fake-credential' });
+
+            expect(res.status).toBe(401);
+            expect(res.body.message).toContain('inactif ou suspendu');
+            expect(res.body.token).toBeUndefined();
+            expect(signSpy).not.toHaveBeenCalled();
+            expect(pool.query).toHaveBeenCalledTimes(1);
+            expect(pool.query).not.toHaveBeenCalledWith(
+                expect.stringContaining('UPDATE users SET google_id'),
+                expect.anything(),
+            );
+            expect(AuditService.log).not.toHaveBeenCalled();
+        },
+    );
+
+    it.each(['Actif', 'actif'])(
+        'statut "%s" (compte déjà lié) : connexion non bloquée, token émis',
+        async (statut) => {
+            mockVerifyIdToken.mockResolvedValueOnce({
+                getPayload: () => googlePayload({ email: 'existant@example.com' }),
+            });
+            (pool.query as jest.Mock).mockResolvedValueOnce({
+                rows: [existingRow(statut, 'google-sub-id')],
+            });
+
+            const res = await request(app)
+                .post('/api/auth/google')
+                .send({ credential: 'fake-credential' });
+
+            expect(res.status).toBe(200);
+            expect(typeof res.body.token).toBe('string');
+            expect(signSpy).toHaveBeenCalledTimes(1);
+            expect(AuditService.log).toHaveBeenCalledWith(
+                expect.objectContaining({ action: 'GOOGLE_LOGIN', userId: '400' }),
+            );
+        },
+    );
+
+    it('statut "Actif" (compte non lié) : liaison google_id effectuée, token émis', async () => {
+        mockVerifyIdToken.mockResolvedValueOnce({
+            getPayload: () => googlePayload({ email: 'existant@example.com' }),
+        });
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({ rows: [existingRow('Actif', null)] })
+            .mockResolvedValueOnce({ rows: [] }); // UPDATE google_id
+
+        const res = await request(app)
+            .post('/api/auth/google')
+            .send({ credential: 'fake-credential' });
+
+        expect(res.status).toBe(200);
+        expect(typeof res.body.token).toBe('string');
+        expect(signSpy).toHaveBeenCalledTimes(1);
+        expect(pool.query).toHaveBeenNthCalledWith(
+            2,
+            expect.stringContaining('UPDATE users SET google_id'),
+            expect.any(Array),
+        );
+    });
+});
+
 // ── POST /mobile/google ──────────────────────────────────────────────────────
 
 describe('POST /api/auth/mobile/google', () => {

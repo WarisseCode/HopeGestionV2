@@ -91,6 +91,16 @@ router.post('/google', validate(googleLoginRules), async (req: Request, res: Res
             // 3a. Existing user
             user = userResult.rows[0];
 
+            // Compte inactif/suspendu refusé AVANT toute liaison Google, tout audit de
+            // connexion et toute émission de token (même garde que /mobile/google et
+            // AuthService.login). Couvre les deux chemins « compte existant » : déjà lié
+            // à Google (login direct) et pas encore lié (liaison par email).
+            if (isAccountBlocked(user.statut)) {
+                return res.status(401).json({
+                    message: "Votre compte est inactif ou suspendu. Veuillez contacter l'administrateur."
+                });
+            }
+
             // Update google_id if not set (linking existing email account)
             if (!user.google_id) {
                 await pool.query(
@@ -206,7 +216,7 @@ router.post('/google', validate(googleLoginRules), async (req: Request, res: Res
  *    jamais émise (le login web/mot de passe, lui, laisse le client mobile
  *    révoquer après coup — voir le journal).
  *  - Compte inactif/suspendu refusé (401), comme le login mot de passe
- *    (`AuthService.login`) — absent de `POST /google` aujourd'hui.
+ *    (`AuthService.login`) et `POST /google`.
  *  - Réponse au format de `POST /auth/mobile/login` (`token`, `refreshToken`,
  *    `role`, `userId`) via `authService.issueTokenPair(..., 'mobile')`, pas
  *    celui de `POST /google` (un seul `token`, pas de refresh token).
