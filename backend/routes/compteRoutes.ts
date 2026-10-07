@@ -5,8 +5,78 @@ import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import db from '../db/database';
 import { AuditService } from '../services/AuditService';
 import { validate } from '../middleware/validate';
+import { USER_MANAGER_ROLES, ALL_ASSIGNABLE_ROLES, assignableRolesFor } from '../utils/roleHierarchy';
 
 const router = Router();
+
+// ── [SÉCURITÉ] Faille C3 de l'audit : portée des actions sur les comptes utilisateurs ──
+// Avant ce correctif, suspend / delete / reactivate / mise à jour ne vérifiaient que le
+// rôle de l'appelant : tout gestionnaire ou propriétaire pouvait agir sur n'importe quel
+// compte, admin inclus. Désormais :
+//  - un non-admin n'agit que sur les comptes de sa portée, même filtre que
+//    GET /utilisateurs (`id = appelant OR created_by = appelant`) → 404 sinon ;
+//  - un non-admin n'agit jamais sur un compte admin → 403.
+
+type ManagedUser = { id: number; role: string | null; user_type: string | null };
+
+const isAdminAccount = (u: ManagedUser): boolean =>
+    [u.role, u.user_type].some(r => typeof r === 'string' && r.trim().toLowerCase() === 'admin');
+
+/**
+ * Charge le compte ciblé en appliquant la portée de l'appelant. Envoie la réponse
+ * d'erreur (404 hors portée / inexistant, 403 cible admin pour un non-admin) et renvoie
+ * null si l'action doit être refusée.
+ */
+const loadManageableUser = async (
+    req: AuthenticatedRequest, res: Response, targetId: string | number | undefined
+): Promise<ManagedUser | null> => {
+    const isAdmin = req.userRole === 'admin';
+    const result = isAdmin
+        ? await db.query('SELECT id, role, user_type FROM users WHERE id = $1', [targetId])
+        : await db.query(
+            'SELECT id, role, user_type FROM users WHERE id = $1 AND (id = $2 OR created_by = $2)',
+            [targetId, req.userId]
+        );
+    const target: ManagedUser | undefined = result.rows[0];
+    // 404 (pas 403) pour ne pas confirmer l'existence d'un compte hors portée.
+    if (!target) {
+        res.status(404).json({ message: 'Utilisateur introuvable.' });
+        return null;
+    }
+    if (!isAdmin && isAdminAccount(target)) {
+        res.status(403).json({ message: "Vous n'êtes pas autorisé à agir sur ce compte." });
+        return null;
+    }
+    return target;
+};
+
+/**
+ * Prédicat de portée répété dans l'écriture elle-même (UPDATE / DELETE / SELECT FOR UPDATE)
+ * pour fermer la fenêtre de course entre loadManageableUser et l'écriture (compte devenu
+ * admin ou changé de créateur entre-temps). Vide pour un admin.
+ */
+const userWriteScope = (req: AuthenticatedRequest, paramIndex: number): { clause: string; params: unknown[] } =>
+    req.userRole === 'admin'
+        ? { clause: '', params: [] }
+        : {
+            clause: ` AND (id = $${paramIndex} OR created_by = $${paramIndex})`
+                + ` AND LOWER(TRIM(COALESCE(role, ''))) <> 'admin'`
+                + ` AND LOWER(TRIM(COALESCE(user_type, ''))) <> 'admin'`,
+            params: [req.userId],
+        };
+
+/**
+ * Lien réel appelant ↔ propriétaire (même contrôle que GET /proprietaires/:id/biens).
+ * Admin : aucune restriction. Sinon 404 si aucun lien owner_user actif.
+ */
+const hasOwnerAccess = async (req: AuthenticatedRequest, ownerId: string | undefined): Promise<boolean> => {
+    if (req.userRole === 'admin') return true;
+    const access = await db.query(
+        'SELECT 1 FROM owner_user WHERE owner_id = $1 AND user_id = $2 AND is_active = TRUE',
+        [ownerId, req.userId]
+    );
+    return access.rows.length > 0;
+};
 
 const compteIdParam = param('id').isInt({ min: 1 }).withMessage('Identifiant invalide');
 // name géré à la main (name || company_name) — on formalise téléphone + format email.
@@ -253,15 +323,10 @@ router.put('/proprietaires/:id', validate(ownerUpdateRules), async (req: Authent
     try {
         const ownerId = req.params.id;
 
-        // Si c'est un propriétaire, vérifier qu'il modifie le sien
-        if (req.userRole === 'proprietaire') {
-            const checkLink = await db.query(
-                `SELECT 1 FROM owner_user WHERE user_id = $1 AND owner_id = $2`,
-                [req.userId!, ownerId]
-            );
-            if (checkLink.rows.length === 0) {
-                return res.status(403).json({ message: "Vous n'êtes pas autorisé à modifier ce propriétaire." });
-            }
+        // [SÉCURITÉ C3] Lien owner_user actif exigé pour tout non-admin (proprietaire,
+        // gestionnaire, manager) — avant, seul le rôle proprietaire était contrôlé.
+        if (!(await hasOwnerAccess(req, ownerId))) {
+            return res.status(404).json({ message: 'Propriétaire introuvable.' });
         }
         // Support multiple field names for backward compatibility
         const { 
@@ -359,32 +424,68 @@ router.put('/proprietaires/:id', validate(ownerUpdateRules), async (req: Authent
 
 // POST /api/compte/utilisateurs : Créer ou mettre à jour un utilisateur
 router.post('/utilisateurs', validate(userSaveRules), async (req: AuthenticatedRequest, res: Response) => {
-    if (!['admin', 'gestionnaire', 'proprietaire'].includes(req.userRole || '')) {
+    if (!USER_MANAGER_ROLES.includes(req.userRole || '')) {
         return res.status(403).json({ message: 'Accès refusé.' });
     }
 
     try {
         const { id, nom, prenoms, telephone, email, role, photo, statut, mot_de_passe } = req.body;
-        
+
+        // [SÉCURITÉ C3] Mise à jour : le compte ciblé doit être dans la portée de
+        // l'appelant (même filtre que GET /utilisateurs) et jamais admin pour un non-admin.
+        let target: ManagedUser | null = null;
+        if (id) {
+            target = await loadManageableUser(req, res, id);
+            if (!target) return;
+        }
+
+        // [SÉCURITÉ C3] Liste blanche du rôle, même hiérarchie que POST /api/auth/invite-user
+        // (utils/roleHierarchy.ts) : un non-admin n'attribue que des rôles subalternes,
+        // jamais admin. Exception : en mise à jour, conserver le rôle actuel du compte
+        // (absent ou identique) n'est pas une attribution et reste permis.
+        if (role !== undefined && role !== null && role !== '' && typeof role !== 'string') {
+            return res.status(400).json({ message: 'Rôle invalide' });
+        }
+        const requestedRole: string | null = (typeof role === 'string' && role !== '') ? role : null;
+        const keepsCurrentRole = target !== null && (requestedRole === null || requestedRole === target.role);
+        if (!keepsCurrentRole) {
+            if (requestedRole === null) {
+                return res.status(400).json({ message: 'Le rôle est obligatoire.' });
+            }
+            if (!ALL_ASSIGNABLE_ROLES.includes(requestedRole)) {
+                return res.status(400).json({ message: 'Rôle invalide' });
+            }
+            if (!assignableRolesFor(req.userRole).includes(requestedRole)) {
+                return res.status(403).json({ message: "Vous n'êtes pas autorisé à attribuer ce rôle." });
+            }
+        }
+        const effectiveRole = requestedRole ?? target?.role ?? null;
+
         let result;
         if (id) {
+            // Portée répétée dans l'UPDATE (course avec un changement de rôle / created_by).
+            const scope = userWriteScope(req, 9);
             const query = `
-                UPDATE users SET 
+                UPDATE users SET
                     nom = $1, prenom = $2, telephone = $3, email = $4, role = $5,
                     photo = $6, statut = $7, updated_at = CURRENT_TIMESTAMP
-                WHERE id = $8 RETURNING *
+                WHERE id = $8${scope.clause} RETURNING *
             `;
-            result = await db.query(query, [nom, prenoms, telephone, email, role, photo, statut, id]);
+            result = await db.query(query, [nom, prenoms, telephone, email, effectiveRole, photo, statut, id, ...scope.params]);
+            if (result.rows.length === 0) {
+                return res.status(404).json({ message: 'Utilisateur introuvable.' });
+            }
         } else {
-            // Pour la création d'utilisateur
+            // Pour la création d'utilisateur — created_by renseigné pour que le compte créé
+            // entre dans la portée de son créateur (GET /utilisateurs, suspend, etc.).
             const query = `
-                INSERT INTO users (nom, telephone, email, role, photo_url, statut, password_hash, user_type)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
+                INSERT INTO users (nom, telephone, email, role, photo_url, statut, password_hash, user_type, created_by)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
             `;
             // Note: We should hash the password properly - using a placeholder for now
             const bcrypt = require('bcrypt');
             const hashedPassword = await bcrypt.hash(mot_de_passe || 'TempPassword123!', 10);
-            result = await db.query(query, [nom, telephone, email, role, photo, statut || 'actif', hashedPassword, role || 'gestionnaire']);
+            result = await db.query(query, [nom, telephone, email, effectiveRole, photo, statut || 'actif', hashedPassword, effectiveRole, req.userId]);
         }
 
         await AuditService.log({
@@ -457,6 +558,12 @@ router.delete('/proprietaires/:id', validate([compteIdParam]), async (req: Authe
 
     try {
         const { id } = req.params;
+
+        // [SÉCURITÉ C3] Lien owner_user actif exigé pour gestionnaire / manager.
+        if (!(await hasOwnerAccess(req, id))) {
+            return res.status(404).json({ message: 'Propriétaire introuvable.' });
+        }
+
         await db.query('UPDATE owners SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
         
         await AuditService.log({
@@ -481,7 +588,20 @@ router.patch('/utilisateurs/:id/suspend', validate([compteIdParam]), async (req:
 
     try {
         const { id } = req.params;
-        await db.query('UPDATE users SET statut = $1 WHERE id = $2', ['Suspendu', id]);
+
+        // [SÉCURITÉ C3] Portée + jamais un compte admin pour un non-admin.
+        if (!(await loadManageableUser(req, res, id))) return;
+
+        // NB : la casse 'Suspendu' est historique ; le login (AuthService) compare le
+        // statut sans tenir compte de la casse.
+        const scope = userWriteScope(req, 3);
+        const updated = await db.query(
+            `UPDATE users SET statut = $1 WHERE id = $2${scope.clause} RETURNING id`,
+            ['Suspendu', id, ...scope.params]
+        );
+        if (updated.rows.length === 0) {
+            return res.status(404).json({ message: 'Utilisateur introuvable.' });
+        }
         
         await AuditService.log({
             userId: req.userId!.toString(),
@@ -507,10 +627,30 @@ router.delete('/utilisateurs/:id', validate([compteIdParam]), async (req: Authen
         }
     }
 
+    // [SÉCURITÉ C3] Portée + jamais un compte admin pour un non-admin (avant toute transaction).
+    try {
+        if (!(await loadManageableUser(req, res, req.params.id))) return;
+    } catch (error) {
+        console.error('Erreur suppression utilisateur:', error);
+        return res.status(500).json({ message: 'Erreur serveur lors de la suppression.' });
+    }
+
     const client = await db.connect();
     try {
         await client.query('BEGIN');
         const { id } = req.params;
+
+        // 0. [SÉCURITÉ C3] Revérifie la portée en verrouillant la ligne pour la durée de la
+        //    transaction (pas de course avec un changement de rôle / created_by).
+        const scope = userWriteScope(req, 2);
+        const locked = await client.query(
+            `SELECT id FROM users WHERE id = $1${scope.clause} FOR UPDATE`,
+            [id, ...scope.params]
+        );
+        if (locked.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: 'Utilisateur introuvable.' });
+        }
 
         // 1. Remove assignments first (foreign key constraints)
         await client.query('DELETE FROM user_owner_assignments WHERE user_id = $1', [id]);
@@ -555,7 +695,18 @@ router.patch('/utilisateurs/:id/reactivate', validate([compteIdParam]), async (r
 
     try {
         const { id } = req.params;
-        await db.query('UPDATE users SET statut = $1 WHERE id = $2', ['Actif', id]);
+
+        // [SÉCURITÉ C3] Portée + jamais un compte admin pour un non-admin.
+        if (!(await loadManageableUser(req, res, id))) return;
+
+        const scope = userWriteScope(req, 3);
+        const updated = await db.query(
+            `UPDATE users SET statut = $1 WHERE id = $2${scope.clause} RETURNING id`,
+            ['Actif', id, ...scope.params]
+        );
+        if (updated.rows.length === 0) {
+            return res.status(404).json({ message: 'Utilisateur introuvable.' });
+        }
         
         await AuditService.log({
             userId: req.userId!.toString(),

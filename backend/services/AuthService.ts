@@ -146,7 +146,11 @@ class AuthService {
 
         const user = result.rows[0];
 
-        if (user.statut === 'inactif' || user.statut === 'suspendu') {
+        // Comparaison insensible à la casse : PATCH /api/compte/utilisateurs/:id/suspend écrit
+        // 'Suspendu' (majuscule) — une comparaison stricte laissait un compte suspendu se
+        // connecter (correctif lié à la faille C3 de l'audit).
+        const normalizedStatut = typeof user.statut === 'string' ? user.statut.trim().toLowerCase() : '';
+        if (normalizedStatut === 'inactif' || normalizedStatut === 'suspendu') {
             throw new AuthError(401, "Votre compte est inactif ou suspendu. Veuillez contacter l'administrateur.");
         }
 
