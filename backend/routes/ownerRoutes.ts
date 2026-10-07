@@ -126,29 +126,44 @@ router.post('/', protect, checkAgencyLimit, validate(ownerCreateRules), async (r
         const managerCode = `AG-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         console.log(`[ownerRoutes] Creating owner with managerCode: ${managerCode}`);
 
-        const result = await db.query(
-            `INSERT INTO owners (
-                type, name, first_name, phone, phone_secondary, email,
-                address, city, country, id_number, photo, mobile_money_number, management_mode,
-                manager_code
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
-            [
-                type || 'individual', name, first_name, phone, phone_secondary, email,
-                address, city, country || 'Bénin', id_number, photo, mobile_money_number, management_mode || 'direct',
-                managerCode
-            ]
-        );
+        // [SÉCURITÉ] Propriétaire + lien owner_user dans une seule transaction : si le lien
+        // échoue, le propriétaire n'est pas créé non plus (pas de propriétaire orphelin).
+        const txClient = await db.connect();
+        let ownerId: number;
+        try {
+            await txClient.query('BEGIN');
 
+            const result = await txClient.query(
+                `INSERT INTO owners (
+                    type, name, first_name, phone, phone_secondary, email,
+                    address, city, country, id_number, photo, mobile_money_number, management_mode,
+                    manager_code
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
+                [
+                    type || 'individual', name, first_name, phone, phone_secondary, email,
+                    address, city, country || 'Bénin', id_number, photo, mobile_money_number, management_mode || 'direct',
+                    managerCode
+                ]
+            );
 
+            ownerId = result.rows[0].id;
+            const userId = req.userId;
 
-        const ownerId = result.rows[0].id;
-        const userId = req.userId;
+            await txClient.query(
+                `INSERT INTO owner_user (owner_id, user_id, role, start_date, is_active)
+                 VALUES ($1, $2, 'owner', CURRENT_DATE, TRUE)`,
+                [ownerId, userId]
+            );
 
-        await db.query(
-            `INSERT INTO owner_user (owner_id, user_id, role, start_date, is_active)
-             VALUES ($1, $2, 'owner', CURRENT_DATE, TRUE)`,
-            [ownerId, userId]
-        );
+            await txClient.query('COMMIT');
+        } catch (txError) {
+            try { await txClient.query('ROLLBACK'); } catch (rbError) {
+                console.error('Error rolling back owner creation:', rbError);
+            }
+            throw txError;
+        } finally {
+            txClient.release();
+        }
 
         res.status(201).json({ success: true, message: 'Propriétaire créé avec succès', ownerId });
     } catch (error) {

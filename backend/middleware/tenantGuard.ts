@@ -4,6 +4,11 @@ import { PoolClient } from 'pg';
 import { AuthenticatedRequest } from './authMiddleware';
 import pool from '../db/database';
 
+// [SÉCURITÉ] Faille C4 : seuls ces rôles peuvent, sans lien owner_user, cibler un
+// propriétaire via owner_id (body/query). 'manager' et 'super_admin' volontairement
+// exclus (cf. journal T-025 : décision produit à trancher séparément).
+export const TENANT_PRIVILEGED_ROLES: readonly string[] = ['admin'];
+
 export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.userId) {
         return res.status(401).json({ success: false, message: 'Non authentifié. Jeton manquant ou invalide.' });
@@ -27,17 +32,33 @@ export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next
         await client.query(`SELECT set_config('app.current_user_id', $1, false)`, [req.userId.toString()]);
 
         if (validOwnerIds.length === 0) {
-            // Aucun owner lié → mode gestionnaire pur (accès via user_id dans RLS)
-            // Si un owner_id est fourni dans le body/query (ex: création d'un lot), l'utiliser
+            // Aucun owner lié → mode gestionnaire pur (accès via user_id dans RLS).
+            // [SÉCURITÉ] Faille C4 de l'audit : l'owner_id client (body/query) n'est retenu
+            // QUE pour un rôle privilégié (admin), et seulement s'il désigne un propriétaire
+            // existant et actif. Pour tout autre rôle il est ignoré : sans lien owner_user,
+            // aucun owner_id ne peut être imposé (ni resolvedOwnerId, ni contexte RLS).
             const bodyOwnerId = req.body?.owner_id
                 ? parseInt(req.body.owner_id, 10)
                 : req.query?.owner_id
                     ? parseInt(req.query.owner_id as string, 10)
                     : null;
 
-            if (bodyOwnerId && !isNaN(bodyOwnerId)) {
-                await client.query(`SELECT set_config('app.current_owner_id', $1, false)`, [bodyOwnerId.toString()]);
-                (req as any).resolvedOwnerId = bodyOwnerId;
+            let acceptedOwnerId: number | null = null;
+            if (
+                bodyOwnerId && !isNaN(bodyOwnerId) && bodyOwnerId > 0 &&
+                TENANT_PRIVILEGED_ROLES.includes(req.userRole || '')
+            ) {
+                const ownerRes = await pool.query(
+                    `SELECT 1 FROM owners WHERE id = $1 AND is_active = TRUE`,
+                    [bodyOwnerId]
+                );
+                // Inexistant ou inactif : traité comme absent (pas de message distinct)
+                if (ownerRes.rows.length > 0) acceptedOwnerId = bodyOwnerId;
+            }
+
+            if (acceptedOwnerId !== null) {
+                await client.query(`SELECT set_config('app.current_owner_id', $1, false)`, [acceptedOwnerId.toString()]);
+                (req as any).resolvedOwnerId = acceptedOwnerId;
             } else {
                 await client.query(`SELECT set_config('app.current_owner_id', '', false)`);
                 (req as any).resolvedOwnerId = null;

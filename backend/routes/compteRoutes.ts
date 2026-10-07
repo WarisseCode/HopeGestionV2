@@ -251,8 +251,16 @@ router.post('/proprietaires', validate(ownerCreateRules), async (req: Authentica
         const managerCode = `AG-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         console.log(`[compteRoutes] Creating owner with managerCode: ${managerCode}`);
 
-        // Insérer le propriétaire (schema matches ownerRoutes.ts)
-        const newOwner = await db.query(
+        // [SÉCURITÉ] Création du propriétaire + lien owner_user dans UNE transaction :
+        // un propriétaire sans lien laisserait le créateur sans accès (et, avant le
+        // correctif C4, en mode « zéro lien » où l'owner_id client était accepté tel quel).
+        const txClient = await db.connect();
+        let newOwner;
+        try {
+            await txClient.query('BEGIN');
+
+            // Insérer le propriétaire (schema matches ownerRoutes.ts)
+            newOwner = await txClient.query(
             `INSERT INTO owners (
                 type, name, first_name, phone, phone_secondary, email,
                 address, city, country, id_number, photo, mobile_money_number, management_mode,
@@ -275,24 +283,29 @@ router.post('/proprietaires', validate(ownerCreateRules), async (req: Authentica
                 req.body.management_mode || 'direct',
                 managerCode
             ]
-        );
+            );
 
+            const ownerId = newOwner.rows[0].id;
 
-        
-        const ownerId = newOwner.rows[0].id;
-        
-        // Lier le créateur à l'owner via owner_user
-        // - Gestionnaire/manager : role='gestionnaire' (il gère ce propriétaire)
-        // - Propriétaire : role='owner' (c'est son propre compte)
-        try {
+            // Lier le créateur à l'owner via owner_user
+            // - Gestionnaire/manager : role='gestionnaire' (il gère ce propriétaire)
+            // - Propriétaire : role='owner' (c'est son propre compte)
+            // Un échec ici annule aussi la création du propriétaire (ROLLBACK ci-dessous).
             const linkRole = (req.userRole === 'gestionnaire' || req.userRole === 'manager') ? 'gestionnaire' : 'owner';
-            await db.query(
+            await txClient.query(
                 `INSERT INTO owner_user (user_id, owner_id, role, is_active, start_date) VALUES ($1, $2, $3, true, CURRENT_DATE)
                  ON CONFLICT (user_id, owner_id) DO NOTHING`,
                 [req.userId!, ownerId, linkRole]
             );
-        } catch (linkError) {
-            console.error('Erreur liaison owner_user:', linkError);
+
+            await txClient.query('COMMIT');
+        } catch (txError) {
+            try { await txClient.query('ROLLBACK'); } catch (rbError) {
+                console.error('Erreur ROLLBACK création propriétaire:', rbError);
+            }
+            throw txError;
+        } finally {
+            txClient.release();
         }
 
         // Log action
