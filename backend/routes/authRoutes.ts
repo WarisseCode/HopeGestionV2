@@ -518,15 +518,57 @@ router.get('/test-email', protect, async (req: Request, res: Response) => {
 
 // ── User invitation ───────────────────────────────────────────────────────────
 
-router.post('/invite-user', verifyToken, async (req: any, res) => {
+// [SÉCURITÉ] Escalade de privilèges via invitation (faille C2 de l'audit) : avant ce
+// correctif, tout compte connecté (locataire inclus) choisissait librement `role`,
+// donc pouvait créer un compte admin puis l'activer via /accept-invite.
+//
+// 1. Rôles autorisés à inviter : même liste que POST /api/compte/utilisateurs
+//    (compteRoutes.ts), qui crée lui aussi des comptes utilisateurs.
+const INVITE_CALLER_ROLES = ['admin', 'gestionnaire', 'proprietaire'];
+// 2. Rôle maximum invitable selon le rôle de l'appelant (jamais égal ou supérieur au
+//    sien, sauf admin) :
+//    - seul un admin invite un admin (et les rôles de niveau gestion : gestionnaire, manager) ;
+//    - gestionnaire / proprietaire : uniquement des rôles opérationnels subalternes.
+const INVITE_SUBORDINATE_ROLES = ['comptable', 'agent_recouvreur', 'prestataire'];
+// Liste blanche globale (= ce qu'un admin peut inviter) : toute autre valeur → 400.
+const ALL_INVITABLE_ROLES = ['admin', 'gestionnaire', 'manager', ...INVITE_SUBORDINATE_ROLES];
+const INVITABLE_ROLES_BY_CALLER: Record<string, string[]> = {
+    admin: ALL_INVITABLE_ROLES,
+    gestionnaire: INVITE_SUBORDINATE_ROLES,
+    proprietaire: INVITE_SUBORDINATE_ROLES,
+};
+
+const requireInviteCallerRole = (req: any, res: any, next: any) => {
+    if (!INVITE_CALLER_ROLES.includes(req.user?.role)) {
+        return res.status(403).json({ message: 'Accès refusé.' });
+    }
+    next();
+};
+
+const inviteUserRules = [
+    body('nom').notEmpty().withMessage('Le nom est requis.').bail().isString().isLength({ max: 150 }).withMessage('Nom invalide'),
+    body('telephone').notEmpty().withMessage('Le téléphone est requis.').bail().isString().isLength({ max: 40 }).withMessage('Téléphone invalide'),
+    body('email').optional({ values: 'falsy' }).isEmail().withMessage('Email invalide'),
+    body('role')
+        .notEmpty().withMessage('Le rôle est requis.')
+        .bail()
+        .isString().withMessage('Rôle invalide')
+        .bail()
+        .isIn(ALL_INVITABLE_ROLES).withMessage('Rôle invalide'),
+];
+
+router.post('/invite-user', verifyToken, requireInviteCallerRole, validate(inviteUserRules), async (req: any, res: Response) => {
     const { email, nom, prenom, telephone, role, access_scope } = req.body;
     const issuerId = req.user.id;
 
-    try {
-        if (!telephone || !nom || !role) {
-            return res.status(400).json({ message: 'Nom, Téléphone et Rôle sont requis.' });
-        }
+    // Règle hiérarchique : le rôle invité doit être autorisé pour le rôle de l'appelant
+    // (ex. un gestionnaire ne peut pas inviter un admin ni un gestionnaire).
+    const allowedRoles = INVITABLE_ROLES_BY_CALLER[req.user.role] || [];
+    if (!allowedRoles.includes(role)) {
+        return res.status(403).json({ message: "Vous n'êtes pas autorisé à inviter un utilisateur avec ce rôle." });
+    }
 
+    try {
         const userEmail = email || `invite_${telephone.replace(/[^0-9]/g, '')}@hopegestion.local`;
         const tempHash  = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
 
