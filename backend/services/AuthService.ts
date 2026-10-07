@@ -10,6 +10,7 @@ import { JWT_SECRET, ACCESS_TOKEN_EXPIRES_IN } from '../config/config';
 import { AuditService } from './AuditService';
 import EmailService from './EmailService';
 import { validatePassword } from '../utils/passwordUtils';
+import { isAccountBlocked } from '../utils/accountStatus';
 
 const SALT_ROUNDS = 10;
 export const REFRESH_TOKEN_MS = 7 * 24 * 60 * 60 * 1000;
@@ -148,9 +149,8 @@ class AuthService {
 
         // Comparaison insensible à la casse : PATCH /api/compte/utilisateurs/:id/suspend écrit
         // 'Suspendu' (majuscule) — une comparaison stricte laissait un compte suspendu se
-        // connecter (correctif lié à la faille C3 de l'audit).
-        const normalizedStatut = typeof user.statut === 'string' ? user.statut.trim().toLowerCase() : '';
-        if (normalizedStatut === 'inactif' || normalizedStatut === 'suspendu') {
+        // connecter (correctif lié à la faille C3 de l'audit). Logique partagée : utils/accountStatus.ts.
+        if (isAccountBlocked(user.statut)) {
             throw new AuthError(401, "Votre compte est inactif ou suspendu. Veuillez contacter l'administrateur.");
         }
 

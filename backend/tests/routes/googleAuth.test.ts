@@ -369,6 +369,48 @@ describe('POST /api/auth/mobile/google', () => {
         expect(pool.query).toHaveBeenCalledTimes(1);
     });
 
+    // Bug lié découvert pendant C3 (pas une faille "C" de l'audit initial) : /suspend écrit
+    // 'Suspendu' (majuscule) et la comparaison stricte laissait passer la connexion Google.
+    it.each(['Suspendu', 'suspendu', 'SUSPENDU', ' suspendu ', 'Inactif', 'INACTIF '])(
+        'statut "%s" (casse / espaces variables) : 401, aucun token émis',
+        async (statut) => {
+            mockVerifyIdToken.mockResolvedValueOnce({
+                getPayload: () => googlePayload({ email: 'suspendu@example.com' }),
+            });
+            (pool.query as jest.Mock).mockResolvedValueOnce({
+                rows: [{ id: 61, role: 'gestionnaire', user_type: 'gestionnaire', statut }],
+            });
+
+            const res = await request(app)
+                .post('/api/auth/mobile/google')
+                .send({ idToken: 'fake-id-token' });
+
+            expect(res.status).toBe(401);
+            expect(res.body.message).toContain('inactif ou suspendu');
+            expect(res.body.token).toBeUndefined();
+            expect(res.body.refreshToken).toBeUndefined();
+            // Seule la lecture du compte : pas d'INSERT refresh_tokens, pas d'audit de connexion.
+            expect(pool.query).toHaveBeenCalledTimes(1);
+            expect(AuditService.log).not.toHaveBeenCalled();
+        },
+    );
+
+    it('statut "Actif" (écrit par /reactivate) : connexion Google non bloquée par le statut', async () => {
+        mockVerifyIdToken.mockResolvedValueOnce({
+            getPayload: () => googlePayload({ email: 'gestionnaire@example.com' }),
+        });
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({ rows: [{ ...gestionnaireRow, statut: 'Actif' }] })
+            .mockResolvedValueOnce({ rows: [] }); // INSERT refresh_tokens
+
+        const res = await request(app)
+            .post('/api/auth/mobile/google')
+            .send({ idToken: 'fake-id-token' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.token).toEqual(expect.any(String));
+    });
+
     it('idToken manquant : 400 (validation), aucune requête', async () => {
         const res = await request(app)
             .post('/api/auth/mobile/google')

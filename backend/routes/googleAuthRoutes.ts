@@ -11,6 +11,7 @@ import { JWT_SECRET } from '../config/config';
 import { validate } from '../middleware/validate';
 import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 import { authService } from '../services/AuthService';
+import { isAccountBlocked } from '../utils/accountStatus';
 
 const router = Router();
 
@@ -260,7 +261,9 @@ router.post('/mobile/google', validate(googleMobileLoginRules), async (req: Requ
 
         const user = userResult.rows[0];
 
-        if (user.statut === 'inactif' || user.statut === 'suspendu') {
+        // Insensible à la casse / aux espaces : /suspend écrit 'Suspendu' (majuscule) — une
+        // comparaison stricte laissait un compte suspendu se connecter via Google.
+        if (isAccountBlocked(user.statut)) {
             return res.status(401).json({
                 message: "Votre compte est inactif ou suspendu. Veuillez contacter l'administrateur."
             });

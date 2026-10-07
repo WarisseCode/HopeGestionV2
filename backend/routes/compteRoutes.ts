@@ -422,6 +422,13 @@ router.put('/proprietaires/:id', validate(ownerUpdateRules), async (req: Authent
     }
 });
 
+// [SÉCURITÉ] Colonnes renvoyées au client après création / mise à jour d'un utilisateur.
+// Liste explicite (jamais RETURNING *) : password_hash, access_key, OTP, etc. ne doivent
+// jamais sortir de la base. Le client web (frontend/src/api/accountApi.ts → saveUtilisateur)
+// n'exploite pas cette réponse au-delà du succès HTTP.
+const SAVED_USER_COLUMNS =
+    'id, nom, telephone, email, role, user_type, photo_url, statut, created_by, created_at, updated_at';
+
 // POST /api/compte/utilisateurs : Créer ou mettre à jour un utilisateur
 router.post('/utilisateurs', validate(userSaveRules), async (req: AuthenticatedRequest, res: Response) => {
     if (!USER_MANAGER_ROLES.includes(req.userRole || '')) {
@@ -469,7 +476,7 @@ router.post('/utilisateurs', validate(userSaveRules), async (req: AuthenticatedR
                 UPDATE users SET
                     nom = $1, prenom = $2, telephone = $3, email = $4, role = $5,
                     photo = $6, statut = $7, updated_at = CURRENT_TIMESTAMP
-                WHERE id = $8${scope.clause} RETURNING *
+                WHERE id = $8${scope.clause} RETURNING ${SAVED_USER_COLUMNS}
             `;
             result = await db.query(query, [nom, prenoms, telephone, email, effectiveRole, photo, statut, id, ...scope.params]);
             if (result.rows.length === 0) {
@@ -480,7 +487,7 @@ router.post('/utilisateurs', validate(userSaveRules), async (req: AuthenticatedR
             // entre dans la portée de son créateur (GET /utilisateurs, suspend, etc.).
             const query = `
                 INSERT INTO users (nom, telephone, email, role, photo_url, statut, password_hash, user_type, created_by)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING ${SAVED_USER_COLUMNS}
             `;
             // Note: We should hash the password properly - using a placeholder for now
             const bcrypt = require('bcrypt');

@@ -336,3 +336,87 @@ describe('POST /api/auth/login — compte suspendu (bug de casse lié à C3)', (
         expect(bcrypt.compare).toHaveBeenCalled();
     });
 });
+
+// ── Réponse de POST /utilisateurs : jamais de hash de mot de passe ───────────────
+//
+// Bug lié découvert pendant C3 (pas une faille "C" de l'audit initial) : INSERT / UPDATE
+// utilisaient RETURNING *, donc la ligne renvoyée au client contenait password_hash.
+// Le mock simule RETURNING : il projette une ligne `users` complète (avec password_hash,
+// access_key, OTP…) sur les colonnes réellement demandées par la requête SQL.
+
+describe('POST /api/compte/utilisateurs — réponse sans password_hash (lié à C3)', () => {
+    const fullUserRow: Record<string, unknown> = {
+        id: 50, nom: 'Dupont', telephone: '+22997000000', email: 'dupont@test.dev',
+        role: 'comptable', user_type: 'comptable', photo_url: null, statut: 'actif',
+        created_by: 7, created_at: '2026-01-01T00:00:00.000Z', updated_at: '2026-01-01T00:00:00.000Z',
+        password_hash: '$2b$10$hashed', password_reset_token: 'reset-token',
+        access_key: 'hashed-access-key', verification_otp: '123456',
+    };
+
+    /** Simule RETURNING <colonnes> (ou RETURNING *) sur la ligne complète. */
+    const projectReturning = (sql: string) => {
+        const match = /RETURNING\s+([\s\S]+?)\s*;?\s*$/i.exec(sql);
+        if (!match) return { rows: [] };
+        const cols = match[1].split(',').map((c) => c.trim());
+        if (cols.includes('*')) return { rows: [{ ...fullUserRow }] };
+        return { rows: [Object.fromEntries(cols.map((c) => [c, fullUserRow[c]]))] };
+    };
+
+    const expectNoPasswordKey = (body: Record<string, unknown>) => {
+        expect(body).not.toHaveProperty('password_hash');
+        expect(body).not.toHaveProperty('password');
+        expect(Object.keys(body).filter((k) => /password/i.test(k))).toEqual([]);
+        expect(JSON.stringify(body)).not.toContain('$2b$10$hashed');
+    };
+
+    it('création : 200, aucune clé password* dans la réponse JSON', async () => {
+        queryMock().mockImplementation(async (sql: string) =>
+            /INSERT INTO users/i.test(sql) ? projectReturning(sql) : { rows: [] });
+        const res = await request(app)
+            .post('/api/compte/utilisateurs')
+            .set('Authorization', `Bearer ${tokenFor('gestionnaire')}`)
+            .send({ nom: 'Dupont', email: 'dupont@test.dev', role: 'comptable', mot_de_passe: 'Secret123!' });
+        expect(res.status).toBe(200);
+        expect(res.body).toMatchObject({ id: 50, email: 'dupont@test.dev', role: 'comptable', statut: 'actif' });
+        expectNoPasswordKey(res.body);
+        expect(res.body).not.toHaveProperty('access_key');
+        expect(res.body).not.toHaveProperty('verification_otp');
+    });
+
+    it('mise à jour : 200, aucune clé password* dans la réponse JSON', async () => {
+        queryMock().mockImplementation(async (sql: string) => {
+            if (/UPDATE users/i.test(sql)) return projectReturning(sql);
+            // SELECT de portée (loadManageableUser)
+            return { rows: [{ id: 50, role: 'comptable', user_type: 'comptable' }] };
+        });
+        const res = await request(app)
+            .post('/api/compte/utilisateurs')
+            .set('Authorization', `Bearer ${tokenFor('gestionnaire')}`)
+            .send({ id: 50, nom: 'Dupont', email: 'dupont@test.dev' });
+        expect(res.status).toBe(200);
+        expect(res.body).toMatchObject({ id: 50, role: 'comptable' });
+        expectNoPasswordKey(res.body);
+        expect(res.body).not.toHaveProperty('access_key');
+    });
+
+    it('les requêtes INSERT / UPDATE n\'utilisent plus RETURNING * ni de colonne password*', async () => {
+        queryMock().mockImplementation(async (sql: string) => {
+            if (/INSERT INTO users|UPDATE users/i.test(sql)) return projectReturning(sql);
+            return { rows: [{ id: 50, role: 'comptable', user_type: 'comptable' }] };
+        });
+        const auth = { Authorization: `Bearer ${tokenFor('gestionnaire')}` };
+        await request(app).post('/api/compte/utilisateurs').set(auth)
+            .send({ nom: 'Dupont', email: 'dupont@test.dev', role: 'comptable' });
+        await request(app).post('/api/compte/utilisateurs').set(auth)
+            .send({ id: 50, nom: 'Dupont', email: 'dupont@test.dev' });
+        const writes = queryMock().mock.calls
+            .map(([sql]) => sql as string)
+            .filter((sql) => /INSERT INTO users|UPDATE users/i.test(sql));
+        expect(writes).toHaveLength(2);
+        for (const sql of writes) {
+            const returning = /RETURNING\s+([\s\S]+)$/i.exec(sql)![1];
+            expect(returning).not.toMatch(/\*/);
+            expect(returning).not.toMatch(/password/i);
+        }
+    });
+});
