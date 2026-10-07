@@ -25,6 +25,14 @@ const router = Router();
 const registerRules = [
     body('email').isEmail().withMessage('Email invalide'),
     body('password').isString().isLength({ min: 6 }).withMessage('Le mot de passe doit contenir au moins 6 caractères'),
+    // [SÉCURITÉ] Liste blanche du type de compte à l'inscription (escalade de privilèges) :
+    // AuthService.register écrit cette valeur dans users.user_type ET users.role ; sans
+    // cette règle, { userType: 'admin' } créait un compte admin. Même liste que
+    // completeProfileRules (googleAuthRoutes.ts). Absent/vide → 'gestionnaire' par défaut
+    // (comportement historique). AuthService.register revérifie (défense en profondeur).
+    body('userType')
+        .optional({ values: 'falsy' })
+        .isIn(['gestionnaire', 'proprietaire', 'locataire']).withMessage('Type de compte invalide'),
 ];
 const loginRules = [
     body('email').isEmail().withMessage('Email invalide'),

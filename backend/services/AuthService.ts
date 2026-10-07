@@ -16,6 +16,13 @@ export const REFRESH_TOKEN_MS = 7 * 24 * 60 * 60 * 1000;
 
 const EMAIL_REGEX = /^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$/;
 
+// [SÉCURITÉ] Types de compte autorisés à l'auto-inscription (register). La valeur est
+// écrite dans users.user_type ET users.role : toute autre valeur (ex. 'admin') serait
+// une escalade de privilèges. Liste fixe, volontairement dupliquée de la validation de
+// route (authRoutes.ts registerRules / googleAuthRoutes.ts completeProfileRules) pour
+// que register() reste sûr même appelé depuis un autre point d'entrée non validé.
+const SELF_REGISTER_USER_TYPES: readonly string[] = ['gestionnaire', 'proprietaire', 'locataire'];
+
 // Typed error so routes can distinguish auth failures from unexpected errors
 export class AuthError extends Error {
     constructor(
@@ -187,6 +194,15 @@ class AuthService {
         const phoneOk = /^(\+|00)?[1-9]\d{1,14}$/.test(cleanPhone) || /^(\+)?\d{8,15}$/.test(cleanPhone);
         if (!phoneOk) throw new AuthError(400, 'Veuillez fournir un numéro de téléphone valide.');
 
+        // [SÉCURITÉ] Défense en profondeur (escalade de privilèges) : absent/vide →
+        // 'gestionnaire' (comportement historique) ; toute autre valeur hors liste blanche
+        // (y compris non-string) est rejetée, indépendamment de la validation de route.
+        const safeUserType: string = userType ? userType : 'gestionnaire';
+        if (typeof safeUserType !== 'string' || !SELF_REGISTER_USER_TYPES.includes(safeUserType)) {
+            console.warn(`🚨 SECURITY: Register attempt with forbidden userType from IP: ${ipAddress}`);
+            throw new AuthError(400, 'Type de compte invalide.');
+        }
+
         const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
         const otp            = Math.floor(100000 + Math.random() * 900000).toString();
         const otpExpiresAt   = new Date(Date.now() + 15 * 60 * 1000);
@@ -196,7 +212,7 @@ class AuthService {
             const result = await pool.query(
                 `INSERT INTO users (email, password_hash, nom, user_type, role, telephone, is_verified, verification_otp, otp_expires_at)
                  VALUES ($1, $2, TRIM($3 || ' ' || $4), $5, $5, $6, false, $7, $8) RETURNING id`,
-                [sanitizedEmail, password_hash, nom, prenoms, userType || 'gestionnaire', cleanPhone, otp, otpExpiresAt]
+                [sanitizedEmail, password_hash, nom, prenoms, safeUserType, cleanPhone, otp, otpExpiresAt]
             );
             userId = result.rows[0].id;
         } catch (err: any) {
@@ -227,7 +243,7 @@ class AuthService {
 
         await AuditService.log({
             userId: userId.toString(), action: 'REGISTER', entityType: 'USER', entityId: userId.toString(),
-            details: { email: sanitizedEmail, userType: userType || 'gestionnaire' }, ipAddress, userAgent,
+            details: { email: sanitizedEmail, userType: safeUserType }, ipAddress, userAgent,
         });
 
         if (invitationCode) {
