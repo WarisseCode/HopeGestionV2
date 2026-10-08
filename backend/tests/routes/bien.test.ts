@@ -278,6 +278,85 @@ describe('GET /api/biens/immeubles — lots en corbeille et état d\'occupation'
     });
 });
 
+// ── GET /lots : périmètre via le propriétaire de l'immeuble parent ───────────
+// Bug signalé : lots créés avant l'héritage d'owner_id (POST /lots) avec
+// lots.owner_id NULL/divergent → absents du dashboard alors que leur immeuble
+// y figurait. Faux client : applique le filtre propriétaire réellement présent
+// dans le SQL (b.owner_id ou l.owner_id) aux fixtures.
+
+describe('GET /api/biens/lots — filtre propriétaire sur l\'immeuble parent', () => {
+    const buildingsFx = [
+        { id: 5, owner_id: 3 },
+        { id: 6, owner_id: 8 },
+        { id: 7, owner_id: 99 },
+    ];
+    const lotsFx = [
+        { id: 1, building_id: 5, owner_id: null }, // créé avant le correctif d'héritage
+        { id: 2, building_id: 5, owner_id: 3 },
+        { id: 3, building_id: 6, owner_id: 8 },
+        { id: 4, building_id: 7, owner_id: 3 },    // copie divergente, immeuble hors périmètre
+    ];
+
+    const fakeLotsQuery = async (sql: string, params: any[]) => {
+        const ids: number[] = params[0] || [];
+        let rows = lotsFx.map((l) => ({ ...l, b: buildingsFx.find((b) => b.id === l.building_id)! }));
+        if (sql.includes('AND FALSE')) rows = [];
+        else if (sql.includes('b.owner_id = ANY($1')) rows = rows.filter((r) => ids.includes(r.b.owner_id));
+        else if (sql.includes('l.owner_id = ANY($1')) rows = rows.filter((r) => r.owner_id !== null && ids.includes(r.owner_id));
+        return { rows: rows.map(({ b, ...l }) => ({ ...l, owner_id: b.owner_id })) };
+    };
+
+    const getLotIds = async (role = 'proprietaire') => {
+        const res = await request(app)
+            .get('/api/biens/lots')
+            .set('Authorization', `Bearer ${authToken(role)}`);
+        expect(res.status).toBe(200);
+        return res.body.lots.map((l: any) => l.id).sort();
+    };
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        (pool.query as jest.Mock).mockImplementation(fakeLotsQuery);
+    });
+    afterAll(() => {
+        mockValidOwnerIds = [];
+        (pool.query as jest.Mock).mockReset();
+    });
+
+    it('SQL : filtre sur b.owner_id (jointure buildings existante), plus sur l.owner_id', async () => {
+        mockValidOwnerIds = [3];
+        await getLotIds();
+        const [sql, params] = (pool.query as jest.Mock).mock.calls[0];
+        expect(sql).toContain('JOIN buildings b ON l.building_id = b.id');
+        expect(sql).toContain('AND b.owner_id = ANY($1::int[])');
+        expect(sql).not.toContain('l.owner_id = ANY');
+        expect(sql).toContain('WHERE l.deleted_at IS NULL AND b.deleted_at IS NULL');
+        expect(params).toEqual([[3]]);
+    });
+
+    it('lot avec owner_id NULL dont l\'immeuble appartient au propriétaire → visible', async () => {
+        mockValidOwnerIds = [3];
+        expect(await getLotIds()).toEqual([1, 2]);
+    });
+
+    it('gestionnaire multi-propriétaires → lots des immeubles de son périmètre uniquement', async () => {
+        mockValidOwnerIds = [3, 8];
+        expect(await getLotIds('gestionnaire')).toEqual([1, 2, 3]);
+    });
+
+    it('sans aucun propriétaire lié → aucun lot (AND FALSE inchangé)', async () => {
+        mockValidOwnerIds = [];
+        expect(await getLotIds('gestionnaire')).toEqual([]);
+        expect((pool.query as jest.Mock).mock.calls[0][0]).toContain('AND FALSE');
+    });
+
+    it('admin → aucun filtre propriétaire', async () => {
+        mockValidOwnerIds = [];
+        expect(await getLotIds('admin')).toEqual([1, 2, 3, 4]);
+        expect((pool.query as jest.Mock).mock.calls[0][1]).toEqual([]);
+    });
+});
+
 describe('POST /api/biens/immeubles — mise à jour : filtre propriétaire et réattribution', () => {
     beforeEach(() => {
         jest.clearAllMocks();

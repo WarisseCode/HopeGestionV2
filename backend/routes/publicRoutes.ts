@@ -38,6 +38,8 @@ router.get('/lots', async (req: Request, res: Response) => {
             FROM lots l
             JOIN buildings b ON l.building_id = b.id
             WHERE LOWER(l.statut) IN ('libre', 'vacant', 'disponible')
+              -- Corbeille : mêmes filtres que GET /api/biens/lots (dashboard).
+              AND l.deleted_at IS NULL AND b.deleted_at IS NULL
             ORDER BY l.id DESC
         `);
 
@@ -62,8 +64,13 @@ router.get('/lots', async (req: Request, res: Response) => {
                 b.latitude,
                 b.longitude
             FROM buildings b
+            -- Corbeille : mêmes filtres que GET /api/biens/immeubles (dashboard) —
+            -- lots supprimés exclus dans la jointure (agrégats surface/loyer),
+            -- immeubles supprimés exclus par la clause de filtre ci-dessous.
             LEFT JOIN lots l ON l.building_id = b.id
                 AND LOWER(l.statut) IN ('libre', 'vacant', 'disponible')
+                AND l.deleted_at IS NULL
+            WHERE b.deleted_at IS NULL
             GROUP BY b.id, b.nom, b.type, b.description, b.total_lots,
                      b.statut, b.photos, b.adresse, b.ville, b.quartier,
                      b.latitude, b.longitude

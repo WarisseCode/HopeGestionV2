@@ -152,7 +152,11 @@ router.get('/lots', permissions.canRead('biens'), tenantGuard, async (req: Authe
         let ownerFilter = '';
         let queryParams: any[] = [];
         if (!isAdmin && validOwnerIds.length > 0) {
-            ownerFilter = 'AND l.owner_id = ANY($1::int[])';
+            // Périmètre via le propriétaire de l'immeuble parent (source de vérité,
+            // cf. POST /lots : lots.owner_id n'en est qu'une copie). Les lots créés
+            // avant ce correctif d'héritage ont lots.owner_id NULL ou divergent et
+            // disparaissaient du dashboard alors que leur immeuble y figurait.
+            ownerFilter = 'AND b.owner_id = ANY($1::int[])';
             queryParams = [validOwnerIds];
         } else if (!isAdmin) {
             ownerFilter = 'AND FALSE';
