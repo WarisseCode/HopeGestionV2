@@ -38,8 +38,7 @@ const CguArticles: React.FC = () => (
         </ul>
         <p>
             <strong>Droit du nom commercial</strong> : la société est titulaire du nom commercial
-            SKILLEXIE S.E.P tel qu'il résulte de son enregistrement au RCCM numéro{' '}
-            <LegalPlaceholder>numéro RCCM</LegalPlaceholder>.
+            SKILLEXIE S.E.P.
         </p>
 
         <h2>2. Liens hypertextes</h2>
@@ -120,9 +119,8 @@ const CguArticles: React.FC = () => (
 
         <h2>6. Modification des CGU</h2>
         <p>
-            Les CGU du site, ici définies, ont été mises en ligne le{' '}
-            <LegalPlaceholder>date de première mise en ligne</LegalPlaceholder>. L'éditeur se réserve le
-            droit de les modifier à tout moment et sans préavis.
+            L'éditeur se réserve le droit de modifier les CGU du site, ici définies, à tout moment et
+            sans préavis.
         </p>
 
         <h2>7. Politique de cookies</h2>
@@ -146,7 +144,7 @@ const CguArticles: React.FC = () => (
 
         <div className="mt-10 pt-6 border-t border-base-200 text-sm text-base-content/70 space-y-1">
             <p className="font-semibold text-base-content">CGU SKILLEXIE S.E.P</p>
-            <p>Carré <LegalPlaceholder>adresse précise</LegalPlaceholder>, Cotonou, Bénin</p>
+            <p>Cotonou, Bénin</p>
             <p>Tél : (229) 0161280346 / 0166962026</p>
             <p>E-mail : 10xsuperieur@gmail.com</p>
             <p>RCCM : <LegalPlaceholder>numéro RCCM</LegalPlaceholder></p>

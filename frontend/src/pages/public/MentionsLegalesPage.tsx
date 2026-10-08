@@ -11,7 +11,7 @@ const MentionsLegalesPage: React.FC = () => (
             <p>La plateforme Hope Gestion Immobilière (Hope Immo Local) est exploitée par :</p>
             <ul>
                 <li><strong>SKILLEXIE</strong></li>
-                <li>Siège social : Bohicon, <LegalPlaceholder>adresse précise</LegalPlaceholder></li>
+                <li>Siège social : Bohicon</li>
                 <li>Téléphone : 0161280346 / 0166962026</li>
                 <li>Email : <a href="mailto:10xsuperieur@gmail.com" className="text-primary hover:underline">10xsuperieur@gmail.com</a></li>
             </ul>
