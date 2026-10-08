@@ -20,13 +20,13 @@ const MentionsLegalesPage: React.FC = () => (
             <p>Le directeur de la publication est M. Thomas DEBO, en qualité de CTO stratégique.</p>
 
             <h2>3. Hébergement</h2>
-            <p>La plateforme est hébergée par :</p>
-            <ul>
-                <li>Nom : <LegalPlaceholder>hébergeur</LegalPlaceholder></li>
+            <p>La plateforme est hébergée par : Hostinger</p>
+            {/* <ul>
+                <li>Nom : <LegalPlaceholder>Hostinger</LegalPlaceholder></li>
                 <li>Adresse : <LegalPlaceholder>adresse hébergeur</LegalPlaceholder></li>
                 <li>Téléphone : <LegalPlaceholder>téléphone hébergeur</LegalPlaceholder></li>
                 <li>Site web : <LegalPlaceholder>site hébergeur</LegalPlaceholder></li>
-            </ul>
+            </ul> */}
 
             <h2>4. Propriété intellectuelle</h2>
             <p>
