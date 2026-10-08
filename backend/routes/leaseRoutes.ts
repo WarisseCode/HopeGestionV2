@@ -171,6 +171,22 @@ router.post('/', permissions.canWrite('locataires'), tenantGuard, validate(lease
              return res.status(400).json({ message: 'Le prix de vente est requis pour une vente' });
         }
 
+        // Vérif d'appartenance du lot AVANT tout autre accès (pattern edlRoutes.ts POST /) :
+        // sans elle, le contrôle d'occupation ci-dessous servirait d'oracle sur l'état d'un
+        // lot tiers, et l'INSERT/UPDATE lots pourraient viser le lot d'un autre propriétaire.
+        const isAdmin = (req as any).userRole === 'admin';
+        const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+        const lotOwnerRes = await dbClient.query(
+            `SELECT b.owner_id FROM lots l JOIN buildings b ON l.building_id = b.id WHERE l.id = $1`,
+            [lot_id]
+        );
+        if (lotOwnerRes.rows.length === 0) {
+            return res.status(404).json({ message: 'Lot introuvable ou accès refusé' });
+        }
+        if (!isAdmin && !validOwnerIds.includes(lotOwnerRes.rows[0].owner_id)) {
+            return res.status(403).json({ message: 'Accès refusé à ce lot.' });
+        }
+
         const lotCheck = await dbClient.query(
             "SELECT id FROM leases WHERE lot_id = $1 AND statut IN ('actif', 'signe')",
             [lot_id]

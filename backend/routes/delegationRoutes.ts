@@ -71,53 +71,73 @@ router.post('/', protect, validate(delegationCreateRules), async (req: any, res:
     let isNewUser = false;
 
     const userCheck = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-    
-    if (userCheck.rows.length > 0) {
-      targetUserId = userCheck.rows[0].id;
-    } else {
-      // Utilisateur inexistant -> Création automatique
-      // Générer un mot de passe temporaire : ex "Hg" + 4 caractères hex + "!" => "Hg1a2b!"
-      const randomPart = await import('crypto').then(c => c.randomBytes(3).toString('hex'));
-      tempPassword = `Hg${randomPart}!`;
-      
-      const hashedPassword = await import('bcrypt').then(b => b.hash(tempPassword, 10)); // Dynamic import to ensure module availability
-      
-      const newUser = await pool.query(
-        `INSERT INTO users (nom, email, password, role, user_type, created_at)
-         VALUES ($1, $2, $3, $4, $5, NOW())
-         RETURNING id`,
-        ['Invité', email, hashedPassword, 'user', role === 'manager' ? 'gestionnaire' : 'comptable']
-      );
-      
-      targetUserId = newUser.rows[0].id;
-      isNewUser = true;
-    }
+    const existingUserId: number | null = userCheck.rows.length > 0 ? userCheck.rows[0].id : null;
 
-    if (targetUserId === userId) {
+    // Contrôle fait avant la transaction : aucune écriture n'est engagée pour ce cas.
+    if (existingUserId !== null && Number(existingUserId) === Number(userId)) {
       return res.status(400).json({ message: "Vous faites déjà partie de l'équipe." });
     }
 
-    // 3. Ajouter/Mettre à jour délégation
     const perms = permissions || {};
-    
-    await pool.query(
-      `INSERT INTO owner_user (
-          owner_id, user_id, role, start_date, is_active,
-          can_view_finances, can_edit_properties, can_manage_tenants
-       ) VALUES ($1, $2, $3, CURRENT_DATE, TRUE, $4, $5, $6)
-       ON CONFLICT (owner_id, user_id) 
-       DO UPDATE SET 
-          role = EXCLUDED.role, is_active = TRUE,
-          can_view_finances = EXCLUDED.can_view_finances,
-          can_edit_properties = EXCLUDED.can_edit_properties,
-          can_manage_tenants = EXCLUDED.can_manage_tenants`,
-      [
-        ownerId, targetUserId, role || 'viewer',
-        perms.can_view_finances || false,
-        perms.can_edit_properties || false, 
-        perms.can_manage_tenants || false
-      ]
-    );
+
+    // [SÉCURITÉ] Création de l'utilisateur + lien owner_user dans UNE transaction
+    // (même pattern que compteRoutes.ts/ownerRoutes.ts) : un échec du lien ne doit
+    // pas laisser un compte orphelin créé avec un mot de passe temporaire.
+    const txClient = await pool.connect();
+    try {
+      await txClient.query('BEGIN');
+
+      if (existingUserId !== null) {
+        targetUserId = existingUserId;
+      } else {
+        // Utilisateur inexistant -> Création automatique
+        // Générer un mot de passe temporaire : ex "Hg" + 4 caractères hex + "!" => "Hg1a2b!"
+        const randomPart = await import('crypto').then(c => c.randomBytes(3).toString('hex'));
+        tempPassword = `Hg${randomPart}!`;
+
+        const hashedPassword = await import('bcrypt').then(b => b.hash(tempPassword, 10)); // Dynamic import to ensure module availability
+
+        // Colonne password_hash (comme partout ailleurs dans le code) : pas `password`.
+        const newUser = await txClient.query(
+          `INSERT INTO users (nom, email, password_hash, role, user_type, created_at)
+           VALUES ($1, $2, $3, $4, $5, NOW())
+           RETURNING id`,
+          ['Invité', email, hashedPassword, 'user', role === 'manager' ? 'gestionnaire' : 'comptable']
+        );
+
+        targetUserId = newUser.rows[0].id;
+        isNewUser = true;
+      }
+
+      // 3. Ajouter/Mettre à jour délégation
+      await txClient.query(
+        `INSERT INTO owner_user (
+            owner_id, user_id, role, start_date, is_active,
+            can_view_finances, can_edit_properties, can_manage_tenants
+         ) VALUES ($1, $2, $3, CURRENT_DATE, TRUE, $4, $5, $6)
+         ON CONFLICT (owner_id, user_id)
+         DO UPDATE SET
+            role = EXCLUDED.role, is_active = TRUE,
+            can_view_finances = EXCLUDED.can_view_finances,
+            can_edit_properties = EXCLUDED.can_edit_properties,
+            can_manage_tenants = EXCLUDED.can_manage_tenants`,
+        [
+          ownerId, targetUserId, role || 'viewer',
+          perms.can_view_finances || false,
+          perms.can_edit_properties || false,
+          perms.can_manage_tenants || false
+        ]
+      );
+
+      await txClient.query('COMMIT');
+    } catch (txError) {
+      try { await txClient.query('ROLLBACK'); } catch (rbError) {
+        console.error('Erreur ROLLBACK délégation:', rbError);
+      }
+      throw txError;
+    } finally {
+      txClient.release();
+    }
 
     res.status(201).json({ 
       message: isNewUser ? "Compte créé et membre ajouté avec succès." : "Membre ajouté avec succès.",

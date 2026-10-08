@@ -49,6 +49,16 @@ const etagesOuDefaut = (value: unknown) =>
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
 
+// [SÉCURITÉ] Filtre propriétaire explicite (ne jamais se fier uniquement à la RLS :
+// le rôle DB peut avoir BYPASSRLS). Même signature que reservationRoutes.ts /
+// documentRoutes.ts / locataireRoutes.ts. Contourné pour le rôle admin.
+function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
+    if ((req as any).userRole === 'admin') return '';
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    params.push(validOwnerIds);
+    return ` AND ${col} = ANY($${params.length}::int[])`;
+}
+
 // GET /api/biens/immeubles : Récupérer la liste des immeubles
 // [PATTERN RLS] - Remplacement de filterByOwner par tenantGuard
 router.get('/immeubles', permissions.canRead('biens'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
@@ -203,6 +213,37 @@ router.post('/immeubles', permissions.canWrite('biens'), tenantGuard, validate(i
         // Si l'utilisateur n'a pas les droits sur l'ID de l'immeuble, le RETURNING renvoie 0 lignes
 
         if (id) {
+            // [SÉCURITÉ] Filtre propriétaire explicite (pas seulement la RLS) : un immeuble
+            // hors périmètre (owner_id ∉ validOwnerIds) → 404, aucun UPDATE.
+            const isAdmin = (req as any).userRole === 'admin';
+            const currentParams: any[] = [id];
+            const currentScope = scopeByOwner(req, currentParams);
+            const current = await dbClient.query(
+                `SELECT owner_id FROM buildings WHERE id = $1${currentScope}`,
+                currentParams
+            );
+            if (current.rows.length === 0) {
+                return res.status(404).json({ message: 'Immeuble non trouvé ou accès non autorisé.' });
+            }
+            // [SÉCURITÉ] Seul un admin peut réattribuer un immeuble à un autre propriétaire :
+            // un owner_id résolu différent de l'actuel est refusé (pas d'écrasement silencieux).
+            if (!isAdmin && strictOwnerId != null && Number(strictOwnerId) !== Number(current.rows[0].owner_id)) {
+                return res.status(403).json({ message: "Vous ne pouvez pas transférer cet immeuble à un autre propriétaire." });
+            }
+
+            const updateParams: any[] = [nom, type, adresse, ville, pays, description, strictOwnerId,
+                 latitude || null, longitude || null, quartier || null, gestionnaire_id || null, statut || 'actif',
+                 photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, etagesOuDefaut(nombre_etages),
+                 photo || null, total_lots || 0, id];
+            // Filtre répété sur l'UPDATE lui-même (défense en profondeur, atomique).
+            let updateScope = scopeByOwner(req, updateParams);
+            if (!isAdmin) {
+                // Épingle l'owner_id lu ci-dessus : si l'immeuble a changé de propriétaire
+                // entre la vérification et l'UPDATE (course), 0 ligne → 404, pas de réattribution.
+                updateParams.push(current.rows[0].owner_id);
+                updateScope += ` AND owner_id = $${updateParams.length}`;
+            }
+
             // Mise à jour (le update ne procèdera que si l'immeuble cible est à lui grace à la Policy RLS)
             const result = await dbClient.query(
                 `UPDATE buildings 
@@ -216,12 +257,9 @@ router.post('/immeubles', permissions.canWrite('biens'), tenantGuard, validate(i
                      latitude = $8, longitude = $9, quartier = $10, gestionnaire_id = $11, statut = $12,
                      photos = $13, video_url = $14, plan_masse_url = $15, nombre_etages = $16,
                      photo_url = $17, total_lots = $18, updated_at = CURRENT_TIMESTAMP
-                 WHERE id = $19
+                 WHERE id = $19${updateScope}
                  RETURNING *`,
-                [nom, type, adresse, ville, pays, description, strictOwnerId,
-                 latitude || null, longitude || null, quartier || null, gestionnaire_id || null, statut || 'actif',
-                 photos ? JSON.stringify(photos) : '[]', video_url || null, plan_masse_url || null, etagesOuDefaut(nombre_etages),
-                 photo || null, total_lots || 0, id]
+                updateParams
             );
 
             if (result.rows.length === 0) {

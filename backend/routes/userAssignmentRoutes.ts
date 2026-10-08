@@ -44,44 +44,61 @@ router.put('/bulk/:userId', validate(bulkAssignRules), async (req: Authenticated
             return res.status(400).json({ message: 'Assignments array required' });
         }
 
-        // Deactivate all current assignments
-        await pool.query(
-            'UPDATE owner_user SET is_active = false WHERE user_id = $1',
-            [userId]
-        );
+        // [SÉCURITÉ] Désactivation + réinsertion dans UNE transaction (pattern
+        // compteRoutes.ts/ownerRoutes.ts) : un échec en cours de boucle ne doit pas
+        // laisser l'utilisateur avec tous ses liens désactivés ou un état partiel.
+        const txClient = await pool.connect();
+        try {
+            await txClient.query('BEGIN');
 
-        // Reactivate/Insert selected
-        for (const assign of assignments) {
-            const { owner_id, role, permissions } = assign;
-            await pool.query(`
-                INSERT INTO owner_user (
-                    user_id, owner_id, role, is_active, start_date,
-                    can_view_finances, can_edit_properties, can_manage_tenants,
-                    can_manage_contracts, can_validate_payments, can_manage_users,
-                    can_delete_data
-                )
-                VALUES ($1, $2, $3, true, CURRENT_DATE, $4, $5, $6, $7, $8, $9, $10)
-                ON CONFLICT (user_id, owner_id)
-                DO UPDATE SET
-                    is_active = true,
-                    role = EXCLUDED.role,
-                    can_view_finances = EXCLUDED.can_view_finances,
-                    can_edit_properties = EXCLUDED.can_edit_properties,
-                    can_manage_tenants = EXCLUDED.can_manage_tenants,
-                    can_manage_contracts = EXCLUDED.can_manage_contracts,
-                    can_validate_payments = EXCLUDED.can_validate_payments,
-                    can_manage_users = EXCLUDED.can_manage_users,
-                    can_delete_data = EXCLUDED.can_delete_data
-            `, [
-                userId, owner_id, role || 'viewer',
-                permissions?.can_view_finances || false,
-                permissions?.can_edit_properties || false,
-                permissions?.can_manage_tenants || false,
-                permissions?.can_manage_contracts || false,
-                permissions?.can_validate_payments || false,
-                permissions?.can_manage_users || false,
-                permissions?.can_delete_data || false
-            ]);
+            // Deactivate all current assignments
+            await txClient.query(
+                'UPDATE owner_user SET is_active = false WHERE user_id = $1',
+                [userId]
+            );
+
+            // Reactivate/Insert selected
+            for (const assign of assignments) {
+                const { owner_id, role, permissions } = assign;
+                await txClient.query(`
+                    INSERT INTO owner_user (
+                        user_id, owner_id, role, is_active, start_date,
+                        can_view_finances, can_edit_properties, can_manage_tenants,
+                        can_manage_contracts, can_validate_payments, can_manage_users,
+                        can_delete_data
+                    )
+                    VALUES ($1, $2, $3, true, CURRENT_DATE, $4, $5, $6, $7, $8, $9, $10)
+                    ON CONFLICT (user_id, owner_id)
+                    DO UPDATE SET
+                        is_active = true,
+                        role = EXCLUDED.role,
+                        can_view_finances = EXCLUDED.can_view_finances,
+                        can_edit_properties = EXCLUDED.can_edit_properties,
+                        can_manage_tenants = EXCLUDED.can_manage_tenants,
+                        can_manage_contracts = EXCLUDED.can_manage_contracts,
+                        can_validate_payments = EXCLUDED.can_validate_payments,
+                        can_manage_users = EXCLUDED.can_manage_users,
+                        can_delete_data = EXCLUDED.can_delete_data
+                `, [
+                    userId, owner_id, role || 'viewer',
+                    permissions?.can_view_finances || false,
+                    permissions?.can_edit_properties || false,
+                    permissions?.can_manage_tenants || false,
+                    permissions?.can_manage_contracts || false,
+                    permissions?.can_validate_payments || false,
+                    permissions?.can_manage_users || false,
+                    permissions?.can_delete_data || false
+                ]);
+            }
+
+            await txClient.query('COMMIT');
+        } catch (txError) {
+            try { await txClient.query('ROLLBACK'); } catch (rbError) {
+                console.error('Erreur ROLLBACK affectations bulk:', rbError);
+            }
+            throw txError;
+        } finally {
+            txClient.release();
         }
 
         res.json({ message: 'Affectations mises à jour', count: assignments.length });

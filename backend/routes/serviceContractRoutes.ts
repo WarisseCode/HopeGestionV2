@@ -3,12 +3,22 @@ import { body, param } from 'express-validator';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
-import { protect } from '../middleware/authMiddleware';
+import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 // [RLS] Isolation garantie par PostgreSQL Row-Level Security via tenantGuard.
 import { tenantGuard } from '../middleware/tenantGuard';
 import { validate } from '../middleware/validate';
 
 const router = express.Router();
+
+// [SÉCURITÉ] Filtre propriétaire explicite (ne jamais se fier uniquement à la RLS :
+// le rôle DB peut avoir BYPASSRLS). Même signature que reservationRoutes.ts /
+// documentRoutes.ts / locataireRoutes.ts. Contourné pour le rôle admin.
+function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
+    if ((req as any).userRole === 'admin') return '';
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    params.push(validOwnerIds);
+    return ` AND ${col} = ANY($${params.length}::int[])`;
+}
 
 // title obligatoire ; le reste optionnel mais typé (cost_monthly >= 0, dates ISO).
 const contractCreateRules = [
@@ -38,13 +48,17 @@ const contractUpdateRules = [
 router.get('/', protect, tenantGuard, async (req: any, res) => {
     try {
         const dbClient = (req as any).dbClient;
+        // [RLS] + filtre applicatif explicite sur validOwnerIds
+        const params: any[] = [];
+        const ownerClause = scopeByOwner(req, params, 'sc.owner_id');
         const query = `
             SELECT sc.*, p.name as provider_name 
             FROM service_contracts sc
             LEFT JOIN providers p ON sc.provider_id = p.id
+            WHERE 1=1${ownerClause}
             ORDER BY sc.start_date DESC`;
         
-        const result = await dbClient.query(query);
+        const result = await dbClient.query(query, params);
         res.json(result.rows);
     } catch (error) {
         console.error(error);

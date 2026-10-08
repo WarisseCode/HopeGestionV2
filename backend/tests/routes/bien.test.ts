@@ -21,6 +21,9 @@ jest.mock('../../db/database', () => ({
 }));
 
 let mockResolvedOwnerId: number | null = null;
+// validOwnerIds exposé par tenantGuard : [] par défaut (comportement historique de ce
+// fichier) ; positionné par les tests de mise à jour d'immeuble (filtre scopeByOwner).
+let mockValidOwnerIds: number[] = [];
 
 // tenantGuard mocké : dbClient pointe vers le même pool mocké (même pattern que
 // mobileMoney.test.ts/ticket.test.ts). resolvedOwnerId volontairement différent
@@ -31,7 +34,7 @@ jest.mock('../../middleware/tenantGuard', () => {
     return {
         tenantGuard: (req: any, _res: any, next: any) => {
             req.dbClient = poolModule.default;
-            req.validOwnerIds = [];
+            req.validOwnerIds = mockValidOwnerIds;
             req.resolvedOwnerId = mockResolvedOwnerId;
             next();
         },
@@ -150,12 +153,14 @@ describe('POST /api/biens/immeubles — mise à jour, owner_id jamais écrasé p
     beforeEach(() => {
         jest.clearAllMocks();
         mockResolvedOwnerId = null;
+        mockValidOwnerIds = [3, 8];
     });
+    afterAll(() => { mockValidOwnerIds = []; });
 
     it('sans owner_id résolu : COALESCE conserve le propriétaire existant', async () => {
-        (pool.query as jest.Mock).mockResolvedValueOnce({
-            rows: [{ id: 5, nom: 'Résidence', owner_id: 3 }],
-        });
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({ rows: [{ owner_id: 3 }] }) // vérif périmètre
+            .mockResolvedValueOnce({ rows: [{ id: 5, nom: 'Résidence', owner_id: 3 }] });
 
         const res = await request(app)
             .post('/api/biens/immeubles')
@@ -164,7 +169,7 @@ describe('POST /api/biens/immeubles — mise à jour, owner_id jamais écrasé p
 
         expect(res.status).toBe(200);
         expect(res.body.owner_id).toBe(3);
-        const [sql, params] = (pool.query as jest.Mock).mock.calls[0];
+        const [sql, params] = (pool.query as jest.Mock).mock.calls[1];
         expect(sql).toContain('UPDATE buildings');
         expect(sql).toContain('owner_id = COALESCE($7, owner_id)');
         expect(params[6]).toBeNull(); // $7 : NULL → COALESCE garde owner_id
@@ -172,14 +177,16 @@ describe('POST /api/biens/immeubles — mise à jour, owner_id jamais écrasé p
 
     it('avec owner_id résolu : la valeur résolue est bien transmise', async () => {
         mockResolvedOwnerId = 8;
-        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ id: 5, owner_id: 8 }] });
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({ rows: [{ owner_id: 8 }] }) // vérif périmètre
+            .mockResolvedValueOnce({ rows: [{ id: 5, owner_id: 8 }] });
 
         await request(app)
             .post('/api/biens/immeubles')
             .set('Authorization', `Bearer ${authToken()}`)
             .send({ id: 5, nom: 'Résidence', owner_id: 8 });
 
-        const [, params] = (pool.query as jest.Mock).mock.calls[0];
+        const [, params] = (pool.query as jest.Mock).mock.calls[1];
         expect(params[6]).toBe(8);
     });
 });
@@ -188,16 +195,21 @@ describe('POST /api/biens/immeubles — nombre_etages', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockResolvedOwnerId = 3;
-        (pool.query as jest.Mock).mockResolvedValue({ rows: [{ id: 1 }] });
+        mockValidOwnerIds = [3];
+        (pool.query as jest.Mock).mockResolvedValue({ rows: [{ id: 1, owner_id: 3 }] });
     });
+    afterAll(() => { mockValidOwnerIds = []; });
 
     const etagesEnvoyes = async (body: Record<string, unknown>) => {
         await request(app)
             .post('/api/biens/immeubles')
             .set('Authorization', `Bearer ${authToken()}`)
             .send({ nom: 'Résidence', ...body });
-        // $16 dans l'INSERT comme dans l'UPDATE.
-        return (pool.query as jest.Mock).mock.calls[0][1][15];
+        // $16 dans l'INSERT comme dans l'UPDATE (la mise à jour est précédée
+        // de la vérification de périmètre : on cible l'appel INSERT/UPDATE).
+        const write = (pool.query as jest.Mock).mock.calls
+            .find((c) => /INSERT INTO buildings|UPDATE buildings/.test(String(c[0])));
+        return write[1][15];
     };
 
     it('création : 0 (plain-pied) est conservé', async () => {
@@ -263,5 +275,104 @@ describe('GET /api/biens/immeubles — lots en corbeille et état d\'occupation'
         // Champs existants inchangés (utilisés par le web) : nbLots = capacité,
         // occupation calculée sur la capacité.
         expect(c).toMatchObject({ etatOccupation: 'En location', lotsCrees: 4, nbLots: 10, occupation: 20 });
+    });
+});
+
+describe('POST /api/biens/immeubles — mise à jour : filtre propriétaire et réattribution', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockResolvedOwnerId = null;
+        mockValidOwnerIds = [1, 2];
+    });
+    afterAll(() => { mockValidOwnerIds = []; });
+
+    const update = (role = 'gestionnaire', body: Record<string, unknown> = {}) =>
+        request(app)
+            .post('/api/biens/immeubles')
+            .set('Authorization', `Bearer ${authToken(role)}`)
+            .send({ id: 5, nom: 'Résidence', ...body });
+
+    const writeCalls = () => (pool.query as jest.Mock).mock.calls
+        .filter((c) => String(c[0]).includes('UPDATE buildings'));
+
+    it('gestionnaire hors périmètre → 404, aucun UPDATE', async () => {
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+
+        const res = await update();
+
+        expect(res.status).toBe(404);
+        const [sql, params] = (pool.query as jest.Mock).mock.calls[0];
+        expect(sql).toContain('SELECT owner_id FROM buildings WHERE id = $1');
+        expect(sql).toContain('owner_id = ANY($2::int[])');
+        expect(params).toEqual([5, [1, 2]]);
+        expect(writeCalls()).toHaveLength(0);
+    });
+
+    it('gestionnaire sans aucun lien → 404 (filtre sur []), aucun UPDATE', async () => {
+        mockValidOwnerIds = [];
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+
+        const res = await update();
+
+        expect(res.status).toBe(404);
+        expect((pool.query as jest.Mock).mock.calls[0][1]).toEqual([5, []]);
+        expect(writeCalls()).toHaveLength(0);
+    });
+
+    it('gestionnaire dans son périmètre qui tente de transférer vers un autre propriétaire → 403, aucun UPDATE', async () => {
+        mockResolvedOwnerId = 2; // owner_id résolu (≠ propriétaire actuel)
+        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ owner_id: 1 }] });
+
+        const res = await update('gestionnaire', { owner_id: 2 });
+
+        expect(res.status).toBe(403);
+        expect(writeCalls()).toHaveLength(0);
+    });
+
+    it('gestionnaire dans son périmètre, même propriétaire → UPDATE filtré, 200', async () => {
+        mockResolvedOwnerId = 1;
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({ rows: [{ owner_id: 1 }] })
+            .mockResolvedValueOnce({ rows: [{ id: 5, owner_id: 1 }] });
+
+        const res = await update('gestionnaire', { owner_id: 1 });
+
+        expect(res.status).toBe(200);
+        const [sql, params] = writeCalls()[0];
+        expect(sql).toContain('WHERE id = $19 AND owner_id = ANY($20::int[]) AND owner_id = $21');
+        expect(params[18]).toBe(5);
+        expect(params[19]).toEqual([1, 2]);
+        expect(params[20]).toBe(1); // owner_id lu lors de la vérification
+    });
+
+    it("course : propriétaire modifié entre la vérification et l'UPDATE → 0 ligne, 404", async () => {
+        mockResolvedOwnerId = 1;
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({ rows: [{ owner_id: 1 }] })
+            .mockResolvedValueOnce({ rows: [] }); // UPDATE épinglé sur owner_id = 1 ne matche plus
+
+        const res = await update('gestionnaire', { owner_id: 1 });
+
+        expect(res.status).toBe(404);
+        expect(writeCalls()[0][0]).toContain('AND owner_id = $21');
+    });
+
+    it('admin → aucune clause owner, réattribution permise', async () => {
+        mockValidOwnerIds = [];
+        mockResolvedOwnerId = 9; // propriétaire cible ≠ actuel
+        (pool.query as jest.Mock)
+            .mockResolvedValueOnce({ rows: [{ owner_id: 1 }] })
+            .mockResolvedValueOnce({ rows: [{ id: 5, owner_id: 9 }] });
+
+        const res = await update('admin', { owner_id: 9 });
+
+        expect(res.status).toBe(200);
+        const [selectSql, selectParams] = (pool.query as jest.Mock).mock.calls[0];
+        expect(selectSql).not.toContain('owner_id = ANY');
+        expect(selectParams).toEqual([5]);
+        const [sql, params] = writeCalls()[0];
+        expect(sql).not.toContain('owner_id = ANY');
+        expect(params).toHaveLength(19);
+        expect(params[6]).toBe(9);
     });
 });

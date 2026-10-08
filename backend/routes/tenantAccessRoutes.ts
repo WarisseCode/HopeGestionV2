@@ -6,13 +6,23 @@ import { body, param } from 'express-validator';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
-import { protect } from '../middleware/authMiddleware';
+import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import { validate } from '../middleware/validate';
 import crypto from 'crypto';
 
 const router = express.Router();
+
+// [SÉCURITÉ] Filtre propriétaire explicite (ne jamais se fier uniquement à la RLS :
+// le rôle DB peut avoir BYPASSRLS). Même signature que reservationRoutes.ts /
+// documentRoutes.ts / locataireRoutes.ts. Contourné pour le rôle admin.
+function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
+    if ((req as any).userRole === 'admin') return '';
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    params.push(validOwnerIds);
+    return ` AND ${col} = ANY($${params.length}::int[])`;
+}
 
 // :tenantId est parseInt() côté handler — on le valide en amont pour éviter un NaN
 // qui partirait en requête. Les champs de config sont optionnels mais typés.
@@ -30,6 +40,21 @@ router.get('/:tenantId', protect, permissions.canRead('locataires'), tenantGuard
     try {
         const dbClient = (req as any).dbClient;
         const tenantId = parseInt(req.params.tenantId);
+
+        // [SÉCURITÉ] tenant_access n'a pas d'owner_id : l'appartenance se vérifie sur le
+        // locataire (tenants.owner_id ∈ validOwnerIds), en plus de la RLS. Hors périmètre
+        // → 404 (ni configuration réelle, ni valeurs par défaut).
+        if ((req as any).userRole !== 'admin') {
+            const ownerParams: any[] = [tenantId];
+            const ownerClause = scopeByOwner(req, ownerParams);
+            const tenantRes = await dbClient.query(
+                `SELECT id FROM tenants WHERE id = $1${ownerClause}`,
+                ownerParams
+            );
+            if (tenantRes.rows.length === 0) {
+                return res.status(404).json({ message: 'Locataire introuvable ou accès refusé' });
+            }
+        }
 
         // [RLS] Isolation garantie par PostgreSQL Row-Level Security
         const result = await dbClient.query(

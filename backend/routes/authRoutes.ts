@@ -667,6 +667,12 @@ router.post('/accept-invite', async (req, res) => {
 
 // ── Guest access ──────────────────────────────────────────────────────────────
 
+// [SÉCURITÉ] Liste blanche stricte des rôles attribuables à un invité : rôles à accès
+// limité présents dans permission_matrix. Exclus explicitement admin, gestionnaire,
+// proprietaire, manager (et owner, locataire) : le rôle est écrit dans users.role et
+// plusieurs vérifications testent req.userRole === 'admin' directement.
+const GUEST_ALLOWED_ROLES: readonly string[] = ['viewer', 'comptable', 'agent_recouvreur'];
+
 router.post('/create-guest', verifyToken, async (req: any, res) => {
     const { nom, prenom, telephone, durationDays, permissions, role } = req.body;
     const issuerId = req.user.id;
@@ -674,6 +680,11 @@ router.post('/create-guest', verifyToken, async (req: any, res) => {
     try {
         if (!nom)       return res.status(400).json({ message: 'Le nom est requis.' });
         if (!telephone) return res.status(400).json({ message: 'Le numéro de téléphone est requis.' });
+
+        const guestRole = role || 'viewer';
+        if (typeof guestRole !== 'string' || !GUEST_ALLOWED_ROLES.includes(guestRole)) {
+            return res.status(400).json({ message: 'Rôle invalide pour un accès invité.' });
+        }
 
         const randomPart = crypto.randomBytes(6).toString('hex').toUpperCase();
         const rawKey     = `GUEST-${randomPart}`;
@@ -704,7 +715,6 @@ router.post('/create-guest', verifyToken, async (req: any, res) => {
 
             const issuerRes = await client.query('SELECT agency_id FROM users WHERE id = $1', [issuerId]);
             const agencyId  = issuerRes.rows[0]?.agency_id;
-            const guestRole = role || 'viewer';
 
             const insertRes = await client.query(
                 `INSERT INTO users (email, password_hash, nom, user_type, role, telephone, statut, access_key, access_key_expires_at, is_guest, agency_id)

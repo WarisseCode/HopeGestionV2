@@ -23,11 +23,23 @@ const depenseCreateRules = [
     body('proof_url').optional({ nullable: true }).isString().isLength({ max: 500 }).withMessage('URL invalide'),
 ];
 
+// [SÉCURITÉ] Filtre propriétaire explicite (ne jamais se fier uniquement à la RLS :
+// le rôle DB peut avoir BYPASSRLS). Même signature que reservationRoutes.ts /
+// documentRoutes.ts / locataireRoutes.ts. Contourné pour le rôle admin.
+function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
+    if ((req as any).userRole === 'admin') return '';
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    params.push(validOwnerIds);
+    return ` AND ${col} = ANY($${params.length}::int[])`;
+}
+
 // GET /api/depenses - Liste des dépenses filtrées par RLS
 router.get('/', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res) => {
     const dbClient = (req as any).dbClient;
     try {
-        // [RLS] PostgreSQL filtre automatiquement par owner_id via get_current_owner_id()
+        // [RLS] + filtre applicatif explicite sur validOwnerIds (scopeByOwner)
+        const params: any[] = [];
+        const ownerClause = scopeByOwner(req, params, 'e.owner_id');
         const result = await dbClient.query(`
             SELECT e.*,
                    b.nom as building_name,
@@ -37,8 +49,9 @@ router.get('/', permissions.canRead('finance'), tenantGuard, async (req: Authent
             LEFT JOIN buildings b ON e.building_id = b.id
             LEFT JOIN lots l ON e.lot_id = l.id
             LEFT JOIN owners o ON e.owner_id = o.id
+            WHERE 1=1${ownerClause}
             ORDER BY e.date_expense DESC LIMIT 100
-        `);
+        `, params);
         res.json(result.rows);
     } catch (error) {
         console.error('Erreur récupération dépenses:', error);
@@ -84,18 +97,20 @@ router.post('/', permissions.canWrite('finance'), tenantGuard, validate(depenseC
 router.get('/stats', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res) => {
     const dbClient = (req as any).dbClient;
     try {
-        // [RLS] Pas de WHERE owner_id manuel — PostgreSQL l'applique automatiquement
+        // [RLS] + filtre applicatif explicite sur validOwnerIds (scopeByOwner)
+        const params: any[] = [];
+        const ownerClause = scopeByOwner(req, params);
         const depensesMois = await dbClient.query(`
             SELECT COALESCE(SUM(amount), 0) as total
             FROM expenses
-            WHERE date_trunc('month', date_expense) = date_trunc('month', CURRENT_DATE)
-        `);
+            WHERE date_trunc('month', date_expense) = date_trunc('month', CURRENT_DATE)${ownerClause}
+        `, params);
 
         const depensesAnnee = await dbClient.query(`
             SELECT COALESCE(SUM(amount), 0) as total
             FROM expenses
-            WHERE date_trunc('year', date_expense) = date_trunc('year', CURRENT_DATE)
-        `);
+            WHERE date_trunc('year', date_expense) = date_trunc('year', CURRENT_DATE)${ownerClause}
+        `, params);
 
         res.json({
             mois: depensesMois.rows[0].total || 0,
@@ -111,17 +126,19 @@ router.get('/stats', permissions.canRead('finance'), tenantGuard, async (req: Au
 router.get('/history', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res) => {
     const dbClient = (req as any).dbClient;
     try {
-        // [RLS] Pas de WHERE owner_id manuel — PostgreSQL l'applique automatiquement
+        // [RLS] + filtre applicatif explicite sur validOwnerIds (scopeByOwner)
+        const params: any[] = [];
+        const ownerClause = scopeByOwner(req, params);
         const result = await dbClient.query(`
             SELECT
                 TO_CHAR(date_expense, 'Mon') as mois,
                 EXTRACT(MONTH FROM date_expense) as mois_num,
                 COALESCE(SUM(amount), 0) as total
             FROM expenses
-            WHERE date_expense >= CURRENT_DATE - INTERVAL '6 months'
+            WHERE date_expense >= CURRENT_DATE - INTERVAL '6 months'${ownerClause}
             GROUP BY mois, mois_num
             ORDER BY mois_num
-        `);
+        `, params);
         res.json(result.rows);
     } catch (error) {
         console.error('Erreur historique dépenses:', error);

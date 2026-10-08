@@ -30,6 +30,16 @@ const providerUpdateRules = [
     body('status').optional({ nullable: true }).isIn(['active', 'inactive']).withMessage('Statut invalide'),
 ];
 
+// [SÉCURITÉ] Filtre propriétaire explicite (ne jamais se fier uniquement à la RLS :
+// le rôle DB peut avoir BYPASSRLS). Même signature que reservationRoutes.ts /
+// documentRoutes.ts / locataireRoutes.ts. Contourné pour le rôle admin.
+function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
+    if ((req as any).userRole === 'admin') return '';
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    params.push(validOwnerIds);
+    return ` AND ${col} = ANY($${params.length}::int[])`;
+}
+
 // Protect all routes with auth check and RLS context
 router.use(protect);
 router.use(tenantGuard);
@@ -96,6 +106,9 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
 
         if (specialty) { where += ` AND specialty = $${paramId++}`; params.push(specialty); }
         if (status)    { where += ` AND status = $${paramId++}`;    params.push(status); }
+        // [RLS] + filtre applicatif explicite sur validOwnerIds
+        where += scopeByOwner(req, params);
+        paramId = params.length + 1;
 
         const countResult = await dbClient.query(`SELECT COUNT(*) FROM providers ${where}`, params);
         const total = parseInt(countResult.rows[0].count, 10);
