@@ -3,7 +3,7 @@ import { body, param } from 'express-validator';
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
-import { protect } from '../middleware/authMiddleware';
+import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 import { checkTenantLimit } from '../middleware/subscriptionLimits';
 import { AuditService } from '../services/AuditService';
 import permissions from '../middleware/permissionMiddleware';
@@ -34,6 +34,16 @@ const tenantUpdateRules = [
     body('paiement_echelonne').optional({ nullable: true }).isBoolean().withMessage('paiement_echelonne doit être un booléen'),
 ];
 const tenantIdParam = [param('id').isInt({ min: 1 }).withMessage('Identifiant invalide')];
+
+// [SÉCURITÉ] `leases` n'a pas de politique RLS versionnée et le rôle DB peut avoir
+// BYPASSRLS : filtrage explicite par propriétaire (même pattern que leaseRoutes.ts),
+// contourné pour le rôle admin.
+function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
+    if ((req as any).userRole === 'admin') return '';
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    params.push(validOwnerIds);
+    return ` AND ${col} = ANY($${params.length}::int[])`;
+}
 
 // [RLS] Filtrage automatique par tenant via PostgreSQL Row-Level Security
 // Anciens helpers getManagedOwnerIds et getManagedOwnerId supprimés car redondants.
@@ -147,7 +157,9 @@ router.get('/:id', protect, tenantGuard, async (req: any, res) => {
             return res.status(404).json({ message: "Locataire non trouvé ou accès refusé." });
         }
 
-        // 2. Baux / Contrats
+        // 2. Baux / Contrats (limités aux propriétaires gérés par l'appelant)
+        const leasesParams: any[] = [tenantId];
+        const leasesOwnerClause = scopeByOwner(req, leasesParams, 'l.owner_id');
         const leasesResult = await dbClient.query(`
             SELECT l.*, b.nom as building_name, lot.ref_lot, lot.type as lot_type,
                    -- Statut de paiement par bail (même règle que la liste) pour la pastille du modal
@@ -165,19 +177,21 @@ router.get('/:id', protect, tenantGuard, async (req: any, res) => {
                 SELECT MAX(date_paiement) as last_payment_date
                 FROM payments p WHERE p.lease_id = l.id
             ) lp ON true
-            WHERE l.tenant_id = $1
+            WHERE l.tenant_id = $1${leasesOwnerClause}
             ORDER BY l.date_debut DESC
-        `, [tenantId]);
+        `, leasesParams);
 
-        // 3. Paiements récents
+        // 3. Paiements récents (même filtre propriétaire, via le bail)
+        const paymentsParams: any[] = [tenantId];
+        const paymentsOwnerClause = scopeByOwner(req, paymentsParams, 'l.owner_id');
         const paymentsResult = await dbClient.query(`
             SELECT p.*, l.lot_id 
             FROM payments p
             JOIN leases l ON p.lease_id = l.id
-            WHERE l.tenant_id = $1
+            WHERE l.tenant_id = $1${paymentsOwnerClause}
             ORDER BY p.date_paiement DESC
             LIMIT 10
-        `, [tenantId]);
+        `, paymentsParams);
 
         res.json({
             locataire: tenantResult.rows[0],

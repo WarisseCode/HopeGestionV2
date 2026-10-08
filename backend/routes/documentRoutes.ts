@@ -43,6 +43,16 @@ const spacesConfigured = !!(
     process.env.SPACES_BUCKET
 );
 
+// [SÉCURITÉ] `leases` n'a pas de politique RLS versionnée et le rôle DB peut avoir
+// BYPASSRLS : filtrage explicite par propriétaire (même pattern que leaseRoutes.ts),
+// contourné pour le rôle admin.
+function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
+    if ((req as any).userRole === 'admin') return '';
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    params.push(validOwnerIds);
+    return ` AND ${col} = ANY($${params.length}::int[])`;
+}
+
 // --- Routes ---
 
 // GET /api/documents - List documents (isolation multi-tenant explicite)
@@ -210,6 +220,8 @@ router.post('/generate', permissions.canWrite('documents'), tenantGuard, validat
         // 2. Fetch Data based on Type
         let data: any = {};
         if (type === 'lease') {
+            const leaseParams: any[] = [entityId];
+            const ownerClause = scopeByOwner(req, leaseParams, 'l.owner_id');
             const query = `
                 SELECT 
                     l.id, l.date_debut, l.date_fin, l.loyer_actuel, l.signature_url,
@@ -222,9 +234,9 @@ router.post('/generate', permissions.canWrite('documents'), tenantGuard, validat
                 JOIN lots lo ON l.lot_id = lo.id
                 LEFT JOIN buildings b ON lo.building_id = b.id
                 LEFT JOIN owners o ON l.owner_id = o.id
-                WHERE l.id = $1
+                WHERE l.id = $1${ownerClause}
             `;
-            const dbRes = await dbClient.query(query, [entityId]);
+            const dbRes = await dbClient.query(query, leaseParams);
             if (dbRes.rows.length === 0) return res.status(404).json({ message: 'Bail introuvable ou accès refusé' });
             const row = dbRes.rows[0];
             
@@ -312,9 +324,17 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), tenantGuar
 
         // Check if a non-deleted document already exists for this lease
         // ⚠️ Inclure deleted_at IS NULL : un bail supprimé en corbeille ne doit pas bloquer la régénération
+        // [SÉCURITÉ] Restreint aux baux du périmètre de l'appelant : sinon le message
+        // « existe déjà » confirmerait l'existence d'un bail tiers (le bail hors
+        // périmètre tombe ensuite sur le 404 de la requête bail ci-dessous).
+        const existingDocParams: any[] = [leaseId];
+        const existingDocOwnerClause = scopeByOwner(req, existingDocParams, 'l.owner_id');
         const existingDoc = await dbClient.query(
-            "SELECT id FROM documents WHERE entity_type = 'lease' AND entity_id = $1 AND categorie = 'baux' AND deleted_at IS NULL",
-            [leaseId]
+            `SELECT id FROM documents WHERE entity_type = 'lease' AND entity_id = $1 AND categorie = 'baux' AND deleted_at IS NULL`
+                + (existingDocOwnerClause
+                    ? ` AND EXISTS (SELECT 1 FROM leases l WHERE l.id = documents.entity_id${existingDocOwnerClause})`
+                    : ''),
+            existingDocParams
         );
 
         if (existingDoc.rows.length > 0) {
@@ -324,6 +344,8 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), tenantGuar
         }
 
         // Fetch lease data with correct joins
+        const leaseParams: any[] = [leaseId];
+        const leaseOwnerClause = scopeByOwner(req, leaseParams, 'l.owner_id');
         const leaseQuery = `
             SELECT 
                 l.id, l.reference_bail, l.date_debut, l.date_fin, l.loyer_actuel, l.signature_url, l.date_signature_electronique, l.conditions_particulieres,
@@ -336,9 +358,9 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), tenantGuar
             JOIN lots lo ON l.lot_id = lo.id
             LEFT JOIN buildings b ON lo.building_id = b.id
             LEFT JOIN owners o ON l.owner_id = o.id
-            WHERE l.id = $1
+            WHERE l.id = $1${leaseOwnerClause}
         `;
-        const result = await dbClient.query(leaseQuery, [leaseId]);
+        const result = await dbClient.query(leaseQuery, leaseParams);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Bail non trouvé ou accès refusé' });

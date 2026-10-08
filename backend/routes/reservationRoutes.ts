@@ -41,6 +41,16 @@ const transformReservationRules = [
     body('periodicite').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Périodicité invalide'),
 ];
 
+// [SÉCURITÉ] `leases` n'a pas de politique RLS versionnée et le rôle DB peut avoir
+// BYPASSRLS : filtrage explicite par propriétaire (même pattern que leaseRoutes.ts),
+// contourné pour le rôle admin.
+function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
+    if ((req as any).userRole === 'admin') return '';
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    params.push(validOwnerIds);
+    return ` AND ${col} = ANY($${params.length}::int[])`;
+}
+
 // --- PUBLIC ROUTES (No Auth) ---
 
 // [PUBLIC] Route visiteur sans authentification.
@@ -151,8 +161,9 @@ router.use(protect);
 router.get('/', tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
-        
-        // [RLS] Filtrage automatique par tenant
+        const params: any[] = [];
+        const ownerClause = scopeByOwner(req, params, 'l.owner_id');
+
         const result = await dbClient.query(`
             SELECT l.id, l.reference_bail, l.statut, l.date_debut, l.created_at,
                    l.conditions_particulieres, l.loyer_actuel, l.montant_depot,
@@ -163,9 +174,9 @@ router.get('/', tenantGuard, async (req: AuthenticatedRequest, res: Response) =>
             JOIN tenants t ON l.tenant_id = t.id
             LEFT JOIN lots lot ON l.lot_id = lot.id
             LEFT JOIN buildings b ON lot.building_id = b.id
-            WHERE l.type_contrat = 'reservation'
+            WHERE l.type_contrat = 'reservation'${ownerClause}
             ORDER BY l.created_at DESC
-        `);
+        `, params);
         res.json(result.rows);
     } catch (error) {
         console.error('Error fetching reservations:', error);
@@ -180,11 +191,12 @@ router.post('/:id/validate', tenantGuard, validate(validateReservationRules), as
         const { id } = req.params;
         const { statut, commentaire } = req.body;
 
-        // [RLS] Filtrage automatique par tenant
         // Update reservation status and return lot_id
+        const params: any[] = [statut, id];
+        const ownerClause = scopeByOwner(req, params);
         const checkResult = await dbClient.query(
-            "UPDATE leases SET statut = $1, updated_at = NOW() WHERE id = $2 AND type_contrat = 'reservation' RETURNING lot_id",
-            [statut, id]
+            `UPDATE leases SET statut = $1, updated_at = NOW() WHERE id = $2 AND type_contrat = 'reservation'${ownerClause} RETURNING lot_id`,
+            params
         );
         
         if (checkResult.rowCount === 0) {
@@ -221,16 +233,18 @@ router.post('/:id/transform', tenantGuard, validate(transformReservationRules), 
 
         await dbClient.query('BEGIN');
         
-        // 1. Get the reservation
-        // [RLS] Filtrage automatique par tenant
+        // 1. Get the reservation (filtrée par propriétaire : la suite de la transaction
+        // ne s'exécute que si le bail appartient à un propriétaire géré par l'appelant)
+        const reservationParams: any[] = [id];
+        const ownerClause = scopeByOwner(req, reservationParams, 'l.owner_id');
         const reservationResult = await dbClient.query(`
             SELECT l.*, 
                    COALESCE(lot.loyer_mensuel, l.loyer_actuel) as loyer_mensuel, 
                    COALESCE(lot.building_id, l.lot_id) as building_id
             FROM leases l
             LEFT JOIN lots lot ON l.lot_id = lot.id
-            WHERE l.id = $1 AND l.type_contrat = 'reservation' AND l.statut = 'actif'
-        `, [id]);
+            WHERE l.id = $1 AND l.type_contrat = 'reservation' AND l.statut = 'actif'${ownerClause}
+        `, reservationParams);
 
         if (reservationResult.rows.length === 0) {
             await dbClient.query('ROLLBACK');
