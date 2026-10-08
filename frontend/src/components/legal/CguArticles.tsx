@@ -147,8 +147,8 @@ const CguArticles: React.FC = () => (
             <p>Cotonou, Bénin</p>
             <p>Tél : (229) 0161280346 / 0166962026</p>
             <p>E-mail : 10xsuperieur@gmail.com</p>
-            <p>RCCM : <LegalPlaceholder>numéro RCCM</LegalPlaceholder></p>
-            <p>IFU : <LegalPlaceholder>numéro IFU</LegalPlaceholder></p>
+           {/*  <p>RCCM : <LegalPlaceholder>numéro RCCM</LegalPlaceholder></p>
+            <p>IFU : <LegalPlaceholder>numéro IFU</LegalPlaceholder></p> */}
         </div>
 
         <p className="mt-6 text-sm text-base-content/60">
