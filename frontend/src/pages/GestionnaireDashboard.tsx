@@ -299,17 +299,17 @@ const GestionnaireDashboard: React.FC = () => {
           
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <p className="text-white/80 text-sm font-medium">{t('dashboard.globalPerformance')}</p>
+              <p className="text-primary-content/80 text-sm font-medium">{t('dashboard.globalPerformance')}</p>
               <p className="text-3xl font-bold">{new Intl.NumberFormat('fr-FR').format(revenuNet)} FCFA</p>
-              <p className="text-white/60 text-xs mt-1">{t('dashboard.revenueCollectedMonth')}</p>
+              <p className="text-primary-content/60 text-xs mt-1">{t('dashboard.revenueCollectedMonth')}</p>
             </div>
             <div className="flex gap-4 flex-wrap">
               <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
-                <p className="text-white/80 text-xs font-medium">{t('dashboard.collections')}</p>
+                <p className="text-primary-content/80 text-xs font-medium">{t('dashboard.collections')}</p>
                 <p className="text-lg font-bold text-green-300">+{new Intl.NumberFormat('fr-FR').format(totalRevenus)}</p>
               </div>
               <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
-                <p className="text-white/80 text-xs font-medium">{t('dashboard.unpaid')}</p>
+                <p className="text-primary-content/80 text-xs font-medium">{t('dashboard.unpaid')}</p>
                 <p className="text-lg font-bold text-orange-300">{new Intl.NumberFormat('fr-FR').format(totalImpayes)}</p>
               </div>
             </div>

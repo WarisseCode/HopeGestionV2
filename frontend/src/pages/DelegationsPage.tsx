@@ -185,7 +185,7 @@ const DelegationsPage: React.FC = () => {
                   <td className="pl-6">
                     <div className="flex items-center gap-3">
                       <div className="avatar placeholder">
-                        <div className={`rounded-full w-10 h-10 flex items-center justify-center font-bold text-white shadow-md ${member.role === 'owner' ? 'bg-primary' : 'bg-gray-400'}`}>
+                        <div className={`rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-md ${member.role === 'owner' ? 'bg-primary text-primary-content' : 'bg-gray-400 text-white'}`}>
                           <span className="text-sm">{member.nom.substring(0, 2).toUpperCase()}</span>
                         </div>
                       </div>

@@ -501,7 +501,7 @@ const Interventions: React.FC = () => {
             key={tab.key}
             onClick={() => setActiveTab(tab.key as any)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-              activeTab === tab.key ? 'bg-primary text-white' : 'text-base-content/70 hover:bg-base-300'
+              activeTab === tab.key ? 'bg-primary text-primary-content' : 'text-base-content/70 hover:bg-base-300'
             }`}
           >
             <tab.icon size={18} />

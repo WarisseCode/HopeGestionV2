@@ -116,14 +116,14 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                   className={`
                     px-3 py-1.5 text-xs font-medium rounded-full transition-all
                     ${isSelected
-                      ? 'bg-primary text-white shadow-md shadow-primary/30'
+                      ? 'bg-primary text-primary-content shadow-md shadow-primary/30'
                       : 'bg-base-300 text-base-content/70 hover:bg-base-300'
                     }
                   `}
                 >
                   {option.label}
                   {option.count !== undefined && (
-                    <span className={`ml-1 ${isSelected ? 'text-white/80' : 'text-base-content/60'}`}>
+                    <span className={`ml-1 ${isSelected ? 'text-primary-content/80' : 'text-base-content/60'}`}>
                       ({option.count})
                     </span>
                   )}
@@ -243,7 +243,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
           <Filter size={18} className="text-primary" />
           <span className="font-semibold text-base-content/80">Filtres</span>
           {showActiveCount && activeFiltersCount > 0 && (
-            <span className="px-2 py-0.5 text-xs font-bold bg-primary text-white rounded-full">
+            <span className="px-2 py-0.5 text-xs font-bold bg-primary text-primary-content rounded-full">
               {activeFiltersCount}
             </span>
           )}

@@ -284,7 +284,7 @@ const Locations: React.FC = () => {
                 </div>
                 <button 
                     onClick={() => { setError(null); setIsEditing(false); setSelectedLocation(null); setShowAddModal(true); }}
-                    className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg hover:bg-primary/90 transition shadow-md"
+                    className="flex items-center gap-2 bg-primary text-primary-content px-5 py-2.5 rounded-lg hover:bg-primary/90 transition shadow-md"
                 >
                     <Plus size={18} /> Nouveau Bail
                 </button>

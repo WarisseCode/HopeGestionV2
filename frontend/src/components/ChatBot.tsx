@@ -257,7 +257,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ mobileBottomNav = true }) => {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
       >
-        <MessageCircle size={28} className="text-white" />
+        <MessageCircle size={28} className="text-primary-content" />
         {/* Badge Notification */}
         <span className="absolute -top-1 -right-1 w-5 h-5 bg-error rounded-full flex items-center justify-center text-xs text-white font-bold animate-bounce shadow-sm border-2 border-base-100">
           1
@@ -284,16 +284,16 @@ const ChatBot: React.FC<ChatBotProps> = ({ mobileBottomNav = true }) => {
             <div className="bg-gradient-to-r from-primary to-secondary p-4 flex items-center justify-between shadow-md shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-base-100/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30">
-                  <Bot size={24} className="text-white" />
+                  <Bot size={24} className="text-primary-content" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-lg leading-tight">Hope Assistant</h3>
+                  <h3 className="font-bold text-primary-content text-lg leading-tight">Hope Assistant</h3>
                   <div className="flex items-center gap-1.5 opacity-90">
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
                     </span>
-                    <span className="text-xs text-white font-medium">En ligne</span>
+                    <span className="text-xs text-primary-content font-medium">En ligne</span>
                   </div>
                 </div>
               </div>
@@ -301,14 +301,14 @@ const ChatBot: React.FC<ChatBotProps> = ({ mobileBottomNav = true }) => {
                  {/* 4. Minimize Button */}
                 <button 
                   onClick={() => setIsMinimized(true)} 
-                  className="p-2 hover:bg-base-100/20 rounded-full text-white transition-colors"
+                  className="p-2 hover:bg-base-100/20 rounded-full text-primary-content transition-colors"
                   title="Réduire"
                 >
                   <Minus size={20} />
                 </button>
                 <button 
                   onClick={() => setIsOpen(false)}
-                  className="p-2 hover:bg-base-100/20 rounded-full text-white transition-colors"
+                  className="p-2 hover:bg-base-100/20 rounded-full text-primary-content transition-colors"
                   title="Fermer"
                 >
                   <X size={20} />
@@ -327,7 +327,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ mobileBottomNav = true }) => {
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border border-base-content/5 ${
                       message.sender === 'bot' ? 'bg-gradient-to-br from-primary to-secondary' : 'bg-base-100'
                     }`}>
-                      {message.sender === 'bot' ? <Bot size={16} className="text-white" /> : <User size={16} className="text-base-content" />}
+                      {message.sender === 'bot' ? <Bot size={16} className="text-primary-content" /> : <User size={16} className="text-base-content" />}
                     </div>
                     
                     {/* Bubble */}
@@ -358,7 +358,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ mobileBottomNav = true }) => {
                               <div className="h-28 bg-base-300 relative overflow-hidden">
                                 <img src={prop.image} alt={prop.titre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
-                                <span className="absolute bottom-2 right-2 bg-primary/90 text-white text-xs font-bold px-2 py-1 rounded backdrop-blur-sm shadow-sm">
+                                <span className="absolute bottom-2 right-2 bg-primary/90 text-primary-content text-xs font-bold px-2 py-1 rounded backdrop-blur-sm shadow-sm">
                                   {prop.loyer.toLocaleString()} F
                                 </span>
                               </div>
@@ -393,7 +393,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ mobileBottomNav = true }) => {
                             <button
                               key={idx}
                               onClick={() => handleSendMessage(opt.value)}
-                              className="px-4 py-2 bg-base-100 hover:bg-primary hover:text-white text-primary rounded-full text-xs font-semibold transition-all shadow-sm border border-primary/10 hover:shadow-md hover:-translate-y-0.5"
+                              className="px-4 py-2 bg-base-100 hover:bg-primary hover:text-primary-content text-primary rounded-full text-xs font-semibold transition-all shadow-sm border border-primary/10 hover:shadow-md hover:-translate-y-0.5"
                             >
                               {opt.label}
                             </button>
@@ -413,7 +413,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ mobileBottomNav = true }) => {
                                 <label className="text-xs font-medium text-base-content/60 ml-1">Téléphone</label>
                                 <input type="tel" placeholder="+229 ..." className="w-full px-3 py-2 text-sm border border-base-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 bg-base-200 transition-all" />
                               </div>
-                              <button className="w-full bg-primary text-white py-2.5 rounded-lg text-sm font-bold hover:bg-primary-focus shadow-lg shadow-primary/20 transition-all active:scale-95">
+                              <button className="w-full bg-primary text-primary-content py-2.5 rounded-lg text-sm font-bold hover:bg-primary-focus shadow-lg shadow-primary/20 transition-all active:scale-95">
                                 Envoyer mes infos
                               </button>
                            </div>
@@ -427,7 +427,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ mobileBottomNav = true }) => {
               {isTyping && (
                 <div className="flex items-center gap-2 ml-1 animate-pulse">
                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-sm">
-                     <Bot size={16} className="text-white" />
+                     <Bot size={16} className="text-primary-content" />
                    </div>
                    <div className="bg-base-200 px-4 py-3 rounded-2xl rounded-bl-none">
                      <div className="flex gap-1">
@@ -470,7 +470,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ mobileBottomNav = true }) => {
                 <motion.button
                   onClick={() => handleSendMessage()}
                   disabled={!inputValue.trim() || isTyping}
-                  className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
+                  className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-primary-content disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >

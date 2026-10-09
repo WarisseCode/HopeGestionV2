@@ -416,13 +416,13 @@ const BiensPublicsPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-primary text-white' : 'bg-base-100'}`}
+                className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-primary text-primary-content' : 'bg-base-100'}`}
               >
                 <Grid3X3 size={20} />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-primary text-white' : 'bg-base-100'}`}
+                className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-primary text-primary-content' : 'bg-base-100'}`}
               >
                 <List size={20} />
               </button>
@@ -476,7 +476,7 @@ const BiensPublicsPage: React.FC = () => {
                   <div className="absolute top-3 right-3 flex gap-2">
                     {/* Distance Badge */}
                     {permissionGranted && calculateDistance(property.latitude, property.longitude) !== null && (
-                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-lg flex items-center gap-1">
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary text-primary-content shadow-lg flex items-center gap-1">
                         <Navigation size={12} />
                         {calculateDistance(property.latitude, property.longitude)?.toFixed(1)} km
                       </span>

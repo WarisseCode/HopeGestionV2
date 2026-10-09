@@ -127,16 +127,16 @@ const LocataireDashboard: React.FC = () => {
       {/* Next Payment Alert Banner */}
       <motion.div variants={itemVariants}>
         <div className={`rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
-          joursAvantEcheance <= 5 ? 'bg-gradient-to-r from-orange-500 to-red-500' : 'bg-gradient-to-r from-primary to-primary-focus'
-        } text-white`}>
+          joursAvantEcheance <= 5 ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white' : 'bg-gradient-to-r from-primary to-primary-focus text-primary-content'
+        }`}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-base-100/20 flex items-center justify-center">
               <Calendar size={24} />
             </div>
             <div>
-              <p className="text-white/80 text-sm font-medium">Prochain paiement</p>
+              <p className={`${joursAvantEcheance <= 5 ? 'text-white/80' : 'text-primary-content/80'} text-sm font-medium`}>Prochain paiement</p>
               <p className="text-2xl font-bold">{formatCurrency(loyerMensuel)}</p>
-              <p className="text-white/70 text-sm">
+              <p className={`${joursAvantEcheance <= 5 ? 'text-white/70' : 'text-primary-content/70'} text-sm`}>
                 {joursAvantEcheance < 0
                   ? `En retard de ${Math.abs(joursAvantEcheance)} jour(s)`
                   : joursAvantEcheance === 0

@@ -239,7 +239,7 @@ const Parametres: React.FC = () => {
                   onClick={() => setActiveTab(item.id)}
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 font-medium ${
                     activeTab === item.id
-                      ? 'bg-primary text-white shadow-md shadow-primary/30'
+                      ? 'bg-primary text-primary-content shadow-md shadow-primary/30'
                       : 'text-base-content/70 hover:bg-base-200 hover:text-primary'
                   }`}
                 >
@@ -266,7 +266,7 @@ const Parametres: React.FC = () => {
                     {/* Avatar + upload */}
                     <div className="md:col-span-2 flex justify-center mb-4">
                       <div className="relative group w-24 h-24">
-                        <div className="w-full h-full rounded-full overflow-hidden border-4 border-base-100 shadow-xl bg-primary text-white flex items-center justify-center text-3xl font-bold">
+                        <div className="w-full h-full rounded-full overflow-hidden border-4 border-base-100 shadow-xl bg-primary text-primary-content flex items-center justify-center text-3xl font-bold">
                           {photoUrl
                             ? <img src={photoUrl} alt="Profil" className="w-full h-full object-cover" />
                             : initials}
@@ -278,7 +278,7 @@ const Parametres: React.FC = () => {
                             {t('settings.modify')}
                           </span>
                         </label>
-                        <div className="absolute bottom-0 right-0 bg-primary text-white p-1.5 rounded-full pointer-events-none shadow-lg border-2 border-base-100">
+                        <div className="absolute bottom-0 right-0 bg-primary text-primary-content p-1.5 rounded-full pointer-events-none shadow-lg border-2 border-base-100">
                           <Camera size={12} />
                         </div>
                       </div>

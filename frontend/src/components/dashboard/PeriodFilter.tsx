@@ -51,7 +51,7 @@ const PeriodFilter: React.FC<PeriodFilterProps> = ({
                 relative px-3 py-1.5 text-xs font-semibold rounded-full
                 transition-all duration-200 whitespace-nowrap
                 ${isActive 
-                  ? 'text-white' 
+                  ? 'text-primary-content'
                   : 'text-base-content/60 hover:text-base-content/80 hover:bg-base-300'
                 }
               `}

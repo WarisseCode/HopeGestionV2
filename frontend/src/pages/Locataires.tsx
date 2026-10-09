@@ -280,7 +280,7 @@ const Locataires: React.FC = () => {
                 {showFilters && <X size={16} className="mr-1" />}
                 {t('common.filters')}
                 {Object.keys(filterValues).length > 0 && (
-                  <span className="ml-2 w-5 h-5 rounded-full bg-primary text-white text-xs flex items-center justify-center">
+                  <span className="ml-2 w-5 h-5 rounded-full bg-primary text-primary-content text-xs flex items-center justify-center">
                     {Object.keys(filterValues).length}
                   </span>
                 )}

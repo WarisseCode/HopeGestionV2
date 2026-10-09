@@ -128,7 +128,7 @@ const LocataireDetails: React.FC = () => {
       <Card className="border-none shadow-xl bg-gradient-to-r from-primary/5 to-secondary/5 p-6">
         <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
           {/* Avatar */}
-          <div className="w-20 h-20 rounded-full bg-primary text-white flex items-center justify-center text-2xl font-bold ring-4 ring-white shadow-lg">
+          <div className="w-20 h-20 rounded-full bg-primary text-primary-content flex items-center justify-center text-2xl font-bold ring-4 ring-white shadow-lg">
             {locataire.photo_profil_url ? (
               <img src={locataire.photo_profil_url} alt={locataire.nom} className="w-full h-full rounded-full object-cover" />
             ) : (

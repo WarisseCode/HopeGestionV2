@@ -280,7 +280,7 @@ const PropertyCarousel: React.FC = () => {
                   handlePrev();
                   setIsPaused(true); // Pause interacting manually
                 }}
-                className="absolute left-4 top-1/2 z-20 w-12 h-12 rounded-full bg-base-100/80 backdrop-blur-sm shadow-xl border border-base-200 flex items-center justify-center transition-all duration-300 hover:bg-primary hover:text-white hover:scale-110 cursor-pointer"
+                className="absolute left-4 top-1/2 z-20 w-12 h-12 rounded-full bg-base-100/80 backdrop-blur-sm shadow-xl border border-base-200 flex items-center justify-center transition-all duration-300 hover:bg-primary hover:text-primary-content hover:scale-110 cursor-pointer"
                 style={{ transform: 'translateY(-50%)' }}
                 aria-label="Previous property"
               >
@@ -292,7 +292,7 @@ const PropertyCarousel: React.FC = () => {
                   handleNext();
                   setIsPaused(true); // Pause interacting manually
                 }}
-                className="absolute right-4 top-1/2 z-20 w-12 h-12 rounded-full bg-base-100/80 backdrop-blur-sm shadow-xl border border-base-200 flex items-center justify-center transition-all duration-300 hover:bg-primary hover:text-white hover:scale-110 cursor-pointer"
+                className="absolute right-4 top-1/2 z-20 w-12 h-12 rounded-full bg-base-100/80 backdrop-blur-sm shadow-xl border border-base-200 flex items-center justify-center transition-all duration-300 hover:bg-primary hover:text-primary-content hover:scale-110 cursor-pointer"
                 style={{ transform: 'translateY(-50%)' }}
                 aria-label="Next property"
               >

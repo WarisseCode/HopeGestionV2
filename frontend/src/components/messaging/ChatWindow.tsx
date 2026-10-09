@@ -71,7 +71,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ contextType, contextId, recipie
                 <div>
                     <h3 className="font-bold">{title}</h3>
                     <div className="flex gap-2 text-xs mt-1">
-                        <button onClick={() => setChannel('internal')} className={`px-2 py-0.5 rounded ${channel === 'internal' ? 'bg-primary text-white' : 'bg-base-300'}`}>Interne</button>
+                        <button onClick={() => setChannel('internal')} className={`px-2 py-0.5 rounded ${channel === 'internal' ? 'bg-primary text-primary-content' : 'bg-base-300'}`}>Interne</button>
                         <button onClick={() => setChannel('whatsapp')} className={`px-2 py-0.5 rounded ${channel === 'whatsapp' ? 'bg-green-500 text-white' : 'bg-base-300'}`}>WhatsApp</button>
                         <button onClick={() => setChannel('email')} className={`px-2 py-0.5 rounded ${channel === 'email' ? 'bg-teal-500 text-white' : 'bg-base-300'}`}>Email</button>
                     </div>

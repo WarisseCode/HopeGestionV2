@@ -339,7 +339,7 @@ const [activeTab, setActiveTab] = useState<'echeancier' | 'infos'>('echeancier')
                                                     {item.statut !== 'paye' && (
                                                         <button 
                                                             onClick={() => openPaymentModal(item)}
-                                                            className="px-3 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition flex items-center gap-1 ml-auto"
+                                                            className="px-3 py-1.5 bg-primary text-primary-content rounded-lg text-sm hover:bg-primary/90 transition flex items-center gap-1 ml-auto"
                                                         >
                                                             <CreditCard size={14} />
                                                             Payer
@@ -481,7 +481,7 @@ const [activeTab, setActiveTab] = useState<'echeancier' | 'infos'>('echeancier')
                                 <button
                                     onClick={handleRecordPayment}
                                     disabled={loading || !(paymentAmount > 0)}
-                                    className="px-5 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition flex items-center gap-2 disabled:opacity-50"
+                                    className="px-5 py-2.5 bg-primary text-primary-content rounded-lg hover:bg-primary/90 transition flex items-center gap-2 disabled:opacity-50"
                                 >
                                     <Check size={18} />
                                     Confirmer le paiement
