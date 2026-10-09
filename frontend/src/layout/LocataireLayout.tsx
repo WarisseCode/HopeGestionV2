@@ -70,8 +70,8 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
             {/* Logo & Close */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-base-200">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                        <Home size={16} className="text-white" />
+                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                        <Home size={16} className="text-primary-content" />
                     </div>
                     <span className="font-bold text-base-content text-sm">HopeGestion</span>
                 </div>
@@ -83,12 +83,12 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
             </div>
 
             {/* Badge espace locataire */}
-            <div className="mx-3 mt-3 mb-1 px-3 py-2 bg-green-50 rounded-xl border border-green-100">
+            <div className="mx-3 mt-3 mb-1 px-3 py-2 bg-accent-soft rounded-xl border border-base-300">
                 <div className="flex items-center gap-2">
-                    <Home size={13} className="text-green-600 shrink-0" />
+                    <Home size={13} className="text-secondary shrink-0" />
                     <div>
-                        <p className="text-xs font-semibold text-green-700">{t('layout.tenantArea')}</p>
-                        <p className="text-[10px] text-green-500 leading-tight">{t('layout.myPersonalSpace')}</p>
+                        <p className="text-xs font-semibold text-primary">{t('layout.tenantArea')}</p>
+                        <p className="text-[10px] text-base-content/70 leading-tight">{t('layout.myPersonalSpace')}</p>
                     </div>
                 </div>
             </div>
@@ -106,14 +106,14 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
                                 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
                                 transition-all duration-150 group
                                 ${active
-                                    ? 'bg-green-600 text-white shadow-md shadow-green-200'
+                                    ? 'bg-primary text-primary-content shadow-md shadow-primary/20'
                                     : 'text-base-content/70 hover:bg-base-200 hover:text-base-content'
                                 }
                             `}
                         >
-                            <Icon size={18} className={active ? 'text-white' : 'text-base-content/50 group-hover:text-base-content'} />
+                            <Icon size={18} className={active ? 'text-primary-content' : 'text-base-content/50 group-hover:text-base-content'} />
                             <span className="flex-1">{t(label)}</span>
-                            {active && <ChevronRight size={14} className="text-white/70" />}
+                            {active && <ChevronRight size={14} className="text-primary-content/70" />}
                         </Link>
                     );
                 })}
@@ -148,7 +148,7 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
                 {/* User card */}
                 <div className="mt-2 pt-2 border-t border-base-200">
                     <div className="flex items-center gap-3 px-3 py-2">
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-sm shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-accent-soft flex items-center justify-center text-primary font-bold text-sm shrink-0">
                             {userProfile?.nom?.charAt(0)?.toUpperCase() || 'L'}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -210,7 +210,7 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
                         )}
 
                         <Link to="/dashboard/mon-compte" className="flex items-center gap-2 hover:bg-base-200 rounded-xl px-2 py-1.5 transition-colors">
-                            <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-xs">
+                            <div className="w-7 h-7 rounded-full bg-accent-soft flex items-center justify-center text-primary font-bold text-xs">
                                 {userProfile?.nom?.charAt(0)?.toUpperCase() || 'L'}
                             </div>
                             <span className="hidden md:block text-sm font-medium text-base-content/80">{userProfile?.nom}</span>

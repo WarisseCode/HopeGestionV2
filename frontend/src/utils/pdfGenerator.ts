@@ -16,15 +16,15 @@ export interface QuittanceData {
   charges?: number;
 }
 
-// Couleurs de la marque HopeGestion
+// Couleurs de la marque HopeGestion (charte graphique — alignées sur src/globals.css)
 const BRAND = {
-  primary: [26, 54, 93] as [number, number, number],       // #1A365D - Navy
-  accent: [220, 38, 74] as [number, number, number],        // #DC264A - Rose/Red
-  blue: [59, 130, 246] as [number, number, number],          // #3B82F6 - Bright blue
-  darkText: [30, 30, 30] as [number, number, number],        // Near-black
+  primary: [12, 57, 88] as [number, number, number],        // #0C3958 - Bleu profond
+  accent: [8, 143, 225] as [number, number, number],        // #088FE1 - Bleu Hope
+  blue: [8, 143, 225] as [number, number, number],          // #088FE1 - Bleu Hope
+  darkText: [21, 27, 32] as [number, number, number],       // #151B20 - Noir texte
   mediumText: [90, 90, 90] as [number, number, number],      // Medium gray
   lightText: [140, 140, 140] as [number, number, number],    // Light gray
-  tableBg: [245, 247, 250] as [number, number, number],      // Light bg
+  tableBg: [244, 246, 247] as [number, number, number],     // #F4F6F7 - Gris
   white: [255, 255, 255] as [number, number, number],
 };
 

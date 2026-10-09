@@ -194,7 +194,7 @@ const Pricing: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-3xl md:text-4xl font-black text-base-content mb-4"
                 >
-                    Choisissez votre <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-teal-400">Abonnement</span>
+                    Choisissez votre <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Abonnement</span>
                 </motion.h1>
                 <p className="text-base-content/60 text-lg max-w-xl mx-auto">
                     Gérez vos biens immobiliers plus efficacement avec nos offres adaptées à vos besoins.

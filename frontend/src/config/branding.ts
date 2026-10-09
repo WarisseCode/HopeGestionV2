@@ -68,10 +68,10 @@ export const BRANDING: BrandingConfig = {
     instagram: 'https://instagram.com',
   },
   theme: {
-    fontSans: 'Inter',
-    fontHeading: 'Plus Jakarta Sans',
+    fontSans: 'DejaVu Sans',
+    fontHeading: 'DejaVu Sans',
     defaultTheme: 'hopegestion',
-    primaryColorName: 'Teal',
+    primaryColorName: 'Bleu profond',
   },
 };
 

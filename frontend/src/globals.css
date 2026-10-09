@@ -1,24 +1,82 @@
 /* src/globals.css - Styles globaux (Tailwind + DaisyUI) */
 
 /* ============================
+   Police — DejaVu Sans auto-hébergée (public/fonts, licence : DejaVu-LICENSE.txt)
+   Fichiers sous-ensemblés en latin / latin étendu ; les glyphes hors de
+   unicode-range retombent sur la pile de secours (Arial, sans-serif).
+   Seules les graisses 400 et 700 existent : 500 s'affiche en 400,
+   600 / 800 / 900 s'affichent en 700.
+   ============================ */
+@font-face {
+  font-family: 'DejaVu Sans';
+  src: url('/fonts/DejaVuSans.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-024F, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2113, U+2122, U+2190-2199, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'DejaVu Sans';
+  src: url('/fonts/DejaVuSans-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-024F, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2113, U+2122, U+2190-2199, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'DejaVu Sans';
+  src: url('/fonts/DejaVuSans-Oblique.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+  unicode-range: U+0000-024F, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2113, U+2122, U+2190-2199, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'DejaVu Sans';
+  src: url('/fonts/DejaVuSans-BoldOblique.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+  unicode-range: U+0000-024F, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2113, U+2122, U+2190-2199, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ============================
+   Jetons Tailwind complémentaires
+   - --font-sans : la classe `font-sans` (layouts dashboard, footer, chatbot)
+     pointait sur la pile système par défaut de Tailwind, pas sur la police
+     du body ; on l'aligne sur DejaVu Sans.
+   - --color-accent-soft : bleu pâle de la charte, réservé aux encarts.
+     Génère bg-accent-soft, border-accent-soft, etc. ; valeur sombre
+     redéfinie dans [data-theme="dark"].
+   ============================ */
+@theme {
+  --font-sans: 'DejaVu Sans', Arial, sans-serif;
+  --color-accent-soft: oklch(96.75% 0.011 226.0);  /* bleu pâle #EDF6FA */
+}
+
+/* ============================
    Thème DaisyUI v5 — hopegestion (light)
    Variables --color-* en oklch requis par DaisyUI v5 / Tailwind v4
-   Palette d'origine : Teal 600 / Sky 500 / Teal 50
+   Charte graphique : Bleu profond #0C3958 / Bleu Hope #088FE1 /
+   Noir texte #151B20 / Blanc / Gris #F4F6F7 / Bleu pâle #EDF6FA
    ============================ */
 [data-theme="hopegestion"] {
   color-scheme: light;
-  --color-primary:          oklch(59.27% 0.1366 200.4);  /* teal-600 #0d9488 */
-  --color-primary-content:  oklch(100%   0      0);
-  --color-secondary:        oklch(68.01% 0.175  247.3);  /* sky-500  #0ea5e9 */
-  --color-secondary-content:oklch(100%   0      0);
-  --color-accent:           oklch(64.33% 0.149  197.7);  /* teal-500 #14b8a6 */
-  --color-accent-content:   oklch(100%   0      0);
-  --color-neutral:          oklch(28.67% 0.022  258.8);  /* slate-800 #1e293b */
+  --color-primary:          oklch(33.20% 0.0722 243.9);  /* bleu profond #0C3958 */
+  --color-primary-content:  oklch(100%   0      0);       /* blanc — 12,06:1 */
+  --color-secondary:        oklch(62.89% 0.1579 245.44);  /* bleu Hope #088FE1 */
+  --color-secondary-content:oklch(21.83% 0.0133 243.5);  /* noir texte #151B20 — 4,98:1 (blanc = 3,48:1, insuffisant) */
+  --color-accent:           oklch(62.89% 0.1579 245.44);  /* bleu Hope #088FE1 (= secondary, la charte n'a que 2 bleus) */
+  --color-accent-content:   oklch(21.83% 0.0133 243.5);  /* noir texte #151B20 */
+  --color-neutral:          oklch(21.83% 0.0133 243.5);  /* noir texte #151B20 */
   --color-neutral-content:  oklch(100%   0      0);
-  --color-base-100:         oklch(100%   0      0);       /* blanc */
-  --color-base-200:         oklch(98.72% 0.013  181.0);  /* teal-50  #f0fdfa */
-  --color-base-300:         oklch(91.89% 0.006  165.0);  /* gray-200 #e5e7eb */
-  --color-base-content:     oklch(27.43% 0.061  191.9);  /* teal-900 #134e4a */
+  --color-base-100:         oklch(100%   0      0);       /* blanc #FFFFFF */
+  --color-base-200:         oklch(97.19% 0.0025 228.8);  /* gris #F4F6F7 */
+  --color-base-300:         oklch(89.06% 0.0102 238.5);  /* bordure #D5DCE1 (gris froid dérivé, teinte de la charte) */
+  --color-base-content:     oklch(21.83% 0.0133 243.5);  /* noir texte #151B20 */
   --color-info:             oklch(62.22% 0.158  241.5);
   --color-info-content:     oklch(100%   0      0);
   --color-success:          oklch(64.69% 0.178  152.3);
@@ -37,21 +95,25 @@
 
 /* ============================
    Thème DaisyUI v5 — dark
+   Dérivé des 2 bleus de la charte : fond = bleu profond, surfaces = bleu
+   profond éclairci (L oklch +5 / +12), accents = bleu Hope éclairci jusqu'à
+   un contraste suffisant sur le fond marine.
    ============================ */
 [data-theme="dark"] {
   color-scheme: dark;
-  --color-primary:          oklch(72.37% 0.149  197.1);  /* teal-400 #2dd4bf */
-  --color-primary-content:  oklch(27.43% 0.061  191.9);  /* teal-900 */
-  --color-secondary:        oklch(70.06% 0.175  232.2);  /* sky-400  #38bdf8 */
-  --color-secondary-content:oklch(100%   0      0);
-  --color-accent:           oklch(78.26% 0.12   197.0);  /* teal-300 #5eead4 */
-  --color-accent-content:   oklch(27.43% 0.061  191.9);
-  --color-neutral:          oklch(53.43% 0.016  254.6);  /* slate-400 */
-  --color-neutral-content:  oklch(100%   0      0);
-  --color-base-100:         oklch(16.13% 0.013  254.0);  /* slate-900 #0f172a */
-  --color-base-200:         oklch(21.86% 0.014  253.1);  /* slate-800 #1e293b */
-  --color-base-300:         oklch(30.03% 0.016  254.3);  /* slate-700 #334155 */
-  --color-base-content:     oklch(87.95% 0.006  253.5);  /* slate-200 #e2e8f0 */
+  --color-primary:          oklch(76.01% 0.1383 239.2);  /* bleu Hope éclairci #4EBCFF — 5,72:1 sur base-100, 4,70:1 sur base-200 */
+  --color-primary-content:  oklch(33.20% 0.0722 243.9);  /* bleu profond #0C3958 — 5,72:1 */
+  --color-secondary:        oklch(70.75% 0.1580 245.5);  /* bleu Hope légèrement éclairci #36A8FC — 4,69:1 sur base-100 */
+  --color-secondary-content:oklch(33.20% 0.0722 243.9);  /* bleu profond #0C3958 — 4,69:1 */
+  --color-accent:           oklch(70.75% 0.1580 245.5);  /* = secondary */
+  --color-accent-content:   oklch(33.20% 0.0722 243.9);
+  --color-neutral:          oklch(97.19% 0.0025 228.8);  /* gris #F4F6F7 */
+  --color-neutral-content:  oklch(33.20% 0.0722 243.9);  /* bleu profond #0C3958 */
+  --color-base-100:         oklch(33.20% 0.0722 243.9);  /* bleu profond #0C3958 */
+  --color-base-200:         oklch(38.06% 0.0720 244.4);  /* #1C4666 (bleu profond, L +5) */
+  --color-base-300:         oklch(45.22% 0.0719 244.1);  /* #305A7B (bleu profond, L +12) */
+  --color-base-content:     oklch(97.19% 0.0025 228.8);  /* gris #F4F6F7 — 11,12:1 sur base-100, 9,15:1 sur base-200 */
+  --color-accent-soft:      oklch(38.77% 0.0904 244.7);  /* #0B4871 (18 % bleu Hope sur bleu profond) */
   --color-info:             oklch(67.81% 0.149  241.6);
   --color-info-content:     oklch(16.13% 0.013  254.0);
   --color-success:          oklch(74.01% 0.177  151.8);
@@ -72,32 +134,33 @@
    Variables CSS legacy (var(--primary) utilisées dans globals.css)
    ============================ */
 :root {
-  /* Couleurs primaires — Teal 600 (Minimalism & Swiss Style — confiance immobilier) */
-  --primary: #0d9488;
-  --primary-focus: #0f766e;
+  /* Couleurs primaires — Bleu profond (charte) ; -focus = même teinte, L oklch -5 */
+  --primary: #0C3958;
+  --primary-focus: #002C4A;
   --primary-content: #ffffff;
-  --primary-light: rgba(13, 148, 136, 0.1);
+  --primary-light: rgba(12, 57, 88, 0.1);
 
-  /* Couleurs secondaires — Sky 500 */
-  --secondary: #0ea5e9;
-  --secondary-focus: #0284c7;
-  --secondary-content: #ffffff;
+  /* Couleurs secondaires — Bleu Hope (charte) ; -focus = même teinte, L oklch +4
+     (éclairci plutôt qu'assombri : le texte #151B20 y garde 5,85:1) */
+  --secondary: #088FE1;
+  --secondary-focus: #249CEF;
+  --secondary-content: #151B20;
 
-  /* Accent — Teal 500 */
-  --accent: #14b8a6;
-  --accent-focus: #0d9488;
-  --accent-content: #ffffff;
+  /* Accent — Bleu Hope (= secondary) */
+  --accent: #088FE1;
+  --accent-focus: #249CEF;
+  --accent-content: #151B20;
 
-  /* Neutres */
-  --neutral: #3d4451;
-  --neutral-focus: #2a2e37;
+  /* Neutres — Noir texte */
+  --neutral: #151B20;
+  --neutral-focus: #0C3958;
   --neutral-content: #ffffff;
 
   /* Bases */
   --base-100: #ffffff;
-  --base-200: #f0fdfa;
-  --base-300: #e5e7eb;
-  --base-content: #134e4a;
+  --base-200: #F4F6F7;
+  --base-300: #D5DCE1;
+  --base-content: #151B20;
   
   /* États */
   --success: #10b981;
@@ -132,27 +195,27 @@
    Variables CSS - Thème Dark
    ============================ */
 [data-theme="dark"], .dark {
-  --primary: #2dd4bf;
-  --primary-focus: #5eead4;
-  --primary-content: #134e4a;
-  --primary-light: rgba(45, 212, 191, 0.15);
+  --primary: #4EBCFF;
+  --primary-focus: #36A8FC;
+  --primary-content: #0C3958;
+  --primary-light: rgba(78, 188, 255, 0.15);
 
-  --secondary: #38bdf8;
-  --secondary-focus: #7dd3fc;
-  --secondary-content: #0c4a6e;
+  --secondary: #36A8FC;
+  --secondary-focus: #4EBCFF;
+  --secondary-content: #0C3958;
 
-  --accent: #5eead4;
-  --accent-focus: #99f6e4;
-  --accent-content: #134e4a;
+  --accent: #36A8FC;
+  --accent-focus: #4EBCFF;
+  --accent-content: #0C3958;
 
-  --neutral: #334155;
-  --neutral-focus: #475569;
-  --neutral-content: #e2e8f0;
+  --neutral: #F4F6F7;
+  --neutral-focus: #FFFFFF;
+  --neutral-content: #0C3958;
 
-  --base-100: #0f172a;
-  --base-200: #1e293b;
-  --base-300: #334155;
-  --base-content: #e2e8f0;
+  --base-100: #0C3958;
+  --base-200: #1C4666;
+  --base-300: #305A7B;
+  --base-content: #F4F6F7;
   
   --success: #34d399;
   --success-content: #0f172a;
@@ -180,7 +243,7 @@
    Typographie globale
    ============================ */
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'DejaVu Sans', Arial, sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -190,7 +253,7 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6, .font-heading {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'DejaVu Sans', Arial, sans-serif;
 }
 
 /* Alignement parfait des chiffres et données tabulaires */
@@ -391,7 +454,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 .dark .glass {
-  background: rgba(15, 23, 42, 0.7);
+  background: rgba(12, 57, 88, 0.7);
 }
 
 /* Scrollbar personnalisée */
