@@ -93,7 +93,7 @@ const PublicNavbar: React.FC = () => {
                         transition={{ duration: 0.18 }}
                         className="fixed top-16 left-0 right-0 z-40 bg-base-100/95 backdrop-blur-md shadow-lg border-b border-base-200 lg:hidden"
                     >
-                        <ul className="menu p-4 gap-1" onClick={closeMobileMenu}>
+                        <ul className="menu w-full p-4 pb-2 gap-1" onClick={closeMobileMenu}>
                             {navLinks.map((link) => (
                                 <li key={link.name}>
                                     {link.path.startsWith('/#') && location.pathname === '/' ? (
@@ -115,16 +115,20 @@ const PublicNavbar: React.FC = () => {
                                     🏠 Biens disponibles
                                 </Link>
                             </li>
-                            <li className="divider my-2" />
-                            <li className="flex gap-3 px-2">
-                                <Link to="/login" className="btn btn-ghost btn-sm flex-1">
+                        </ul>
+                        {/* Connexion / Commencer : hors du .menu daisyUI (un divider ou un flex dans un <li> de menu
+                            y est mal rendu). Masqués à partir de sm, où ils sont déjà visibles dans la barre. */}
+                        <div className="px-4 pb-4 sm:hidden">
+                            <div className="divider my-0" />
+                            <div className="flex gap-3">
+                                <Link to="/login" onClick={closeMobileMenu} className="btn btn-ghost min-h-11 flex-1">
                                     Connexion
                                 </Link>
-                                <Link to="/signup" className="btn btn-primary btn-sm rounded-full flex-1">
+                                <Link to="/signup" onClick={closeMobileMenu} className="btn btn-primary min-h-11 rounded-full flex-1">
                                     Commencer
                                 </Link>
-                            </li>
-                        </ul>
+                            </div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

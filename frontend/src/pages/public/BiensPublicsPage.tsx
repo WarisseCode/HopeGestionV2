@@ -440,7 +440,7 @@ const BiensPublicsPage: React.FC = () => {
                   if (el) propertyRefs.current.set(property.id, el);
                 }}
                 className={`bg-base-100 rounded-2xl overflow-hidden shadow-lg border border-base-300 hover:shadow-2xl transition-all duration-300 group cursor-pointer ${
-                  viewMode === 'list' ? 'flex' : ''
+                  viewMode === 'list' ? 'flex flex-col md:flex-row' : ''
                 } ${
                   highlightedPropertyId === property.id 
                     ? 'border-teal-500 ring-4 ring-teal-500/30 animate-pulse' 
@@ -452,7 +452,7 @@ const BiensPublicsPage: React.FC = () => {
                 }}
               >
                 {/* Image */}
-                <div className={`relative overflow-hidden ${viewMode === 'list' ? 'w-80 flex-shrink-0' : 'h-52'}`}>
+                <div className={`relative overflow-hidden ${viewMode === 'list' ? 'h-52 md:h-auto md:w-80 md:flex-shrink-0' : 'h-52'}`}>
                   <img
                     src={property.image}
                     alt={property.titre}
