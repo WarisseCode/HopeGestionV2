@@ -30,12 +30,12 @@ const PublicNavbar: React.FC = () => {
             <motion.div
                 initial={{ y: -100 }}
                 animate={{ y: 0 }}
-                className={`navbar fixed top-0 z-50 transition-all duration-300 px-4 md:px-8
+                className={`navbar fixed top-0 z-50 transition-all duration-300 px-4 md:px-8 md:py-3
                     ${scrolled || isMobileMenuOpen ? 'bg-base-100/90 backdrop-blur-md shadow-sm' : 'bg-transparent'}`}
             >
                 <div className="navbar-start">
                     <Link to="/" className="hover:opacity-80 transition-opacity flex items-center gap-2">
-                        <img src={BRANDING.logos.main} alt={BRANDING.name} className="h-8 md:h-12 w-auto" />
+                        <img src={BRANDING.logos.main} alt={BRANDING.name} className="h-10 md:h-12 w-auto" />
                     </Link>
                 </div>
 

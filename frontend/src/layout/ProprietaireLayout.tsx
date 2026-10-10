@@ -15,6 +15,7 @@ import { getAlerts } from '../api/alertApi';
 import { useMobile } from '../hooks/useMobile';
 import { useTranslation } from 'react-i18next';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import { BRANDING } from '../config/branding';
 
 interface ProprietaireLayoutProps {
     children: React.ReactNode;
@@ -73,12 +74,7 @@ const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLog
         `}>
             {/* Logo & Close */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-base-200">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                        <Eye size={16} className="text-primary-content" />
-                    </div>
-                    <span className="font-bold text-base-content text-sm">HopeGestion</span>
-                </div>
+                <img src={BRANDING.logos.icon} alt={BRANDING.name} className="h-14 w-14 object-contain" />
                 {isMobile && (
                     <button onClick={() => setSidebarOpen(false)} className="btn btn-ghost btn-xs btn-circle">
                         <X size={16} />

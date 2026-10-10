@@ -22,7 +22,7 @@ const GestionnaireProprietairePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-base-100">
       {/* Navbar */}
-      <nav className="navbar bg-base-100/90 backdrop-blur-md sticky top-0 z-50 shadow-sm px-4 md:px-8">
+      <nav className="navbar bg-base-100/90 backdrop-blur-md sticky top-0 z-50 shadow-sm px-4 md:px-8 py-3 md:py-4">
         <div className="navbar-start">
           <Link to="/" className="hover:opacity-80 transition-opacity flex items-center">
             <img src="/logo.png" alt="Hope Gestion" className="h-12 md:h-16 w-auto" />

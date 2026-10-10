@@ -148,7 +148,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onGoBackToHome
     <div className="min-h-screen flex items-center justify-center bg-base-200 p-4">
       <Card className="w-full max-w-md" padding="lg">
           <div className="text-center mb-6">
-            <img src={BRANDING.logos.main} alt={BRANDING.name} className="w-16 h-auto mx-auto mb-4" />
+            <img src={BRANDING.logos.main} alt={BRANDING.name} className="block w-full max-w-[280px] h-auto mx-auto mb-5" />
             <h2 className="text-2xl font-bold text-base-content">Créer un compte</h2>
             <p className="text-base-content/70 mt-2">Rejoignez {BRANDING.name} pour gérer vos biens immobiliers</p>
           </div>

@@ -34,7 +34,7 @@ const PublicFooter: React.FC = () => {
                     {/* Column 1: Brand & Contact */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-2">
-                            <img src={BRANDING.logos.dark} alt={BRANDING.name} className="h-10 w-auto brightness-0 invert" />
+                            <img src={BRANDING.logos.dark} alt={BRANDING.name} className="w-full max-w-[280px] h-auto brightness-0 invert" />
                         </div>
                         <p className="opacity-70 text-sm leading-relaxed max-w-xs">
                             {BRANDING.description}

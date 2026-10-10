@@ -51,8 +51,8 @@ export const BRANDING: BrandingConfig = {
     dark: '/logo.png',
     monoWhite: '/logo.png',
     monoDark: '/logo.png',
-    icon: '/logo.png',
-    favicon: '/logo.png',
+    icon: '/logo-icon.png',
+    favicon: '/logo-icon.png',
   },
   contact: {
     address: 'Haie Vive, Cotonou, Bénin',

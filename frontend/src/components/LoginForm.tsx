@@ -85,8 +85,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onGoBackToHome, o
         <div className="min-h-screen bg-base-200 flex items-center justify-center px-4">
             <div className="w-full max-w-md bg-base-100 rounded-xl shadow-lg border border-base-200 p-8">
                 <div className="flex flex-col items-center mb-8">
-                    <div className="mb-4">
-                        <img src={BRANDING.logos.main} alt={BRANDING.name} className="w-20 h-auto mx-auto" />
+                    <div className="w-full max-w-[280px] mb-5">
+                        <img src={BRANDING.logos.main} alt={BRANDING.name} className="w-full h-auto" />
                     </div>
                     <h2 className="text-2xl font-bold text-base-content">Connexion</h2>
                     <p className="text-base-content/60 mt-1">Heureux de vous revoir !</p>

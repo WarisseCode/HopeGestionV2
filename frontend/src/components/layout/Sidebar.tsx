@@ -252,7 +252,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                     </button>
                  </div>
             ) : (
-               <img src={BRANDING.logos.icon} alt={BRANDING.name} className="h-10 w-10 mx-auto object-contain drop-shadow-sm transition-transform hover:scale-110 cursor-pointer" onClick={toggleSidebar} />
+               <img src={BRANDING.logos.icon} alt={BRANDING.name} className="h-12 w-12 mx-auto object-contain drop-shadow-sm transition-transform hover:scale-110 cursor-pointer" onClick={toggleSidebar} />
             )}
           </div>
 

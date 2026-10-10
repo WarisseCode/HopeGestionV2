@@ -149,7 +149,7 @@ const InvitationPage: React.FC = () => {
     <div className="min-h-screen bg-base-200 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Hope Gestion" className="h-14 w-auto mx-auto" />
+          <img src="/logo.png" alt="Hope Gestion" className="block w-full max-w-[280px] h-auto mx-auto" />
         </div>
 
         <div className="bg-base-100 rounded-2xl shadow-xl p-8">
