@@ -10,7 +10,8 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { getToken } from '../api/authApi';
 import { toast } from 'react-hot-toast';
-import { API_URL, API_BASE } from '../config';
+import { API_URL } from '../config';
+import { resolveFileUrl } from '../utils/fileUrl';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 
@@ -179,7 +180,7 @@ const InventoryForm: React.FC = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        const url = `${API_BASE}${data.files[0].path}`;
+        const url = resolveFileUrl(data.files[0].path);
         setCI('photos', [...currentItem.photos, url]);
       }
     } catch {
