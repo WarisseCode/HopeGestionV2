@@ -20,7 +20,8 @@ import Input from '../components/ui/Input';
 import { useUser } from '../contexts/UserContext';
 import { accountApi } from '../api/accountApi';
 import { getToken } from '../api/authApi';
-import { API_BASE, API_URL } from '../config';
+import { API_URL } from '../config';
+import { resolveFileUrl } from '../utils/fileUrl';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
@@ -143,7 +144,7 @@ const Parametres: React.FC = () => {
       });
       const data = await res.json();
       if (res.ok && data.files?.[0]) {
-        const url = `${API_BASE}${data.files[0].path}`;
+        const url = resolveFileUrl(data.files[0].path);
         setPhotoUrl(url);
         // Persistance immédiate de la photo (UX : pas besoin de cliquer Enregistrer).
         await accountApi.updateProfile({ ...buildPayload(), photo_url: url });

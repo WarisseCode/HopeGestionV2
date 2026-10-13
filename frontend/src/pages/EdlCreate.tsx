@@ -9,7 +9,8 @@ import { useNavigate } from 'react-router-dom';
 import { apiCall } from '../utils/apiUtils';
 import { getToken } from '../api/authApi';
 import { compressImage } from '../utils/imageCompress';
-import { API_URL, API_BASE } from '../config';
+import { API_URL } from '../config';
+import { resolveFileUrl } from '../utils/fileUrl';
 import { toast } from 'react-hot-toast';
 
 // 'usager' = « Moyen » du CdC (valeur conservée pour la contrainte CHECK en base).
@@ -158,7 +159,7 @@ const EdlCreate: React.FC = () => {
                 });
                 const data = await resp.json();
                 if (!resp.ok) throw new Error(data.message || 'Upload échoué');
-                urls.push(`${API_BASE}${data.files[0].path}`);
+                urls.push(resolveFileUrl(data.files[0].path));
             }
             if (urls.length) setCurrentItem(prev => ({ ...prev, photos: [...prev.photos, ...urls] }));
         } catch (err) {

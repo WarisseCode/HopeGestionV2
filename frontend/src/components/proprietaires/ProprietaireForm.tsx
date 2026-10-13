@@ -16,7 +16,7 @@ import PhoneInput from '../ui/PhoneInput';
 import AvatarUpload from '../ui/AvatarUpload';
 import { documentApi } from '../../api/documentApi';
 import type { Document as OwnerDocument } from '../../api/documentApi';
-import { API_BASE } from '../../config';
+import { resolveFileUrl } from '../../utils/fileUrl';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -51,11 +51,6 @@ interface ProprietaireFormProps {
 // Catégorie et type d'entité utilisés pour les documents d'un propriétaire.
 const OWNER_DOC_CATEGORY = 'proprietaire';
 const OWNER_ENTITY_TYPE = 'owner';
-
-// Construit une URL absolue pour ouvrir/télécharger un document
-// (les URLs disque local sont relatives, les URLs Spaces sont déjà absolues).
-const resolveDocUrl = (url: string) =>
-  url?.startsWith('http') ? url : `${API_BASE}${url}`;
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -686,7 +681,7 @@ const ProprietaireForm: React.FC<ProprietaireFormProps> = ({
                           </p>
                         </div>
                         <a
-                          href={resolveDocUrl(doc.url)}
+                          href={resolveFileUrl(doc.url)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="btn btn-ghost btn-xs btn-square text-base-content/50 hover:text-primary"

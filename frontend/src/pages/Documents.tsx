@@ -22,8 +22,7 @@ import DocumentGenerator from '../components/documents/DocumentGenerator';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import { useUser } from '../contexts/UserContext';
 
-import { API_BASE } from '../config';
-const API_BASE_URL = API_BASE;
+import { resolveFileUrl } from '../utils/fileUrl';
 
 const Documents: React.FC = () => {
   const { user } = useUser();
@@ -121,11 +120,6 @@ const Documents: React.FC = () => {
             }
         }
     });
-  };
-
-  const getFileUrl = (path: string) => {
-    if (path.startsWith('http')) return path;
-    return `${API_BASE_URL}${path}`;
   };
 
   const formatSize = (bytes: string) => {
@@ -282,7 +276,7 @@ const Documents: React.FC = () => {
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div className="flex justify-end space-x-2">
                                     <a 
-                                    href={getFileUrl(doc.url)} 
+                                    href={resolveFileUrl(doc.url)} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="text-base-content/50 hover:text-brand-600 transition-colors"
@@ -291,7 +285,7 @@ const Documents: React.FC = () => {
                                     <Eye size={18} />
                                     </a>
                                     <a 
-                                    href={getFileUrl(doc.url)} 
+                                    href={resolveFileUrl(doc.url)} 
                                     download
                                     className="text-base-content/50 hover:text-brand-600 transition-colors"
                                     title="Télécharger"

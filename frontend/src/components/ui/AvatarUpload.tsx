@@ -2,7 +2,8 @@
 // Composant d'upload de photo de profil — interface circulaire avec badge caméra
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Camera, Loader2, X } from 'lucide-react';
-import { API_URL, API_BASE } from '../../config';
+import { API_URL } from '../../config';
+import { resolveFileUrl } from '../../utils/fileUrl';
 import { getToken } from '../../api/authApi';
 
 interface AvatarUploadProps {
@@ -41,7 +42,7 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({ value, onChange, size = 112
       });
       const data = await res.json();
       if (res.ok) {
-        const url = `${API_BASE}${data.files[0].path}`;
+        const url = resolveFileUrl(data.files[0].path);
         onChange(url);
         setPreview(url);
       } else {

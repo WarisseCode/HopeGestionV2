@@ -2,7 +2,8 @@
 
 import React, { useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { API_URL, API_BASE } from '../../config';
+import { API_URL } from '../../config';
+import { resolveFileUrl } from '../../utils/fileUrl';
 import { getToken } from '../../api/authApi';
 
 interface ImageUploadProps {
@@ -65,7 +66,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             const data = await response.json();
 
             if (response.ok) {
-                const fileUrl = `${API_BASE}${data.files[0].path}`;
+                const fileUrl = resolveFileUrl(data.files[0].path);
                 onChange(fileUrl);
                 if (clearOnSuccess) {
                     setPreview(null);

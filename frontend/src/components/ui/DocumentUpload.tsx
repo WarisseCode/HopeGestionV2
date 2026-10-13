@@ -2,7 +2,8 @@
 
 import React, { useState, useRef } from 'react';
 import { Upload, X, FileText, Loader2, FileCheck } from 'lucide-react';
-import { API_URL, API_BASE } from '../../config';
+import { API_URL } from '../../config';
+import { resolveFileUrl } from '../../utils/fileUrl';
 import { getToken } from '../../api/authApi';
 
 interface DocumentUploadProps {
@@ -59,7 +60,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
             const data = await response.json();
 
             if (response.ok) {
-                const fileUrl = `${API_BASE}${data.files[0].path}`;
+                const fileUrl = resolveFileUrl(data.files[0].path);
                 onChange(fileUrl);
             } else {
                 throw new Error(data.message || 'Erreur upload');

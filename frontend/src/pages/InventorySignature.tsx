@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import SignatureCanvas from 'react-signature-canvas';
 import { apiCall } from '../utils/apiUtils';
 import { getToken } from '../api/authApi';
-import { API_URL, API_BASE } from '../config';
+import { API_URL } from '../config';
+import { resolveFileUrl } from '../utils/fileUrl';
 import { toast } from 'react-hot-toast';
 import { Check, X, ArrowLeft, PenTool, User, Building, Loader2 } from 'lucide-react';
 
@@ -22,7 +23,7 @@ async function uploadSignature(canvas: HTMLCanvasElement, role: string): Promise
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.message || 'Upload signature échoué');
-    return `${API_BASE}${data.files[0].path}`;
+    return resolveFileUrl(data.files[0].path);
 }
 
 const InventorySignature: React.FC = () => {
