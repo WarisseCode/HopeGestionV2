@@ -18,6 +18,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [alertsCount, setAlertsCount] = useState(0);
+  // Hauteur de la BottomNav mobile (fixe) : réservée sous la zone de contenu pour qu'elle
+  // ne recouvre jamais le bas du contenu scrollable (boutons d'action des formulaires).
+  const [bottomNavHeight, setBottomNavHeight] = useState(0);
   const location = useLocation();
 
   // Reset sidebar open state when mobile state changes
@@ -60,7 +63,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
   };
 
   return (
-    <div className="flex h-screen bg-base-200/50 font-sans text-base-content overflow-hidden">
+    <div className="flex h-screen supports-[height:100dvh]:h-dvh bg-base-200/50 font-sans text-base-content overflow-hidden">
       
       {/* Sidebar Component */}
       <div id="onboarding-sidebar">
@@ -80,11 +83,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
           toggleSidebar={() => setIsSidebarOpen(true)} // Always open on header click
           userProfile={userProfile}
           alertsCount={alertsCount}
+          onHeightChange={setBottomNavHeight}
         />
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden w-full relative">
+      <div
+        className="flex-1 flex flex-col h-full overflow-hidden w-full relative"
+        style={isMobile && bottomNavHeight > 0 ? { paddingBottom: bottomNavHeight } : undefined}
+      >
         
         {/* Header Component */}
         <div id="onboarding-header">
@@ -100,7 +107,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
         {/* Content Scroll Area */}
         <main 
           id="onboarding-main-content"
-          className={`flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scrollbar-thin scrollbar-thumb-base-300 ${isMobile ? 'pb-24' : ''}`}
+          className={`flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scrollbar-thin scrollbar-thumb-base-300`}
         >
            <AnimatePresence mode="wait">
              <motion.div

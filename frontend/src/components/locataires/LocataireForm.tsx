@@ -795,7 +795,7 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
       </div>
 
       {/* ── Footer navigation ───────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-6 py-4 border-t border-base-200 bg-base-50">
+      <div className="flex items-center flex-wrap justify-between gap-3 px-6 py-4 border-t border-base-200 bg-base-50">
 
         {/* Gauche : Annuler / Précédent */}
         <Button
@@ -808,7 +808,7 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
         </Button>
 
         {/* Droite : Passer + Suivant/Enregistrer */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3 ml-auto">
           {isOptionalStep && (
             <button
               type="button"

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Wallet, Building2, Bell, User, Menu } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -8,11 +8,38 @@ interface BottomNavProps {
   toggleSidebar: () => void;
   userProfile: any;
   alertsCount?: number;
+  /** Hauteur réelle de la barre (px), pour que le layout réserve cet espace sous la zone de contenu. */
+  onHeightChange?: (height: number) => void;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ toggleSidebar, userProfile, alertsCount = 0 }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ toggleSidebar, userProfile, alertsCount = 0, onHeightChange }) => {
   const location = useLocation();
   const { t } = useTranslation();
+  const navRef = useRef<HTMLDivElement>(null);
+
+  // La barre est en position fixe : sans réservation de sa hauteur, elle recouvre le bas
+  // de la zone scrollable (ex. boutons Suivant/Enregistrer des formulaires multi-étapes).
+  useLayoutEffect(() => {
+    const el = navRef.current;
+    if (!el || !onHeightChange) return;
+    const report = () => onHeightChange(Math.ceil(el.getBoundingClientRect().height));
+    report();
+    if (typeof ResizeObserver === 'undefined') {
+      // Navigateurs anciens : à défaut d'observer la barre, on remesure au redimensionnement.
+      window.addEventListener('resize', report);
+      return () => {
+        window.removeEventListener('resize', report);
+        onHeightChange(0);
+      };
+    }
+    const observer = new ResizeObserver(report);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      onHeightChange(0);
+    };
+  }, [onHeightChange]);
+
   const role = userProfile?.role || 'user';
   const type = userProfile?.userType;
 
@@ -37,7 +64,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ toggleSidebar, userProfile, alert
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-200 px-6 py-2 pb-safe z-40 md:hidden shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+    <div ref={navRef} className="fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-200 px-6 py-2 pb-safe z-40 md:hidden shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
       <div className="flex items-center justify-between max-w-md mx-auto">
         
         {/* Main Navigation Items */}

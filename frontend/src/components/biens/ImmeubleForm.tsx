@@ -714,7 +714,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
       </div>
 
       {/* ── Footer navigation ───────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-6 py-4 border-t border-base-200 bg-base-50 flex-shrink-0">
+      <div className="flex items-center flex-wrap justify-between gap-3 px-6 py-4 border-t border-base-200 bg-base-50 flex-shrink-0">
 
         <Button
           variant="ghost"
@@ -725,7 +725,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
           {currentStep === 0 ? 'Annuler' : 'Précédent'}
         </Button>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3 ml-auto">
           {/* Passer (étapes optionnelles non-dernières) */}
           {currentStep === 3 && (
             <span className="text-xs text-base-content/40">
@@ -745,7 +745,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
               <ArrowRight size={16} />
             </Button>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               {/* Bouton Enregistrer & Ajouter Lots (création uniquement) */}
               {!immeuble.id && onSaveAndAddLots && (
                 <Button
