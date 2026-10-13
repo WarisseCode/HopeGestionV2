@@ -8,6 +8,7 @@ import Button from '../ui/Button';
 import { API_URL } from '../../config';
 import { apiCall } from '../../utils/apiUtils';
 import SkeletonLoader from '../ui/SkeletonLoader';
+import NoPhotoPlaceholder from '../ui/NoPhotoPlaceholder';
 
 interface PropertyCardProps {
   property: PublicProperty;
@@ -26,11 +27,15 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onViewDetails }) 
     >
       {/* Image Container */}
       <div className="relative h-48 overflow-hidden">
-        <img
-          src={property.image}
-          alt={property.titre}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-        />
+        {property.image ? (
+          <img
+            src={property.image}
+            alt={property.titre}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          />
+        ) : (
+          <NoPhotoPlaceholder className="w-full h-full" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         
         <div className="absolute top-3 left-3">

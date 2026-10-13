@@ -26,7 +26,8 @@ import { useTranslation } from 'react-i18next';
 import { saveLot } from '../api/bienApi';
 import type { Immeuble, Lot } from '../api/bienApi';
 import { useBiens } from '../hooks/useBiens';
-import { getPlaceholderImage, getLotStatut } from '../utils/bienUtils';
+import NoPhotoPlaceholder from '../components/ui/NoPhotoPlaceholder';
+import { getLotStatut } from '../utils/bienUtils';
 import toast from 'react-hot-toast';
 
 // ── Animation variants ────────────────────────────────────────────────────────
@@ -394,11 +395,15 @@ const Biens: React.FC = () => {
                                 onClick={() => { b.setGallerySelectedBuilding(immeuble); b.setShowGalleryModal(true); }}
                                 title={t('properties.openGallery')}
                               >
-                                <img
-                                  src={immeuble.photo || (immeuble.photos?.length ? immeuble.photos[0] : getPlaceholderImage(immeuble.id))}
-                                  alt={`${immeuble.nom} — ${immeuble.ville}`}
-                                  className="h-full w-full object-cover transition-transform hover:scale-110"
-                                />
+                                {immeuble.photo || immeuble.photos?.[0] ? (
+                                  <img
+                                    src={immeuble.photo || immeuble.photos?.[0]}
+                                    alt={`${immeuble.nom} — ${immeuble.ville}`}
+                                    className="h-full w-full object-cover transition-transform hover:scale-110"
+                                  />
+                                ) : (
+                                  <NoPhotoPlaceholder className="h-full w-full" showLabel={false} iconSize={18} />
+                                )}
                               </div>
                             </td>
                             <td className="font-bold text-base-content/90">{immeuble.nom}</td>
@@ -468,11 +473,15 @@ const Biens: React.FC = () => {
                               <tr key={lot.id} className="hover:bg-base-200/50 transition-colors group cursor-pointer" onClick={() => b.setDetailLot(lot)}>
                                 <td className="pl-6">
                                   <div className="avatar h-10 w-16 rounded overflow-hidden shadow-sm">
-                                    <img
-                                      src={lot.photos?.length ? lot.photos[0] : getPlaceholderImage(lot.id)}
-                                      alt={lot.reference}
-                                      className="h-full w-full object-cover transition-transform hover:scale-110"
-                                    />
+                                    {lot.photos?.[0] ? (
+                                      <img
+                                        src={lot.photos[0]}
+                                        alt={lot.reference}
+                                        className="h-full w-full object-cover transition-transform hover:scale-110"
+                                      />
+                                    ) : (
+                                      <NoPhotoPlaceholder className="h-full w-full" showLabel={false} iconSize={18} />
+                                    )}
                                   </div>
                                 </td>
                                 <td className="font-bold text-base-content/90">{lot.reference}</td>

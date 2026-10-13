@@ -7,6 +7,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { API_URL } from '../../config';
 import { apiCall } from '../../utils/apiUtils';
+import NoPhotoPlaceholder from '../../components/ui/NoPhotoPlaceholder';
 
 const PublicReservation: React.FC = () => {
     const { lotId } = useParams();
@@ -43,7 +44,7 @@ const PublicReservation: React.FC = () => {
                         surface: data.surface,
                         loyer_actuel: data.loyer,
                         adresse: `${data.quartier}, ${data.ville}`,
-                        images: [data.image],
+                        images: data.image ? [data.image] : [],
                         coords: [data.latitude, data.longitude]
                     });
                 } catch (err) {
@@ -57,7 +58,7 @@ const PublicReservation: React.FC = () => {
                         surface: 0,
                         loyer_actuel: 0,
                         adresse: 'Adresse non disponible',
-                        images: ['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80'],
+                        images: [],
                         coords: [5.345, -4.024]
                     });
                 }
@@ -113,7 +114,11 @@ const PublicReservation: React.FC = () => {
             <div className="w-full md:w-1/2 lg:w-3/5 h-[300px] md:h-auto relative bg-gray-900 text-white overflow-hidden">
                 {lot && (
                     <>
-                        <img src={lot.images[0]} alt="Bien" className="absolute inset-0 w-full h-full object-cover opacity-60" />
+                        {lot.images[0] ? (
+                            <img src={lot.images[0]} alt="Bien" className="absolute inset-0 w-full h-full object-cover opacity-60" />
+                        ) : (
+                            <NoPhotoPlaceholder className="absolute inset-0 w-full h-full pb-24" iconSize={48} />
+                        )}
                         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-gray-900 to-transparent p-8">
                             <span className="bg-teal-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">
                                 {lot.type}

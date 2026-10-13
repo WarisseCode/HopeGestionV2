@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Bot, User, Loader2, Minus, MapPin, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { mockProperties } from '../data/mockProperties';
+import NoPhotoPlaceholder from './ui/NoPhotoPlaceholder';
 import { playNotificationSound } from '../utils/sound';
 
 interface Message {
@@ -356,7 +357,11 @@ const ChatBot: React.FC<ChatBotProps> = ({ mobileBottomNav = true }) => {
                                  onClick={() => handleNavigate(`/biens`)}> 
                                  {/* Note: In real app, /biens/${prop.id} */}
                               <div className="h-28 bg-base-300 relative overflow-hidden">
-                                <img src={prop.image} alt={prop.titre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                {prop.image ? (
+                                  <img src={prop.image} alt={prop.titre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                ) : (
+                                  <NoPhotoPlaceholder className="w-full h-full pb-4" iconSize={24} />
+                                )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
                                 <span className="absolute bottom-2 right-2 bg-primary/90 text-primary-content text-xs font-bold px-2 py-1 rounded backdrop-blur-sm shadow-sm">
                                   {prop.loyer.toLocaleString()} F

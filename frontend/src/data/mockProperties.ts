@@ -22,7 +22,7 @@ export interface PublicProperty {
   chambres: number;
   sallesBain: number;
   etage?: string;
-  image: string;
+  image: string | null; // null = aucune photo (visuel neutre NoPhotoPlaceholder)
   photos?: string[];
   disponible: boolean;
   dateDisponibilite?: string;
@@ -31,18 +31,6 @@ export interface PublicProperty {
   latitude: number;
   longitude: number;
 }
-
-// Images placeholders pour les propriétés supplémentaires
-const placeholderImages = [
-  'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80', // Apartment
-  'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80', // Living room
-  'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80', // Villa
-  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80', // Modern house
-  'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80', // Apartment interior
-  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80', // Luxury home
-  'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&q=80', // Pool villa
-  'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&q=80', // House exterior
-];
 
 export const mockProperties: PublicProperty[] = [
   {
@@ -110,7 +98,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 1,
     chambres: 0,
     sallesBain: 1,
-    image: placeholderImages[4],
+    image: null,
     disponible: true,
     description: "Studio entièrement meublé, idéal pour jeune professionnel. Eau et électricité incluses.",
     amenities: ["Meublé", "Eau incluse", "Électricité incluse"],
@@ -128,7 +116,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 4,
     chambres: 3,
     sallesBain: 2,
-    image: placeholderImages[3],
+    image: null,
     disponible: true,
     description: "Belle maison familiale avec grande cour, parfaite pour une famille. Quartier calme.",
     amenities: ["Cour", "Parking", "Cuisine séparée"],
@@ -146,7 +134,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 1,
     chambres: 0,
     sallesBain: 0,
-    image: placeholderImages[0],
+    image: null,
     disponible: true,
     description: "Espace commercial bien situé près du grand marché. Fort passage clientèle.",
     amenities: ["Vitrine", "Électricité triphasée", "Rideau métallique"],
@@ -164,7 +152,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 3,
     chambres: 2,
     sallesBain: 2,
-    image: placeholderImages[1],
+    image: null,
     disponible: true,
     description: "Appartement de standing dans résidence sécurisée. Ascenseur et parking souterrain.",
     amenities: ["Ascenseur", "Parking souterrain", "Interphone"],
@@ -182,7 +170,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 5,
     chambres: 3,
     sallesBain: 2,
-    image: placeholderImages[2],
+    image: null,
     disponible: true,
     description: "Duplex moderne avec terrasse sur le toit. Architecture contemporaine.",
     amenities: ["Terrasse", "Garage", "Jardin"],
@@ -200,7 +188,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 3,
     chambres: 0,
     sallesBain: 1,
-    image: placeholderImages[0],
+    image: null,
     disponible: true,
     description: "Espace de bureau climatisé avec salle de réunion. Fibre optique disponible.",
     amenities: ["Climatisation centrale", "Fibre optique", "Salle de réunion"],
@@ -218,7 +206,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 2,
     chambres: 1,
     sallesBain: 1,
-    image: placeholderImages[4],
+    image: null,
     disponible: true,
     description: "Appartement propre et bien entretenu. Idéal pour étudiants ou jeunes couples.",
     amenities: ["Eau courante", "Proche université"],
@@ -236,7 +224,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 5,
     chambres: 3,
     sallesBain: 2,
-    image: placeholderImages[7],
+    image: null,
     disponible: true,
     description: "Charmante maison coloniale entièrement rénovée. Caractère authentique préservé.",
     amenities: ["Jardin", "Véranda", "Cave"],
@@ -254,7 +242,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 1,
     chambres: 0,
     sallesBain: 1,
-    image: placeholderImages[1],
+    image: null,
     disponible: true,
     description: "Studio neuf design avec kitchenette moderne. Immeuble récent.",
     amenities: ["Neuf", "Kitchenette", "Digicode"],
@@ -272,7 +260,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 7,
     chambres: 4,
     sallesBain: 4,
-    image: placeholderImages[6],
+    image: null,
     disponible: true,
     description: "Exceptionnelle villa en front de mer avec accès direct à la plage.",
     amenities: ["Vue mer", "Accès plage", "Piscine", "Personnel inclus"],
@@ -290,7 +278,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 4,
     chambres: 3,
     sallesBain: 2,
-    image: placeholderImages[5],
+    image: null,
     disponible: true,
     description: "Grand appartement familial avec balcon et vue sur la ville. Très lumineux.",
     amenities: ["Balcon", "Vue dégagée", "2 places parking"],
@@ -308,7 +296,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 2,
     chambres: 0,
     sallesBain: 1,
-    image: placeholderImages[0],
+    image: null,
     disponible: true,
     description: "Local commercial neuf avec mezzanine. Idéal superette ou showroom.",
     amenities: ["Mezzanine", "Parking clients", "Toilettes"],
@@ -326,7 +314,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 3,
     chambres: 2,
     sallesBain: 2,
-    image: placeholderImages[1],
+    image: null,
     disponible: true,
     description: "Magnifique appartement avec vue imprenable sur la lagune. Balcon spacieux.",
     amenities: ["Vue lagune", "Balcon", "Parking", "Groupe électrogène"],
@@ -344,7 +332,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 5,
     chambres: 4,
     sallesBain: 3,
-    image: placeholderImages[5],
+    image: null,
     disponible: true,
     description: "Villa contemporaine de haut standing. Finitions luxueuses, jardin paysager.",
     amenities: ["Jardin paysager", "Double garage", "Piscine", "Cuisine américaine"],
@@ -362,7 +350,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 1,
     chambres: 0,
     sallesBain: 1,
-    image: placeholderImages[4],
+    image: null,
     disponible: true,
     description: "Studio moderne entièrement meublé avec coin cuisine équipée. Idéal expatrié.",
     amenities: ["Meublé complet", "Wifi inclus", "Climatisation", "Sécurité 24h"],
@@ -380,7 +368,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 5,
     chambres: 3,
     sallesBain: 3,
-    image: placeholderImages[2],
+    image: null,
     disponible: true,
     description: "Superbe duplex avec terrasse privative. Architecture moderne et lumineuse.",
     amenities: ["Duplex", "Terrasse", "2 Parkings", "Interphone vidéo"],
@@ -398,7 +386,7 @@ export const mockProperties: PublicProperty[] = [
     pieces: 5,
     chambres: 4,
     sallesBain: 2,
-    image: placeholderImages[7],
+    image: null,
     disponible: true,
     description: "Grande maison familiale R+1 avec dépendance pour personnel. Terrain clôturé.",
     amenities: ["Dépendance", "Cour clôturée", "Citerne eau", "Portail automatique"],

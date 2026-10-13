@@ -83,7 +83,9 @@ router.get('/lots', async (req: Request, res: Response) => {
             if (item.photos && item.photos.length > 0) {
                 photos = Array.isArray(item.photos) ? item.photos : [item.photos];
             }
-            const imageUrl = photos[0] || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80';
+            // Pas de photo -> null (même convention que immeuble.photo côté dashboard) :
+            // le frontend affiche alors un visuel neutre, jamais une photo générique.
+            const imageUrl: string | null = photos[0] || null;
 
             const typeLabel = item.type || (isBuilding ? 'Immeuble' : 'Appartement');
             const location = item.quartier ? `à ${item.quartier}` : (item.ville ? `à ${item.ville}` : '');
@@ -177,7 +179,7 @@ router.get('/lots/:id', async (req: Request, res: Response) => {
             }
 
             const building = buildingResult.rows[0];
-            let imageUrl = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80';
+            let imageUrl: string | null = null;
             if (building.photos && building.photos.length > 0) {
                 const photos = Array.isArray(building.photos) ? building.photos : [building.photos];
                 if (photos[0]) imageUrl = photos[0];
@@ -233,7 +235,7 @@ router.get('/lots/:id', async (req: Request, res: Response) => {
         }
 
         const lot = result.rows[0];
-        let imageUrl = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80';
+        let imageUrl: string | null = null;
         if (lot.photos && lot.photos.length > 0) {
             const photos = Array.isArray(lot.photos) ? lot.photos : [lot.photos];
             if (photos[0]) imageUrl = photos[0];

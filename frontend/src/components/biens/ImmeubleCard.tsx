@@ -3,7 +3,7 @@ import React from 'react';
 import { MapPin, Edit3, Trash2, ArrowRight } from 'lucide-react';
 import Button from '../ui/Button';
 import type { Immeuble, Lot } from '../../api/bienApi';
-import { getPlaceholderImage } from '../../utils/bienUtils';
+import NoPhotoPlaceholder from '../ui/NoPhotoPlaceholder';
 
 interface Props {
   immeuble: Immeuble;
@@ -32,11 +32,15 @@ const ImmeubleCard: React.FC<Props> = ({ immeuble, lots, canWrite, onEdit, onDel
           onClick={e => { e.stopPropagation(); onGallery(); }}
           title="Ouvrir la galerie"
         />
-        <img
-          src={immeuble.photo || getPlaceholderImage(immeuble.id)}
-          alt={`${immeuble.nom} — ${immeuble.ville}`}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+        {immeuble.photo ? (
+          <img
+            src={immeuble.photo}
+            alt={`${immeuble.nom} — ${immeuble.ville}`}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <NoPhotoPlaceholder className="w-full h-full pb-12" />
+        )}
         <div className="absolute bottom-4 left-4 z-20 text-white">
           <h2 className="text-xl font-bold">{immeuble.nom}</h2>
           <p className="text-sm opacity-90 flex items-center gap-1">

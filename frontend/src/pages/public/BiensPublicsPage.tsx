@@ -21,6 +21,7 @@ import {
 import { useSearchParams, Link } from 'react-router-dom';
 import PublicLayout from '../../layout/PublicLayout';
 import Button from '../../components/ui/Button';
+import NoPhotoPlaceholder from '../../components/ui/NoPhotoPlaceholder';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { API_URL } from '../../config';
 import { apiCall } from '../../utils/apiUtils';
@@ -45,7 +46,7 @@ interface PublicProperty {
   quartier: string;
   latitude: number;
   longitude: number;
-  image: string;
+  image: string | null; // null = aucune photo (API publique)
   photos: string[];
   amenities: string[];
   disponible: boolean;
@@ -453,11 +454,15 @@ const BiensPublicsPage: React.FC = () => {
               >
                 {/* Image */}
                 <div className={`relative overflow-hidden ${viewMode === 'list' ? 'h-52 md:h-auto md:w-80 md:flex-shrink-0' : 'h-52'}`}>
-                  <img
-                    src={property.image}
-                    alt={property.titre}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
+                  {property.image ? (
+                    <img
+                      src={property.image}
+                      alt={property.titre}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  ) : (
+                    <NoPhotoPlaceholder className="w-full h-full" />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                   
                   {/* Badges */}
@@ -666,12 +671,14 @@ const BiensPublicsPage: React.FC = () => {
                       ))}
                     </div>
                   </>
-                ) : (
+                ) : selectedProperty.image ? (
                   <img
                     src={selectedProperty.image}
                     alt={selectedProperty.titre}
                     className="w-full h-full object-cover"
                   />
+                ) : (
+                  <NoPhotoPlaceholder className="w-full h-full pb-16" iconSize={40} />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                 <button

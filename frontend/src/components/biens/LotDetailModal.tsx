@@ -5,7 +5,8 @@ import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import type { Lot } from '../../api/bienApi';
 import type { Location as BailLocation } from '../../api/locationApi';
-import { getPlaceholderImage, getLotStatut } from '../../utils/bienUtils';
+import NoPhotoPlaceholder from '../ui/NoPhotoPlaceholder';
+import { getLotStatut } from '../../utils/bienUtils';
 
 interface Props {
   lot: Lot | null;
@@ -28,11 +29,15 @@ const LotDetailModal: React.FC<Props> = ({ lot, locations, canWrite, onClose, on
         {/* Hero */}
         <div className="relative h-48 rounded-t-2xl overflow-hidden mb-5">
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent z-10" />
-          <img
-            src={lot.photos && lot.photos.length > 0 ? lot.photos[0] : getPlaceholderImage(lot.id)}
-            alt={lot.reference}
-            className="w-full h-full object-cover"
-          />
+          {lot.photos?.[0] ? (
+            <img
+              src={lot.photos[0]}
+              alt={lot.reference}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <NoPhotoPlaceholder className="w-full h-full pb-16" iconSize={40} />
+          )}
           <div className="absolute bottom-4 left-5 z-20 text-white">
             <div className="flex items-center gap-2 mb-1">
               <span className={`badge border-none text-white text-xs font-bold ${s.badge}`}>{s.label}</span>

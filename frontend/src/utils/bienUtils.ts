@@ -3,20 +3,6 @@
 
 export const ITEMS_PER_PAGE = 9;
 
-const PLACEHOLDER_IMAGES = [
-  'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&q=80',
-  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&q=80',
-  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400&q=80',
-  'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400&q=80',
-  'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400&q=80',
-  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&q=80',
-  'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&q=80',
-  'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=400&q=80',
-];
-
-export const getPlaceholderImage = (id: number): string =>
-  PLACEHOLDER_IMAGES[id % PLACEHOLDER_IMAGES.length];
-
 // `label` = libellé FR par défaut (consommateurs non encore i18n) ;
 // `labelKey` = clé i18n à utiliser via t() dans les composants déjà migrés.
 export const LOT_STATUT_CONFIG: Record<string, { label: string; labelKey: string; badge: string; pill: string; dot: string }> = {

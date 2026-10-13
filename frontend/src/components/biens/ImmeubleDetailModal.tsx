@@ -4,7 +4,8 @@ import { MapPin, Edit3, Home, User, Users, BarChart2, Layers, Info } from 'lucid
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import type { Immeuble, Lot } from '../../api/bienApi';
-import { getPlaceholderImage, getLotStatut } from '../../utils/bienUtils';
+import NoPhotoPlaceholder from '../ui/NoPhotoPlaceholder';
+import { getLotStatut } from '../../utils/bienUtils';
 
 interface Props {
   immeuble: Immeuble | null;
@@ -31,11 +32,15 @@ const ImmeubleDetailModal: React.FC<Props> = ({ immeuble, lots, canWrite, onClos
         {/* Hero image */}
         <div className="relative h-56 rounded-t-2xl overflow-hidden mb-5">
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent z-10" />
-          <img
-            src={immeuble.photo || getPlaceholderImage(immeuble.id)}
-            alt={immeuble.nom}
-            className="w-full h-full object-cover"
-          />
+          {immeuble.photo ? (
+            <img
+              src={immeuble.photo}
+              alt={immeuble.nom}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <NoPhotoPlaceholder className="w-full h-full pb-16" iconSize={40} />
+          )}
           <div className="absolute bottom-4 left-5 z-20 text-white">
             <div className="flex items-center gap-2 mb-1">
               <span className="badge badge-ghost bg-white/20 text-white border-none text-xs">{immeuble.type}</span>

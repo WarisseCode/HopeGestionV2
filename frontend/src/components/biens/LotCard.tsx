@@ -2,7 +2,8 @@
 import React from 'react';
 import { Building2, Edit3 } from 'lucide-react';
 import type { Lot } from '../../api/bienApi';
-import { getPlaceholderImage, getLotStatut } from '../../utils/bienUtils';
+import NoPhotoPlaceholder from '../ui/NoPhotoPlaceholder';
+import { getLotStatut } from '../../utils/bienUtils';
 
 interface Props {
   lot: Lot;
@@ -21,11 +22,15 @@ const LotCard: React.FC<Props> = ({ lot, canWrite, onEdit, onDetail }) => {
     >
       {/* Image */}
       <div className="h-40 bg-base-300 relative overflow-hidden shrink-0">
-        <img
-          src={lot.photos && lot.photos.length > 0 ? lot.photos[0] : getPlaceholderImage(lot.id)}
-          alt={`${lot.reference} — ${lot.immeuble || ''}`}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+        {lot.photos?.[0] ? (
+          <img
+            src={lot.photos[0]}
+            alt={`${lot.reference} — ${lot.immeuble || ''}`}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <NoPhotoPlaceholder className="w-full h-full" />
+        )}
         <span className={`absolute top-3 right-3 z-20 badge border-none text-white font-bold ${s.badge}`}>
           {s.label}
         </span>
