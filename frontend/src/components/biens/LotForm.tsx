@@ -164,7 +164,8 @@ const LotForm: React.FC<LotFormProps> = ({
   // Photo gallery
   const handlePhotoAdd = (url: string) => {
     if (photoPreviews.length >= 10 || photoPreviews.includes(url)) return;
-    const newPhotos = [...photoPreviews, url];
+    // Ajout en tête : photos[0] = photo principale (convention LotCard / LotDetailModal / Biens)
+    const newPhotos = [url, ...photoPreviews];
     setPhotoPreviews(newPhotos);
     handleChange('photos', newPhotos);
   };

@@ -174,7 +174,8 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
     const newPhotos = [...photoPreviews, url];
     setPhotoPreviews(newPhotos);
     handleChange('photos', newPhotos);
-    if (newPhotos.length === 1 || !formData.photo) handleChange('photo', url);
+    // Chaque nouvel upload devient la photo principale
+    handleChange('photo', url);
   };
 
   const handlePhotoRemove = (index: number) => {
