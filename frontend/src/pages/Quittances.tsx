@@ -207,12 +207,12 @@ const Quittances: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-base-content/90">Quittances de Loyer</h1>
           <p className="text-base-content/60">Gestion et génération des reçus de paiement</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3 flex-wrap md:flex-nowrap">
           <Button variant="ghost" className="flex items-center gap-2" onClick={() => { fetchQuittances(); loadManual(); }}>
             <RefreshCw size={18} />
             Actualiser

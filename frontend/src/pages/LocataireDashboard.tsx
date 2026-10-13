@@ -107,7 +107,7 @@ const LocataireDashboard: React.FC = () => {
       <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
-            {user?.nom || 'Locataire'} <span className="text-primary">.</span>
+            {user?.nom || 'Locataire'}
           </h1>
           <p className="text-base-content/60 font-medium mt-1">
             Bonjour {user?.nom || 'Locataire'}, bienvenue chez vous.

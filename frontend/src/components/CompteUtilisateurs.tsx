@@ -355,23 +355,25 @@ const CompteUtilisateurs: React.FC = () => {
 
     return (
         <div className="space-y-6 animate-fade-in">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
                     <h2 className="text-lg font-bold text-base-content/90">Gestion des Utilisateurs</h2>
                     <p className="text-base-content/60 text-sm">Gérez les accès et affectations à votre agence</p>
                 </div>
-                <button 
-                    onClick={() => setShowAddModal(true)}
-                    className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition"
-                >
-                    <Plus size={18} /> Nouvel Utilisateur
-                </button>
-                <button 
-                    onClick={() => { setShowGuestModal(true); setGeneratedKey(null); setGuestForm({ nom: '', prenom: '', telephone: '', durationDays: 7, role: 'comptable' }); }}
-                    className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition ml-2"
-                >
-                    <Key size={18} /> Accès Invité (Clé)
-                </button>
+                <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition"
+                    >
+                        <Plus size={18} /> Nouvel Utilisateur
+                    </button>
+                    <button
+                        onClick={() => { setShowGuestModal(true); setGeneratedKey(null); setGuestForm({ nom: '', prenom: '', telephone: '', durationDays: 7, role: 'comptable' }); }}
+                        className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
+                    >
+                        <Key size={18} /> Accès Invité (Clé)
+                    </button>
+                </div>
             </div>
 
 

@@ -139,7 +139,7 @@ const Rapports: React.FC = () => {
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
-            Rapports & Statistiques <span className="text-primary">.</span>
+            Rapports & Statistiques
           </h1>
           <p className="text-base-content/60 font-medium mt-1">Analysez la performance de votre parc immobilier.</p>
         </div>

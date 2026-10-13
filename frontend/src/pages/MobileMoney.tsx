@@ -203,7 +203,7 @@ const MobileMoney: React.FC = () => {
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
-            Transactions Mobiles <span className="text-primary">.</span>
+            Transactions Mobiles
           </h1>
           <p className="text-base-content/60 font-medium mt-1">Gérez vos paiements Mobile Money et configurations.</p>
         </div>

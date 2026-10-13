@@ -128,7 +128,7 @@ const DelegationsPage: React.FC = () => {
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
-            Mon Équipe <span className="text-primary">.</span>
+            Mon Équipe
           </h1>
           <p className="text-base-content/60 font-medium mt-1">
             Gérez les accès et les permissions de vos collaborateurs.

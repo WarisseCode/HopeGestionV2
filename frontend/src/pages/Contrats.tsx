@@ -143,7 +143,7 @@ const Contrats: React.FC = () => {
         {/* Header */}
         <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-base-content tracking-tight">Gestion des Contrats <span className="text-primary">.</span></h1>
+            <h1 className="text-3xl font-extrabold text-base-content tracking-tight">Gestion des Contrats</h1>
             <p className="text-base-content/60 font-medium mt-1">Centralisez et gérez tous vos contrats de location, vente et intervention.</p>
           </div>
           <div className="flex items-center gap-3">

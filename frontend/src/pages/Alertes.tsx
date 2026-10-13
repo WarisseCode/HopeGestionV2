@@ -208,7 +208,7 @@ const Alertes: React.FC = () => {
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
-            Centre d'Alertes <span className="text-primary">.</span>
+            Centre d'Alertes
           </h1>
           <p className="text-base-content/60 font-medium mt-1">
             Actions requises et notifications système.

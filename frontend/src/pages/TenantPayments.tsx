@@ -158,7 +158,7 @@ const TenantPayments: React.FC = () => {
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
-                    Mes Paiements <span className="text-primary">.</span>
+                    Mes Paiements
                 </h1>
                 <p className="text-base-content/60 font-medium mt-1">
                     Gérez vos loyers et consultez votre historique de paiements

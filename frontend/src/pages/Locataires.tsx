@@ -215,10 +215,10 @@ const Locataires: React.FC = () => {
       {/* Header */}
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-base-content tracking-tight">{t('tenants.title')} <span className="text-secondary">.</span></h1>
+          <h1 className="text-3xl font-extrabold text-base-content tracking-tight">{t('tenants.title')}</h1>
           <p className="text-base-content/60 font-medium mt-1">{t('tenants.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap md:flex-nowrap">
           <SearchInput placeholder={t('tenants.searchPlaceholder')} value={searchQuery} onChange={setSearchQuery} className="w-full md:w-72" />
           {canWrite && (
             <>

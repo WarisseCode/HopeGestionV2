@@ -114,11 +114,11 @@ const DocumentTemplates: React.FC = () => {
     if (editingTemplate) {
         return (
             <div className="space-y-6 h-full flex flex-col">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <h2 className="text-xl font-bold flex items-center gap-2 text-base-content">
                         <Edit2 size={20} className="text-primary" /> {editingTemplate.id ? 'Modifier le Modèle' : 'Nouveau Modèle'}
                     </h2>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
                          <Button variant="ghost" onClick={() => setEditingTemplate(null)}>Annuler</Button>
                          <Button variant="primary" onClick={handleSave}><Save size={16} className="mr-2"/> Enregistrer</Button>
                     </div>

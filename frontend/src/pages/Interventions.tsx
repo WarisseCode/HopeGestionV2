@@ -463,7 +463,7 @@ const Interventions: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-base-content">Interventions <span className="text-primary">.</span></h1>
+          <h1 className="text-3xl font-extrabold text-base-content">Interventions</h1>
           <p className="text-base-content/60">Gestion des maintenances et services</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
