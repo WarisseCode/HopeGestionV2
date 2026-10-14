@@ -241,7 +241,7 @@ const CalendrierPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="flex flex-col xl:flex-row justify-between items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <CalendarIcon className="text-primary" /> Agenda
@@ -259,7 +259,7 @@ const CalendrierPage: React.FC = () => {
            <Button variant="ghost" size="sm" onClick={() => navigateDate('next')}><ChevronRight size={20}/></Button>
         </div>
 
-        <div className="flex flex-wrap md:flex-nowrap justify-center gap-2">
+        <div className="flex flex-wrap xl:flex-nowrap justify-center gap-2">
             <div className="flex bg-base-300 rounded-lg p-1">
                 <button onClick={() => setViewMode('month')} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'month' ? 'bg-base-100 shadow' : ''}`}>Mois</button>
                 <button onClick={() => setViewMode('week')} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'week' ? 'bg-base-100 shadow' : ''}`}>Semaine</button>

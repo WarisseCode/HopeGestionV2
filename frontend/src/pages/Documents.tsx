@@ -158,8 +158,8 @@ const Documents: React.FC = () => {
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto">
       {/* Header with Switcher */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        <div>
+      <div className="flex flex-col md:flex-row md:flex-wrap justify-between items-center gap-4">
+        <div className="md:flex-1 md:basis-0">
           <h1 className="text-2xl font-bold text-base-content/90">Gestion Documentaire</h1>
           <p className="text-base-content/60">Centralisez, générez et gérez vos documents</p>
         </div>

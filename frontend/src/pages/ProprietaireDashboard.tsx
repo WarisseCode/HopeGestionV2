@@ -78,8 +78,8 @@ const ProprietaireDashboard: React.FC = () => {
         <motion.div className="space-y-6 max-w-[1400px] mx-auto" variants={container} initial="hidden" animate="visible">
 
             {/* ── Header ── */}
-            <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
+            <motion.div variants={item} className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-4">
+                <div className="sm:flex-1 sm:basis-0">
                     <h1 className="text-2xl font-extrabold text-base-content tracking-tight">
                         Bonjour, {user?.nom || 'Propriétaire'} 👋
                     </h1>

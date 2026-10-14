@@ -200,8 +200,8 @@ const MobileMoney: React.FC = () => {
       animate="visible"
     >
       {/* Header */}
-      <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:flex-wrap justify-between items-start md:items-center gap-4">
+        <div className="md:flex-1 md:basis-0">
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
             Transactions Mobiles
           </h1>

@@ -66,8 +66,8 @@ const PeriodFilter: React.FC<PeriodFilterProps> = ({
               <span className="relative z-10">
                 {compact ? period.shortLabel : (
                   <>
-                    <span className="hidden md:inline">{period.label}</span>
-                    <span className="md:hidden">{period.shortLabel}</span>
+                    <span className="hidden xl:inline">{period.label}</span>
+                    <span className="xl:hidden">{period.shortLabel}</span>
                   </>
                 )}
               </span>

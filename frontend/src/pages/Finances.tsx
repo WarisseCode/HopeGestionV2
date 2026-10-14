@@ -256,8 +256,8 @@ const Finances: React.FC = () => {
       animate="visible"
     >
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+      <div className="flex flex-col md:flex-row md:flex-wrap md:items-center justify-between gap-4">
+        <div className="md:flex-1 md:basis-0">
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
             {t('finance.title')}
           </h1>
