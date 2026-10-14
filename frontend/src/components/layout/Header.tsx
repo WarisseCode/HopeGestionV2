@@ -62,15 +62,15 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle
   // Helper pour générer le fil d'ariane simple (Home > Page Actuelle)
   const getBreadcrumbs = () => {
     return (
-        <div className="hidden md:flex items-center gap-2 text-sm text-base-content/60">
-            <Link to="/dashboard" className="hover:text-primary flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-2 text-sm text-base-content/60 min-w-0">
+            <Link to="/dashboard" className="hover:text-primary flex items-center gap-1 shrink-0">
                 <Home size={14} />
                 <span>{t('nav.bureau')}</span>
             </Link>
             {location.pathname !== '/dashboard' && location.pathname !== '/dashboard/' && (
                 <>
-                    <ChevronRight size={14} />
-                    <span className="font-medium text-base-content">{pageTitle}</span>
+                    <ChevronRight size={14} className="shrink-0" />
+                    <span className="font-medium text-base-content truncate">{pageTitle}</span>
                 </>
             )}
         </div>
@@ -78,12 +78,12 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle
   };
 
   return (
-    <header className="h-16 bg-gradient-to-r from-primary/5 via-base-100 to-base-100 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between px-4 md:px-6 shadow-sm border-b border-base-200 transition-all">
-        {/* Left: Toggle & Breadcrumbs */}
-        <div className="flex items-center gap-4">
+    <header className="h-16 bg-gradient-to-r from-primary/5 via-base-100 to-base-100 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between px-4 md:px-6 shadow-sm border-b border-base-200 transition-all gap-4">
+        {/* Left: Toggle & Breadcrumbs — se comprime (min-w-0) pour laisser les actions de droite visibles */}
+        <div className="flex items-center gap-4 min-w-0">
             <button 
               onClick={toggleSidebar} 
-              className="p-2 rounded-lg hover:bg-base-200 text-base-content active:scale-95 transition-transform"
+              className="p-2 rounded-lg hover:bg-base-200 text-base-content active:scale-95 transition-transform shrink-0"
               aria-label={t('header.toggleMenu')}
             >
                 {isSidebarOpen ? <PanelLeftClose size={22} /> : <PanelLeftOpen size={22} />}
@@ -91,8 +91,8 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle
             {getBreadcrumbs()}
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        {/* Right: Actions — jamais comprimées (thème, notifications, avatar toujours visibles) */}
+        <div className="flex items-center gap-3 sm:gap-4 shrink-0">
             {/* Search (Desktop only) */}
             <button 
                 onClick={() => setIsSearchOpen(true)}
@@ -113,12 +113,13 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle
                 <Search size={20} />
             </button>
 
-            {/* Subscription Badge */}
-            <div className="hidden sm:block">
+            {/* Subscription Badge — masqué de md à xl (sidebar ouverte, place insuffisante) ;
+                l'abonnement reste accessible via le menu avatar */}
+            <div className="hidden sm:block md:hidden xl:block">
                 <SubscriptionBadge />
             </div>
 
-            <div className="h-6 w-px bg-base-300 hidden sm:block"></div>
+            <div className="h-6 w-px bg-base-300 hidden sm:block md:hidden xl:block"></div>
 
             {/* Theme Toggle */}
             <button 
