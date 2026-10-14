@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Plus, Wallet, Clock, FileCheck, AlertCircle, Filter } from 'lucide-react';
+import { FileText, Plus, Wallet, Clock, FileCheck, Filter } from 'lucide-react';
 import Button from '../components/ui/Button';
 import SearchInput from '../components/ui/SearchInput';
 import Select from '../components/ui/Select';
@@ -17,6 +17,7 @@ import { EMPTY_FORM, formatMontant } from '../utils/contratUtils';
 import CreateContratForm from '../components/contrats/CreateContratForm';
 import ContratDetailModal from '../components/contrats/ContratDetailModal';
 import ContratsTable from '../components/contrats/ContratsTable';
+import LoadErrorState from '../components/ui/LoadErrorState';
 
 type TabKey = 'locations' | 'ventes' | 'interventions';
 
@@ -50,13 +51,13 @@ const Contrats: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForm,      setCreateForm]      = useState<CreateLocationData & { owner_id: number }>({ ...EMPTY_FORM });
 
-  const { data: allLeases = [], isLoading: leasesLoading, error: leasesError } = useQuery<Location[]>({
+  const { data: allLeases = [], isLoading: leasesLoading, error: leasesError, refetch: refetchLeases } = useQuery<Location[]>({
     queryKey: ['locations'],
     queryFn:  () => locationApi.getLocations(),
     staleTime: 30_000,
   });
 
-  const { data: ticketsData, isLoading: ticketsLoading, error: ticketsError } = useQuery({
+  const { data: ticketsData, isLoading: ticketsLoading, error: ticketsError, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets', { limit: 200 }],
     queryFn:  () => interventionApi.getTickets({ limit: 200 }),
     staleTime: 30_000,
@@ -120,7 +121,10 @@ const Contrats: React.FC = () => {
   const totalLoyer        = allLeases.filter(l => l.statut === 'actif' && (!l.type_contrat || l.type_contrat === 'location')).reduce((acc, l) => acc + Number(l.loyer_mensuel ?? 0), 0);
 
   const isLoading    = activeTab === 'interventions' ? ticketsLoading : leasesLoading;
-  const hasError     = leasesError || ticketsError;
+  // Erreur de l'onglet courant : affichée à la place du tableau, sinon l'échec se
+  // présentait comme « Aucun contrat de location enregistré » (T-042)
+  const tabError     = activeTab === 'interventions' ? ticketsError : leasesError;
+  const retryTab     = () => { if (activeTab === 'interventions') refetchTickets(); else refetchLeases(); };
   const statutOptions = activeTab === 'interventions' ? TICKET_STATUT_OPTIONS : LEASE_STATUT_OPTIONS;
 
   if (showCreateModal) {
@@ -185,23 +189,19 @@ const Contrats: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Erreur */}
-        {hasError && (
-          <motion.div variants={itemVariants} className="alert alert-error">
-            <AlertCircle size={18} />
-            <span>Erreur de chargement des contrats. Vérifiez votre connexion.</span>
-          </motion.div>
-        )}
-
         {/* KPIs */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <KPICard icon={FileCheck} label="Contrats Actifs"      value={leasesLoading ? '…' : activeContracts.toString()}          color="green" />
-          <KPICard icon={Clock}     label="Finissant ce mois"    value={leasesLoading ? '…' : expiringThisMonth.toString()}         color="orange" />
-          <KPICard icon={Wallet}    label="Loyers actifs / mois" value={leasesLoading ? '…' : `${formatMontant(totalLoyer)} F`}    color="blue" />
+          {/* '—' en cas d'échec : pas de faux « 0 » issus d'une liste non chargée (T-042) */}
+          <KPICard icon={FileCheck} label="Contrats Actifs"      value={leasesLoading ? '…' : leasesError ? '—' : activeContracts.toString()}          color="green" />
+          <KPICard icon={Clock}     label="Finissant ce mois"    value={leasesLoading ? '…' : leasesError ? '—' : expiringThisMonth.toString()}         color="orange" />
+          <KPICard icon={Wallet}    label="Loyers actifs / mois" value={leasesLoading ? '…' : leasesError ? '—' : `${formatMontant(totalLoyer)} F`}    color="blue" />
         </motion.div>
 
         {/* Table */}
         <motion.div variants={itemVariants}>
+          {tabError ? (
+            <LoadErrorState message={tabError.message} onRetry={retryTab} />
+          ) : (
           <ContratsTable
             activeTab={activeTab}
             isLoading={isLoading}
@@ -212,6 +212,7 @@ const Contrats: React.FC = () => {
             statutFilter={statutFilter}
             onViewLease={setSelectedLease}
           />
+          )}
         </motion.div>
       </motion.div>
 

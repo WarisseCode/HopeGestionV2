@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { apiCall } from '../utils/apiUtils';
 import { API_URL } from '../config';
+import toast from 'react-hot-toast';
+import LoadErrorState from '../components/ui/LoadErrorState';
 
 interface Reservation {
     id: number;
@@ -27,16 +29,22 @@ interface Reservation {
 const ReservationsList: React.FC = () => {
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [loading, setLoading] = useState(true);
+    // Échec du chargement : distinct de « Aucune réservation » (T-042)
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [filter, setFilter] = useState<'all' | 'en_attente' | 'actif' | 'refuse'>('all');
     const [actionLoading, setActionLoading] = useState<number | null>(null);
 
     const loadReservations = async () => {
         setLoading(true);
+        setLoadError(null);
         try {
             const data = await apiCall<Reservation[]>(`${API_URL}/reservations`);
             setReservations(data);
         } catch (err) {
             console.error(err);
+            const message = (err as Error)?.message || 'Erreur lors du chargement des réservations';
+            setLoadError(message);
+            toast.error(message);
         } finally {
             setLoading(false);
         }
@@ -173,6 +181,8 @@ const ReservationsList: React.FC = () => {
                         <RefreshCw className="animate-spin mx-auto mb-2" size={24} />
                         Chargement...
                     </div>
+                ) : loadError ? (
+                    <div className="p-6"><LoadErrorState message={loadError} onRetry={loadReservations} /></div>
                 ) : filteredReservations.length === 0 ? (
                     <div className="p-12 text-center text-base-content/60">
                         <Calendar className="mx-auto mb-2 opacity-50" size={32} />

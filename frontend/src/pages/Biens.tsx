@@ -16,6 +16,7 @@ import ImmeubleForm from '../components/biens/ImmeubleForm';
 import LotForm from '../components/biens/LotForm';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import EmptyState from '../components/ui/EmptyState';
+import LoadErrorState from '../components/ui/LoadErrorState';
 import AssignmentForm from '../components/biens/AssignmentForm';
 import ImmeubleCard from '../components/biens/ImmeubleCard';
 import LotCard from '../components/biens/LotCard';
@@ -335,6 +336,11 @@ const Biens: React.FC = () => {
         {b.loading ? (
           <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {b.viewMode === 'grid' ? <GridSkeleton /> : <TableSkeleton />}
+          </motion.div>
+        ) : b.loadError ? (
+          // Échec du chargement : ne pas afficher « Aucun immeuble trouvé » (T-042)
+          <motion.div key="load-error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <LoadErrorState message={b.loadError} onRetry={b.fetchData} className="mt-6" />
           </motion.div>
         ) : (
           <motion.div

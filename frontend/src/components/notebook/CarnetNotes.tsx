@@ -5,9 +5,14 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import { toast } from 'react-hot-toast';
+import SkeletonLoader from '../ui/SkeletonLoader';
+import LoadErrorState from '../ui/LoadErrorState';
 
 const CarnetNotes: React.FC = () => {
     const [notes, setNotes] = useState<Note[]>([]);
+    // Sans état de chargement, « Aucune note trouvée. » s'affichait avant la réponse (T-042)
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [isCreating, setIsCreating] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     
@@ -21,8 +26,18 @@ const CarnetNotes: React.FC = () => {
     }, []);
 
     const loadNotes = async () => {
-        const res = await notebookApi.getNotes();
-        setNotes(res.data);
+        setLoading(true);
+        setLoadError(null);
+        try {
+            const res = await notebookApi.getNotes();
+            setNotes(res.data);
+        } catch (error) {
+            const message = (error as Error)?.message || 'Erreur lors du chargement des notes';
+            setLoadError(message);
+            toast.error(message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleCreate = async () => {
@@ -137,7 +152,11 @@ const CarnetNotes: React.FC = () => {
                         </div>
                     </Card>
                 ))}
-                {filteredNotes.length === 0 && !isCreating && (
+                {loading && [1, 2, 3].map(i => <SkeletonLoader key={i} variant="card" height={160} />)}
+                {!loading && loadError && (
+                    <div className="col-span-full"><LoadErrorState message={loadError} onRetry={loadNotes} /></div>
+                )}
+                {!loading && !loadError && filteredNotes.length === 0 && !isCreating && (
                     <div className="col-span-full text-center text-base-content/50 py-10">Aucune note trouvée.</div>
                 )}
             </div>

@@ -300,17 +300,24 @@ const GestionnaireDashboard: React.FC = () => {
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <p className="text-primary-content/80 text-sm font-medium">{t('dashboard.globalPerformance')}</p>
-              <p className="text-3xl font-bold">{new Intl.NumberFormat('fr-FR').format(revenuNet)} FCFA</p>
+              {/* Pendant le chargement des KPI : squelette au lieu d'un faux « 0 FCFA » (T-042) */}
+              {isLoadingKpis
+                ? <span className="block h-9 w-44 my-0.5 rounded-lg bg-base-100/20 animate-pulse" aria-label="Chargement" />
+                : <p className="text-3xl font-bold">{new Intl.NumberFormat('fr-FR').format(revenuNet)} FCFA</p>}
               <p className="text-primary-content/60 text-xs mt-1">{t('dashboard.revenueCollectedMonth')}</p>
             </div>
             <div className="flex gap-4 flex-wrap">
               <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
                 <p className="text-primary-content/80 text-xs font-medium">{t('dashboard.collections')}</p>
-                <p className="text-lg font-bold text-green-300">+{new Intl.NumberFormat('fr-FR').format(totalRevenus)}</p>
+                {isLoadingKpis
+                  ? <span className="block h-6 w-14 mx-auto my-0.5 rounded bg-base-100/20 animate-pulse" />
+                  : <p className="text-lg font-bold text-green-300">+{new Intl.NumberFormat('fr-FR').format(totalRevenus)}</p>}
               </div>
               <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
                 <p className="text-primary-content/80 text-xs font-medium">{t('dashboard.unpaid')}</p>
-                <p className="text-lg font-bold text-orange-300">{new Intl.NumberFormat('fr-FR').format(totalImpayes)}</p>
+                {isLoadingKpis
+                  ? <span className="block h-6 w-14 mx-auto my-0.5 rounded bg-base-100/20 animate-pulse" />
+                  : <p className="text-lg font-bold text-orange-300">{new Intl.NumberFormat('fr-FR').format(totalImpayes)}</p>}
               </div>
             </div>
           </div>
@@ -322,9 +329,12 @@ const GestionnaireDashboard: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold text-base-content/90 dark:text-base-content">{t('dashboard.strategicIndicators')}</span>
+                {/* Compteur masqué pendant le chargement : sinon « 0 indicateurs » (T-042) */}
+                {!isLoadingKpis && (
                 <span className="px-2 py-0.5 rounded-full bg-base-300 text-xs font-medium text-base-content/60">
                     {showAllKpis ? `${allKpis.length} ${t('dashboard.metrics')}` : `${Math.min(4, allKpis.length)} ${t('dashboard.metrics')}`}
                 </span>
+                )}
               </div>
               
               <button 
@@ -555,7 +565,10 @@ const GestionnaireDashboard: React.FC = () => {
                         </ResponsiveContainer>
                         {/* Center Text */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <span className="text-3xl font-extrabold text-base-content/90">{stats?.tauxOccupation || 0}%</span>
+                            {/* stats (UserContext) encore null = pas encore reçues : pas de faux « 0% » (T-042) */}
+                            {stats
+                              ? <span className="text-3xl font-extrabold text-base-content/90">{stats.tauxOccupation || 0}%</span>
+                              : <span className="block h-9 w-16 rounded-lg bg-base-300 animate-pulse" aria-label="Chargement" />}
                             <span className="text-xs text-base-content/50 font-medium uppercase tracking-wide">{t('dashboard.occupied')}</span>
                         </div>
                     </div>

@@ -40,7 +40,8 @@ const CalendrierPage: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(false);
+  // true dès le montage : la grille s'affichait vide, sans indicateur, avant la réponse (T-042)
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'payment' | 'intervention'>('all');
 
   // Modals
@@ -274,13 +275,14 @@ const CalendrierPage: React.FC = () => {
         </div>
       </div>
 
+      <div className="relative" aria-busy={loading}>
       {viewMode === 'month' && renderMonthView()}
       {viewMode === 'week' && renderWeekView()}
       {viewMode === 'day' && (
           <div className="bg-base-100 rounded-xl shadow p-6">
               <h3 className="font-bold mb-4 border-b pb-2">Événements du jour</h3>
               <div className="space-y-2">
-                  {events.length === 0 ? <p className="text-base-content/50">Aucun événement</p> : events.map(e => (
+                  {events.length === 0 && !loading ? <p className="text-base-content/50">Aucun événement</p> : events.map(e => (
                       <div key={e.id} className={`p-3 rounded-lg border flex justify-between items-center ${getEventColor(e.type)}`}>
                           <div className="flex items-center gap-3">
                               <div className={`w-2 h-2 rounded-full ${getEventDot(e.type)}`}></div>
@@ -294,6 +296,13 @@ const CalendrierPage: React.FC = () => {
               </div>
           </div>
       )}
+      {loading && (
+          // Voile + spinner (même spinner DaisyUI qu'Alertes) tant que les événements ne sont pas reçus
+          <div className="absolute inset-0 z-10 flex items-start justify-center pt-24 bg-base-100/60 rounded-xl">
+              <span className="loading loading-spinner loading-lg text-primary" aria-label="Chargement des événements" />
+          </div>
+      )}
+      </div>
 
       {/* Add Event Modal */}
       {showEventModal && (

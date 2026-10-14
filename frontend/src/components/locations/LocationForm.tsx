@@ -187,6 +187,8 @@ const LocationForm: React.FC<LocationFormProps> = ({
   };
 
   const isStepValid = (s: number) => Object.keys(validateStep(s)).length === 0;
+  // Messages de validateStep pour l'étape courante, affichés près de « Suivant » (T-042)
+  const stepMissing = Object.values(validateStep(step));
 
   const handleNext = () => {
     const errs = validateStep(step);
@@ -798,14 +800,24 @@ const LocationForm: React.FC<LocationFormProps> = ({
         </button>
 
         {step < STEPS.length - 1 ? (
+          <div className="flex flex-wrap items-center justify-end gap-3">
+          {/* Ce qui bloque « Suivant » : la règle (validateStep) est inchangée, seulement rendue visible */}
+          {stepMissing.length > 0 && (
+            <p id="location-step-missing" role="status" className="flex items-start gap-1.5 text-xs text-base-content/70 max-w-xs">
+              <Info size={14} className="shrink-0 mt-px text-info" />
+              <span>Pour continuer : {stepMissing.join(' · ')}</span>
+            </p>
+          )}
           <button
             type="button"
             onClick={handleNext}
             disabled={!isStepValid(step)}
+            aria-describedby={stepMissing.length > 0 ? 'location-step-missing' : undefined}
             className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-content text-sm font-bold hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/25 hover:scale-[1.02] transition-all disabled:opacity-40 disabled:scale-100 disabled:shadow-none"
           >
             Suivant <ArrowRight size={16} />
           </button>
+          </div>
         ) : (
           <button
             type="button"

@@ -94,6 +94,9 @@ export function useBiens() {
   const [users, setUsers]         = useState<Utilisateur[]>([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
+  // Échec du chargement initial, distinct de `error` (erreurs d'actions) : la page
+  // affiche alors un état d'erreur à la place de « Aucun immeuble trouvé » (T-042).
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [success, setSuccess]     = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
 
@@ -125,6 +128,7 @@ export function useBiens() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const [immeublesData, lotsData, locationsData, propsData, usersData, subStatus] = await Promise.all([
         getImmeubles(),
         getLots(),
@@ -141,7 +145,7 @@ export function useBiens() {
       if (subStatus) setSubscriptionStatus(subStatus);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || t('properties.loadDataError'));
+      setLoadError(err.message || t('properties.loadDataError'));
     } finally {
       setLoading(false);
     }
@@ -276,7 +280,7 @@ export function useBiens() {
   return {
     // ── Data
     canWrite, immeubles, lots, locations, proprietaires, users,
-    loading, error, setError, success, setSuccess, subscriptionStatus, isLimitReached,
+    loading, loadError, error, setError, success, setSuccess, subscriptionStatus, isLimitReached,
 
     // ── Search / filter / pagination
     searchQuery, setSearchQuery,

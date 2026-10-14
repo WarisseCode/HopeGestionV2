@@ -227,6 +227,14 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
   const isStepValid = (step = currentStep): boolean =>
     step === 0 ? isStep0Valid() : true;
 
+  // Messages des champs requis manquants (étape 0 seulement, comme isStepValid)
+  const stepMissing = currentStep === 0
+    ? [
+        ...REQUIRED_STEP0.map(f => validateField(f, formData[f as keyof typeof formData])),
+        proprietaires.length > 1 && !formData.owner_id ? 'Veuillez sélectionner un propriétaire' : '',
+      ].filter(Boolean)
+    : [];
+
   const handleNext = () => {
     if (currentStep === 0) {
       // Touch & validate all required fields
@@ -819,6 +827,15 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
             </button>
           )}
 
+          {/* Ce qui bloque « Suivant » (T-042) : mêmes messages que validateField,
+              la règle de validation est inchangée, elle est seulement rendue visible */}
+          {!isLastStep && stepMissing.length > 0 && (
+            <p id="locataire-step-missing" role="status" className="flex items-start gap-1.5 text-xs text-base-content/70 max-w-xs">
+              <Info size={14} className="shrink-0 mt-px text-info" />
+              <span>Pour continuer : {stepMissing.join(' · ')}</span>
+            </p>
+          )}
+
           {!isLastStep ? (
             <Button
               variant="primary"
@@ -826,6 +843,7 @@ const LocataireForm: React.FC<LocataireFormProps> = ({
               disabled={currentStep === 0 && !isStepValid()}
               className="flex items-center gap-2"
               title={currentStep === 0 && !isStepValid() ? 'Complétez les champs requis' : undefined}
+              aria-describedby={stepMissing.length > 0 ? 'locataire-step-missing' : undefined}
             >
               Suivant
               <ArrowRight size={16} />

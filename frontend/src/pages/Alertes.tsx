@@ -23,6 +23,7 @@ import { getAlerts, dismissAlert, resetDismissedAlerts } from '../api/alertApi';
 import type { Alert } from '../api/alertApi';
 import { getNotificationSettings, updateNotificationSettings } from '../api/notificationApi';
 import type { NotificationSetting } from '../api/notificationApi';
+import LoadErrorState from '../components/ui/LoadErrorState';
 
 const DEFAULT_SETTINGS: NotificationSetting[] = [
     { alert_type: 'PAYMENT_RECEIVED', channel_email: true, channel_whatsapp: true, channel_sms: false },
@@ -51,6 +52,10 @@ const Alertes: React.FC = () => {
   const [alertes, setAlertes] = useState<Alert[]>([]);
   const [dismissedCount, setDismissedCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  // Échecs de chargement : les catch individuels les avalaient, d'où le faux
+  // « Votre parc immobilier est sous total contrôle » sur une erreur serveur (T-042)
+  const [alertsError, setAlertsError] = useState<string | null>(null);
+  const [notificationsError, setNotificationsError] = useState<string | null>(null);
   const [dismissingId, setDismissingId] = useState<string | null>(null);
 
   const [parametres, setParametres] = useState<NotificationSetting[]>([]);
@@ -60,6 +65,8 @@ const Alertes: React.FC = () => {
 
   const fetchData = useCallback(async () => {
       setLoading(true);
+      setAlertsError(null);
+      setNotificationsError(null);
 
       // Independent fetches to prevent one blocking others
       const fetchNotifications = async () => {
@@ -69,6 +76,7 @@ const Alertes: React.FC = () => {
               setUnreadCount(notifsData.unreadCount || 0);
           } catch (err) {
               console.error("Erreur notifications", err);
+              setNotificationsError((err as Error)?.message || 'Erreur lors du chargement des notifications');
           }
       };
 
@@ -79,6 +87,9 @@ const Alertes: React.FC = () => {
               setDismissedCount(alertsData.dismissedCount);
           } catch (err) {
               console.error("Erreur alertes", err);
+              const message = (err as Error)?.message || 'Erreur lors du chargement des alertes';
+              setAlertsError(message);
+              toast.error(message);
           }
       };
 
@@ -300,6 +311,8 @@ const Alertes: React.FC = () => {
                         <tbody className="divide-y divide-base-200/50">
                             {loading ? (
                                 <tr><td colSpan={6} className="text-center py-16"><span className="loading loading-spinner text-primary loading-lg"></span></td></tr>
+                            ) : alertsError ? (
+                                <tr><td colSpan={6} className="p-6"><LoadErrorState message={alertsError} onRetry={fetchData} /></td></tr>
                             ) : alertes.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="text-center py-32 px-6 bg-base-100/30">
@@ -396,6 +409,8 @@ const Alertes: React.FC = () => {
                 <div className="grid gap-4">
                      {loading ? (
                          <div className="text-center py-12"><span className="loading loading-spinner loading-lg text-primary"></span></div>
+                     ) : notificationsError ? (
+                         <LoadErrorState message={notificationsError} onRetry={fetchData} />
                      ) : notifications.length === 0 ? (
                          <div className="flex justify-center items-center py-32 bg-base-100 rounded-2xl border border-base-200/50 shadow-sm">
                              <div className="flex flex-col items-center justify-center space-y-5 text-center">

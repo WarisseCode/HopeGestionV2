@@ -15,11 +15,14 @@ import { documentApi } from '../api/documentApi';
 import Alert from '../components/ui/Alert';
 import SignatureModal from '../components/SignatureModal';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import LoadErrorState from '../components/ui/LoadErrorState';
 
 const Locations: React.FC = () => {
     const [locations, setLocations] = useState<Location[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    // Échec du chargement de la liste, distinct de `error` (erreurs d'actions) (T-042)
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
@@ -72,6 +75,7 @@ const Locations: React.FC = () => {
     const loadData = async () => {
         try {
             setLoading(true);
+            setLoadError(null);
             const [locationsData, locatairesData, lotsData, ownersData] = await Promise.all([
                 locationApi.getLocations(),
                 getLocataires(),
@@ -84,7 +88,7 @@ const Locations: React.FC = () => {
             setOwners(Array.isArray(ownersData) ? ownersData : []);
         } catch (err) {
             console.error(err);
-            setError("Erreur lors du chargement des données");
+            setLoadError((err as Error)?.message || "Erreur lors du chargement des données");
         } finally {
             setLoading(false);
         }
@@ -486,7 +490,14 @@ const Locations: React.FC = () => {
                                     </td>
                                 </motion.tr>
                             ))}
-                            {filteredLocations.length === 0 && (
+                            {loadError ? (
+                                // Échec du chargement : pas de « Aucun bail trouvé » (T-042)
+                                <tr>
+                                    <td colSpan={7} className="p-6">
+                                        <LoadErrorState message={loadError} onRetry={loadData} />
+                                    </td>
+                                </tr>
+                            ) : filteredLocations.length === 0 && (
                                 <tr>
                                     <td colSpan={7} className="p-8 text-center text-base-content/60">
                                         Aucun bail trouvé

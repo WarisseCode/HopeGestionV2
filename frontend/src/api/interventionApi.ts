@@ -10,6 +10,13 @@ const getHeaders = () => {
   };
 };
 
+// Message d'erreur du serveur ({ message }) s'il existe, sinon le repli fourni (T-042) :
+// sans cela, un 500 explicite était remplacé par un message générique.
+const errorMessage = async (res: Response, fallback: string): Promise<string> => {
+  const body = await res.json().catch(() => null);
+  return (body && typeof body.message === 'string' && body.message) || fallback;
+};
+
 export const interventionApi = {
     // Tickets
     getTickets: async (filters: Record<string, any> = {}): Promise<{ data: any[]; total: number; page: number; limit: number; totalPages: number }> => {
@@ -24,7 +31,7 @@ export const interventionApi = {
             headers: getHeaders(),
             body: JSON.stringify(data)
         });
-        if (!res.ok) throw new Error('Erreur création ticket');
+        if (!res.ok) throw new Error(await errorMessage(res, 'Erreur création ticket'));
         return res.json();
     },
     updateTicket: async (id: number, data: any) => {

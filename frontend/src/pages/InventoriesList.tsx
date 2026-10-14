@@ -7,6 +7,8 @@ import {
 import { Link } from 'react-router-dom';
 import { apiCall } from '../utils/apiUtils';
 import { API_URL } from '../config';
+import toast from 'react-hot-toast';
+import LoadErrorState from '../components/ui/LoadErrorState';
 
 interface Inventory {
     id: number;
@@ -23,6 +25,8 @@ interface Inventory {
 const InventoriesList: React.FC = () => {
     const [inventories, setInventories] = useState<Inventory[]>([]);
     const [loading, setLoading] = useState(true);
+    // Échec du chargement : distinct de « Aucun inventaire trouvé » (T-042)
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [filterStatut, setFilterStatut] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -31,11 +35,16 @@ const InventoriesList: React.FC = () => {
     }, []);
 
     const loadInventories = async () => {
+        setLoading(true);
+        setLoadError(null);
         try {
             const data = await apiCall<Inventory[]>(`${API_URL}/inventories`);
             setInventories(data);
         } catch (error) {
             console.error('Error loading inventories:', error);
+            const message = (error as Error)?.message || 'Erreur lors du chargement des inventaires';
+            setLoadError(message);
+            toast.error(message);
         } finally {
             setLoading(false);
         }
@@ -123,6 +132,8 @@ const InventoriesList: React.FC = () => {
             <div className="bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden">
                 {loading ? (
                     <div className="p-12 text-center text-base-content/50">Chargement...</div>
+                ) : loadError ? (
+                    <div className="p-6"><LoadErrorState message={loadError} onRetry={loadInventories} /></div>
                 ) : filteredInventories.length === 0 ? (
                     <div className="p-12 text-center text-base-content/50">
                         <ClipboardList className="mx-auto mb-3 opacity-20" size={48} />

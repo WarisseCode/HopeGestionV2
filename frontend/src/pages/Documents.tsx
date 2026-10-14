@@ -249,7 +249,16 @@ const Documents: React.FC = () => {
                         </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                        {filteredDocuments.map((doc) => (
+                        {loading ? (
+                            // Squelette (même rendu que Table.tsx) : l'en-tête restait seul pendant le chargement (T-042)
+                            [1, 2, 3, 4, 5].map(i => (
+                                <tr key={`skeleton-${i}`}>
+                                    {Array.from({ length: 5 }).map((_, j) => (
+                                        <td key={j} className="px-6 py-4"><div className="h-4 bg-base-200 rounded animate-pulse" /></td>
+                                    ))}
+                                </tr>
+                            ))
+                        ) : filteredDocuments.map((doc) => (
                             <tr key={doc.id} className="hover:bg-base-200 transition-colors">
                                 <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">

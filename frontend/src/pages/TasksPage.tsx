@@ -11,10 +11,15 @@ import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import ChatWindow from '../components/messaging/ChatWindow';
+import SkeletonLoader from '../components/ui/SkeletonLoader';
+import LoadErrorState from '../components/ui/LoadErrorState';
 
 const TasksPage: React.FC = () => {
   const [tasks, setTasks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  // true dès le montage + erreur explicite : la liste restait blanche pendant le
+  // chargement comme après un échec (T-042)
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState('all'); // all, assigned_to_me, created_by_me
   const [statusFilter, setStatusFilter] = useState('');
   
@@ -33,17 +38,26 @@ const TasksPage: React.FC = () => {
 
   const fetchTasks = async () => {
       setLoading(true);
+      setLoadError(null);
       try {
           const res = await taskApi.getTasks({ filter: filter === 'all' ? '' : filter, status: statusFilter });
           setTasks(res.data);
       } catch (e) {
           console.error(e);
+          const message = (e as Error)?.message || 'Erreur chargement tâches';
+          setLoadError(message);
+          toast.error(message);
       } finally {
           setLoading(false);
       }
   };
 
   const handleCreateTask = async () => {
+      // Validation client : le titre est le seul champ indispensable (T-042)
+      if (!newTask.title.trim()) {
+          toast.error('Le titre de la tâche est requis');
+          return;
+      }
       try {
           await taskApi.createTask(newTask);
           toast.success("Tâche créée");
@@ -51,7 +65,8 @@ const TasksPage: React.FC = () => {
           setNewTask({ title: '', description: '', priority: 'medium', due_date: '', assigned_to: '' });
           fetchTasks();
       } catch (e) {
-          toast.error("Erreur création");
+          // Message serveur conservé (taskApi.createTask le propage désormais)
+          toast.error((e as Error)?.message || "Erreur création");
       }
   };
 
@@ -103,7 +118,13 @@ const TasksPage: React.FC = () => {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {tasks.map(task => (
+                {loading ? (
+                    [1, 2, 3, 4].map(i => <SkeletonLoader key={i} variant="rectangular" height={88} />)
+                ) : loadError ? (
+                    <LoadErrorState message={loadError} onRetry={fetchTasks} />
+                ) : tasks.length === 0 ? (
+                    <p className="text-center text-base-content/50 py-12">Aucune tâche</p>
+                ) : tasks.map(task => (
                     <div 
                         key={task.id} 
                         className={`group p-4 rounded-xl border hover:shadow-md transition-all cursor-pointer bg-base-100 ${activeChatTask?.id === task.id ? 'ring-2 ring-primary ring-offset-2' : ''}`}
@@ -170,7 +191,7 @@ const TasksPage: React.FC = () => {
                 <Card className="w-full max-w-lg p-6">
                     <h3 className="text-lg font-bold mb-4">Nouvelle Tâche</h3>
                     <div className="space-y-4">
-                        <Input label="Titre" value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} placeholder="Ex: Relancer locataire X..." />
+                        <Input label="Titre" required value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} placeholder="Ex: Relancer locataire X..." />
                         <Input label="Description" value={newTask.description} onChange={e => setNewTask({...newTask, description: e.target.value})} placeholder="Détails de l'action..." />
                         <div className="grid grid-cols-2 gap-4">
                             <div>

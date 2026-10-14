@@ -249,13 +249,13 @@ const MobileMoney: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards — '…' pendant le chargement : pas de faux « 0 F » (T-042) */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="border-none shadow-lg bg-gradient-to-br from-teal-500 to-teal-600 text-white">
               <div className="flex justify-between items-start">
                   <div>
                       <p className="text-teal-100 font-medium mb-1">Solde Total (Théorique)</p>
-                      <h3 className="text-3xl font-bold">{stats.total.toLocaleString()} F</h3>
+                      <h3 className="text-3xl font-bold">{loading ? '…' : `${stats.total.toLocaleString()} F`}</h3>
                   </div>
                   <div className="p-3 bg-base-100/20 rounded-xl backdrop-blur-sm">
                       <Wallet size={24} className="text-white"/>
@@ -269,28 +269,28 @@ const MobileMoney: React.FC = () => {
               <div className="flex justify-between items-start">
                   <div>
                       <p className="text-base-content/60 font-medium mb-1">Entrées</p>
-                      <h3 className="text-3xl font-bold text-base-content">{stats.in.toLocaleString()} F</h3>
+                      <h3 className="text-3xl font-bold text-base-content">{loading ? '…' : `${stats.in.toLocaleString()} F`}</h3>
                   </div>
                   <div className="p-3 bg-green-100 rounded-xl text-green-600 dark:bg-green-900/30 dark:text-green-400">
                       <ArrowDownLeft size={24}/>
                   </div>
               </div>
               <div className="mt-4 text-sm text-base-content/60">
-                  {stats.countIn} transactions reçues
+                  {loading ? '…' : stats.countIn} transactions reçues
               </div>
           </Card>
            <Card className="border-none shadow-lg bg-base-100">
               <div className="flex justify-between items-start">
                   <div>
                       <p className="text-base-content/60 font-medium mb-1">Sorties</p>
-                      <h3 className="text-3xl font-bold text-base-content">{stats.out.toLocaleString()} F</h3>
+                      <h3 className="text-3xl font-bold text-base-content">{loading ? '…' : `${stats.out.toLocaleString()} F`}</h3>
                   </div>
                   <div className="p-3 bg-red-100 rounded-xl text-red-600 dark:bg-red-900/30 dark:text-red-400">
                       <ArrowUpRight size={24}/>
                   </div>
               </div>
               <div className="mt-4 text-sm text-base-content/60">
-                  {stats.countOut} transactions envoyées
+                  {loading ? '…' : stats.countOut} transactions envoyées
               </div>
           </Card>
       </motion.div>
@@ -333,7 +333,17 @@ const MobileMoney: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-base-200">
-                        {transactions.length === 0 ? (
+                        {loading ? (
+                            // Squelette (même rendu que Table.tsx) : « Aucune transaction » ne
+                            // doit apparaître qu'après la réponse (T-042)
+                            [1, 2, 3, 4, 5].map(i => (
+                                <tr key={`skeleton-${i}`}>
+                                    {Array.from({ length: 7 }).map((_, j) => (
+                                        <td key={j} className="py-4"><div className="h-4 bg-base-200 rounded animate-pulse" /></td>
+                                    ))}
+                                </tr>
+                            ))
+                        ) : transactions.length === 0 ? (
                             <tr><td colSpan={7} className="text-center py-8 text-base-content/60">Aucune transaction</td></tr>
                         ) : transactions.map(tx => (
                             <tr key={tx.id} className="hover:bg-base-200/50 transition-colors">

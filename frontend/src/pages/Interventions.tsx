@@ -16,6 +16,8 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { API_URL } from '../config';
 import { apiCall } from '../utils/apiUtils';
+import SkeletonLoader from '../components/ui/SkeletonLoader';
+import LoadErrorState from '../components/ui/LoadErrorState';
 
 // Types
 interface Ticket {
@@ -101,7 +103,10 @@ const Interventions: React.FC = () => {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [lots, setLots] = useState<Lot[]>([]);
   const [contracts, setContracts] = useState<ServiceContract[]>([]);
-  const [loading, setLoading] = useState(false);
+  // true dès le montage : sinon « Aucune donnée » s'affiche avant la réponse (T-042)
+  const [loading, setLoading] = useState(true);
+  // Échecs de chargement par jeu de données ; Promise.allSettled les ignorait (T-042)
+  const [loadErrors, setLoadErrors] = useState<{ tickets?: string; providers?: string; contracts?: string }>({});
 
   // Filters
   const [filterStatut, setFilterStatut] = useState('');
@@ -175,6 +180,7 @@ const Interventions: React.FC = () => {
 
   const fetchData = async () => {
     setLoading(true);
+    setLoadErrors({});
     try {
       const [ticketsResult, providersResult, lotsResult, contractsResult] = await Promise.allSettled([
         apiCall<any>(`${API_URL}/tickets`),
@@ -199,6 +205,13 @@ const Interventions: React.FC = () => {
         const result = contractsResult.value;
         setContracts(Array.isArray(result) ? result : []);
       }
+
+      const reason = (r: PromiseSettledResult<unknown>) =>
+        r.status === 'rejected' ? ((r.reason as Error)?.message || 'Erreur chargement données') : undefined;
+      const errors = { tickets: reason(ticketsResult), providers: reason(providersResult), contracts: reason(contractsResult) };
+      setLoadErrors(errors);
+      const firstError = errors.tickets || errors.providers || errors.contracts;
+      if (firstError) toast.error(firstError);
     } catch (e) {
       console.error(e);
       toast.error("Erreur chargement données");
@@ -228,6 +241,18 @@ const Interventions: React.FC = () => {
 
   // CRUD Operations
   const handleCreateTicket = async () => {
+    // Validation client des champs marqués * (même pattern « toast.error(... requis) »
+    // que MobileMoney / DocumentTemplates) : la demande partait vide jusqu'ici (T-042).
+    const missing = [
+      !ticketForm.lot_id && 'Bien / Lot',
+      !ticketForm.category && 'Catégorie',
+      !ticketForm.type.trim() && "Type d'intervention",
+      !ticketForm.description.trim() && 'Description',
+    ].filter(Boolean);
+    if (missing.length > 0) {
+      toast.error(`Champs requis manquants : ${missing.join(', ')}`);
+      return;
+    }
     try {
       await interventionApi.createTicket(ticketForm);
       toast.success("Demande créée");
@@ -235,7 +260,8 @@ const Interventions: React.FC = () => {
       setTicketForm({ lot_id: '', type: '', category: 'Maintenance corrective', description: '', priorite: 'Moyenne', urgency: 'Moyenne', requester_name: '', requester_phone: '', photos_before: [] });
       fetchData();
     } catch (e) {
-      toast.error("Erreur création");
+      // Message serveur conservé (interventionApi.createTicket le propage désormais)
+      toast.error((e as Error)?.message || "Erreur création");
     }
   };
 
@@ -363,6 +389,12 @@ const Interventions: React.FC = () => {
   const demandes = filteredTickets.filter(t => !t.provider_id && t.statut !== 'Clos');
   const interventions = filteredTickets.filter(t => t.provider_id || t.statut === 'Clos');
 
+  // Erreur de chargement de l'onglet courant (les onglets Demandes/Interventions dépendent des tickets)
+  const currentTabError = activeTab === 'partenaires' ? loadErrors.providers
+    : activeTab === 'contrats' ? loadErrors.contracts
+    : loadErrors.tickets;
+  const showRows = !loading && !currentTabError;
+
   // KPIs
   const urgentCount = tickets.filter(t => t.priorite === 'Urgente' && t.statut === 'Ouvert').length;
   const enCoursCount = tickets.filter(t => t.statut === 'En cours').length;
@@ -483,10 +515,11 @@ const Interventions: React.FC = () => {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard icon={AlertCircle} label="Urgentes" value={urgentCount.toString()} color="orange" />
-        <KPICard icon={Clock} label="En cours" value={enCoursCount.toString()} color="orange" />
-        <KPICard icon={CheckCircle} label="Résolues" value={resoluCount.toString()} color="green" />
-        <KPICard icon={Users} label="Prestataires" value={providers.length.toString()} color="teal" />
+        {/* '…' pendant le chargement et '—' en cas d'échec, comme Contrats : pas de faux « 0 » (T-042) */}
+        <KPICard icon={AlertCircle} label="Urgentes" value={loading ? '…' : loadErrors.tickets ? '—' : urgentCount.toString()} color="orange" />
+        <KPICard icon={Clock} label="En cours" value={loading ? '…' : loadErrors.tickets ? '—' : enCoursCount.toString()} color="orange" />
+        <KPICard icon={CheckCircle} label="Résolues" value={loading ? '…' : loadErrors.tickets ? '—' : resoluCount.toString()} color="green" />
+        <KPICard icon={Users} label="Prestataires" value={loading ? '…' : loadErrors.providers ? '—' : providers.length.toString()} color="teal" />
       </div>
 
       {/* Tabs */}
@@ -506,9 +539,12 @@ const Interventions: React.FC = () => {
           >
             <tab.icon size={18} />
             {tab.label}
+            {/* Compteur masqué pendant le chargement, comme les onglets de Contrats (T-042) */}
+            {!loading && (
             <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === tab.key ? 'bg-base-100/20' : 'bg-base-300'}`}>
               {tab.count}
             </span>
+            )}
           </button>
         ))}
       </div>
@@ -582,7 +618,7 @@ const Interventions: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {activeTab === 'demandes' && demandes.map(t => (
+              {showRows && activeTab === 'demandes' && demandes.map(t => (
                 <tr key={t.id} className="hover:bg-base-200">
                   <td className="p-4 font-mono text-sm">#{t.id}</td>
                   <td className="p-4">
@@ -602,7 +638,7 @@ const Interventions: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {activeTab === 'interventions' && interventions.map(t => (
+              {showRows && activeTab === 'interventions' && interventions.map(t => (
                 <tr key={t.id} className="hover:bg-base-200">
                   <td className="p-4 font-mono text-sm">#{t.id}</td>
                   <td className="p-4">
@@ -629,7 +665,7 @@ const Interventions: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {activeTab === 'partenaires' && providers.map(p => (
+              {showRows && activeTab === 'partenaires' && providers.map(p => (
                 <tr key={p.id} className="hover:bg-base-200">
                   <td className="p-4 font-bold">{p.name}</td>
                   <td className="p-4"><span className="badge badge-outline">{p.specialty}</span></td>
@@ -643,7 +679,7 @@ const Interventions: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {activeTab === 'contrats' && contracts.map(c => (
+              {showRows && activeTab === 'contrats' && contracts.map(c => (
                 <tr key={c.id} className="hover:bg-base-200">
                   <td className="p-4 font-bold">{c.title}</td>
                   <td className="p-4">{c.provider_name}</td>
@@ -656,7 +692,15 @@ const Interventions: React.FC = () => {
               ))}
             </tbody>
           </table>
-          {((activeTab === 'demandes' && demandes.length === 0) || (activeTab === 'interventions' && interventions.length === 0)) && (
+          {loading ? (
+            <div className="p-4 space-y-3">
+              {[1, 2, 3, 4, 5].map(i => <SkeletonLoader key={i} variant="table-row" />)}
+            </div>
+          ) : currentTabError ? (
+            <div className="p-6">
+              <LoadErrorState message={currentTabError} onRetry={fetchData} />
+            </div>
+          ) : ((activeTab === 'demandes' && demandes.length === 0) || (activeTab === 'interventions' && interventions.length === 0)) && (
             <div className="p-12 text-center text-base-content/50">Aucune donnée</div>
           )}
         </div>
