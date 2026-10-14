@@ -246,7 +246,7 @@ const Locataires: React.FC = () => {
 
       {/* Tabs & Filters Bar */}
       <motion.div variants={itemVariants} className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200">
-        <div className="flex p-1 bg-base-300/50 rounded-xl overflow-x-auto">
+        <div className="flex max-w-full p-1 bg-base-300/50 rounded-xl overflow-x-auto">
           {([
             { key: 'locataires',  icon: <Users size={18} />,  label: t('nav.locataires'), count: locataires.length },
             { key: 'acheteurs',   icon: <Wallet size={18} />, label: t('tenants.buyers'),  count: acheteurs.length },

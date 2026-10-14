@@ -1,5 +1,5 @@
 // frontend/src/components/NotificationBell.tsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Bell, Check, Trash2, X } from 'lucide-react';
 import { apiCall } from '../utils/apiUtils';
 import { API_URL as BASE_URL } from '../config';
@@ -21,6 +21,33 @@ const NotificationBell: React.FC = () => {
   const [loading, setLoading] = useState(false);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  // Décalage horizontal du panneau par rapport à la cloche (null = aligné à droite, right-0)
+  const [panelLeft, setPanelLeft] = useState<number | null>(null);
+
+  // Garde le panneau dans la zone visible (marge 16px) : aligné à droite de la cloche par défaut,
+  // décalé quand la cloche est trop près du bord gauche (petit écran, dashboard locataire).
+  // Zone = le <main> englobant s'il existe (sinon il serait coupé par son overflow ou passerait
+  // sous la sidebar fixe), sinon le viewport (cloche du Header, hors <main>).
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    const place = () => {
+      const wrapper = dropdownRef.current;
+      const panel = panelRef.current;
+      if (!wrapper || !panel) return;
+      const margin = 16;
+      const anchor = wrapper.getBoundingClientRect();
+      const area = wrapper.closest('main')?.getBoundingClientRect();
+      const minLeft = (area ? Math.max(area.left, 0) : 0) + margin;
+      const maxRight = (area ? Math.min(area.right, document.documentElement.clientWidth) : document.documentElement.clientWidth) - margin;
+      const width = panel.offsetWidth; // largeur de mise en page, hors transform d'animation
+      const left = Math.max(minLeft, Math.min(anchor.right - width, maxRight - width));
+      setPanelLeft(left - anchor.left);
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [isOpen]);
 
   const fetchNotifications = async () => {
     try {
@@ -100,11 +127,13 @@ const NotificationBell: React.FC = () => {
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            ref={panelRef}
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute right-0 mt-2 w-80 md:w-96 bg-base-100 rounded-xl shadow-2xl border border-base-200 overflow-hidden z-50 origin-top-right"
+            style={panelLeft !== null ? { left: panelLeft, right: 'auto' } : undefined}
+            className="absolute right-0 mt-2 w-80 md:w-96 max-w-[calc(100vw-2rem)] bg-base-100 rounded-xl shadow-2xl border border-base-200 overflow-hidden z-50 origin-top-right"
           >
             <div className="p-4 border-b border-base-200 flex justify-between items-center bg-base-200/50">
               <h3 className="font-bold text-base-content/90">Notifications</h3>

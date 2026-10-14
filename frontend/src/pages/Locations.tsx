@@ -320,7 +320,7 @@ const Locations: React.FC = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <div className="bg-base-100 p-4 rounded-xl shadow-sm border border-base-200">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
@@ -359,13 +359,15 @@ const Locations: React.FC = () => {
                     </div>
                 </div>
                 <div className="bg-base-100 p-4 rounded-xl shadow-sm border border-base-200">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+                    {/* Montant long dans une carte étroite : passe à la ligne avant « F CFA » (espace sécable),
+                        puis sous l'icône (flex-wrap + flex-1 base 0) si même le nombre seul ne tient pas à côté */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="w-10 h-10 shrink-0 rounded-lg bg-teal-100 flex items-center justify-center">
                             <DollarSign className="text-teal-600" size={20} />
                         </div>
-                        <div>
+                        <div className="flex-1">
                             <p className="text-2xl font-bold text-base-content/90">
-                                {formatCurrency(locations.filter(l => l.statut === 'actif').reduce((sum, l) => sum + (Number(l.loyer_mensuel) || 0), 0))}
+                                {formatCurrency(locations.filter(l => l.statut === 'actif').reduce((sum, l) => sum + (Number(l.loyer_mensuel) || 0), 0)).replace(/\u00a0(?=\D)/g, ' ')}
                             </p>
                             <p className="text-xs text-base-content/60">Loyers mensuels</p>
                         </div>
