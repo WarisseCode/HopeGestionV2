@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useCreateFromUrl } from '../hooks/useCreateFromUrl';
 import { getLocataires, createLocataire, deleteLocataire } from '../api/locataireApi';
 import { getProprietaires } from '../api/accountApi';
 import { getSubscriptionStatus } from '../api/subscriptionApi';
@@ -176,6 +177,15 @@ const Locataires: React.FC = () => {
     subscriptionStatus.plan.max_tenants !== -1 &&
     (subscriptionStatus.usage?.current_tenants ?? 0) >= subscriptionStatus.plan.max_tenants
   );
+
+  // Action rapide « Nouveau Locataire » du tableau de bord (?action=nouveau) : mêmes règles que le bouton
+  // « Nouveau locataire » (droits, plafond d'abonnement), décidées une fois l'abonnement chargé.
+  useCreateFromUrl(!loading, () => {
+    if (!canWrite) return;
+    if (isLimitReached) { toast(t('tenants.limitReachedToast'), { icon: '👑' }); navigate('/dashboard/abonnement'); return; }
+    setLocataireForm({ ...EMPTY_FORM, typeProfil: activeTab === 'acheteurs' ? 'Acheteur' : 'Locataire' });
+    setShowModal(true);
+  });
 
   if (showModal) {
     return (

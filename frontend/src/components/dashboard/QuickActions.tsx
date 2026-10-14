@@ -11,6 +11,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { withCreateAction } from '../../hooks/useCreateFromUrl';
 
 interface ActionButton {
   icon: React.ElementType;
@@ -29,6 +30,8 @@ interface QuickActionsProps {
 const QuickActions: React.FC<QuickActionsProps> = ({ userType }) => {
   const navigate = useNavigate();
 
+  // withCreateAction (?action=nouveau) : chaque action ouvre directement le formulaire de création
+  // de la page cible, et non plus seulement sa liste.
   const gestionnaireActions: ActionButton[] = [
     { 
       icon: Plus, 
@@ -36,7 +39,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ userType }) => {
       description: 'Ajouter',
       colorClass: 'bg-primary/5 hover:bg-primary/10 border-primary/20',
       iconColor: 'text-primary',
-      path: '/dashboard/biens'
+      path: withCreateAction('/dashboard/biens')
     },
     { 
       icon: Users, 
@@ -44,7 +47,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ userType }) => {
       description: 'Nouveau',
       colorClass: 'bg-secondary/5 hover:bg-secondary/10 border-secondary/20',
       iconColor: 'text-secondary',
-      path: '/dashboard/locataires'
+      path: withCreateAction('/dashboard/locataires')
     },
     { 
       icon: Wallet, 
@@ -52,7 +55,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ userType }) => {
       description: 'Saisir',
       colorClass: 'bg-success/5 hover:bg-success/10 border-success/20',
       iconColor: 'text-success',
-      path: '/dashboard/finances'
+      path: withCreateAction('/dashboard/finances')
     },
     { 
       icon: FileText, 
@@ -60,7 +63,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ userType }) => {
       description: 'Créer',
       colorClass: 'bg-warning/5 hover:bg-warning/10 border-warning/20',
       iconColor: 'text-warning',
-      path: '/dashboard/contrats'
+      path: withCreateAction('/dashboard/contrats')
     }
   ];
 

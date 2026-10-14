@@ -29,6 +29,7 @@ import { getSubscriptionStatus } from '../api/subscriptionApi';
 import type { Locataire } from '../api/locataireApi';
 import type { SubscriptionStatus } from '../api/subscriptionApi';
 import toast from 'react-hot-toast';
+import { useCreateFromUrl } from '../hooks/useCreateFromUrl';
 
 // Sub-modules
 import FinanceSchedules from './finance/FinanceSchedules';
@@ -47,6 +48,13 @@ const Finances: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'paiements' | 'echeances' | 'en_ligne' | 'depenses' | 'prets' | 'fiscalite'>('echeances');
   const [showForm, setShowForm] = useState(false);
+  // Action rapide « Saisir Paiement » du tableau de bord (?action=nouveau) : le formulaire
+  // d'encaissement n'est rendu que dans l'onglet « Paiements », d'où le changement d'onglet.
+  useCreateFromUrl(true, () => {
+    if (!canWrite) return;
+    setActiveTab('paiements');
+    setShowForm(true);
+  });
 
   const [paiements, setPaiements] = useState<Payment[]>([]);
   const [stats, setStats] = useState({ 

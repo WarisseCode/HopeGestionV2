@@ -14,6 +14,8 @@ import { useMobile } from '../hooks/useMobile';
 import { useTranslation } from 'react-i18next';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import { BRANDING } from '../config/branding';
+import NotificationBell from '../components/NotificationBell';
+import { pickActiveIndex, resolveBreadcrumb, type Crumb } from '../components/layout/navMatching';
 
 interface LocataireLayoutProps {
     children: React.ReactNode;
@@ -23,7 +25,9 @@ interface LocataireLayoutProps {
 // `label` contient une clé i18n, traduite au rendu via t(item.label).
 const NAV_ITEMS = [
     { icon: LayoutDashboard, label: 'nav.tableauDeBord',    path: '/dashboard/locataire' },
-    { icon: Home,            label: 'nav.monLogement',      path: '/dashboard/locataire' },
+    // Ancre vers la carte « logement » du tableau de bord : sans elle, les deux entrées pointaient
+    // vers la même URL et s'allumaient ensemble.
+    { icon: Home,            label: 'nav.monLogement',      path: '/dashboard/locataire#logement' },
     { icon: Wallet,          label: 'nav.mesPaiements',     path: '/dashboard/finances' },
     { icon: FileText,        label: 'nav.monContrat',       path: '/dashboard/contrats' },
     { icon: FolderOpen,      label: 'nav.documents',        path: '/dashboard/documents' },
@@ -54,7 +58,13 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
         getAlerts().then(({ alerts }) => setAlertsCount(alerts.length)).catch(() => {});
     }, []);
 
-    const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
+    // Un seul élément actif parmi menu principal + bas de menu (meilleure correspondance ; le premier en
+    // cas d'égalité : « Plaintes / Incidents » et « Notifications » mènent tous deux à /alertes).
+    const allItems = [...NAV_ITEMS, ...BOTTOM_ITEMS];
+    const activeIndex = pickActiveIndex(allItems.map(i => i.path), location.pathname, location.hash);
+    const crumbs = resolveBreadcrumb(
+        allItems.map(i => ({ path: i.path, label: t(i.label) })), location.pathname, location.hash, t, true,
+    );
 
     const handleLogout = () => {
         onLogout();
@@ -91,12 +101,13 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
 
             {/* Nav items */}
             <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-                {NAV_ITEMS.map(({ icon: Icon, label, path }) => {
-                    const active = isActive(path);
+                {NAV_ITEMS.map(({ icon: Icon, label, path }, i) => {
+                    const active = i === activeIndex;
                     return (
                         <Link
                             key={label}
                             to={path}
+                            aria-current={active ? 'page' : undefined}
                             onClick={() => isMobile && setSidebarOpen(false)}
                             className={`
                                 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
@@ -117,12 +128,13 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
 
             {/* Bottom section */}
             <div className="px-3 py-3 border-t border-base-200 space-y-0.5">
-                {BOTTOM_ITEMS.map(({ icon: Icon, label, path }) => {
-                    const active = isActive(path);
+                {BOTTOM_ITEMS.map(({ icon: Icon, label, path }, i) => {
+                    const active = NAV_ITEMS.length + i === activeIndex;
                     return (
                         <Link
                             key={path}
                             to={path}
+                            aria-current={active ? 'page' : undefined}
                             onClick={() => isMobile && setSidebarOpen(false)}
                             className={`
                                 flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium
@@ -189,21 +201,24 @@ const LocataireLayout: React.FC<LocataireLayoutProps> = ({ children, onLogout })
                         <div className="hidden md:flex items-center gap-1 text-sm text-base-content/50">
                             <span>{t('layout.tenantPortal')}</span>
                             <ChevronRight size={14} />
-                            <span className="text-base-content font-medium capitalize">
-                                {location.pathname.split('/').pop()?.replace('-', ' ') || t('nav.tableauDeBord')}
-                            </span>
+                            {(crumbs.length ? crumbs : [{ label: t('nav.tableauDeBord') }]).map((crumb: Crumb, i) => (
+                                <React.Fragment key={i}>
+                                    {i > 0 && <ChevronRight size={14} />}
+                                    {crumb.to ? (
+                                        <Link to={crumb.to} className="hover:text-primary">{crumb.label}</Link>
+                                    ) : (
+                                        <span aria-current="page" className="text-base-content font-medium">{crumb.label}</span>
+                                    )}
+                                </React.Fragment>
+                            ))}
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                        {alertsCount > 0 && (
-                            <Link to="/dashboard/alertes" className="btn btn-ghost btn-sm btn-circle relative">
-                                <Bell size={18} />
-                                <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-error text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                                    {alertsCount > 9 ? '9+' : alertsCount}
-                                </span>
-                            </Link>
-                        )}
+                        {/* Cloche unique de l'espace locataire : panneau de notifications, comme le Header
+                            gestionnaire (elle était dupliquée dans le contenu du tableau de bord). Les alertes
+                            restent accessibles, avec leur compteur, via « Notifications » du menu. */}
+                        <NotificationBell />
 
                         <Link to="/dashboard/mon-compte" className="flex items-center gap-2 hover:bg-base-200 rounded-xl px-2 py-1.5 transition-colors">
                             <div className="w-7 h-7 rounded-full bg-accent-soft flex items-center justify-center text-primary font-bold text-xs">

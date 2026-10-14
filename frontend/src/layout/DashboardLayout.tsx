@@ -7,6 +7,9 @@ import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
 import { useMobile } from '../hooks/useMobile';
+import { useTranslation } from 'react-i18next';
+import { buildDashboardMenu } from '../components/layout/dashboardMenu';
+import { resolveBreadcrumb } from '../components/layout/navMatching';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -22,6 +25,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
   // ne recouvre jamais le bas du contenu scrollable (boutons d'action des formulaires).
   const [bottomNavHeight, setBottomNavHeight] = useState(0);
   const location = useLocation();
+  const { t } = useTranslation();
 
   // Reset sidebar open state when mobile state changes
   useEffect(() => {
@@ -54,13 +58,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
-  // Titre de page simple basé sur l'URL (mapping basique ou on laisse Header gérer via breadcrumbs)
-  // Pour l'instant on passe un titre générique ou on extrait le dernier segment
-  const getPageTitle = () => {
-    const path = location.pathname.split('/').pop();
-    if (!path) return 'Bureau';
-    return path.charAt(0).toUpperCase() + path.slice(1).replace('-', ' ');
-  };
+  // Fil d'Ariane : libellés du menu latéral (même table que Sidebar), et non plus le slug d'URL
+  const breadcrumb = resolveBreadcrumb(
+    buildDashboardMenu(userProfile, t).flatMap(g => g.items).map(i => ({ path: `/dashboard${i.path}`, label: i.label })),
+    location.pathname,
+    location.hash,
+    t,
+  );
 
   return (
     <div className="flex h-screen supports-[height:100dvh]:h-dvh bg-base-200/50 font-sans text-base-content overflow-hidden">
@@ -98,7 +102,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
           <Header 
               toggleSidebar={toggleSidebar}
               isSidebarOpen={isSidebarOpen}
-              pageTitle={getPageTitle()}
+              breadcrumb={breadcrumb}
               userProfile={userProfile}
               onLogout={onLogout}
           />

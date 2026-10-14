@@ -18,6 +18,7 @@ import CreateContratForm from '../components/contrats/CreateContratForm';
 import ContratDetailModal from '../components/contrats/ContratDetailModal';
 import ContratsTable from '../components/contrats/ContratsTable';
 import LoadErrorState from '../components/ui/LoadErrorState';
+import { useCreateFromUrl } from '../hooks/useCreateFromUrl';
 
 type TabKey = 'locations' | 'ventes' | 'interventions';
 
@@ -50,6 +51,15 @@ const Contrats: React.FC = () => {
   const [selectedLease,   setSelectedLease]   = useState<Location | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForm,      setCreateForm]      = useState<CreateLocationData & { owner_id: number }>({ ...EMPTY_FORM });
+
+  // Action rapide « Créer Contrat » du tableau de bord (?action=nouveau) : même effet que « Nouveau »
+  // sur l'onglet Locations.
+  useCreateFromUrl(true, () => {
+    if (!canWrite) return;
+    setActiveTab('locations');
+    setCreateForm({ ...EMPTY_FORM, type_contrat: 'location' });
+    setShowCreateModal(true);
+  });
 
   const { data: allLeases = [], isLoading: leasesLoading, error: leasesError, refetch: refetchLeases } = useQuery<Location[]>({
     queryKey: ['locations'],

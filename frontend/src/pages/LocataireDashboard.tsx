@@ -1,6 +1,6 @@
 // frontend/src/pages/LocataireDashboard.tsx
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
   FileText,
@@ -22,7 +22,6 @@ import {
   UpcomingEvents,
   DashboardSkeleton
 } from '../components/dashboard';
-import NotificationBell from '../components/NotificationBell';
 import type { Activity } from '../components/dashboard/ActivityFeed';
 import type { UpcomingEvent } from '../components/dashboard/UpcomingEvents';
 import Button from '../components/ui/Button';
@@ -35,6 +34,7 @@ import { API_URL } from '../config';
 const LocataireDashboard: React.FC = () => {
   const { user, stats, loading } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activities, setActivities] = React.useState<Activity[]>([]);
 
   React.useEffect(() => {
@@ -57,6 +57,13 @@ const LocataireDashboard: React.FC = () => {
     };
     fetchActivities();
   }, []);
+
+  // Entrée de menu « Mon Logement » (/dashboard/locataire#logement) : amène la carte logement à l'écran
+  // (le routeur ne fait pas défiler vers les ancres). location.key : re-clic sur le même lien.
+  React.useEffect(() => {
+    if (loading || location.hash !== '#logement') return;
+    document.getElementById('logement')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [loading, location.hash, location.key]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -115,7 +122,7 @@ const LocataireDashboard: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-3">
-             <NotificationBell />
+             {/* La cloche de notifications est dans l'en-tête du layout (une seule cloche) */}
              <div className="text-right hidden md:block">
                 <p className="text-xs text-base-content/50 font-semibold uppercase tracking-wider">Mon Logement</p>
                 <p className="font-bold text-base-content/90">{nomLogement}</p>
@@ -196,8 +203,8 @@ const LocataireDashboard: React.FC = () => {
         
         {/* Left Column (Info & History) */}
         <div className="xl:col-span-2 space-y-8">
-             {/* Info Logement Card */}
-             <motion.div variants={itemVariants}>
+             {/* Info Logement Card — cible de l'entrée de menu « Mon Logement » (#logement) */}
+             <motion.div variants={itemVariants} id="logement" className="scroll-mt-4">
                 <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200 flex flex-col md:flex-row gap-6 items-start">
                      <div className="w-full md:w-1/3 rounded-xl overflow-hidden shadow-inner bg-gradient-to-br from-primary/5 to-primary/10 aspect-video md:aspect-square relative">
                         {(stats as any)?.photoLogement ? (

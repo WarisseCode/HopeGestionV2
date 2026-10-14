@@ -1,24 +1,25 @@
 
 // frontend/src/components/layout/Header.tsx
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Search, Home, ChevronRight, Settings, Crown, Sun, Moon, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import NotificationBell from '../NotificationBell';
 import SubscriptionBadge from '../SubscriptionBadge';
 import { updateProfile } from '../../api/accountApi';
 import SearchPalette from '../ui/SearchPalette';
+import type { Crumb } from './navMatching';
 
 interface HeaderProps {
   toggleSidebar: () => void;
   isSidebarOpen: boolean;
-  pageTitle: string;
+  /** Fil d'Ariane sous « Bureau » (vide sur l'accueil), calculé par le layout à partir du menu. */
+  breadcrumb: Crumb[];
   userProfile: any;
   onLogout: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle, userProfile, onLogout }) => {
-  const location = useLocation();
+const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, breadcrumb, userProfile, onLogout }) => {
   const { t } = useTranslation();
   const [theme, setTheme] = React.useState<'hopegestion' | 'dark'>('hopegestion');
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
@@ -59,21 +60,25 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, pageTitle
     }
   };
 
-  // Helper pour générer le fil d'ariane simple (Home > Page Actuelle)
+  // Fil d'ariane : Bureau > libellé du menu (> sous-page : Détail, Nouveau…)
   const getBreadcrumbs = () => {
     return (
-        <div className="hidden md:flex items-center gap-2 text-sm text-base-content/60 min-w-0">
+        <nav aria-label={t('header.breadcrumb')} className="hidden md:flex items-center gap-2 text-sm text-base-content/60 min-w-0">
             <Link to="/dashboard" className="hover:text-primary flex items-center gap-1 shrink-0">
                 <Home size={14} />
                 <span>{t('nav.bureau')}</span>
             </Link>
-            {location.pathname !== '/dashboard' && location.pathname !== '/dashboard/' && (
-                <>
+            {breadcrumb.map((crumb, i) => (
+                <React.Fragment key={i}>
                     <ChevronRight size={14} className="shrink-0" />
-                    <span className="font-medium text-base-content truncate">{pageTitle}</span>
-                </>
-            )}
-        </div>
+                    {crumb.to ? (
+                        <Link to={crumb.to} className="hover:text-primary truncate">{crumb.label}</Link>
+                    ) : (
+                        <span aria-current="page" className="font-medium text-base-content truncate">{crumb.label}</span>
+                    )}
+                </React.Fragment>
+            ))}
+        </nav>
     );
   };
 

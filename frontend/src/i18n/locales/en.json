@@ -272,14 +272,23 @@
     "accueil": "Home",
     "profil": "Profile",
     "paiements": "Payments",
-    "menu": "Menu"
+    "menu": "Menu",
+    "carnet": "Notebook",
+    "sub": {
+      "detail": "Details",
+      "new": "New",
+      "edit": "Edit",
+      "sign": "Signature",
+      "compare": "Comparison"
+    }
   },
   "header": {
     "profileAndPreferences": "Profile & Preferences",
     "mySubscription": "My Subscription",
     "toggleMenu": "Toggle menu",
     "toggleTheme": "Toggle theme",
-    "userProfile": "User profile"
+    "userProfile": "User profile",
+    "breadcrumb": "Breadcrumb"
   },
   "layout": {
     "ownerPortal": "Owner portal",

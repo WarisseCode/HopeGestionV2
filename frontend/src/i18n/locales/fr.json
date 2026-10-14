@@ -272,14 +272,23 @@
     "accueil": "Accueil",
     "profil": "Profil",
     "paiements": "Paiements",
-    "menu": "Menu"
+    "menu": "Menu",
+    "carnet": "Carnet de notes",
+    "sub": {
+      "detail": "Détail",
+      "new": "Nouveau",
+      "edit": "Modification",
+      "sign": "Signature",
+      "compare": "Comparaison"
+    }
   },
   "header": {
     "profileAndPreferences": "Profil et Préférences",
     "mySubscription": "Mon Abonnement",
     "toggleMenu": "Afficher/Masquer le menu",
     "toggleTheme": "Basculer le thème",
-    "userProfile": "Profil utilisateur"
+    "userProfile": "Profil utilisateur",
+    "breadcrumb": "Fil d'Ariane"
   },
   "layout": {
     "ownerPortal": "Portail propriétaire",

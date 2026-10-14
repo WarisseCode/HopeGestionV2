@@ -27,6 +27,7 @@ import { useTranslation } from 'react-i18next';
 import { saveLot } from '../api/bienApi';
 import type { Immeuble, Lot } from '../api/bienApi';
 import { useBiens } from '../hooks/useBiens';
+import { useCreateFromUrl } from '../hooks/useCreateFromUrl';
 import NoPhotoPlaceholder from '../components/ui/NoPhotoPlaceholder';
 import { getLotStatut } from '../utils/bienUtils';
 import toast from 'react-hot-toast';
@@ -95,6 +96,15 @@ const TableSkeleton = () => (
 const Biens: React.FC = () => {
   const b = useBiens();
   const { t } = useTranslation();
+
+  // Action rapide « Nouveau Bien » du tableau de bord (?action=nouveau) : mêmes règles que le bouton
+  // « Nouvel immeuble » (droits d'écriture, plafond d'abonnement), décidées une fois les données chargées.
+  useCreateFromUrl(!b.loading, () => {
+    if (!b.canWrite || b.loadError) return;
+    if (b.isLimitReached) { toast(t('properties.limitReachedToast'), { icon: '👑' }); return; }
+    b.setActiveTab('immeubles');
+    b.openNewImmeuble();
+  });
 
   // ── Form views ──────────────────────────────────────────────────────────
 
