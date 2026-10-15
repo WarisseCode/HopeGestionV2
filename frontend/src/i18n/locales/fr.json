@@ -224,7 +224,10 @@
       "organisation": "Organisation",
       "administration": "Administration",
       "monEspace": "Mon Espace",
-      "compte": "Compte"
+      "compte": "Compte",
+      "activite": "Activité",
+      "biensLocations": "Biens & locations",
+      "argent": "Argent"
     },
     "bureau": "Bureau",
     "tableauDeBord": "Tableau de bord",

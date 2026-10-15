@@ -58,10 +58,20 @@ const BottomNav: React.FC<BottomNavProps> = ({ toggleSidebar, userProfile, alert
 
   const actionItem = getActionItem();
 
-  const navItems = [
+  // Gestionnaire / admin (T-045) : « Transactions » remplace « Profil », qui reste accessible
+  // par « Menu » (groupe Compte du menu latéral). Propriétaire et locataire : inchangés.
+  // Même condition de visibilité que l'entrée Transactions du menu (dashboardMenu) ; tant que
+  // le profil n'est pas chargé, on suppose l'accès (évite un changement d'entrée au chargement).
+  const isOwnerOrTenant = ['auth_proprietaire', 'proprietaire', 'auth_locataire', 'locataire'].includes(type);
+  const canSeeTransactions = !userProfile || !!userProfile.permissions?.finance_read || role === 'admin' || role === 'gestionnaire';
+  const thirdItem = isOwnerOrTenant || !canSeeTransactions
+    ? { icon: <User size={24} />, label: 'nav.profil', path: '/dashboard/mon-compte' }
+    : { icon: <Wallet size={24} />, label: 'nav.transactions', path: '/dashboard/finances' };
+
+  const navItems: { icon: React.ReactNode; label: string; path: string; badge?: number }[] = [
     { icon: <LayoutDashboard size={24} />, label: 'nav.accueil', path: '/dashboard' },
     actionItem,
-    { icon: <User size={24} />, label: 'nav.profil', path: '/dashboard/mon-compte' },
+    thirdItem,
   ];
   const activeIndex = pickActiveIndex(navItems.map(i => i.path), location.pathname, location.hash);
 

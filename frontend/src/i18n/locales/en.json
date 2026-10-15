@@ -224,7 +224,10 @@
       "organisation": "Organization",
       "administration": "Administration",
       "monEspace": "My Space",
-      "compte": "Account"
+      "compte": "Account",
+      "activite": "Activity",
+      "biensLocations": "Properties & leases",
+      "argent": "Money"
     },
     "bureau": "Dashboard",
     "tableauDeBord": "Dashboard",

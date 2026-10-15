@@ -2,8 +2,8 @@
 // frontend/src/components/layout/Sidebar.tsx
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LogOut, X, ChevronDown, ChevronRight } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { LogOut, X, ChevronDown } from 'lucide-react';
+import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import ConfirmModal from '../ui/ConfirmModal';
 import { BRANDING } from '../../config';
@@ -22,16 +22,19 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
   const location = useLocation();
   const { t } = useTranslation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  // Ouvert par défaut : Activité ; le groupe de l'élément actif s'y ajoute (voir plus bas).
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    principal: true,
-    gestion: true,
+    activite: true,
   });
 
-  const toggleGroup = (groupTitle: string) => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [groupTitle]: !prev[groupTitle]
-    }));
+  // Bascule calculée sur l'état affiché (et non via `prev =>`) : un rendu de navigation abandonné
+  // (transition remplacée par une autre) peut laisser à React un état « dernier rendu » qui n'a
+  // jamais été affiché ; avec `prev =>`, le premier clic sur un groupe était alors perdu (mesuré).
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups({
+      ...expandedGroups,
+      [groupId]: !expandedGroups[groupId]
+    });
   };
 
   const menuGroups = buildDashboardMenu(userProfile, t, alertsCount);
@@ -45,20 +48,22 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
   })();
   const isActive = (path: string) => path === activePath;
 
-  // Le groupe qui contient l'élément actif s'ouvre quand il devient le groupe actif (chargement,
-  // profil chargé, arrivée depuis un autre groupe) ; les autres groupes gardent leur état. Tant
-  // que le groupe actif ne change pas, un repli manuel est respecté.
+  // Le groupe qui contient l'élément actif se rouvre à chaque changement d'élément actif
+  // (chargement, profil chargé, navigation, y compris vers une autre page du même groupe replié).
+  // Un repli manuel tient tant que l'élément actif ne change pas ; les autres groupes gardent leur état.
   const activeGroupId = menuGroups.find(g => g.items.some(i => i.path === activePath))?.id ?? null;
-  const [lastActiveGroupId, setLastActiveGroupId] = useState<string | null>(null);
-  if (activeGroupId !== lastActiveGroupId) {
-    setLastActiveGroupId(activeGroupId);
+  const [lastActivePath, setLastActivePath] = useState<string | null>(null);
+  if (activePath !== lastActivePath) {
+    setLastActivePath(activePath);
     if (activeGroupId && !expandedGroups[activeGroupId]) {
       setExpandedGroups(prev => ({ ...prev, [activeGroupId]: true }));
     }
   }
 
   return (
-    <>
+    // reducedMotion="user" : si l'OS demande moins d'animations, la pastille ne glisse plus et la
+    // hauteur des groupes saute (seule l'opacité reste animée).
+    <MotionConfig reducedMotion="user">
       {/* Mobile Backdrop */}
       <AnimatePresence>
         {isMobile && isOpen && (
@@ -98,7 +103,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto px-3 py-6 space-y-6 scrollbar-thin scrollbar-thumb-base-300/50 scrollbar-track-transparent">
+          <motion.nav layoutScroll className="flex-1 overflow-y-auto px-3 py-6 space-y-6 scrollbar-thin scrollbar-thumb-base-300/50 scrollbar-track-transparent">
               {menuGroups.map((group, idx) => (
                   <div key={idx} className="group-section">
                       {/* Group Title */}
@@ -108,7 +113,14 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                               onClick={() => toggleGroup(group.id)}
                           >
                               <span>{group.title}</span>
-                              {expandedGroups[group.id] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                              <motion.span
+                                  className="inline-flex"
+                                  initial={false}
+                                  animate={{ rotate: expandedGroups[group.id] ? 0 : -90 }}
+                                  transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                              >
+                                  <ChevronDown size={14} />
+                              </motion.span>
                           </div>
                       )}
                       
@@ -120,9 +132,22 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                           {((isOpen || isMobile) ? expandedGroups[group.id] : true) && (
                                <motion.div
                                   initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: "auto", opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  transition={{ duration: 0.2 }}
+                                  animate={{
+                                    height: "auto",
+                                    opacity: 1,
+                                    transition: {
+                                      height: { duration: 0.22, ease: [0.4, 0, 0.2, 1] },
+                                      opacity: { duration: 0.16, delay: 0.06 },
+                                    },
+                                  }}
+                                  exit={{
+                                    height: 0,
+                                    opacity: 0,
+                                    transition: {
+                                      height: { duration: 0.18, ease: [0.4, 0, 1, 1] },
+                                      opacity: { duration: 0.1 },
+                                    },
+                                  }}
                                   className="space-y-1 overflow-hidden"
                                >
                                    {group.items.map((item, itemIdx) => (
@@ -134,26 +159,38 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                                           {/* État actif = pastille des menus propriétaire/locataire (bg-primary). Les nuances
                                               primary-50/100/500/600/700 n'existent pas dans le thème (Tailwind 4) : seul ring-1
                                               s'appliquait, en currentColor, d'où un liseré noir collé au contenu. Mode réduit :
-                                              classes exclusives (px-0/mx-1 étaient écrasées par px-3/mx-2). */}
+                                              classes exclusives (px-0/mx-1 étaient écrasées par px-3/mx-2).
+                                              T-045 : le fond actif est une pastille partagée (layoutId) qui glisse d'un
+                                              élément à l'autre ; texte en fondu 200 ms, survol = fond base-200 en 150 ms,
+                                              léger enfoncement au clic (tout instantané si l'OS réduit les animations,
+                                              sinon le libellé resterait 200 ms illisible après le saut de la pastille).
+                                              layoutDependency : la pastille ne s'anime qu'au changement d'élément actif,
+                                              pas quand un groupe au-dessus s'ouvre ou se ferme. Plus d'overflow-hidden sur le lien (il ne servait
+                                              qu'à l'ancien effet de survol qui grossissait) pour ne pas couper le glissement. */}
                                           <Link
                                               to={`/dashboard${item.path}`}
                                               aria-current={isActive(item.path) ? 'page' : undefined}
                                               onClick={() => isMobile && toggleSidebar()}
                                               className={`
-                                                flex items-center gap-3 rounded-xl transition-all duration-300 group relative overflow-hidden
+                                                flex items-center gap-3 rounded-xl group relative
+                                                [transition:color_200ms,background-color_150ms,scale_150ms] active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100
                                                 ${(!isOpen && !isMobile) ? 'justify-center w-12 h-12 mx-1' : 'px-3 py-2.5 mx-2'}
                                                 ${isActive(item.path)
-                                                  ? 'bg-primary text-primary-content font-bold shadow-md shadow-primary/20'
-                                                  : 'text-base-content/60 hover:bg-base-200/50 hover:text-base-content font-medium'
+                                                  ? 'text-primary-content font-bold'
+                                                  : 'text-base-content/60 hover:bg-base-200 hover:text-base-content font-medium'
                                                 }
                                               `}
                                           >
-                                              {/* Hover Effect Background */}
-                                              {(!isActive(item.path)) && (
-                                                <span className="absolute inset-0 bg-base-content/5 scale-0 group-hover:scale-100 transition-transform duration-300 rounded-xl origin-center" />
+                                              {isActive(item.path) && (
+                                                <motion.span
+                                                  layoutId="sidebarActivePill"
+                                                  layoutDependency={activePath}
+                                                  className="absolute inset-0 bg-primary rounded-xl shadow-md shadow-primary/20"
+                                                  transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
+                                                />
                                               )}
 
-                                              <span className={`relative z-10 ${isActive(item.path) ? 'text-primary-content' : 'text-slate-400 group-hover:text-primary-500'} transition-colors duration-300`}>
+                                              <span className={`relative z-10 ${isActive(item.path) ? 'text-primary-content' : 'text-slate-400 group-hover:text-primary-500'} transition-colors duration-200 motion-reduce:transition-none`}>
                                                   {item.icon}
                                               </span>
                                               
@@ -175,7 +212,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                       </AnimatePresence>
                   </div>
               ))}
-          </nav>
+          </motion.nav>
 
           {/* Bottom Actions (Profile + Logout) */}
           <div className="p-4 border-t border-base-300 bg-base-200/50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] shrink-0 flex flex-col gap-2">
@@ -237,7 +274,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
           type="danger"
           icon={LogOut}
         />
-    </>
+    </MotionConfig>
   );
 };
 
