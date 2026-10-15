@@ -45,6 +45,18 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
   })();
   const isActive = (path: string) => path === activePath;
 
+  // Le groupe qui contient l'élément actif s'ouvre quand il devient le groupe actif (chargement,
+  // profil chargé, arrivée depuis un autre groupe) ; les autres groupes gardent leur état. Tant
+  // que le groupe actif ne change pas, un repli manuel est respecté.
+  const activeGroupId = menuGroups.find(g => g.items.some(i => i.path === activePath))?.id ?? null;
+  const [lastActiveGroupId, setLastActiveGroupId] = useState<string | null>(null);
+  if (activeGroupId !== lastActiveGroupId) {
+    setLastActiveGroupId(activeGroupId);
+    if (activeGroupId && !expandedGroups[activeGroupId]) {
+      setExpandedGroups(prev => ({ ...prev, [activeGroupId]: true }));
+    }
+  }
+
   return (
     <>
       {/* Mobile Backdrop */}
@@ -119,29 +131,29 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                                         className={(!isOpen && !isMobile) ? "tooltip tooltip-right w-full flex justify-center z-50 dropdown-content" : ""} 
                                         data-tip={item.label}
                                       >
-                                          <Link 
-                                              to={`/dashboard${item.path}`} 
+                                          {/* État actif = pastille des menus propriétaire/locataire (bg-primary). Les nuances
+                                              primary-50/100/500/600/700 n'existent pas dans le thème (Tailwind 4) : seul ring-1
+                                              s'appliquait, en currentColor, d'où un liseré noir collé au contenu. Mode réduit :
+                                              classes exclusives (px-0/mx-1 étaient écrasées par px-3/mx-2). */}
+                                          <Link
+                                              to={`/dashboard${item.path}`}
                                               aria-current={isActive(item.path) ? 'page' : undefined}
-                                              onClick={() => isMobile && toggleSidebar()} 
+                                              onClick={() => isMobile && toggleSidebar()}
                                               className={`
-                                                flex items-center gap-3 px-3 py-2.5 mx-2 rounded-xl transition-all duration-300 group relative overflow-hidden
-                                                ${isActive(item.path) 
-                                                  ? 'bg-gradient-to-r from-primary-50 to-transparent text-primary-700 font-bold shadow-sm ring-1 ring-primary-100/50' 
+                                                flex items-center gap-3 rounded-xl transition-all duration-300 group relative overflow-hidden
+                                                ${(!isOpen && !isMobile) ? 'justify-center w-12 h-12 mx-1' : 'px-3 py-2.5 mx-2'}
+                                                ${isActive(item.path)
+                                                  ? 'bg-primary text-primary-content font-bold shadow-md shadow-primary/20'
                                                   : 'text-base-content/60 hover:bg-base-200/50 hover:text-base-content font-medium'
                                                 }
-                                                ${(!isOpen && !isMobile) ? 'justify-center px-0 mx-1 w-12 h-12' : ''}
                                               `}
                                           >
-                                              {isActive(item.path) && (
-                                                  <span className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 rounded-r-full shadow-[0_0_8px_rgba(var(--color-primary-500),0.6)]" />
-                                              )}
-
                                               {/* Hover Effect Background */}
                                               {(!isActive(item.path)) && (
                                                 <span className="absolute inset-0 bg-base-content/5 scale-0 group-hover:scale-100 transition-transform duration-300 rounded-xl origin-center" />
                                               )}
 
-                                              <span className={`relative z-10 ${isActive(item.path) ? 'text-primary-600' : 'text-slate-400 group-hover:text-primary-500'} transition-colors duration-300`}>
+                                              <span className={`relative z-10 ${isActive(item.path) ? 'text-primary-content' : 'text-slate-400 group-hover:text-primary-500'} transition-colors duration-300`}>
                                                   {item.icon}
                                               </span>
                                               
