@@ -37,6 +37,10 @@ interface ReminderSetting {
     active: boolean;
 }
 
+// Noms accessibles des flèches Précédent/Suivant selon la vue affichée (T-050)
+const PREV_LABEL = { month: 'Mois précédent', week: 'Semaine précédente', day: 'Jour précédent' } as const;
+const NEXT_LABEL = { month: 'Mois suivant', week: 'Semaine suivante', day: 'Jour suivant' } as const;
+
 const CalendrierPage: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
@@ -257,22 +261,23 @@ const CalendrierPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 bg-base-100 p-1 rounded-lg border border-base-200">
-           <Button variant="ghost" size="sm" onClick={() => navigateDate('prev')}><ChevronLeft size={20}/></Button>
+           {/* Boutons icône sans nom : libellé selon la vue (T-050) */}
+           <Button variant="ghost" size="sm" onClick={() => navigateDate('prev')} aria-label={PREV_LABEL[viewMode]} title={PREV_LABEL[viewMode]}><ChevronLeft size={20}/></Button>
            <span className="font-bold min-w-[200px] text-center capitalize">
              {viewMode === 'month' ? format(currentDate, 'MMMM yyyy', { locale: fr }) : 
               viewMode === 'week' ? `Semaine du ${format(startOfWeek(currentDate, {weekStartsOn:1}), 'd MMM')}` : 
               format(currentDate, 'd MMMM yyyy', { locale: fr })}
            </span>
-           <Button variant="ghost" size="sm" onClick={() => navigateDate('next')}><ChevronRight size={20}/></Button>
+           <Button variant="ghost" size="sm" onClick={() => navigateDate('next')} aria-label={NEXT_LABEL[viewMode]} title={NEXT_LABEL[viewMode]}><ChevronRight size={20}/></Button>
         </div>
 
         <div className="flex flex-wrap xl:flex-nowrap justify-center gap-2">
             <div className="flex bg-base-300 rounded-lg p-1">
-                <button onClick={() => setViewMode('month')} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'month' ? 'bg-base-100 shadow' : ''}`}>Mois</button>
-                <button onClick={() => setViewMode('week')} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'week' ? 'bg-base-100 shadow' : ''}`}>Semaine</button>
-                <button onClick={() => setViewMode('day')} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'day' ? 'bg-base-100 shadow' : ''}`}>Jour</button>
+                <button onClick={() => setViewMode('month')} aria-pressed={viewMode === 'month'} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'month' ? 'bg-base-100 shadow' : ''}`}>Mois</button>
+                <button onClick={() => setViewMode('week')} aria-pressed={viewMode === 'week'} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'week' ? 'bg-base-100 shadow' : ''}`}>Semaine</button>
+                <button onClick={() => setViewMode('day')} aria-pressed={viewMode === 'day'} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'day' ? 'bg-base-100 shadow' : ''}`}>Jour</button>
             </div>
-            <Button variant="secondary" onClick={() => { setShowSettingsModal(true); fetchSettings(); }}>
+            <Button variant="secondary" onClick={() => { setShowSettingsModal(true); fetchSettings(); }} aria-label="Configurer les rappels" title="Configurer les rappels">
                 <Settings size={18} />
             </Button>
             <Button onClick={() => setShowEventModal(true)}>

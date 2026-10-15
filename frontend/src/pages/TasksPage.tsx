@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { 
   CheckSquare, Plus, Filter, Calendar, MessageSquare, 
   Clock, AlertTriangle, CheckCircle, User, MoreVertical, ArrowLeft
@@ -27,6 +27,7 @@ const TasksPage: React.FC = () => {
   // Modal & Chat State
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeChatTask, setActiveChatTask] = useState<any | null>(null);
+  const priorityId = useId(); // label « Priorité » associé à son select (T-050)
 
   // Form State
   const [newTask, setNewTask] = useState({
@@ -106,6 +107,7 @@ const TasksPage: React.FC = () => {
                 </div>
                 <div className="flex flex-wrap gap-2">
                     <select 
+                        aria-label="Filtrer les tâches"
                         className="text-sm border rounded-lg px-2 py-1.5 bg-base-100"
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
@@ -129,30 +131,37 @@ const TasksPage: React.FC = () => {
                 ) : tasks.length === 0 ? (
                     <p className="text-center text-base-content/50 py-12">Aucune tâche</p>
                 ) : tasks.map(task => (
+                    // Plus de role="button" sur la carte (le bouton de statut y était imbriqué) : le titre est un
+                    // vrai <button> dont la zone ::after couvre la carte (relative) ; le statut reste au-dessus (z-10).
+                    // Le clic souris passe toujours par la carte (T-050, remplace le motif de T-049)
                     <div 
                         key={task.id} 
-                        className={`group p-4 rounded-xl border hover:shadow-md transition-all cursor-pointer bg-base-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${activeChatTask?.id === task.id ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                        className={`relative group p-4 rounded-xl border hover:shadow-md transition-all cursor-pointer bg-base-100 ${activeChatTask?.id === task.id ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                         onClick={() => setActiveChatTask(task)}
-                        // Carte atteignable au clavier (T-049) : Entrée/Espace sur la carte elle-même
-                        // seulement, pas sur le bouton de statut imbriqué (qui garde son propre clic)
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                            if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
-                            e.preventDefault();
-                            setActiveChatTask(task);
-                        }}
                     >
                         <div className="flex justify-between items-start mb-2">
                             <div className="flex items-start gap-3">
+                                {/* shrink-0 : le bouton était écrasé à 7-13px par un titre long ; zone de clic agrandie par
+                                    ::before (44px sous md, 36px au-delà, bordure comprise), pastille visuelle w-5 h-5 inchangée (T-050) */}
                                 <button 
+                                    type="button"
                                     onClick={(e) => { e.stopPropagation(); handleStatusChange(task.id, task.status === 'done' ? 'todo' : 'done'); }}
-                                    className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${task.status === 'done' ? 'bg-green-500 border-green-500 text-white' : 'border-base-300 hover:border-primary'}`}
+                                    aria-label={task.status === 'done' ? 'Marquer comme à faire' : 'Marquer comme faite'}
+                                    title={task.status === 'done' ? 'Marquer comme à faire' : 'Marquer comme faite'}
+                                    className={`relative z-10 shrink-0 before:absolute before:-inset-3.5 md:before:-inset-2.5 before:content-[''] mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${task.status === 'done' ? 'bg-green-500 border-green-500 text-white' : 'border-base-300 hover:border-primary'}`}
                                 >
                                     {task.status === 'done' && <CheckCircle size={12}/>}
                                 </button>
                                 <div>
-                                    <h3 className={`font-semibold ${task.status === 'done' ? 'line-through text-base-content/50' : 'text-base-content'}`}>{task.title}</h3>
+                                    <h3 className={`font-semibold ${task.status === 'done' ? 'line-through text-base-content/50' : 'text-base-content'}`}>
+                                        {/* Bouton sans style propre (typo héritée, block pour garder le barré) ; anneau de focus sur toute la carte via ::after */}
+                                        <button
+                                            type="button"
+                                            className="block w-full text-left cursor-pointer focus-visible:outline-none after:absolute after:-inset-px after:rounded-xl after:content-[''] focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-primary"
+                                        >
+                                            {task.title}
+                                        </button>
+                                    </h3>
                                     <p className="text-sm text-base-content/60 line-clamp-1">{task.description}</p>
                                 </div>
                             </div>
@@ -172,8 +181,8 @@ const TasksPage: React.FC = () => {
                                     </span>
                                 )}
                              </div>
-                             {/* Visible aussi au focus clavier de la carte et par défaut sans survol (tactile) (T-049) */}
-                             <div className="flex items-center gap-1 text-primary group-hover:opacity-100 group-focus-visible:opacity-100 group-has-[:focus-visible]:opacity-100 [@media(hover:none)]:opacity-100 opacity-0 transition-opacity">
+                             {/* Visible aussi au focus clavier d'un bouton de la carte et par défaut sans survol (tactile) (T-049) */}
+                             <div className="flex items-center gap-1 text-primary group-hover:opacity-100 group-has-[:focus-visible]:opacity-100 [@media(hover:none)]:opacity-100 opacity-0 transition-opacity">
                                  <MessageSquare size={12}/> Ouvrir chat
                              </div>
                         </div>
@@ -222,8 +231,8 @@ const TasksPage: React.FC = () => {
                         <Input label="Description" value={newTask.description} onChange={e => setNewTask({...newTask, description: e.target.value})} placeholder="Détails de l'action..." />
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-bold mb-1">Priorité</label>
-                                <select className="w-full border rounded-lg p-2" value={newTask.priority} onChange={e => setNewTask({...newTask, priority: e.target.value})}>
+                                <label htmlFor={priorityId} className="block text-sm font-bold mb-1">Priorité</label>
+                                <select id={priorityId} className="w-full border rounded-lg p-2" value={newTask.priority} onChange={e => setNewTask({...newTask, priority: e.target.value})}>
                                     <option value="low">Basse</option>
                                     <option value="medium">Moyenne</option>
                                     <option value="high">Haute</option>

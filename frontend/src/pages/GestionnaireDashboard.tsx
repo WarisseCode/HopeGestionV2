@@ -362,7 +362,8 @@ const GestionnaireDashboard: React.FC = () => {
               
               <button 
                 onClick={() => setShowAllKpis(!showAllKpis)}
-                className="flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-focus transition-colors"
+                // min-h-6 : cible de 20px de haut portée à 24px, centrée dans la ligne (aucun décalage visible) (T-050)
+                className="flex items-center gap-1 min-h-6 text-sm font-semibold text-primary hover:text-primary-focus transition-colors"
                 >
                   {showAllKpis ? (
                       <>

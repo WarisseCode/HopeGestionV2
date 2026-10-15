@@ -61,7 +61,13 @@ const Card: React.FC<CardProps> = ({
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
-      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+      // Entrée/Espace sur la carte elle-même seulement : sur un bouton enfant (ex. « Marquer comme lu »
+      // dans Alertes), la touche remontait et déclenchait aussi la carte (T-050). Clic souris inchangé.
+      onKeyDown={onClick ? (e) => {
+        if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
+        e.preventDefault();
+        onClick();
+      } : undefined}
     >
       {(title || subtitle || headerActions) && (
         <div className={`${contentPaddingClasses[padding]} pt-6 pb-4 flex items-start justify-between`}>

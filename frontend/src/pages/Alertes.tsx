@@ -240,9 +240,14 @@ const Alertes: React.FC = () => {
 
        {/* Tabs */}
      <motion.div variants={itemVariants} className="flex justify-center md:justify-start">
-        <div className="flex p-1.5 bg-base-200/50 rounded-2xl overflow-x-auto w-full sm:w-auto shadow-inner ring-1 ring-base-content/5">
+        {/* Onglets exposés comme tels (role, état sélectionné) ; pas de navigation aux flèches, Tab inchangé (T-050) */}
+        <div role="tablist" aria-label="Centre d'alertes" className="flex p-1.5 bg-base-200/50 rounded-2xl overflow-x-auto w-full sm:w-auto shadow-inner ring-1 ring-base-content/5">
              <button
                 onClick={() => setActiveTab('alertes')}
+                role="tab"
+                id="alertes-tab-alertes"
+                aria-selected={activeTab === 'alertes'}
+                aria-controls="alertes-panel"
                 className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm transition-all duration-300 flex items-center justify-center gap-2.5 whitespace-nowrap ${
                 activeTab === 'alertes' ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-content/5 font-bold' : 'text-base-content/60 hover:text-base-content/90 hover:bg-base-100/50 font-medium'
                 }`}
@@ -253,6 +258,10 @@ const Alertes: React.FC = () => {
             </button>
             <button
                 onClick={() => setActiveTab('notifications')}
+                role="tab"
+                id="alertes-tab-notifications"
+                aria-selected={activeTab === 'notifications'}
+                aria-controls="alertes-panel"
                 className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm transition-all duration-300 flex items-center justify-center gap-2.5 whitespace-nowrap ${
                 activeTab === 'notifications' ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-content/5 font-bold' : 'text-base-content/60 hover:text-base-content/90 hover:bg-base-100/50 font-medium'
                 }`}
@@ -263,6 +272,10 @@ const Alertes: React.FC = () => {
             </button>
              <button
                 onClick={() => setActiveTab('parametres')}
+                role="tab"
+                id="alertes-tab-parametres"
+                aria-selected={activeTab === 'parametres'}
+                aria-controls="alertes-panel"
                 className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm transition-all duration-300 flex items-center justify-center gap-2.5 whitespace-nowrap ${
                 activeTab === 'parametres' ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-content/5 font-bold' : 'text-base-content/60 hover:text-base-content/90 hover:bg-base-100/50 font-medium'
                 }`}
@@ -277,6 +290,9 @@ const Alertes: React.FC = () => {
       <AnimatePresence mode="wait">
         <motion.div
             key="list"
+            role="tabpanel"
+            id="alertes-panel"
+            aria-labelledby={`alertes-tab-${activeTab}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -389,6 +405,8 @@ const Alertes: React.FC = () => {
                                                     }}
                                                     className="btn btn-ghost btn-circle btn-sm text-base-content/60 hover:text-primary hover:bg-primary/10 transition-colors tooltip tooltip-left"
                                                     data-tip="Voir les détails"
+                                                    // Nom propre à chaque ligne : data-tip seul n'est pas un nom fiable (T-050)
+                                                    aria-label={`Voir l'alerte ${alerte.reference}`}
                                                 >
                                                     <Eye size={16} />
                                                 </button>
@@ -396,6 +414,7 @@ const Alertes: React.FC = () => {
                                                     onClick={(e) => { e.stopPropagation(); handleDismiss(alerte.id); }}
                                                     className="btn btn-ghost btn-circle btn-sm text-base-content/60 hover:text-error hover:bg-error/10 transition-colors tooltip tooltip-left"
                                                     data-tip="Ignorer l'alerte"
+                                                    aria-label={`Ignorer l'alerte ${alerte.reference}`}
                                                     disabled={dismissingId === alerte.id}
                                                 >
                                                     {dismissingId === alerte.id 
@@ -469,7 +488,7 @@ const Alertes: React.FC = () => {
                                              </Button>
                                          )}
                                          {!notif.is_read && (
-                                             <button className="btn btn-ghost btn-circle btn-sm text-base-content/60 hover:text-primary hover:bg-primary/10 transition-colors tooltip tooltip-left" data-tip="Marquer comme lu" onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notif.id); }}>
+                                             <button className="btn btn-ghost btn-circle btn-sm text-base-content/60 hover:text-primary hover:bg-primary/10 transition-colors tooltip tooltip-left" data-tip="Marquer comme lu" aria-label={`Marquer comme lu : ${notif.title}`} onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notif.id); }}>
                                                  <CheckCircle size={18} />
                                              </button>
                                          )}
@@ -513,6 +532,8 @@ const Alertes: React.FC = () => {
                                     <input 
                                         type="checkbox" 
                                         className="toggle toggle-primary toggle-sm" 
+                                        // Libellé visible dans un span voisin, non associé : nom explicite avec le type d'alerte (T-050)
+                                        aria-label={`Email, ${ALERT_TYPE_LABELS[param.alert_type]?.label || param.alert_type}`}
                                         checked={param.channel_email}
                                         onChange={() => handleToggleSetting(param.alert_type, 'email')}
                                     />
@@ -522,6 +543,7 @@ const Alertes: React.FC = () => {
                                     <input 
                                         type="checkbox" 
                                         className="toggle toggle-success toggle-sm group-hover:shadow-[0_0_8px_rgba(34,197,94,0.4)] transition-all" 
+                                        aria-label={`WhatsApp, ${ALERT_TYPE_LABELS[param.alert_type]?.label || param.alert_type}`}
                                         checked={param.channel_whatsapp}
                                         onChange={() => handleToggleSetting(param.alert_type, 'whatsapp')}
                                     />
@@ -531,6 +553,7 @@ const Alertes: React.FC = () => {
                                     <input 
                                         type="checkbox" 
                                         className="toggle toggle-sm" 
+                                        aria-label={`SMS (bientôt), ${ALERT_TYPE_LABELS[param.alert_type]?.label || param.alert_type}`}
                                         checked={param.channel_sms}
                                         disabled
                                     />

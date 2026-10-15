@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import {
   Wrench, Plus, Eye, Trash2, Calendar, Phone, FileText,
   CheckCircle, AlertCircle, Search, Users, XCircle, Download,
@@ -97,6 +97,8 @@ const CATEGORY_EXAMPLES = {
 };
 
 const Interventions: React.FC = () => {
+  // Préfixe unique des id du formulaire de création : libellés associés à leur champ (T-050)
+  const formId = useId();
   const [activeTab, setActiveTab] = useState<'demandes' | 'interventions' | 'partenaires' | 'contrats'>('demandes');
   
   // Data
@@ -453,29 +455,29 @@ const Interventions: React.FC = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold mb-1">Bien / Lot *</label>
-                <select className="w-full border rounded-lg p-2" value={ticketForm.lot_id} onChange={e => setTicketForm({...ticketForm, lot_id: e.target.value})}>
+                <label htmlFor={`${formId}-lot`} className="block text-sm font-bold mb-1">Bien / Lot *</label>
+                <select id={`${formId}-lot`} className="w-full border rounded-lg p-2" value={ticketForm.lot_id} onChange={e => setTicketForm({...ticketForm, lot_id: e.target.value})}>
                   <option value="">Sélectionner un lot...</option>
                   {lots.map(l => (<option key={l.id} value={l.id}>{l.building_name} - {l.ref_lot}</option>))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold mb-1">Catégorie *</label>
-                <select className="w-full border rounded-lg p-2" value={ticketForm.category} onChange={e => setTicketForm({...ticketForm, category: e.target.value})}>
+                <label htmlFor={`${formId}-category`} className="block text-sm font-bold mb-1">Catégorie *</label>
+                <select id={`${formId}-category`} className="w-full border rounded-lg p-2" value={ticketForm.category} onChange={e => setTicketForm({...ticketForm, category: e.target.value})}>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-bold mb-1">Type d'intervention *</label>
-              <input type="text" className="w-full border rounded-lg p-2" placeholder="Ex: Fuite d'eau, Coupure électrique..." value={ticketForm.type} onChange={e => setTicketForm({...ticketForm, type: e.target.value})} list="intervention-types" />
+              <label htmlFor={`${formId}-type`} className="block text-sm font-bold mb-1">Type d'intervention *</label>
+              <input id={`${formId}-type`} type="text" className="w-full border rounded-lg p-2" placeholder="Ex: Fuite d'eau, Coupure électrique..." value={ticketForm.type} onChange={e => setTicketForm({...ticketForm, type: e.target.value})} list="intervention-types" />
               <datalist id="intervention-types">
                 {(CATEGORY_EXAMPLES[ticketForm.category as keyof typeof CATEGORY_EXAMPLES] || []).map(ex => (<option key={ex} value={ex} />))}
               </datalist>
             </div>
             <div>
-              <label className="block text-sm font-bold mb-1">Description *</label>
-              <textarea className="w-full border rounded-lg p-2" rows={3} placeholder="Décrivez le problème en détail..." value={ticketForm.description} onChange={e => setTicketForm({...ticketForm, description: e.target.value})} />
+              <label htmlFor={`${formId}-description`} className="block text-sm font-bold mb-1">Description *</label>
+              <textarea id={`${formId}-description`} className="w-full border rounded-lg p-2" rows={3} placeholder="Décrivez le problème en détail..." value={ticketForm.description} onChange={e => setTicketForm({...ticketForm, description: e.target.value})} />
             </div>
             <div>
               <label className="block text-sm font-bold mb-1">Urgence</label>
@@ -584,16 +586,17 @@ const Interventions: React.FC = () => {
             <input
               type="text"
               placeholder="Rechercher..."
+              aria-label="Rechercher une intervention"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="pl-10 pr-4 py-2 border rounded-lg w-64"
             />
           </div>
-          <select value={filterStatut} onChange={e => setFilterStatut(e.target.value)} className="border rounded-lg px-3 py-2">
+          <select aria-label="Filtrer par statut" value={filterStatut} onChange={e => setFilterStatut(e.target.value)} className="border rounded-lg px-3 py-2">
             <option value="">Tous les statuts</option>
             {Object.keys(STATUS_CONFIG).map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <select value={filterPriorite} onChange={e => setFilterPriorite(e.target.value)} className="border rounded-lg px-3 py-2">
+          <select aria-label="Filtrer par priorité" value={filterPriorite} onChange={e => setFilterPriorite(e.target.value)} className="border rounded-lg px-3 py-2">
             <option value="">Toutes priorités</option>
             <option value="Basse">Basse</option>
             <option value="Moyenne">Moyenne</option>
@@ -684,7 +687,7 @@ const Interventions: React.FC = () => {
                     <div className="flex justify-end gap-2 whitespace-nowrap">
                     {t.statut !== 'Clos' && (
                       <>
-                        <Button size="sm" variant="secondary" onClick={() => { setSelectedTicket(t); setShowRescheduleModal(true); }}>
+                        <Button size="sm" variant="secondary" aria-label={`Reprogrammer l'intervention #${t.id}`} title="Reprogrammer" onClick={() => { setSelectedTicket(t); setShowRescheduleModal(true); }}>
                           <RefreshCw size={14} />
                         </Button>
                         <Button size="sm" onClick={() => { setSelectedTicket(t); setShowCloseModal(true); }}>Clôturer</Button>
@@ -713,7 +716,20 @@ const Interventions: React.FC = () => {
                       : <span className="badge badge-success badge-sm">Actif</span>}
                   </td>
                   <td className="p-4 text-right">
-                    <Button size="sm" variant="ghost"><Phone size={14} /></Button>
+                    {/* Le bouton n'avait ni nom ni action : lien tel: quand un numéro existe, mêmes classes que
+                        Button ghost sm ; sans numéro, bouton nommé mais toujours sans action (T-050) */}
+                    {p.phone ? (
+                      <a
+                        href={`tel:${p.phone.replace(/[^\d+]/g, '')}`}
+                        aria-label={`Appeler ${p.name}`}
+                        title={`Appeler ${p.name}`}
+                        className="inline-flex items-center justify-center font-heading font-semibold rounded-xl border border-transparent transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 shadow-sm hover:shadow-md active:scale-95 bg-transparent text-base-content hover:bg-base-200 focus:ring-base-300 text-sm px-3 py-1.5 gap-1.5"
+                      >
+                        <Phone size={14} />
+                      </a>
+                    ) : (
+                      <Button size="sm" variant="ghost" aria-label={`Appeler ${p.name}`} title={`Appeler ${p.name}`}><Phone size={14} /></Button>
+                    )}
                   </td>
                 </tr>
               ))}
