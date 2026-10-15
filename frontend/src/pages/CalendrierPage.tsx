@@ -99,6 +99,11 @@ const CalendrierPage: React.FC = () => {
   };
 
   const handleCreateEvent = async () => {
+      // Titre obligatoire : un événement sans titre partait et « Événement créé » s'affichait (T-047)
+      if (!newEvent.title.trim()) {
+          toast.error("Titre de l'événement requis");
+          return;
+      }
       try {
           const startDateTime = new Date(`${newEvent.date}T${newEvent.time}`);
           await apiCall(`${API_URL}/calendar/events`, {

@@ -59,6 +59,9 @@ const Alertes: React.FC = () => {
   const [dismissingId, setDismissingId] = useState<string | null>(null);
 
   const [parametres, setParametres] = useState<NotificationSetting[]>([]);
+  // Échec du chargement des réglages : on n'affiche plus DEFAULT_SETTINGS comme s'ils
+  // étaient les réglages réels, sinon un clic écrasait la configuration serveur (T-047)
+  const [settingsError, setSettingsError] = useState<string | null>(null);
   const [savingSettingId, setSavingSettingId] = useState<string | null>(null);
 
 
@@ -67,6 +70,7 @@ const Alertes: React.FC = () => {
       setLoading(true);
       setAlertsError(null);
       setNotificationsError(null);
+      setSettingsError(null);
 
       // Independent fetches to prevent one blocking others
       const fetchNotifications = async () => {
@@ -103,7 +107,7 @@ const Alertes: React.FC = () => {
               }
           } catch (err) {
               console.error("Erreur paramètres", err);
-              setParametres(DEFAULT_SETTINGS); // Fallback to default on err
+              setSettingsError((err as Error)?.message || 'Erreur lors du chargement des paramètres');
           }
       };
 
@@ -126,6 +130,8 @@ const Alertes: React.FC = () => {
   }, [fetchData]);
 
   const handleToggleSetting = async (alertType: string, channel: 'email' | 'whatsapp' | 'sms') => {
+      // Aucune écriture tant que les réglages réels n'ont pas été chargés (T-047)
+      if (loading || settingsError) return;
       const updated = parametres.map(p => {
           if (p.alert_type === alertType) {
               return {
@@ -243,7 +249,7 @@ const Alertes: React.FC = () => {
             >
                 <AlertTriangle size={18} />
                 Alertes
-                <span className={`badge badge-xs ml-0.5 border-none shadow-sm ${activeTab === 'alertes' ? 'bg-primary/10 text-primary font-bold' : 'badge-ghost text-base-content/50'}`}>{alertes.length}</span>
+                <span className={`badge badge-xs ml-0.5 border-none shadow-sm ${activeTab === 'alertes' ? 'bg-primary/10 text-primary font-bold' : 'badge-ghost text-base-content/50'}`}>{loading ? '…' : alertes.length}</span>
             </button>
             <button
                 onClick={() => setActiveTab('notifications')}
@@ -277,11 +283,12 @@ const Alertes: React.FC = () => {
             className="space-y-8"
         >
             {/* KPIs */}
+            {/* '…' pendant le chargement, comme Interventions : pas de faux « 0 » (T-047) */}
             {activeTab === 'alertes' && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <KPICard icon={AlertTriangle} label="Action Requise" value={alertes.length.toString()} color="orange" />
-                    <KPICard icon={TrendingUp} label="Priorité Haute" value={alertes.filter(a => a.priorite === 'Urgente' || a.priorite === 'Haute').length.toString()} color="pink" />
-                    <KPICard icon={CheckCircle} label="Ignorées" value={dismissedCount.toString()} color="green" />
+                    <KPICard icon={AlertTriangle} label="Action Requise" value={loading ? '…' : alertes.length.toString()} color="orange" />
+                    <KPICard icon={TrendingUp} label="Priorité Haute" value={loading ? '…' : alertes.filter(a => a.priorite === 'Urgente' || a.priorite === 'Haute').length.toString()} color="pink" />
+                    <KPICard icon={CheckCircle} label="Ignorées" value={loading ? '…' : dismissedCount.toString()} color="green" />
                 </div>
             )}
             
@@ -471,7 +478,15 @@ const Alertes: React.FC = () => {
             )}
 
             {/* PARAMETRES */}
-            {activeTab === 'parametres' && (
+            {/* Chargement : spinner (l'onglet restait vide). Échec : état d'erreur au lieu des
+                réglages par défaut ; les interrupteurs ne sont rendus qu'une fois les réglages reçus (T-047) */}
+            {activeTab === 'parametres' && loading && (
+                <div className="text-center py-12"><span className="loading loading-spinner loading-lg text-primary"></span></div>
+            )}
+            {activeTab === 'parametres' && !loading && settingsError && (
+                <LoadErrorState message={settingsError} onRetry={fetchData} />
+            )}
+            {activeTab === 'parametres' && !loading && !settingsError && (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {parametres.map(param => (
                         <Card key={param.alert_type} className="hover:shadow-xl transition-all duration-300 border border-base-200 hover:border-primary/30">

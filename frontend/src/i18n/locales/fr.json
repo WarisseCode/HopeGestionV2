@@ -194,6 +194,8 @@
     "metrics": "indicateurs",
     "dataUnavailable": "Données indisponibles",
     "dataUnavailableDesc": "Impossible de charger les indicateurs. Veuillez vérifier votre connexion ou rafraîchir la page.",
+    "noKpisTitle": "Bienvenue sur votre tableau de bord",
+    "noKpisDesc": "Vos indicateurs apparaîtront ici dès que vous aurez ajouté vos premiers biens, locataires et contrats.",
     "notEnoughDataTitle": "Pas encore assez de données",
     "notEnoughDataDesc": "La tendance s'affichera dès qu'au moins deux paiements ou dépenses auront été enregistrés à des dates différentes sur la période choisie.",
     "financialAnalysis": "Analyse Financière",

@@ -53,6 +53,7 @@ import { apiCall } from '../utils/apiUtils';
 import { API_URL } from '../config';
 import { getToken } from '../api/authApi';
 import EmptyState from '../components/ui/EmptyState';
+import LoadErrorState from '../components/ui/LoadErrorState';
 
 // --- Types for API Data ---
 interface KPIData {
@@ -76,6 +77,8 @@ const GestionnaireDashboard: React.FC = () => {
   const [isLoadingKpis, setIsLoadingKpis] = useState(true);
   const [isLoadingChart, setIsLoadingChart] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  // Échec du chargement des KPI, distinct d'un compte sans indicateur (200 + kpis: []) (T-047)
+  const [kpiError, setKpiError] = useState<string | null>(null);
 
   const handleKpiClick = (kpi: KPIData) => {
       if (kpi.id === 'lots_occupation') {
@@ -157,12 +160,15 @@ const GestionnaireDashboard: React.FC = () => {
   useEffect(() => {
     const fetchKPIs = async () => {
       setIsLoadingKpis(true);
+      setKpiError(null);
       try {
         const data = await apiCall<{ kpis: any[] }>(`${API_URL}/dashboard/kpi?period=${period}`);
         setKpis(data.kpis);
       } catch (error) {
         console.error('Error fetching KPIs:', error);
         setKpis([]);
+        // Chaîne vide => LoadErrorState affiche son message de repli traduit
+        setKpiError((error as Error)?.message || '');
       } finally {
         setIsLoadingKpis(false);
       }
@@ -177,11 +183,18 @@ const GestionnaireDashboard: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [featuredProperties, setFeaturedProperties] = useState<any[]>([]);
   const [loadingWidgets, setLoadingWidgets] = useState(true);
+  // Erreur par widget (null = pas d'erreur) : un 500 s'affichait comme un état vide
+  // (« Pas encore assez de données », « Aucun bien en vedette »…) (T-047)
+  const [widgetErrors, setWidgetErrors] = useState<{ chart: string | null; activity: string | null; properties: string | null }>({ chart: null, activity: null, properties: null });
+  // Relance des widgets par « Réessayer », sans recharger la page (T-047)
+  const [widgetsRetryKey, setWidgetsRetryKey] = useState(0);
+  const retryWidgets = () => setWidgetsRetryKey(k => k + 1);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       setIsLoadingChart(true);
       setLoadingWidgets(true);
+      setWidgetErrors({ chart: null, activity: null, properties: null });
       const token = getToken();
       
       if (!token) {
@@ -191,27 +204,37 @@ const GestionnaireDashboard: React.FC = () => {
         return;
       }
 
+      // r.ok vérifié : sans cela, le corps d'un 500 ({ message }) passait pour une réponse vide (T-047)
+      const fetchJson = (url: string) => fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).then(async r => {
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(body?.message || '');
+        return body;
+      });
+      const reason = (res: PromiseSettledResult<unknown>) =>
+        res.status === 'rejected' ? ((res.reason as Error)?.message || '') : null;
+
       try {
         // 1. Chart Data
-        const chartPromise = fetch(`${API_URL}/dashboard/chart-data?period=${period}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }).then(r => r.json());
+        const chartPromise = fetchJson(`${API_URL}/dashboard/chart-data?period=${period}`);
 
         // 2. Activity Feed
-        const activityPromise = fetch(`${API_URL}/dashboard/activity`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        }).then(r => r.json());
+        const activityPromise = fetchJson(`${API_URL}/dashboard/activity`);
 
         // 3. Featured Properties
-        const propertiesPromise = fetch(`${API_URL}/dashboard/featured-properties`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        }).then(r => r.json());
+        const propertiesPromise = fetchJson(`${API_URL}/dashboard/featured-properties`);
 
-        const [chartRes, activityRes, propertiesRes] = await Promise.all([
-            chartPromise, 
-            activityPromise, 
+        // allSettled : l'échec d'un widget n'empêche plus l'affichage des deux autres
+        const [chartResult, activityResult, propertiesResult] = await Promise.allSettled([
+            chartPromise,
+            activityPromise,
             propertiesPromise
         ]);
+        setWidgetErrors({ chart: reason(chartResult), activity: reason(activityResult), properties: reason(propertiesResult) });
+        const chartRes = chartResult.status === 'fulfilled' ? chartResult.value : {};
+        const activityRes = activityResult.status === 'fulfilled' ? activityResult.value : {};
+        const propertiesRes = propertiesResult.status === 'fulfilled' ? propertiesResult.value : {};
 
         if (chartRes.chartData) setChartData(chartRes.chartData);
         if (activityRes.activities) {
@@ -241,7 +264,7 @@ const GestionnaireDashboard: React.FC = () => {
     };
     
     fetchDashboardData();
-  }, [period]);
+  }, [period, widgetsRetryKey]);
 
   // Alias for chart
   const revenusData = chartData;
@@ -366,14 +389,18 @@ const GestionnaireDashboard: React.FC = () => {
                 </div>
               ))}
             </div>
+          ) : kpiError !== null ? (
+            // Vrai échec : message et « Réessayer » qui relance la requête (plus de reload) (T-047)
+            <div className="col-span-full py-8">
+              <LoadErrorState message={kpiError} onRetry={() => setRefreshKey(k => k + 1)} />
+            </div>
           ) : visibleKpis.length === 0 ? (
+            // 200 sans indicateur (compte neuf) : accueil, pas « Données indisponibles » (T-047)
             <div className="col-span-full py-8">
               <EmptyState
-                icon={<AlertTriangle size={48} />}
-                title={t('dashboard.dataUnavailable')}
-                description={t('dashboard.dataUnavailableDesc')}
-                actionLabel={t('common.retry')}
-                onAction={() => window.location.reload()}
+                icon={<Building2 size={48} />}
+                title={t('dashboard.noKpisTitle')}
+                description={t('dashboard.noKpisDesc')}
               />
             </div>
           ) : (
@@ -432,7 +459,9 @@ const GestionnaireDashboard: React.FC = () => {
                           {t('common.refresh')}
                         </Button>
                     </div>
-                    {revenusData.length < 2 ? (
+                    {widgetErrors.chart !== null ? (
+                      <LoadErrorState message={widgetErrors.chart} onRetry={retryWidgets} className="border-none" />
+                    ) : revenusData.length < 2 ? (
                       <EmptyState
                         icon={<TrendingUp size={32} />}
                         title={t('dashboard.notEnoughDataTitle')}
@@ -494,6 +523,8 @@ const GestionnaireDashboard: React.FC = () => {
                              <div key={i} className="bg-base-300 rounded-2xl h-32 animate-pulse"></div>
                         ))}
                     </div>
+                ) : widgetErrors.properties !== null ? (
+                    <LoadErrorState message={widgetErrors.properties} onRetry={retryWidgets} />
                 ) : featuredProperties.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {featuredProperties.map(property => (
@@ -588,6 +619,8 @@ const GestionnaireDashboard: React.FC = () => {
                          <div className="space-y-4">
                              {[1, 2, 3].map(i => <div key={i} className="h-16 bg-base-300 rounded-xl animate-pulse"></div>)}
                          </div>
+                    ) : widgetErrors.activity !== null ? (
+                        <LoadErrorState message={widgetErrors.activity} onRetry={retryWidgets} className="border-none" />
                     ) : activities.length > 0 ? (
                         <ActivityFeed activities={activities} />
                     ) : (

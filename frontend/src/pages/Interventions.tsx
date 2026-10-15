@@ -267,6 +267,12 @@ const Interventions: React.FC = () => {
 
   const handleAssign = async () => {
     if (!selectedTicket) return;
+    // Sans prestataire, parseInt('') = NaN partait en provider_id: null et le toast
+    // « Intervention assignée » mentait : seul le statut changeait côté serveur (T-047)
+    if (!assignForm.provider_id) {
+      toast.error('Prestataire requis');
+      return;
+    }
     try {
       await interventionApi.updateTicket(selectedTicket.id, {
         provider_id: parseInt(assignForm.provider_id),
@@ -296,6 +302,11 @@ const Interventions: React.FC = () => {
 
   const handleClose = async () => {
     if (!selectedTicket) return;
+    // Champ marqué * mais accepté vide par le serveur : clôture sans compte rendu (T-047)
+    if (!closeForm.actions_done.trim()) {
+      toast.error('Actions réalisées requises');
+      return;
+    }
     try {
       await apiCall(`${API_URL}/tickets/${selectedTicket.id}/close`, {
         method: 'POST',
@@ -311,6 +322,11 @@ const Interventions: React.FC = () => {
 
   const handleReschedule = async () => {
     if (!selectedTicket) return;
+    // Reprogrammer sans nouvelle date n'a pas de sens ; la requête partait quand même (T-047)
+    if (!rescheduleForm.new_date) {
+      toast.error('Nouvelle date requise');
+      return;
+    }
     try {
       await apiCall(`${API_URL}/tickets/${selectedTicket.id}/reschedule`, {
         method: 'POST',
@@ -325,6 +341,11 @@ const Interventions: React.FC = () => {
   };
 
   const handleCreateProvider = async () => {
+    // Nom obligatoire côté serveur (providerCreateRules) : on ne l'envoie plus vide (T-047)
+    if (!providerForm.name.trim()) {
+      toast.error("Nom de l'entreprise requis");
+      return;
+    }
     try {
       await interventionApi.createProvider(providerForm);
       toast.success("Prestataire créé");
@@ -336,6 +357,11 @@ const Interventions: React.FC = () => {
   };
 
   const handleCreateContract = async () => {
+    // Titre obligatoire côté serveur (contractCreateRules) : on ne l'envoie plus vide (T-047)
+    if (!contractForm.title.trim()) {
+      toast.error('Titre du contrat requis');
+      return;
+    }
     try {
       await apiCall(`${API_URL}/service-contracts`, {
         method: 'POST',
@@ -673,7 +699,13 @@ const Interventions: React.FC = () => {
                     <div>{p.contact_name}</div>
                     <div className="text-xs text-base-content/60">{p.phone}</div>
                   </td>
-                  <td className="p-4"><span className="badge badge-success badge-sm">Actif</span></td>
+                  {/* Statut réel du prestataire (« Actif » était codé en dur). La colonne vaut
+                      'active' par défaut en base : seul 'inactive' s'affiche Inactif (T-047) */}
+                  <td className="p-4">
+                    {p.status === 'inactive'
+                      ? <span className="badge badge-ghost badge-sm">Inactif</span>
+                      : <span className="badge badge-success badge-sm">Actif</span>}
+                  </td>
                   <td className="p-4 text-right">
                     <Button size="sm" variant="ghost"><Phone size={14} /></Button>
                   </td>

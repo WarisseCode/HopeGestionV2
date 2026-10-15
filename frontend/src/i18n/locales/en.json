@@ -194,6 +194,8 @@
     "metrics": "metrics",
     "dataUnavailable": "Data unavailable",
     "dataUnavailableDesc": "Unable to load indicators. Please check your connection or refresh the page.",
+    "noKpisTitle": "Welcome to your dashboard",
+    "noKpisDesc": "Your indicators will appear here as soon as you add your first properties, tenants and leases.",
     "notEnoughDataTitle": "Not enough data yet",
     "notEnoughDataDesc": "The trend will show up once at least two payments or expenses are recorded on different dates within the selected period.",
     "financialAnalysis": "Financial Analysis",
