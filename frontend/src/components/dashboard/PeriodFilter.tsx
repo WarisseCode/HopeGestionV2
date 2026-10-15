@@ -52,7 +52,7 @@ const PeriodFilter: React.FC<PeriodFilterProps> = ({
                 transition-all duration-200 whitespace-nowrap
                 ${isActive 
                   ? 'text-primary-content'
-                  : 'text-base-content/60 hover:text-base-content/80 hover:bg-base-300'
+                  : 'text-base-content/80 hover:text-base-content hover:bg-base-300'
                 }
               `}
             >

@@ -227,7 +227,7 @@ const Alertes: React.FC = () => {
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
             Centre d'Alertes
           </h1>
-          <p className="text-base-content/60 font-medium mt-1">
+          <p className="text-base-content/70 font-medium mt-1">
             Actions requises et notifications système.
           </p>
         </div>
@@ -249,12 +249,12 @@ const Alertes: React.FC = () => {
                 aria-selected={activeTab === 'alertes'}
                 aria-controls="alertes-panel"
                 className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm transition-all duration-300 flex items-center justify-center gap-2.5 whitespace-nowrap ${
-                activeTab === 'alertes' ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-content/5 font-bold' : 'text-base-content/60 hover:text-base-content/90 hover:bg-base-100/50 font-medium'
+                activeTab === 'alertes' ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-content/5 font-bold' : 'text-base-content/70 hover:text-base-content/90 hover:bg-base-100/50 font-medium'
                 }`}
             >
                 <AlertTriangle size={18} />
                 Alertes
-                <span className={`badge badge-xs ml-0.5 border-none shadow-sm ${activeTab === 'alertes' ? 'bg-primary/10 text-primary font-bold' : 'badge-ghost text-base-content/50'}`}>{loading ? '…' : alertes.length}</span>
+                <span className={`badge badge-xs ml-0.5 border-none shadow-sm ${activeTab === 'alertes' ? 'bg-primary/10 text-primary font-bold' : 'badge-ghost text-base-content/70'}`}>{loading ? '…' : alertes.length}</span>
             </button>
             <button
                 onClick={() => setActiveTab('notifications')}
@@ -263,7 +263,7 @@ const Alertes: React.FC = () => {
                 aria-selected={activeTab === 'notifications'}
                 aria-controls="alertes-panel"
                 className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm transition-all duration-300 flex items-center justify-center gap-2.5 whitespace-nowrap ${
-                activeTab === 'notifications' ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-content/5 font-bold' : 'text-base-content/60 hover:text-base-content/90 hover:bg-base-100/50 font-medium'
+                activeTab === 'notifications' ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-content/5 font-bold' : 'text-base-content/70 hover:text-base-content/90 hover:bg-base-100/50 font-medium'
                 }`}
             >
                 <Bell size={18} />
@@ -277,7 +277,7 @@ const Alertes: React.FC = () => {
                 aria-selected={activeTab === 'parametres'}
                 aria-controls="alertes-panel"
                 className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm transition-all duration-300 flex items-center justify-center gap-2.5 whitespace-nowrap ${
-                activeTab === 'parametres' ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-content/5 font-bold' : 'text-base-content/60 hover:text-base-content/90 hover:bg-base-100/50 font-medium'
+                activeTab === 'parametres' ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-content/5 font-bold' : 'text-base-content/70 hover:text-base-content/90 hover:bg-base-100/50 font-medium'
                 }`}
             >
                 <Settings size={18} />
@@ -313,7 +313,7 @@ const Alertes: React.FC = () => {
                 <Card className="border-none shadow-xl hover:shadow-2xl hover:shadow-base-content/5 transition-shadow bg-base-100 p-0 overflow-hidden ring-1 ring-base-content/5 rounded-3xl">
                     {dismissedCount > 0 && (
                         <div className="px-6 py-4 flex justify-end bg-base-200/30 border-b border-base-200">
-                            <button onClick={handleResetDismissed} className="text-xs font-semibold text-base-content/50 hover:text-primary transition-colors flex items-center gap-1.5 bg-base-100 px-3 py-1.5 rounded-lg ring-1 ring-base-content/10 shadow-sm hover:ring-primary/30">
+                            <button onClick={handleResetDismissed} className="text-xs font-semibold text-base-content/70 hover:text-primary transition-colors flex items-center gap-1.5 bg-base-100 px-3 py-1.5 rounded-lg ring-1 ring-base-content/10 shadow-sm hover:ring-primary/30">
                                 <RefreshCw size={12} />
                                 Restaurer les alertes ignorées ({dismissedCount})
                             </button>
@@ -353,7 +353,7 @@ const Alertes: React.FC = () => {
                                             </div>
                                             <div className="space-y-1">
                                                 <h3 className="text-2xl font-extrabold text-base-content">L'esprit tranquille</h3>
-                                                <p className="text-base-content/50 max-w-sm mx-auto text-[13px] leading-relaxed">
+                                                <p className="text-base-content/70 max-w-sm mx-auto text-[13px] leading-relaxed">
                                                     Votre parc immobilier est sous total contrôle. Aucun événement ne requiert votre attention pour le moment.
                                                 </p>
                                             </div>
@@ -368,7 +368,7 @@ const Alertes: React.FC = () => {
                                         </td>
                                         <td className="py-5 pl-8 xl:pl-4">
                                             <div className="font-bold text-[14px] text-base-content mb-0.5 group-hover:text-primary transition-colors">{alerte.titre}</div>
-                                            <div className="text-[13px] text-base-content/60 line-clamp-1">{alerte.description}</div>
+                                            <div className="text-[13px] text-base-content/70 line-clamp-1">{alerte.description}</div>
                                         </td>
                                         <td className="py-5 hidden xl:table-cell"><span className="badge badge-ghost badge-sm font-medium px-2.5 py-3 border-none ring-1 ring-base-content/10 bg-base-100">{alerte.type}</span></td>
                                         <td className="py-5">
@@ -388,7 +388,7 @@ const Alertes: React.FC = () => {
                                                 {alerte.priorite}
                                             </span>
                                         </td>
-                                        <td className="text-[13px] font-medium text-base-content/50 py-5">
+                                        <td className="text-[13px] font-medium text-base-content/70 py-5">
                                             {new Date(alerte.dateCreation).toLocaleDateString()}
                                         </td>
                                         <td className="pr-8 py-5 text-right">
@@ -449,7 +449,7 @@ const Alertes: React.FC = () => {
                                  </div>
                                  <div className="space-y-1">
                                     <h3 className="text-2xl font-bold text-base-content">Boîte de réception vide</h3>
-                                    <p className="text-base-content/50 max-w-md mx-auto text-sm">
+                                    <p className="text-base-content/70 max-w-md mx-auto text-sm">
                                         Vous êtes parfaitement à jour. Les confirmations, rapports et rappels du système apparaîtront ici.
                                     </p>
                                  </div>
@@ -465,7 +465,7 @@ const Alertes: React.FC = () => {
                              >
                                  <div className="flex flex-col md:flex-row justify-between gap-5">
                                      <div className="flex items-start gap-5">
-                                         <div className={`p-3.5 rounded-2xl ${notif.type === 'success' ? 'bg-green-100/80 text-green-600 dark:bg-green-900/30' : notif.type === 'error' ? 'bg-red-100/80 text-red-600 dark:bg-red-900/30' : 'bg-teal-100/80 text-teal-600 dark:bg-teal-900/30'} flex-shrink-0 shadow-sm`}>
+                                         <div className={`p-3.5 rounded-2xl ${notif.type === 'success' ? 'bg-green-100/80 text-green-600 dark:bg-green-900/30' : notif.type === 'error' ? 'bg-red-100/80 text-red-600 dark:bg-red-900/30' : 'bg-teal-100/80 text-teal-600 dark:bg-teal-900/30 dark:text-teal-300'} flex-shrink-0 shadow-sm`}>
                                              {notif.type === 'success' ? <CheckCircle size={22} /> : <AlertTriangle size={22} />}
                                          </div>
                                          <div className="pt-1">
@@ -473,8 +473,8 @@ const Alertes: React.FC = () => {
                                                  <h3 className={`text-[15px] font-bold ${!notif.is_read ? 'text-base-content' : 'text-base-content/70 group-hover:text-base-content transition-colors'}`}>{notif.title}</h3>
                                                  {!notif.is_read && <span className="badge badge-primary badge-sm px-2 py-2 text-[10px] font-bold tracking-wider text-white shadow-sm ring-1 ring-primary/20">NOUVEAU</span>}
                                              </div>
-                                             <p className="text-sm text-base-content/60 leading-relaxed max-w-2xl">{notif.message}</p>
-                                             <div className="flex items-center gap-4 mt-3 text-xs font-medium text-base-content/60">
+                                             <p className="text-sm text-base-content/70 leading-relaxed max-w-2xl">{notif.message}</p>
+                                             <div className="flex items-center gap-4 mt-3 text-xs font-medium text-base-content/70">
                                                  <span className="flex items-center gap-1.5 bg-base-200/50 px-2.5 py-1 rounded-md"><Clock size={12}/> {new Date(notif.created_at).toLocaleString()}</span>
                                              </div>
                                          </div>
@@ -522,7 +522,7 @@ const Alertes: React.FC = () => {
                             <h3 className="font-bold text-lg text-base-content/90 mb-1">
                                 {ALERT_TYPE_LABELS[param.alert_type]?.label || param.alert_type}
                             </h3>
-                            <p className="text-sm text-base-content/60 mb-6 h-10 leading-relaxed">
+                            <p className="text-sm text-base-content/70 mb-6 h-10 leading-relaxed">
                                 {ALERT_TYPE_LABELS[param.alert_type]?.desc || 'Paramètres de notification'}
                             </p>
                             

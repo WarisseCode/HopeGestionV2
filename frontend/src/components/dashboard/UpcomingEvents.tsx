@@ -44,7 +44,7 @@ const getUrgencyClass = (daysUntil: number) => {
   if (daysUntil <= 0) return 'text-error font-bold';
   if (daysUntil <= 3) return 'text-warning font-semibold';
   if (daysUntil <= 7) return 'text-info';
-  return 'text-base-content/60';
+  return 'text-base-content/70';
 };
 
 const formatDaysUntil = (days: number) => {
@@ -69,7 +69,7 @@ const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, maxItems = 5, u
           </div>
           <h3 className="font-bold text-lg">Événements à venir</h3>
         </div>
-        <div className="text-center py-8 text-base-content/60">
+        <div className="text-center py-8 text-base-content/70">
           <Calendar size={40} className="mx-auto mb-3 opacity-30" />
           <p>Aucun événement à venir</p>
         </div>
@@ -86,7 +86,7 @@ const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, maxItems = 5, u
           </div>
           <h3 className="font-bold text-lg">Événements à venir</h3>
         </div>
-        <span className="text-sm text-base-content/60">{events.length} total</span>
+        <span className="text-sm text-base-content/70">{events.length} total</span>
       </div>
 
       <div className="space-y-3">
@@ -105,14 +105,14 @@ const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, maxItems = 5, u
               
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm truncate">{event.title}</p>
-                <p className="text-xs text-base-content/60 truncate">{event.description}</p>
+                <p className="text-xs text-base-content/70 truncate">{event.description}</p>
               </div>
 
               <div className="text-right shrink-0">
                 <p className={`text-xs ${urgencyClass}`}>
                   {formatDaysUntil(event.daysUntil)}
                 </p>
-                <p className="text-xs text-base-content/50">{event.date}</p>
+                <p className="text-xs text-base-content/70">{event.date}</p>
               </div>
             </div>
           );

@@ -86,7 +86,7 @@ const TasksPage: React.FC = () => {
       switch(p) {
           case 'urgent': return 'text-red-600 bg-red-50 border-red-200';
           case 'high': return 'text-orange-600 bg-orange-50 border-orange-200';
-          case 'medium': return 'text-teal-600 bg-teal-50 border-teal-200';
+          case 'medium': return 'text-teal-700 bg-teal-50 border-teal-200';
           default: return 'text-base-content/70 bg-base-200 border-base-300';
       }
   };
@@ -108,7 +108,7 @@ const TasksPage: React.FC = () => {
                 <div className="flex flex-wrap gap-2">
                     <select 
                         aria-label="Filtrer les tâches"
-                        className="text-sm border rounded-lg px-2 py-1.5 bg-base-100"
+                        className="text-sm border border-base-content/50 rounded-lg px-2 py-1.5 bg-base-100"
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                     >
@@ -129,7 +129,7 @@ const TasksPage: React.FC = () => {
                 ) : loadError ? (
                     <LoadErrorState message={loadError} onRetry={fetchTasks} />
                 ) : tasks.length === 0 ? (
-                    <p className="text-center text-base-content/50 py-12">Aucune tâche</p>
+                    <p className="text-center text-base-content/70 py-12">Aucune tâche</p>
                 ) : tasks.map(task => (
                     // Plus de role="button" sur la carte (le bouton de statut y était imbriqué) : le titre est un
                     // vrai <button> dont la zone ::after couvre la carte (relative) ; le statut reste au-dessus (z-10).
@@ -153,7 +153,7 @@ const TasksPage: React.FC = () => {
                                     {task.status === 'done' && <CheckCircle size={12}/>}
                                 </button>
                                 <div>
-                                    <h3 className={`font-semibold ${task.status === 'done' ? 'line-through text-base-content/50' : 'text-base-content'}`}>
+                                    <h3 className={`font-semibold ${task.status === 'done' ? 'line-through text-base-content/70' : 'text-base-content'}`}>
                                         {/* Bouton sans style propre (typo héritée, block pour garder le barré) ; anneau de focus sur toute la carte via ::after */}
                                         <button
                                             type="button"
@@ -162,7 +162,7 @@ const TasksPage: React.FC = () => {
                                             {task.title}
                                         </button>
                                     </h3>
-                                    <p className="text-sm text-base-content/60 line-clamp-1">{task.description}</p>
+                                    <p className="text-sm text-base-content/70 line-clamp-1">{task.description}</p>
                                 </div>
                             </div>
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${getPriorityColor(task.priority)}`}>
@@ -170,13 +170,13 @@ const TasksPage: React.FC = () => {
                             </span>
                         </div>
                         
-                        <div className="flex items-center justify-between mt-3 pl-8 text-xs text-base-content/50">
+                        <div className="flex items-center justify-between mt-3 pl-8 text-xs text-base-content/70">
                              <div className="flex items-center gap-4">
                                 <span className="flex items-center gap-1">
                                     <User size={12}/> {task.assigned_name || 'Non assigné'}
                                 </span>
                                 {task.due_date && (
-                                    <span className={`flex items-center gap-1 ${new Date(task.due_date) < new Date() && task.status !== 'done' ? 'text-red-500 font-bold' : ''}`}>
+                                    <span className={`flex items-center gap-1 ${new Date(task.due_date) < new Date() && task.status !== 'done' ? 'text-red-600 dark:text-red-300 font-bold' : ''}`}>
                                         <Calendar size={12}/> {format(new Date(task.due_date), 'dd MMM')}
                                     </span>
                                 )}
@@ -213,7 +213,7 @@ const TasksPage: React.FC = () => {
                     onClose={() => setActiveChatTask(null)}
                 />
             ) : (
-                <div className="h-full bg-base-200 rounded-2xl border border-dashed border-base-300 flex flex-col items-center justify-center text-base-content/50 p-8 text-center">
+                <div className="h-full bg-base-200 rounded-2xl border border-dashed border-base-300 flex flex-col items-center justify-center text-base-content/70 p-8 text-center">
                     <MessageSquare size={48} className="mb-4 opacity-50"/>
                     <p className="font-medium">Sélectionnez une tâche pour voir les détails et discuter avec l'équipe.</p>
                 </div>
@@ -232,7 +232,7 @@ const TasksPage: React.FC = () => {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label htmlFor={priorityId} className="block text-sm font-bold mb-1">Priorité</label>
-                                <select id={priorityId} className="w-full border rounded-lg p-2" value={newTask.priority} onChange={e => setNewTask({...newTask, priority: e.target.value})}>
+                                <select id={priorityId} className="w-full border border-base-content/50 rounded-lg p-2" value={newTask.priority} onChange={e => setNewTask({...newTask, priority: e.target.value})}>
                                     <option value="low">Basse</option>
                                     <option value="medium">Moyenne</option>
                                     <option value="high">Haute</option>

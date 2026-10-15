@@ -190,7 +190,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                                                 />
                                               )}
 
-                                              <span className={`relative z-10 ${isActive(item.path) ? 'text-primary-content' : 'text-slate-400 group-hover:text-primary-500'} transition-colors duration-200 motion-reduce:transition-none`}>
+                                              <span className={`relative z-10 ${isActive(item.path) ? 'text-primary-content' : 'text-slate-400 group-hover:text-primary'} transition-colors duration-200 motion-reduce:transition-none`}>
                                                   {item.icon}
                                               </span>
                                               
@@ -220,7 +220,7 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
               {/* User Profile Area */}
               <div className={`flex items-center gap-3 p-2 rounded-xl transition-colors ${(!isOpen && !isMobile) ? 'justify-center cursor-pointer hover:bg-base-200/50' : 'hover:bg-base-100/50'} tooltip tooltip-right`} data-tip={(!isOpen && !isMobile) ? t('common.profile') : ""}>
                   <div className="avatar placeholder online shrink-0">
-                    <div className="bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600 rounded-2xl w-10 h-10 flex items-center justify-center border border-primary-200/50 shadow-sm overflow-hidden ring-2 ring-transparent transition-all cursor-pointer hover:ring-primary-300">
+                    <div className="bg-gradient-to-br from-primary/10 to-primary/20 text-primary rounded-2xl w-10 h-10 flex items-center justify-center border border-primary/20 shadow-sm overflow-hidden ring-2 ring-transparent transition-all cursor-pointer hover:ring-primary/30">
                       {userProfile?.photo_url ? (
                         <img 
                           src={userProfile.photo_url} 

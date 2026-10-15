@@ -75,7 +75,7 @@ interface ServiceContract {
 
 // Status configuration
 const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: any }> = {
-  'Ouvert': { color: 'text-teal-700', bg: 'bg-teal-100', icon: AlertCircle },
+  'Ouvert': { color: 'text-teal-700 dark:text-teal-200', bg: 'bg-teal-100 dark:bg-teal-900/40', icon: AlertCircle },
   'En cours': { color: 'text-orange-700', bg: 'bg-orange-100', icon: Clock },
   'En attente': { color: 'text-yellow-700', bg: 'bg-yellow-100', icon: PauseCircle },
   'Résolu': { color: 'text-green-700', bg: 'bg-green-100', icon: CheckCheck },
@@ -444,7 +444,7 @@ const Interventions: React.FC = () => {
     return (
       <div className="space-y-6 max-w-[1800px] mx-auto">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <button onClick={() => setShowCreateModal(false)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
+          <button onClick={() => setShowCreateModal(false)} className="flex items-center gap-2 text-base-content/70 hover:text-base-content transition">
             <ArrowLeft size={20} />
             <span className="text-sm font-medium">Retour aux interventions</span>
           </button>
@@ -456,28 +456,28 @@ const Interventions: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor={`${formId}-lot`} className="block text-sm font-bold mb-1">Bien / Lot *</label>
-                <select id={`${formId}-lot`} className="w-full border rounded-lg p-2" value={ticketForm.lot_id} onChange={e => setTicketForm({...ticketForm, lot_id: e.target.value})}>
+                <select id={`${formId}-lot`} className="w-full border border-base-content/50 rounded-lg p-2" value={ticketForm.lot_id} onChange={e => setTicketForm({...ticketForm, lot_id: e.target.value})}>
                   <option value="">Sélectionner un lot...</option>
                   {lots.map(l => (<option key={l.id} value={l.id}>{l.building_name} - {l.ref_lot}</option>))}
                 </select>
               </div>
               <div>
                 <label htmlFor={`${formId}-category`} className="block text-sm font-bold mb-1">Catégorie *</label>
-                <select id={`${formId}-category`} className="w-full border rounded-lg p-2" value={ticketForm.category} onChange={e => setTicketForm({...ticketForm, category: e.target.value})}>
+                <select id={`${formId}-category`} className="w-full border border-base-content/50 rounded-lg p-2" value={ticketForm.category} onChange={e => setTicketForm({...ticketForm, category: e.target.value})}>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
             </div>
             <div>
               <label htmlFor={`${formId}-type`} className="block text-sm font-bold mb-1">Type d'intervention *</label>
-              <input id={`${formId}-type`} type="text" className="w-full border rounded-lg p-2" placeholder="Ex: Fuite d'eau, Coupure électrique..." value={ticketForm.type} onChange={e => setTicketForm({...ticketForm, type: e.target.value})} list="intervention-types" />
+              <input id={`${formId}-type`} type="text" className="w-full border border-base-content/50 rounded-lg p-2" placeholder="Ex: Fuite d'eau, Coupure électrique..." value={ticketForm.type} onChange={e => setTicketForm({...ticketForm, type: e.target.value})} list="intervention-types" />
               <datalist id="intervention-types">
                 {(CATEGORY_EXAMPLES[ticketForm.category as keyof typeof CATEGORY_EXAMPLES] || []).map(ex => (<option key={ex} value={ex} />))}
               </datalist>
             </div>
             <div>
               <label htmlFor={`${formId}-description`} className="block text-sm font-bold mb-1">Description *</label>
-              <textarea id={`${formId}-description`} className="w-full border rounded-lg p-2" rows={3} placeholder="Décrivez le problème en détail..." value={ticketForm.description} onChange={e => setTicketForm({...ticketForm, description: e.target.value})} />
+              <textarea id={`${formId}-description`} className="w-full border border-base-content/50 rounded-lg p-2" rows={3} placeholder="Décrivez le problème en détail..." value={ticketForm.description} onChange={e => setTicketForm({...ticketForm, description: e.target.value})} />
             </div>
             <div>
               <label className="block text-sm font-bold mb-1">Urgence</label>
@@ -503,7 +503,7 @@ const Interventions: React.FC = () => {
                     <button onClick={() => setTicketForm(prev => ({...prev, photos_before: prev.photos_before.filter((_, idx) => idx !== i)}))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><XCircle size={14} /></button>
                   </div>
                 ))}
-                <button onClick={() => photoInputRef.current?.click()} className="w-20 h-20 border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-base-content/50 hover:border-primary hover:text-primary transition-all">
+                <button onClick={() => photoInputRef.current?.click()} className="w-20 h-20 border-2 border-dashed border-current rounded-lg flex flex-col items-center justify-center text-base-content/70 hover:border-primary hover:text-primary transition-all">
                   <Camera size={20} /><span className="text-xs">Photo</span>
                 </button>
                 <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handlePhotoUpload(e, 'before')} />
@@ -525,7 +525,7 @@ const Interventions: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-base-content">Interventions</h1>
-          <p className="text-base-content/60">Gestion des maintenances et services</p>
+          <p className="text-base-content/70">Gestion des maintenances et services</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="secondary" onClick={handleExport} className="gap-2">
@@ -589,14 +589,14 @@ const Interventions: React.FC = () => {
               aria-label="Rechercher une intervention"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 border rounded-lg w-64"
+              className="pl-10 pr-4 py-2 border border-base-content/50 rounded-lg w-64"
             />
           </div>
-          <select aria-label="Filtrer par statut" value={filterStatut} onChange={e => setFilterStatut(e.target.value)} className="border rounded-lg px-3 py-2">
+          <select aria-label="Filtrer par statut" value={filterStatut} onChange={e => setFilterStatut(e.target.value)} className="border border-base-content/50 rounded-lg px-3 py-2">
             <option value="">Tous les statuts</option>
             {Object.keys(STATUS_CONFIG).map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <select aria-label="Filtrer par priorité" value={filterPriorite} onChange={e => setFilterPriorite(e.target.value)} className="border rounded-lg px-3 py-2">
+          <select aria-label="Filtrer par priorité" value={filterPriorite} onChange={e => setFilterPriorite(e.target.value)} className="border border-base-content/50 rounded-lg px-3 py-2">
             <option value="">Toutes priorités</option>
             <option value="Basse">Basse</option>
             <option value="Moyenne">Moyenne</option>
@@ -654,12 +654,12 @@ const Interventions: React.FC = () => {
                   <td className="p-4 font-mono text-sm hidden 2xl:table-cell">#{t.id}</td>
                   <td className="p-4">
                     <div className="font-medium">{t.building_name}</div>
-                    <div className="text-xs text-base-content/60">{t.ref_lot}</div>
+                    <div className="text-xs text-base-content/70">{t.ref_lot}</div>
                   </td>
                   <td className="p-4 hidden xl:table-cell"><span className="badge badge-ghost">{t.category}</span></td>
                   <td className="p-4"><span className={`badge ${PRIORITY_CONFIG[t.priorite] || ''}`}>{t.priorite}</span></td>
                   <td className="p-4">{renderStatusBadge(t.statut)}</td>
-                  <td className="p-4 text-base-content/50 hidden xl:table-cell">-</td>
+                  <td className="p-4 text-base-content/70 hidden xl:table-cell">-</td>
                   <td className="p-4 text-sm hidden xl:table-cell">{format(new Date(t.date_creation), 'dd MMM yyyy', { locale: fr })}</td>
                   <td className="p-4">
                     <div className="flex justify-end gap-2 whitespace-nowrap">
@@ -676,7 +676,7 @@ const Interventions: React.FC = () => {
                   <td className="p-4 font-mono text-sm hidden 2xl:table-cell">#{t.id}</td>
                   <td className="p-4">
                     <div className="font-medium">{t.building_name}</div>
-                    <div className="text-xs text-base-content/60">{t.ref_lot}</div>
+                    <div className="text-xs text-base-content/70">{t.ref_lot}</div>
                   </td>
                   <td className="p-4 hidden xl:table-cell"><span className="badge badge-ghost">{t.category}</span></td>
                   <td className="p-4"><span className={`badge ${PRIORITY_CONFIG[t.priorite] || ''}`}>{t.priorite}</span></td>
@@ -706,7 +706,7 @@ const Interventions: React.FC = () => {
                   <td className="p-4"><span className="badge badge-outline">{p.specialty}</span></td>
                   <td className="p-4">
                     <div>{p.contact_name}</div>
-                    <div className="text-xs text-base-content/60">{p.phone}</div>
+                    <div className="text-xs text-base-content/70">{p.phone}</div>
                   </td>
                   {/* Statut réel du prestataire (« Actif » était codé en dur). La colonne vaut
                       'active' par défaut en base : seul 'inactive' s'affiche Inactif (T-047) */}
@@ -755,7 +755,7 @@ const Interventions: React.FC = () => {
               <LoadErrorState message={currentTabError} onRetry={fetchData} />
             </div>
           ) : ((activeTab === 'demandes' && demandes.length === 0) || (activeTab === 'interventions' && interventions.length === 0)) && (
-            <div className="p-12 text-center text-base-content/50">Aucune donnée</div>
+            <div className="p-12 text-center text-base-content/70">Aucune donnée</div>
           )}
         </div>
       </Card>
@@ -768,7 +768,7 @@ const Interventions: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold mb-1">Prestataire *</label>
-                <select className="w-full border rounded-lg p-2" value={assignForm.provider_id} onChange={e => setAssignForm({...assignForm, provider_id: e.target.value})}>
+                <select className="w-full border border-base-content/50 rounded-lg p-2" value={assignForm.provider_id} onChange={e => setAssignForm({...assignForm, provider_id: e.target.value})}>
                   <option value="">Sélectionner...</option>
                   {providers.map(p => <option key={p.id} value={p.id}>{p.name} ({p.specialty})</option>)}
                 </select>
@@ -792,7 +792,7 @@ const Interventions: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold mb-1">Actions réalisées *</label>
-                <textarea className="w-full border rounded-lg p-2" rows={3} value={closeForm.actions_done} onChange={e => setCloseForm({...closeForm, actions_done: e.target.value})} placeholder="Décrivez les travaux effectués..." />
+                <textarea className="w-full border border-base-content/50 rounded-lg p-2" rows={3} value={closeForm.actions_done} onChange={e => setCloseForm({...closeForm, actions_done: e.target.value})} placeholder="Décrivez les travaux effectués..." />
               </div>
               <Input type="number" label="Coût Réel (FCFA)" value={closeForm.cost_real} onChange={e => setCloseForm({...closeForm, cost_real: parseFloat(e.target.value)})} />
               <Input label="Commentaires" value={closeForm.comments} onChange={e => setCloseForm({...closeForm, comments: e.target.value})} />
@@ -804,7 +804,7 @@ const Interventions: React.FC = () => {
                       <img src={p} alt="" className="w-full h-full object-cover rounded-lg" />
                     </div>
                   ))}
-                  <button onClick={() => photoAfterInputRef.current?.click()} className="w-20 h-20 border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-base-content/50 hover:border-primary">
+                  <button onClick={() => photoAfterInputRef.current?.click()} className="w-20 h-20 border-2 border-dashed border-current rounded-lg flex flex-col items-center justify-center text-base-content/70 hover:border-primary">
                     <Camera size={20} /><span className="text-xs">Photo</span>
                   </button>
                   <input ref={photoAfterInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handlePhotoUpload(e, 'after')} />
@@ -867,7 +867,7 @@ const Interventions: React.FC = () => {
               <Input label="Titre" value={contractForm.title} onChange={e => setContractForm({...contractForm, title: e.target.value})} placeholder="Ex: Gardiennage mensuel" />
               <div>
                 <label className="block text-sm font-bold mb-1">Prestataire</label>
-                <select className="w-full border rounded-lg p-2" value={contractForm.provider_id} onChange={e => setContractForm({...contractForm, provider_id: e.target.value})}>
+                <select className="w-full border border-base-content/50 rounded-lg p-2" value={contractForm.provider_id} onChange={e => setContractForm({...contractForm, provider_id: e.target.value})}>
                   <option value="">Sélectionner...</option>
                   {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>

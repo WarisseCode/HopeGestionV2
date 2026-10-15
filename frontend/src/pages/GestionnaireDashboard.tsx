@@ -271,7 +271,7 @@ const GestionnaireDashboard: React.FC = () => {
 
   const occupationData = [
     { name: t('dashboard.occupied'), value: stats?.tauxOccupation || 0, color: '#0d9488' },
-    { name: t('dashboard.vacant'), value: 100 - (stats?.tauxOccupation || 0), color: '#e2e8f0' },
+    { name: t('dashboard.vacant'), value: 100 - (stats?.tauxOccupation || 0), color: 'var(--color-base-300)' },
   ];
 
   const allKpis = kpis; 
@@ -300,7 +300,7 @@ const GestionnaireDashboard: React.FC = () => {
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
             {t('nav.tableauDeBord')}
           </h1>
-          <p className="text-base-content/60 font-medium mt-1">
+          <p className="text-base-content/70 font-medium mt-1">
             {t('dashboard.welcome', { name: user?.nom || '' })}
           </p>
         </div>
@@ -354,7 +354,7 @@ const GestionnaireDashboard: React.FC = () => {
                 <span className="text-lg font-bold text-base-content/90 dark:text-base-content">{t('dashboard.strategicIndicators')}</span>
                 {/* Compteur masqué pendant le chargement : sinon « 0 indicateurs » (T-042) */}
                 {!isLoadingKpis && (
-                <span className="px-2 py-0.5 rounded-full bg-base-300 text-xs font-medium text-base-content/60">
+                <span className="px-2 py-0.5 rounded-full bg-base-300 text-xs font-medium text-base-content/80">
                     {showAllKpis ? `${allKpis.length} ${t('dashboard.metrics')}` : `${Math.min(4, allKpis.length)} ${t('dashboard.metrics')}`}
                 </span>
                 )}
@@ -448,7 +448,7 @@ const GestionnaireDashboard: React.FC = () => {
                     <div className="flex justify-between items-center mb-6 px-2">
                         <div>
                             <h2 className="text-xl font-bold text-base-content/90">{t('dashboard.financialAnalysis')}</h2>
-                            <p className="text-sm text-base-content/60">{t('dashboard.revenueVsExpenses')} ({
+                            <p className="text-sm text-base-content/70">{t('dashboard.revenueVsExpenses')} ({
                               period === '7d' ? t('dashboard.period7d') :
                               period === '30d' ? t('dashboard.period30d') :
                               period === '90d' ? t('dashboard.period90d') :
@@ -479,11 +479,11 @@ const GestionnaireDashboard: React.FC = () => {
                                     <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.04}/>
                                 </linearGradient>
                                 <linearGradient id="colorDepensesGest" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%"  stopColor="#06b6d4" stopOpacity={0.45}/>
-                                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.04}/>
+                                    <stop offset="5%"  stopColor="#0891b2" stopOpacity={0.45}/>
+                                    <stop offset="95%" stopColor="#0891b2" stopOpacity={0.04}/>
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-base-300)" />
                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
                             <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
                             <Tooltip
@@ -495,9 +495,11 @@ const GestionnaireDashboard: React.FC = () => {
                                 iconType="circle"
                                 iconSize={9}
                                 wrapperStyle={{ paddingTop: '14px', fontSize: '12px', color: '#64748b' }}
+                                // Libellé en texte neutre (la couleur de série donnait 2,43:1 / 3,68:1), pastille colorée conservée (T-051)
+                                formatter={(value) => <span className="text-base-content/70">{value}</span>}
                             />
                             <Area type="monotone" dataKey="revenus"  name={t('dashboard.revenue')}  stroke="#3b82f6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRevenusGest)"  dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
-                            <Area type="monotone" dataKey="depenses" name={t('dashboard.expenses')} stroke="#06b6d4" strokeWidth={2.5} fillOpacity={1} fill="url(#colorDepensesGest)" dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+                            <Area type="monotone" dataKey="depenses" name={t('dashboard.expenses')} stroke="#0891b2" strokeWidth={2.5} fillOpacity={1} fill="url(#colorDepensesGest)" dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
                         </AreaChart>
                         </ResponsiveContainer>
                     </div>
@@ -555,9 +557,9 @@ const GestionnaireDashboard: React.FC = () => {
                                 </div>
                                 <div className="flex-1 min-w-0 py-1">
                                     <h4 className="font-bold text-base-content truncate">{property.name}</h4>
-                                    <p className="text-sm text-base-content/60 mb-2 truncate">{property.location}</p>
+                                    <p className="text-sm text-base-content/70 mb-2 truncate">{property.location}</p>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-xs font-medium bg-teal-50 text-teal-600 px-2 py-1 rounded-lg">{property.units} {t('dashboard.lots')}</span>
+                                        <span className="text-xs font-medium bg-teal-50 text-teal-700 px-2 py-1 rounded-lg">{property.units} {t('dashboard.lots')}</span>
                                         <span className="text-sm font-bold text-base-content">{property.occupancy}% {t('dashboard.occ')}</span>
                                     </div>
                                 </div>
@@ -565,7 +567,7 @@ const GestionnaireDashboard: React.FC = () => {
                         ))}
                     </div>
                 ) : (
-                    <div className="p-8 text-center text-base-content/60 bg-base-200 rounded-xl">
+                    <div className="p-8 text-center text-base-content/70 bg-base-200 rounded-xl">
                         {t('dashboard.noFeaturedProperties')}
                     </div>
                 )}
@@ -610,7 +612,7 @@ const GestionnaireDashboard: React.FC = () => {
                             {stats
                               ? <span className="text-3xl font-extrabold text-base-content/90">{stats.tauxOccupation || 0}%</span>
                               : <span className="block h-9 w-16 rounded-lg bg-base-300 animate-pulse" aria-label="Chargement" />}
-                            <span className="text-xs text-base-content/50 font-medium uppercase tracking-wide">{t('dashboard.occupied')}</span>
+                            <span className="text-xs text-base-content/70 font-medium uppercase tracking-wide">{t('dashboard.occupied')}</span>
                         </div>
                     </div>
                 </div>
@@ -634,7 +636,7 @@ const GestionnaireDashboard: React.FC = () => {
                     ) : activities.length > 0 ? (
                         <ActivityFeed activities={activities} />
                     ) : (
-                        <p className="text-center text-base-content/60 py-4">{t('dashboard.noRecentActivity')}</p>
+                        <p className="text-center text-base-content/70 py-4">{t('dashboard.noRecentActivity')}</p>
                     )}
                 </div>
             </motion.div>

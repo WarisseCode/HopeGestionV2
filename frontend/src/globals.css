@@ -58,6 +58,23 @@
 }
 
 /* ============================
+   Couleur de bordure par défaut (compatibilité Tailwind v4)
+   En v4, `border` sans couleur prend currentColor (noir en clair, gris clair
+   en sombre). Règle de compatibilité officielle de Tailwind, alignée sur la
+   bordure du thème daisyUI (--color-base-300). Dans @layer base : toute classe
+   de couleur explicite (border-*, composants daisyUI) garde la priorité.
+   ============================ */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-base-300, currentColor);
+  }
+}
+
+/* ============================
    Thème DaisyUI v5 — hopegestion (light)
    Variables --color-* en oklch requis par DaisyUI v5 / Tailwind v4
    Charte graphique : Bleu profond #0C3958 / Bleu Hope #088FE1 /

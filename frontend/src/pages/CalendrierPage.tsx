@@ -164,7 +164,7 @@ const CalendrierPage: React.FC = () => {
         <div className="bg-base-100 rounded-3xl border border-base-200 shadow-xl overflow-hidden">
             <div className="grid grid-cols-7 border-b border-base-200 bg-base-200">
                 {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (
-                    <div key={day} className="py-3 text-center text-xs font-bold uppercase text-base-content/60">{day}</div>
+                    <div key={day} className="py-3 text-center text-xs font-bold uppercase text-base-content/70">{day}</div>
                 ))}
             </div>
             <div className="grid grid-cols-7 auto-rows-fr bg-base-200/30">
@@ -173,7 +173,7 @@ const CalendrierPage: React.FC = () => {
                     const dayEvents = events.filter(e => isSameDay(parseISO(e.date), day));
                     return (
                         <div key={day.toString()} className={`min-h-[120px] p-2 border-r border-b border-base-200 ${!isCurrentMonth ? 'bg-base-200/50' : 'bg-base-100'}`}>
-                            <div className="text-right text-sm font-medium mb-1 text-base-content/50">{format(day, 'd')}</div>
+                            <div className="text-right text-sm font-medium mb-1 text-base-content/70">{format(day, 'd')}</div>
                             <div className="space-y-1">
                                 {dayEvents.slice(0, 3).map(e => (
                                     <div key={e.id} className={`text-[10px] p-1 rounded border truncate flex items-center gap-1 ${getEventColor(e.type)}`}>
@@ -181,7 +181,7 @@ const CalendrierPage: React.FC = () => {
                                         {e.title}
                                     </div>
                                 ))}
-                                {dayEvents.length > 3 && <div className="text-[10px] text-center text-base-content/50">+{dayEvents.length - 3} autres</div>}
+                                {dayEvents.length > 3 && <div className="text-[10px] text-center text-base-content/70">+{dayEvents.length - 3} autres</div>}
                             </div>
                         </div>
                     );
@@ -199,18 +199,18 @@ const CalendrierPage: React.FC = () => {
       return (
           <div className="bg-base-100 rounded-xl shadow border overflow-auto">
               <div className="grid grid-cols-8 border-b">
-                  <div className="p-4 border-r text-xs text-base-content/50">Heure</div>
+                  <div className="p-4 border-r text-xs text-base-content/70">Heure</div>
                   {weekDays.map(day => (
                       <div key={day.toString()} className={`p-4 border-r text-center ${isSameDay(day, new Date()) ? 'bg-teal-50' : ''}`}>
                           <div className="font-bold text-base-content/90">{format(day, 'EEEE', { locale: fr })}</div>
-                          <div className="text-sm text-base-content/60">{format(day, 'd MMM')}</div>
+                          <div className="text-sm text-base-content/70">{format(day, 'd MMM')}</div>
                       </div>
                   ))}
               </div>
               <div>
                   {hours.map(hour => (
                       <div key={hour} className="grid grid-cols-8 border-b min-h-[60px]">
-                          <div className="p-2 border-r text-xs text-center text-base-content/50">{hour}:00</div>
+                          <div className="p-2 border-r text-xs text-center text-base-content/70">{hour}:00</div>
                           {weekDays.map(day => {
                             const hourEvents = events.filter(e => {
                                 const d = parseISO(e.date);
@@ -293,7 +293,7 @@ const CalendrierPage: React.FC = () => {
           <div className="bg-base-100 rounded-xl shadow p-6">
               <h3 className="font-bold mb-4 border-b pb-2">Événements du jour</h3>
               <div className="space-y-2">
-                  {events.length === 0 && !loading ? <p className="text-base-content/50">Aucun événement</p> : events.map(e => (
+                  {events.length === 0 && !loading ? <p className="text-base-content/70">Aucun événement</p> : events.map(e => (
                       <div key={e.id} className={`p-3 rounded-lg border flex justify-between items-center ${getEventColor(e.type)}`}>
                           <div className="flex items-center gap-3">
                               <div className={`w-2 h-2 rounded-full ${getEventDot(e.type)}`}></div>
@@ -328,7 +328,7 @@ const CalendrierPage: React.FC = () => {
                       </div>
                       <div>
                           <label className="block text-sm font-medium mb-1">Type</label>
-                          <select className="w-full border rounded-lg p-2" value={newEvent.type} onChange={e => setNewEvent({...newEvent, type: e.target.value as any})}>
+                          <select className="w-full border border-base-content/50 rounded-lg p-2" value={newEvent.type} onChange={e => setNewEvent({...newEvent, type: e.target.value as any})}>
                               <option value="rdv">Rendez-vous</option>
                               <option value="rappel">Rappel</option>
                               <option value="custom">Autre</option>
@@ -336,7 +336,7 @@ const CalendrierPage: React.FC = () => {
                       </div>
                       <div>
                           <label className="block text-sm font-medium mb-1">Description</label>
-                          <textarea className="w-full border rounded-lg p-2" rows={3} value={newEvent.description} onChange={e => setNewEvent({...newEvent, description: e.target.value})} />
+                          <textarea className="w-full border border-base-content/50 rounded-lg p-2" rows={3} value={newEvent.description} onChange={e => setNewEvent({...newEvent, description: e.target.value})} />
                       </div>
                       <div className="flex justify-end gap-2 mt-4">
                           <Button variant="secondary" onClick={() => setShowEventModal(false)}>Annuler</Button>
@@ -356,16 +356,16 @@ const CalendrierPage: React.FC = () => {
                 </h3>
                 
                 <div className="space-y-4 mb-6">
-                    <p className="text-sm text-base-content/60">Définissez quand et comment vous souhaitez être notifié.</p>
+                    <p className="text-sm text-base-content/70">Définissez quand et comment vous souhaitez être notifié.</p>
                     
                     {/* Simplified Settings Form for Demo */}
                     <div className="p-3 bg-base-200 rounded-lg border flex items-center justify-between">
                         <div>
                             <div className="font-bold text-base-content/80">Loyers à échoir</div>
-                            <div className="text-xs text-base-content/60">Rappel aux locataires pour le paiement</div>
+                            <div className="text-xs text-base-content/70">Rappel aux locataires pour le paiement</div>
                         </div>
                         <div className="flex gap-2 items-center">
-                            <select className="text-sm border rounded p-1" onChange={(e) => handleSaveSetting({event_type: 'payment', delay_days: -parseInt(e.target.value), channel: 'email', active: true})}>
+                            <select className="text-sm border border-base-content/50 rounded p-1" onChange={(e) => handleSaveSetting({event_type: 'payment', delay_days: -parseInt(e.target.value), channel: 'email', active: true})}>
                                 <option value="3">3 jours avant</option>
                                 <option value="7">7 jours avant</option>
                                 <option value="1">1 jour avant</option>
@@ -377,10 +377,10 @@ const CalendrierPage: React.FC = () => {
                     <div className="p-3 bg-base-200 rounded-lg border flex items-center justify-between">
                         <div>
                             <div className="font-bold text-base-content/80">Fins de Contrat</div>
-                            <div className="text-xs text-base-content/60">Anticipation des renouvellements</div>
+                            <div className="text-xs text-base-content/70">Anticipation des renouvellements</div>
                         </div>
                          <div className="flex gap-2 items-center">
-                            <select className="text-sm border rounded p-1" onChange={(e) => handleSaveSetting({event_type: 'contract_end', delay_days: -parseInt(e.target.value), channel: 'email', active: true})}>
+                            <select className="text-sm border border-base-content/50 rounded p-1" onChange={(e) => handleSaveSetting({event_type: 'contract_end', delay_days: -parseInt(e.target.value), channel: 'email', active: true})}>
                                 <option value="30">30 jours avant</option>
                                 <option value="60">60 jours avant</option>
                                 <option value="90">90 jours avant</option>

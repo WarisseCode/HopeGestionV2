@@ -86,10 +86,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ contextType, contextId, recipie
                     // Simplified display
                     return (
                         <div key={msg.id} className={`flex flex-col ${msg.channel === 'internal' ? 'items-start' : 'items-end'}`}> 
-                            <div className={`max-w-[80%] rounded-lg p-3 ${msg.channel === 'internal' ? 'bg-base-100 border' : 'bg-teal-100'}`}>
-                                <div className="text-xs font-bold mb-1 text-base-content/60">{msg.sender_name} <span className="font-normal opacity-70">via {msg.channel}</span></div>
+                            <div className={`max-w-[80%] rounded-lg p-3 ${msg.channel === 'internal' ? 'bg-base-100 border' : 'bg-teal-100 dark:bg-teal-900/40'}`}>
+                                <div className="text-xs font-bold mb-1 text-base-content/70">{msg.sender_name} <span className="font-normal">via {msg.channel}</span></div>
                                 <p className="text-sm">{msg.content}</p>
-                                <div className="text-right text-[10px] text-base-content/50 mt-1">{format(new Date(msg.created_at), 'dd/MM HH:mm')}</div>
+                                <div className="text-right text-[10px] text-base-content/70 mt-1">{format(new Date(msg.created_at), 'dd/MM HH:mm')}</div>
                             </div>
                         </div>
                     );
@@ -101,7 +101,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ contextType, contextId, recipie
             <div className="p-3 border-t bg-base-100 flex gap-2 items-center">
                 <button className="text-base-content/50 hover:text-base-content/70"><Paperclip size={20}/></button>
                 <input 
-                    className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-primary"
+                    className="flex-1 border border-base-content/50 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-primary"
                     placeholder={`Message (${channel})...`}
                     value={newMessage}
                     onChange={e => setNewMessage(e.target.value)}

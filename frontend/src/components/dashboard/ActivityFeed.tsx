@@ -47,7 +47,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, maxItems = 5 })
 
   if (displayedActivities.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-base-content/60">
+      <div className="flex flex-col items-center justify-center py-8 text-base-content/70">
         <Clock size={32} className="mb-2 opacity-50" />
         <p>Aucune activité récente</p>
       </div>
@@ -67,7 +67,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, maxItems = 5 })
             <div key={activity.id} className="relative flex items-start gap-4 group">
               {/* Point/Icone Timeline */}
               <div className={`
-                relative z-10 flex items-center justify-center w-9 h-9 rounded-full ring-4 ring-white ${bgClass} shadow-sm
+                relative z-10 flex items-center justify-center w-9 h-9 rounded-full ring-4 ring-base-100 ${bgClass} shadow-sm
                 group-hover:scale-110 transition-transform duration-300
               `}>
                 <Icon size={14} className="text-white" strokeWidth={3} />
@@ -79,11 +79,11 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, maxItems = 5 })
                   <p className="text-sm font-bold text-base-content truncate pr-4">
                     {activity.title}
                   </p>
-                  <span className="text-xs font-medium text-base-content/60 whitespace-nowrap bg-base-200 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-medium text-base-content/70 whitespace-nowrap bg-base-200 px-2 py-0.5 rounded-full">
                     {activity.time}
                   </span>
                 </div>
-                <p className="text-sm text-base-content/60 line-clamp-1">
+                <p className="text-sm text-base-content/70 line-clamp-1">
                   {activity.description}
                 </p>
               </div>
