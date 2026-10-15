@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   CheckSquare, Plus, Filter, Calendar, MessageSquare, 
-  Clock, AlertTriangle, CheckCircle, User, MoreVertical
+  Clock, AlertTriangle, CheckCircle, User, MoreVertical, ArrowLeft
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -90,17 +90,20 @@ const TasksPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 h-[calc(100vh-64px)] flex gap-6 overflow-hidden">
-        {/* Left: Task List */}
-        <div className="flex-1 flex flex-col h-full bg-base-100 rounded-2xl shadow-sm border overflow-hidden">
+    // h-full : la page épouse la zone de contenu du layout (padding de <main> et réserve de la
+    // BottomNav compris) au lieu de 100vh-64px, qui débordait et créait un double défilement (T-048)
+    <div className="h-full flex gap-6 overflow-hidden">
+        {/* Left: Task List — sous xl, masquée tant qu'une discussion est ouverte (volet plein écran) ;
+            min-w-0 : sans lui, le volet de droite écrasait la liste à 2px (T-048) */}
+        <div className={`flex-1 min-w-0 flex-col h-full bg-base-100 rounded-2xl shadow-sm border overflow-hidden ${activeChatTask ? 'hidden xl:flex' : 'flex'}`}>
             {/* Header */}
-            <div className="p-4 border-b flex justify-between items-center bg-base-200/50">
+            <div className="p-4 border-b flex flex-wrap gap-2 justify-between items-center bg-base-200/50">
                 <div>
                     <h1 className="text-2xl font-bold flex items-center gap-2">
                         <CheckSquare className="text-primary"/> Tâches
                     </h1>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     <select 
                         className="text-sm border rounded-lg px-2 py-1.5 bg-base-100"
                         value={filter}
@@ -169,7 +172,19 @@ const TasksPage: React.FC = () => {
         </div>
 
         {/* Right: Details / Chat */}
-        <div className="w-[400px] xl:w-[500px] h-full">
+        {/* Sous xl : masqué sans tâche sélectionnée, plein écran (dans la page) avec « Retour » sinon.
+            À partir de xl : colonne fixe de 500px, comme avant (T-048) */}
+        <div className={`${activeChatTask ? 'flex' : 'hidden xl:flex'} flex-col flex-1 min-w-0 xl:flex-none xl:w-[500px] xl:shrink-0 h-full`}>
+            {activeChatTask && (
+                <button
+                    type="button"
+                    onClick={() => setActiveChatTask(null)}
+                    className="xl:hidden self-start mb-3 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-base-content/70 hover:text-base-content hover:bg-base-200 transition focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+                >
+                    <ArrowLeft size={16}/> Retour
+                </button>
+            )}
+            <div className="flex-1 min-h-0">
             {activeChatTask ? (
                 <ChatWindow 
                     contextType="task" 
@@ -183,6 +198,7 @@ const TasksPage: React.FC = () => {
                     <p className="font-medium">Sélectionnez une tâche pour voir les détails et discuter avec l'équipe.</p>
                 </div>
             )}
+            </div>
         </div>
 
         {/* Create Modal */}

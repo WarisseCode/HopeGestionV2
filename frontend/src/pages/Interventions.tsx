@@ -439,8 +439,8 @@ const Interventions: React.FC = () => {
 
   if (showCreateModal) {
     return (
-      <div className="p-6 md:p-8 space-y-6 max-w-[1800px] mx-auto">
-        <div className="flex items-center gap-4">
+      <div className="space-y-6 max-w-[1800px] mx-auto">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <button onClick={() => setShowCreateModal(false)} className="flex items-center gap-2 text-base-content/60 hover:text-base-content transition">
             <ArrowLeft size={20} />
             <span className="text-sm font-medium">Retour aux interventions</span>
@@ -450,7 +450,7 @@ const Interventions: React.FC = () => {
         </div>
         <Card className="p-6">
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold mb-1">Bien / Lot *</label>
                 <select className="w-full border rounded-lg p-2" value={ticketForm.lot_id} onChange={e => setTicketForm({...ticketForm, lot_id: e.target.value})}>
@@ -478,7 +478,7 @@ const Interventions: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-bold mb-1">Urgence</label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {['Basse', 'Moyenne', 'Haute', 'Urgente'].map(u => (
                   <label key={u} className={`flex-1 text-center py-2 px-3 rounded-lg border cursor-pointer transition-all ${ticketForm.urgency === u ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-base-200'}`}>
                     <input type="radio" name="urgency" value={u} checked={ticketForm.urgency === u} onChange={e => setTicketForm({...ticketForm, urgency: e.target.value, priorite: e.target.value})} className="sr-only" />
@@ -487,7 +487,7 @@ const Interventions: React.FC = () => {
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Demandeur" value={ticketForm.requester_name} onChange={e => setTicketForm({...ticketForm, requester_name: e.target.value})} placeholder="Nom du demandeur" />
               <Input label="Téléphone" value={ticketForm.requester_phone} onChange={e => setTicketForm({...ticketForm, requester_phone: e.target.value})} placeholder="+229 00 00 00 00" />
             </div>
@@ -517,7 +517,7 @@ const Interventions: React.FC = () => {
   }
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-[1800px] mx-auto">
+    <div className="space-y-6 max-w-[1800px] mx-auto">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
@@ -631,13 +631,14 @@ const Interventions: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <th className="p-4">N°</th>
+                    {/* Sous xl : N°, Type, Intervenant et Date masqués (actions hors écran à 1024, T-048) */}
+                    <th className="p-4 hidden xl:table-cell">N°</th>
                     <th className="p-4">Bien / Lot</th>
-                    <th className="p-4">Type</th>
+                    <th className="p-4 hidden xl:table-cell">Type</th>
                     <th className="p-4">Priorité</th>
                     <th className="p-4">Statut</th>
-                    <th className="p-4">Intervenant</th>
-                    <th className="p-4">Date</th>
+                    <th className="p-4 hidden xl:table-cell">Intervenant</th>
+                    <th className="p-4 hidden xl:table-cell">Date</th>
                     <th className="p-4 text-right">Actions</th>
                   </>
                 )}
@@ -646,37 +647,40 @@ const Interventions: React.FC = () => {
             <tbody className="divide-y">
               {showRows && activeTab === 'demandes' && demandes.map(t => (
                 <tr key={t.id} className="hover:bg-base-200">
-                  <td className="p-4 font-mono text-sm">#{t.id}</td>
+                  <td className="p-4 font-mono text-sm hidden xl:table-cell">#{t.id}</td>
                   <td className="p-4">
                     <div className="font-medium">{t.building_name}</div>
                     <div className="text-xs text-base-content/60">{t.ref_lot}</div>
                   </td>
-                  <td className="p-4"><span className="badge badge-ghost">{t.category}</span></td>
+                  <td className="p-4 hidden xl:table-cell"><span className="badge badge-ghost">{t.category}</span></td>
                   <td className="p-4"><span className={`badge ${PRIORITY_CONFIG[t.priorite] || ''}`}>{t.priorite}</span></td>
                   <td className="p-4">{renderStatusBadge(t.statut)}</td>
-                  <td className="p-4 text-base-content/50">-</td>
-                  <td className="p-4 text-sm">{format(new Date(t.date_creation), 'dd MMM yyyy', { locale: fr })}</td>
-                  <td className="p-4 text-right space-x-2">
+                  <td className="p-4 text-base-content/50 hidden xl:table-cell">-</td>
+                  <td className="p-4 text-sm hidden xl:table-cell">{format(new Date(t.date_creation), 'dd MMM yyyy', { locale: fr })}</td>
+                  <td className="p-4">
+                    <div className="flex justify-end gap-2 whitespace-nowrap">
                     <Button size="sm" onClick={() => { setSelectedTicket(t); setShowAssignModal(true); }}>Assigner</Button>
                     <Button size="sm" variant="ghost" className="text-red-600" title="Déplacer vers la corbeille" onClick={() => handleDeleteTicket(t.id)}>
                       <Trash2 size={14} />
                     </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
               {showRows && activeTab === 'interventions' && interventions.map(t => (
                 <tr key={t.id} className="hover:bg-base-200">
-                  <td className="p-4 font-mono text-sm">#{t.id}</td>
+                  <td className="p-4 font-mono text-sm hidden xl:table-cell">#{t.id}</td>
                   <td className="p-4">
                     <div className="font-medium">{t.building_name}</div>
                     <div className="text-xs text-base-content/60">{t.ref_lot}</div>
                   </td>
-                  <td className="p-4"><span className="badge badge-ghost">{t.category}</span></td>
+                  <td className="p-4 hidden xl:table-cell"><span className="badge badge-ghost">{t.category}</span></td>
                   <td className="p-4"><span className={`badge ${PRIORITY_CONFIG[t.priorite] || ''}`}>{t.priorite}</span></td>
                   <td className="p-4">{renderStatusBadge(t.statut)}</td>
-                  <td className="p-4 font-medium text-primary">{t.provider_name || '-'}</td>
-                  <td className="p-4 text-sm">{t.scheduled_date ? format(new Date(t.scheduled_date), 'dd MMM yyyy', { locale: fr }) : '-'}</td>
-                  <td className="p-4 text-right space-x-2">
+                  <td className="p-4 font-medium text-primary hidden xl:table-cell">{t.provider_name || '-'}</td>
+                  <td className="p-4 text-sm hidden xl:table-cell">{t.scheduled_date ? format(new Date(t.scheduled_date), 'dd MMM yyyy', { locale: fr }) : '-'}</td>
+                  <td className="p-4">
+                    <div className="flex justify-end gap-2 whitespace-nowrap">
                     {t.statut !== 'Clos' && (
                       <>
                         <Button size="sm" variant="secondary" onClick={() => { setSelectedTicket(t); setShowRescheduleModal(true); }}>
@@ -688,6 +692,7 @@ const Interventions: React.FC = () => {
                     <Button size="sm" variant="ghost" className="text-red-600" title="Déplacer vers la corbeille" onClick={() => handleDeleteTicket(t.id)}>
                       <Trash2 size={14} />
                     </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

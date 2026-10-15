@@ -307,9 +307,11 @@ const Alertes: React.FC = () => {
                     <table className="table w-full">
                         <thead className="bg-base-200/80 text-base-content/70 text-[11px] font-bold uppercase tracking-widest">
                             <tr>
-                                <th className="py-5 pl-8 text-left rounded-tl-none">Référence</th>
-                                <th className="py-5 text-left">Alerte</th>
-                                <th className="py-5 text-left">Type</th>
+                                {/* Sous xl : Référence et Type masqués, sinon Action sortait du tableau à 1024 ;
+                                    Alerte reprend alors le retrait gauche de 32px (T-048) */}
+                                <th className="py-5 pl-8 text-left rounded-tl-none hidden xl:table-cell">Référence</th>
+                                <th className="py-5 pl-8 xl:pl-4 text-left">Alerte</th>
+                                <th className="py-5 text-left hidden xl:table-cell">Type</th>
                                 <th className="py-5 text-left">Priorité</th>
                                 <th className="py-5 text-left">Date</th>
                                 <th className="py-5 pr-8 text-right rounded-tr-none">Action</th>
@@ -345,14 +347,14 @@ const Alertes: React.FC = () => {
                             ) : (
                                 alertes.map(alerte => (
                                     <tr key={alerte.id} className="hover:bg-primary/5 transition-colors group cursor-pointer border-b border-base-200/50 hover:border-primary/10">
-                                        <td className="pl-8 py-5">
+                                        <td className="pl-8 py-5 hidden xl:table-cell">
                                             <span className="font-mono text-[13px] font-semibold text-base-content/70 bg-base-200/50 px-2 py-1 rounded-md">{alerte.reference}</span>
                                         </td>
-                                        <td className="py-5">
+                                        <td className="py-5 pl-8 xl:pl-4">
                                             <div className="font-bold text-[14px] text-base-content mb-0.5 group-hover:text-primary transition-colors">{alerte.titre}</div>
                                             <div className="text-[13px] text-base-content/60 line-clamp-1">{alerte.description}</div>
                                         </td>
-                                        <td className="py-5"><span className="badge badge-ghost badge-sm font-medium px-2.5 py-3 border-none ring-1 ring-base-content/10 bg-base-100">{alerte.type}</span></td>
+                                        <td className="py-5 hidden xl:table-cell"><span className="badge badge-ghost badge-sm font-medium px-2.5 py-3 border-none ring-1 ring-base-content/10 bg-base-100">{alerte.type}</span></td>
                                         <td className="py-5">
                                             {/* Teintes explicites plutôt que les tokens sémantiques : sur fond clair,
                                                 `text-warning-content` vaut oklch(98%) — du quasi-blanc, invisible sur
