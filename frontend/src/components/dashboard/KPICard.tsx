@@ -64,7 +64,15 @@ const KPICard: React.FC<KPICardProps> = ({ icon: Icon, label, value, color, tren
   return (
     <motion.div 
       onClick={onClick}
-      className={`relative overflow-hidden rounded-2xl p-5 border ${classes.border} ${classes.bg} shadow-lg ${classes.shadow} h-full min-h-[150px] flex flex-col justify-between transition-all duration-300 hover:shadow-xl ${onClick ? 'cursor-pointer hover:border-primary/50' : ''}`}
+      // Carte cliquable atteignable au clavier, comme ui/Card (T-049) : seulement si onClick est fourni
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => {
+        if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
+        e.preventDefault();
+        onClick();
+      } : undefined}
+      className={`relative overflow-hidden rounded-2xl p-5 border ${classes.border} ${classes.bg} shadow-lg ${classes.shadow} h-full min-h-[150px] flex flex-col justify-between transition-all duration-300 hover:shadow-xl ${onClick ? 'cursor-pointer hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary' : ''}`}
       whileHover={{ y: -5, scale: 1.02 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >

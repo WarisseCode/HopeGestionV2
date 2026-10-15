@@ -13,6 +13,7 @@ import { fr } from 'date-fns/locale';
 import ChatWindow from '../components/messaging/ChatWindow';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
 import LoadErrorState from '../components/ui/LoadErrorState';
+import ModalDialog from '../components/ui/ModalDialog';
 
 const TasksPage: React.FC = () => {
   const [tasks, setTasks] = useState<any[]>([]);
@@ -130,8 +131,17 @@ const TasksPage: React.FC = () => {
                 ) : tasks.map(task => (
                     <div 
                         key={task.id} 
-                        className={`group p-4 rounded-xl border hover:shadow-md transition-all cursor-pointer bg-base-100 ${activeChatTask?.id === task.id ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                        className={`group p-4 rounded-xl border hover:shadow-md transition-all cursor-pointer bg-base-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${activeChatTask?.id === task.id ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                         onClick={() => setActiveChatTask(task)}
+                        // Carte atteignable au clavier (T-049) : Entrée/Espace sur la carte elle-même
+                        // seulement, pas sur le bouton de statut imbriqué (qui garde son propre clic)
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                            if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
+                            e.preventDefault();
+                            setActiveChatTask(task);
+                        }}
                     >
                         <div className="flex justify-between items-start mb-2">
                             <div className="flex items-start gap-3">
@@ -162,7 +172,8 @@ const TasksPage: React.FC = () => {
                                     </span>
                                 )}
                              </div>
-                             <div className="flex items-center gap-1 text-primary group-hover:opacity-100 opacity-0 transition-opacity">
+                             {/* Visible aussi au focus clavier de la carte et par défaut sans survol (tactile) (T-049) */}
+                             <div className="flex items-center gap-1 text-primary group-hover:opacity-100 group-focus-visible:opacity-100 group-has-[:focus-visible]:opacity-100 [@media(hover:none)]:opacity-100 opacity-0 transition-opacity">
                                  <MessageSquare size={12}/> Ouvrir chat
                              </div>
                         </div>
@@ -203,9 +214,9 @@ const TasksPage: React.FC = () => {
 
         {/* Create Modal */}
         {showCreateModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                <Card className="w-full max-w-lg p-6">
-                    <h3 className="text-lg font-bold mb-4">Nouvelle Tâche</h3>
+            <ModalDialog onClose={() => setShowCreateModal(false)} labelledBy="task-create-title" className="max-w-lg">
+                <Card className="w-full p-6">
+                    <h3 id="task-create-title" className="text-lg font-bold mb-4">Nouvelle Tâche</h3>
                     <div className="space-y-4">
                         <Input label="Titre" required value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} placeholder="Ex: Relancer locataire X..." />
                         <Input label="Description" value={newTask.description} onChange={e => setNewTask({...newTask, description: e.target.value})} placeholder="Détails de l'action..." />
@@ -229,7 +240,7 @@ const TasksPage: React.FC = () => {
                         </div>
                     </div>
                 </Card>
-            </div>
+            </ModalDialog>
         )}
     </div>
   );

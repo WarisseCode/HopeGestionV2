@@ -462,7 +462,9 @@ const Alertes: React.FC = () => {
                                      </div>
                                      <div className="flex items-center gap-3 self-end md:self-center">
                                          {notif.link && (
-                                             <Button variant="primary" size="sm" className="h-9 px-4 gap-2 text-white shadow-md shadow-primary/20 hover:shadow-primary/40 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); if (!notif.is_read) handleMarkAsRead(notif.id); navigate(notif.link!); }}>
+                                             // Masqué hors survol seulement à partir de md sur écran à survol ; visible au
+                                             // focus clavier (carte ou bouton), sous md et sur écran tactile (T-049)
+                                             <Button variant="primary" size="sm" className="h-9 px-4 gap-2 text-white shadow-md shadow-primary/20 hover:shadow-primary/40 md:[@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); if (!notif.is_read) handleMarkAsRead(notif.id); navigate(notif.link!); }}>
                                                  Consulter
                                              </Button>
                                          )}

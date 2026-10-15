@@ -12,6 +12,7 @@ import {
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input'; // Assuming Input exists
+import ModalDialog from '../components/ui/ModalDialog';
 import { apiCall } from '../utils/apiUtils';
 import { API_URL } from '../config';
 import { toast } from 'react-hot-toast';
@@ -311,9 +312,9 @@ const CalendrierPage: React.FC = () => {
 
       {/* Add Event Modal */}
       {showEventModal && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-              <Card className="w-full max-w-md p-6">
-                  <h3 className="text-lg font-bold mb-4">Nouvel Événement</h3>
+          <ModalDialog onClose={() => setShowEventModal(false)} labelledBy="calendar-event-title" className="max-w-md">
+              <Card className="w-full p-6">
+                  <h3 id="calendar-event-title" className="text-lg font-bold mb-4">Nouvel Événement</h3>
                   <div className="space-y-3">
                       <Input label="Titre" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
                       <div className="grid grid-cols-2 gap-4">
@@ -338,14 +339,14 @@ const CalendrierPage: React.FC = () => {
                       </div>
                   </div>
               </Card>
-          </div>
+          </ModalDialog>
       )}
 
       {/* Settings Modal */}
       {showSettingsModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-lg p-6">
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+        <ModalDialog onClose={() => setShowSettingsModal(false)} labelledBy="calendar-settings-title" className="max-w-lg">
+            <Card className="w-full p-6">
+                <h3 id="calendar-settings-title" className="text-lg font-bold mb-4 flex items-center gap-2">
                     <Settings size={20}/> Configuration des Rappels
                 </h3>
                 
@@ -388,7 +389,7 @@ const CalendrierPage: React.FC = () => {
                     <Button onClick={() => setShowSettingsModal(false)}>Fermer</Button>
                 </div>
             </Card>
-        </div>
+        </ModalDialog>
       )}
     </div>
   );

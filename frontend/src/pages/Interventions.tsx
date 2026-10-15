@@ -18,6 +18,7 @@ import { API_URL } from '../config';
 import { apiCall } from '../utils/apiUtils';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
 import LoadErrorState from '../components/ui/LoadErrorState';
+import ModalDialog from '../components/ui/ModalDialog';
 
 // Types
 interface Ticket {
@@ -631,8 +632,8 @@ const Interventions: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    {/* Sous xl : N°, Type, Intervenant et Date masqués (actions hors écran à 1024, T-048) */}
-                    <th className="p-4 hidden xl:table-cell">N°</th>
+                    {/* Sous xl : Type, Intervenant et Date masqués (actions hors écran à 1024, T-048) ; N° sous 2xl (défilement à 1280, T-048 bis) */}
+                    <th className="p-4 hidden 2xl:table-cell">N°</th>
                     <th className="p-4">Bien / Lot</th>
                     <th className="p-4 hidden xl:table-cell">Type</th>
                     <th className="p-4">Priorité</th>
@@ -647,7 +648,7 @@ const Interventions: React.FC = () => {
             <tbody className="divide-y">
               {showRows && activeTab === 'demandes' && demandes.map(t => (
                 <tr key={t.id} className="hover:bg-base-200">
-                  <td className="p-4 font-mono text-sm hidden xl:table-cell">#{t.id}</td>
+                  <td className="p-4 font-mono text-sm hidden 2xl:table-cell">#{t.id}</td>
                   <td className="p-4">
                     <div className="font-medium">{t.building_name}</div>
                     <div className="text-xs text-base-content/60">{t.ref_lot}</div>
@@ -669,7 +670,7 @@ const Interventions: React.FC = () => {
               ))}
               {showRows && activeTab === 'interventions' && interventions.map(t => (
                 <tr key={t.id} className="hover:bg-base-200">
-                  <td className="p-4 font-mono text-sm hidden xl:table-cell">#{t.id}</td>
+                  <td className="p-4 font-mono text-sm hidden 2xl:table-cell">#{t.id}</td>
                   <td className="p-4">
                     <div className="font-medium">{t.building_name}</div>
                     <div className="text-xs text-base-content/60">{t.ref_lot}</div>
@@ -745,9 +746,9 @@ const Interventions: React.FC = () => {
 
       {/* Assign Modal */}
       {showAssignModal && selectedTicket && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md p-6">
-            <h3 className="text-lg font-bold mb-4">Assigner Intervention #{selectedTicket.id}</h3>
+        <ModalDialog onClose={() => setShowAssignModal(false)} labelledBy="intervention-assign-title" className="max-w-md">
+          <Card className="w-full p-6">
+            <h3 id="intervention-assign-title" className="text-lg font-bold mb-4">Assigner Intervention #{selectedTicket.id}</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold mb-1">Prestataire *</label>
@@ -764,14 +765,14 @@ const Interventions: React.FC = () => {
               </div>
             </div>
           </Card>
-        </div>
+        </ModalDialog>
       )}
 
       {/* Close Modal */}
       {showCloseModal && selectedTicket && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-lg p-6">
-            <h3 className="text-lg font-bold mb-4">Clôturer Intervention #{selectedTicket.id}</h3>
+        <ModalDialog onClose={() => setShowCloseModal(false)} labelledBy="intervention-close-title" className="max-w-lg">
+          <Card className="w-full p-6">
+            <h3 id="intervention-close-title" className="text-lg font-bold mb-4">Clôturer Intervention #{selectedTicket.id}</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold mb-1">Actions réalisées *</label>
@@ -799,14 +800,14 @@ const Interventions: React.FC = () => {
               </div>
             </div>
           </Card>
-        </div>
+        </ModalDialog>
       )}
 
       {/* Reschedule Modal */}
       {showRescheduleModal && selectedTicket && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md p-6">
-            <h3 className="text-lg font-bold mb-4">Reprogrammer #{selectedTicket.id}</h3>
+        <ModalDialog onClose={() => setShowRescheduleModal(false)} labelledBy="intervention-reschedule-title" className="max-w-md">
+          <Card className="w-full p-6">
+            <h3 id="intervention-reschedule-title" className="text-lg font-bold mb-4">Reprogrammer #{selectedTicket.id}</h3>
             <div className="space-y-4">
               <Input type="date" label="Nouvelle Date" value={rescheduleForm.new_date} onChange={e => setRescheduleForm({...rescheduleForm, new_date: e.target.value})} />
               <Input label="Motif" value={rescheduleForm.reason} onChange={e => setRescheduleForm({...rescheduleForm, reason: e.target.value})} placeholder="Raison du report..." />
@@ -816,14 +817,14 @@ const Interventions: React.FC = () => {
               </div>
             </div>
           </Card>
-        </div>
+        </ModalDialog>
       )}
 
       {/* Provider Modal */}
       {showProviderModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md p-6">
-            <h3 className="text-lg font-bold mb-4">Nouveau Prestataire</h3>
+        <ModalDialog onClose={() => setShowProviderModal(false)} labelledBy="intervention-provider-title" className="max-w-md">
+          <Card className="w-full p-6">
+            <h3 id="intervention-provider-title" className="text-lg font-bold mb-4">Nouveau Prestataire</h3>
             <div className="space-y-4">
               <Input label="Nom Entreprise" value={providerForm.name} onChange={e => setProviderForm({...providerForm, name: e.target.value})} />
               <Input label="Spécialité" value={providerForm.specialty} onChange={e => setProviderForm({...providerForm, specialty: e.target.value})} placeholder="Plomberie, Électricité..." />
@@ -838,14 +839,14 @@ const Interventions: React.FC = () => {
               </div>
             </div>
           </Card>
-        </div>
+        </ModalDialog>
       )}
 
       {/* Contract Modal */}
       {showContractModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md p-6">
-            <h3 className="text-lg font-bold mb-4">Nouveau Contrat de Service</h3>
+        <ModalDialog onClose={() => setShowContractModal(false)} labelledBy="intervention-contract-title" className="max-w-md">
+          <Card className="w-full p-6">
+            <h3 id="intervention-contract-title" className="text-lg font-bold mb-4">Nouveau Contrat de Service</h3>
             <div className="space-y-4">
               <Input label="Titre" value={contractForm.title} onChange={e => setContractForm({...contractForm, title: e.target.value})} placeholder="Ex: Gardiennage mensuel" />
               <div>
@@ -866,7 +867,7 @@ const Interventions: React.FC = () => {
               </div>
             </div>
           </Card>
-        </div>
+        </ModalDialog>
       )}
     </div>
   );

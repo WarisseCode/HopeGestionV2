@@ -528,7 +528,16 @@ const GestionnaireDashboard: React.FC = () => {
                 ) : featuredProperties.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {featuredProperties.map(property => (
-                            <div key={property.id} className="bg-base-100 rounded-2xl p-4 shadow-lg border border-base-200 flex gap-4 hover:shadow-xl transition-all cursor-pointer group" onClick={() => navigate(`/dashboard/biens?id=${property.id}`)}>
+                            <div key={property.id} className="bg-base-100 rounded-2xl p-4 shadow-lg border border-base-200 flex gap-4 hover:shadow-xl transition-all cursor-pointer group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => navigate(`/dashboard/biens?id=${property.id}`)}
+                                // Atteignable au clavier, Entrée/Espace = clic (T-049)
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
+                                    e.preventDefault();
+                                    navigate(`/dashboard/biens?id=${property.id}`);
+                                }}
+                            >
                                 <div className="w-24 h-24 rounded-xl bg-base-300 overflow-hidden relative shrink-0">
                                     {property.image ? (
                                         <img src={property.image} alt={property.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
