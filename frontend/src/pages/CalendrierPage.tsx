@@ -13,6 +13,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input'; // Assuming Input exists
 import ModalDialog from '../components/ui/ModalDialog';
+import LoadErrorState from '../components/ui/LoadErrorState';
 import { apiCall } from '../utils/apiUtils';
 import { API_URL } from '../config';
 import { toast } from 'react-hot-toast';
@@ -41,6 +42,16 @@ interface ReminderSetting {
 const PREV_LABEL = { month: 'Mois précédent', week: 'Semaine précédente', day: 'Jour précédent' } as const;
 const NEXT_LABEL = { month: 'Mois suivant', week: 'Semaine suivante', day: 'Jour suivant' } as const;
 
+// Pastille du jour courant, mêmes dimensions que la ligne de texte (text-sm) pour ne pas changer la taille des cellules (T-053)
+const TODAY_BADGE = 'inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full bg-primary text-primary-content';
+
+// Lignes de la modale Rappels : délais proposés (en jours avant l'échéance) (T-053)
+const REMINDER_ROWS = [
+    { event_type: 'payment', title: 'Loyers à échoir', subtitle: 'Rappel aux locataires pour le paiement', options: [3, 7, 1] },
+    { event_type: 'contract_end', title: 'Fins de Contrat', subtitle: 'Anticipation des renouvellements', options: [30, 60, 90] },
+];
+const delayLabel = (n: number) => `${n} jour${n > 1 ? 's' : ''} avant`;
+
 const CalendrierPage: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
@@ -64,6 +75,12 @@ const CalendrierPage: React.FC = () => {
 
   // Settings Form
   const [settings, setSettings] = useState<ReminderSetting[]>([]);
+  // Les select affichaient toujours « 3 jours / 30 jours » même en cas d'échec du chargement, et le
+  // premier changement écrasait alors le réglage serveur : aucune écriture avant 'ready' (T-053)
+  const [settingsStatus, setSettingsStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  // Valeur choisie en cours d'enregistrement (affichée tout de suite, retirée en cas d'échec)
+  const [pendingDelay, setPendingDelay] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchEvents();
@@ -95,11 +112,18 @@ const CalendrierPage: React.FC = () => {
   };
 
   const fetchSettings = async () => {
+      setSettingsStatus('loading');
+      setSettingsError(null);
       try {
-          const data = await apiCall<any>(`${API_URL}/calendar/settings`);
+          const data = await apiCall<ReminderSetting[]>(`${API_URL}/calendar/settings`);
+          // Réponse inattendue : traitée comme un échec, sinon « Non configuré » s'afficherait à tort (relecture Codex)
+          if (!Array.isArray(data)) throw new Error('Réponse invalide du serveur');
           setSettings(data);
+          setSettingsStatus('ready');
       } catch (e) {
           console.error(e);
+          setSettingsError((e as Error)?.message || 'Erreur lors du chargement des réglages');
+          setSettingsStatus('error');
       }
   };
 
@@ -109,8 +133,17 @@ const CalendrierPage: React.FC = () => {
           toast.error("Titre de l'événement requis");
           return;
       }
+      // Date effacée : new Date('T09:00').toISOString() levait un RangeError, affiché « Erreur création » (T-053)
+      if (!newEvent.date) {
+          toast.error("Date de l'événement requise");
+          return;
+      }
+      const startDateTime = new Date(`${newEvent.date}T${newEvent.time}`);
+      if (Number.isNaN(startDateTime.getTime())) {
+          toast.error("Date ou heure de l'événement invalide");
+          return;
+      }
       try {
-          const startDateTime = new Date(`${newEvent.date}T${newEvent.time}`);
           await apiCall(`${API_URL}/calendar/events`, {
               method: 'POST',
               body: JSON.stringify({
@@ -130,16 +163,36 @@ const CalendrierPage: React.FC = () => {
       }
   };
 
-  const handleSaveSetting = async (setting: ReminderSetting) => {
+  const handleSaveSetting = async (eventType: string, delay: number) => {
+      // Aucune écriture tant que les réglages réels ne sont pas chargés, ni pendant un enregistrement (T-053)
+      if (settingsStatus !== 'ready' || pendingDelay[eventType] !== undefined) return;
+      const saved = settings.find(s => s.event_type === eventType);
+      setPendingDelay(p => ({ ...p, [eventType]: delay }));
       try {
-          await apiCall(`${API_URL}/calendar/settings`, {
+          // delay_days positif : l'API refuse les valeurs négatives (isInt min 0), le Cron utilise Math.abs (T-053)
+          const row = await apiCall<ReminderSetting>(`${API_URL}/calendar/settings`, {
               method: 'POST',
-              body: JSON.stringify(setting)
+              body: JSON.stringify({
+                  event_type: eventType,
+                  delay_days: delay,
+                  channel: saved?.channel ?? 'email',
+                  active: saved?.active ?? true
+              })
           });
+          const next: ReminderSetting = row && row.event_type === eventType
+              ? row
+              : { ...saved, event_type: eventType, delay_days: delay, channel: saved?.channel ?? 'email', active: saved?.active ?? true };
+          setSettings(list => [...list.filter(s => s.event_type !== eventType), next]);
           toast.success("Réglage sauvegardé");
-          fetchSettings();
       } catch (e) {
-          toast.error("Erreur sauvegarde");
+          console.error(e);
+          toast.error("Erreur sauvegarde : valeur précédente rétablie");
+      } finally {
+          setPendingDelay(p => {
+              const rest = { ...p };
+              delete rest[eventType];
+              return rest;
+          });
       }
   };
 
@@ -170,20 +223,39 @@ const CalendrierPage: React.FC = () => {
             <div className="grid grid-cols-7 auto-rows-fr bg-base-200/30">
                 {calendarDays.map((day) => {
                     const isCurrentMonth = isSameMonth(day, monthStart);
+                    const isToday = isSameDay(day, new Date());
                     const dayEvents = events.filter(e => isSameDay(parseISO(e.date), day));
+                    const count = dayEvents.length;
+                    // Cellule cliquable : ouvre la vue Jour sur cette date (titres coupés et « +N autres » inaccessibles à 375 px) (T-053)
                     return (
-                        <div key={day.toString()} className={`min-h-[120px] p-2 border-r border-b border-base-200 ${!isCurrentMonth ? 'bg-base-200/50' : 'bg-base-100'}`}>
-                            <div className="text-right text-sm font-medium mb-1 text-base-content/70">{format(day, 'd')}</div>
-                            <div className="space-y-1">
+                        <button
+                            type="button"
+                            key={day.toString()}
+                            onClick={() => { setCurrentDate(day); setViewMode('day'); }}
+                            aria-label={`${format(day, 'd MMMM', { locale: fr })}, ${count === 0 ? 'aucun événement' : `${count} événement${count > 1 ? 's' : ''}`}`}
+                            aria-current={isToday ? 'date' : undefined}
+                            className={`flex flex-col justify-start w-full min-w-0 text-left min-h-[120px] p-2 border-r border-b border-base-200 cursor-pointer hover:bg-base-200 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary ${!isCurrentMonth ? 'bg-base-200/50' : 'bg-base-100'}`}
+                        >
+                            <span className="block text-right text-sm font-medium mb-1 text-base-content/70">
+                                <span className={isToday ? TODAY_BADGE : undefined}>{format(day, 'd')}</span>
+                            </span>
+                            {/* Sous sm : pastilles de couleur par type + compteur, à la place du texte coupé */}
+                            <span className="flex sm:hidden flex-wrap items-center gap-1" aria-hidden="true">
                                 {dayEvents.slice(0, 3).map(e => (
-                                    <div key={e.id} className={`text-[10px] p-1 rounded border truncate flex items-center gap-1 ${getEventColor(e.type)}`}>
-                                        <div className={`w-1.5 h-1.5 rounded-full ${getEventDot(e.type)}`}></div>
-                                        {e.title}
-                                    </div>
+                                    <span key={e.id} title={e.title} className={`w-2 h-2 rounded-full ${getEventDot(e.type)}`}></span>
                                 ))}
-                                {dayEvents.length > 3 && <div className="text-[10px] text-center text-base-content/70">+{dayEvents.length - 3} autres</div>}
-                            </div>
-                        </div>
+                                {count > 3 && <span className="text-xs leading-none text-base-content/70">+{count - 3}</span>}
+                            </span>
+                            <span className="hidden sm:block space-y-1">
+                                {dayEvents.slice(0, 3).map(e => (
+                                    <span key={e.id} title={e.title} className={`text-[10px] p-1 rounded border truncate flex items-center gap-1 ${getEventColor(e.type)}`}>
+                                        <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${getEventDot(e.type)}`}></span>
+                                        <span className="truncate">{e.title}</span>
+                                    </span>
+                                ))}
+                                {count > 3 && <span className="block text-[10px] text-center text-base-content/70">+{count - 3} autres</span>}
+                            </span>
+                        </button>
                     );
                 })}
             </div>
@@ -200,12 +272,18 @@ const CalendrierPage: React.FC = () => {
           <div className="bg-base-100 rounded-xl shadow border overflow-auto">
               <div className="grid grid-cols-8 border-b">
                   <div className="p-4 border-r text-xs text-base-content/70">Heure</div>
-                  {weekDays.map(day => (
-                      <div key={day.toString()} className={`p-4 border-r text-center ${isSameDay(day, new Date()) ? 'bg-teal-50' : ''}`}>
-                          <div className="font-bold text-base-content/90">{format(day, 'EEEE', { locale: fr })}</div>
-                          <div className="text-sm text-base-content/70">{format(day, 'd MMM')}</div>
-                      </div>
-                  ))}
+                  {weekDays.map(day => {
+                      const isToday = isSameDay(day, new Date());
+                      // bg-teal-50 codé en dur : texte clair du thème sombre à 1,03:1 ; fond lié au thème (T-053)
+                      return (
+                          <div key={day.toString()} aria-current={isToday ? 'date' : undefined} className={`p-4 border-r text-center ${isToday ? 'bg-primary/10' : ''}`}>
+                              <div className="font-bold text-base-content/90">{format(day, 'EEEE', { locale: fr })}</div>
+                              <div className="text-sm text-base-content/70">
+                                  <span className={isToday ? TODAY_BADGE : undefined}>{format(day, 'd')}</span> {format(day, 'MMM')}
+                              </div>
+                          </div>
+                      );
+                  })}
               </div>
               <div>
                   {hours.map(hour => (
@@ -219,7 +297,7 @@ const CalendrierPage: React.FC = () => {
                             return (
                                 <div key={day.toString()} className="border-r p-1 relative">
                                     {hourEvents.map(e => (
-                                        <div key={e.id} className={`text-[10px] p-1 mb-1 rounded border ${getEventColor(e.type)}`}>
+                                        <div key={e.id} title={e.title} className={`text-[10px] p-1 mb-1 rounded border ${getEventColor(e.type)}`}>
                                             {e.title}
                                         </div>
                                     ))}
@@ -233,20 +311,24 @@ const CalendrierPage: React.FC = () => {
       );
   };
 
+  // Variantes dark: (motif T-051) : les puces claires restaient claires en thème sombre (T-053)
   const getEventColor = (type: string) => {
       switch(type) {
-          case 'payment': return 'bg-green-50 text-green-700 border-green-200';
-          case 'intervention': return 'bg-orange-50 text-orange-700 border-orange-200';
-          case 'contract': return 'bg-red-50 text-red-700 border-red-200';
-          case 'rdv': return 'bg-teal-50 text-teal-700 border-teal-200';
+          case 'payment': return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800';
+          case 'intervention': return 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800';
+          case 'contract': return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800';
+          case 'rdv': return 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800';
           default: return 'bg-base-200 text-base-content/80 border-base-300';
       }
   };
+  // Une couleur par type (pastilles mobiles) ; les -500 étaient sous 3:1 sur les puces -50 (T-053)
   const getEventDot = (type: string) => {
       switch(type) {
-          case 'payment': return 'bg-green-500';
-          case 'notification': return 'bg-teal-500';
-          default: return 'bg-teal-500';
+          case 'payment': return 'bg-green-600 dark:bg-green-400';
+          case 'intervention': return 'bg-orange-600 dark:bg-orange-400';
+          case 'contract': return 'bg-red-600 dark:bg-red-400';
+          case 'rdv': return 'bg-teal-600 dark:bg-teal-400';
+          default: return 'bg-base-content/60';
       }
   };
 
@@ -257,16 +339,19 @@ const CalendrierPage: React.FC = () => {
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <CalendarIcon className="text-primary" /> Agenda
           </h1>
-          <p className="opacity-60">Gérez vos échéances et rappels</p>
+          <p className="text-base-content/70">Gérez vos échéances et rappels</p>
         </div>
 
         <div className="flex items-center gap-2 bg-base-100 p-1 rounded-lg border border-base-200">
            {/* Boutons icône sans nom : libellé selon la vue (T-050) */}
            <Button variant="ghost" size="sm" onClick={() => navigateDate('prev')} aria-label={PREV_LABEL[viewMode]} title={PREV_LABEL[viewMode]}><ChevronLeft size={20}/></Button>
            <span className="font-bold min-w-[200px] text-center capitalize">
-             {viewMode === 'month' ? format(currentDate, 'MMMM yyyy', { locale: fr }) : 
-              viewMode === 'week' ? `Semaine du ${format(startOfWeek(currentDate, {weekStartsOn:1}), 'd MMM')}` : 
-              format(currentDate, 'd MMMM yyyy', { locale: fr })}
+             {viewMode === 'month' ? format(currentDate, 'MMMM yyyy', { locale: fr }) :
+              viewMode === 'week' ? `Semaine du ${format(startOfWeek(currentDate, {weekStartsOn:1}), 'd MMM')}` :
+              // Vue Jour : même pastille que Mois/Semaine si la date affichée est aujourd'hui (T-053)
+              <span aria-current={isSameDay(currentDate, new Date()) ? 'date' : undefined}>
+                  <span className={isSameDay(currentDate, new Date()) ? TODAY_BADGE : undefined}>{format(currentDate, 'd')}</span> {format(currentDate, 'MMMM yyyy', { locale: fr })}
+              </span>}
            </span>
            <Button variant="ghost" size="sm" onClick={() => navigateDate('next')} aria-label={NEXT_LABEL[viewMode]} title={NEXT_LABEL[viewMode]}><ChevronRight size={20}/></Button>
         </div>
@@ -299,7 +384,7 @@ const CalendrierPage: React.FC = () => {
                               <div className={`w-2 h-2 rounded-full ${getEventDot(e.type)}`}></div>
                               <div>
                                   <div className="font-bold">{e.title}</div>
-                                  <div className="text-xs opacity-75">{e.type.toUpperCase()}</div>
+                                  <div className="text-xs">{e.type.toUpperCase()}</div>
                               </div>
                           </div>
                       </div>
@@ -358,36 +443,47 @@ const CalendrierPage: React.FC = () => {
                 <div className="space-y-4 mb-6">
                     <p className="text-sm text-base-content/70">Définissez quand et comment vous souhaitez être notifié.</p>
                     
-                    {/* Simplified Settings Form for Demo */}
-                    <div className="p-3 bg-base-200 rounded-lg border flex items-center justify-between">
-                        <div>
-                            <div className="font-bold text-base-content/80">Loyers à échoir</div>
-                            <div className="text-xs text-base-content/70">Rappel aux locataires pour le paiement</div>
-                        </div>
-                        <div className="flex gap-2 items-center">
-                            <select className="text-sm border border-base-content/50 rounded p-1" onChange={(e) => handleSaveSetting({event_type: 'payment', delay_days: -parseInt(e.target.value), channel: 'email', active: true})}>
-                                <option value="3">3 jours avant</option>
-                                <option value="7">7 jours avant</option>
-                                <option value="1">1 jour avant</option>
-                            </select>
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Actif</span>
-                        </div>
-                    </div>
-
-                    <div className="p-3 bg-base-200 rounded-lg border flex items-center justify-between">
-                        <div>
-                            <div className="font-bold text-base-content/80">Fins de Contrat</div>
-                            <div className="text-xs text-base-content/70">Anticipation des renouvellements</div>
-                        </div>
-                         <div className="flex gap-2 items-center">
-                            <select className="text-sm border border-base-content/50 rounded p-1" onChange={(e) => handleSaveSetting({event_type: 'contract_end', delay_days: -parseInt(e.target.value), channel: 'email', active: true})}>
-                                <option value="30">30 jours avant</option>
-                                <option value="60">60 jours avant</option>
-                                <option value="90">90 jours avant</option>
-                            </select>
-                             <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Actif</span>
-                        </div>
-                    </div>
+                    {settingsStatus === 'error' ? (
+                        // Échec du chargement : aucun select, donc aucune écriture possible (motif T-042/T-047)
+                        <LoadErrorState message={settingsError} onRetry={fetchSettings} />
+                    ) : (
+                        <>
+                            {settingsStatus === 'loading' && (
+                                <div className="flex justify-center">
+                                    <span className="loading loading-spinner loading-md text-primary" role="status" aria-label="Chargement des réglages" />
+                                </div>
+                            )}
+                            {REMINDER_ROWS.map(row => {
+                                const saved = settings.find(s => s.event_type === row.event_type);
+                                const savedDelay = saved ? Math.abs(saved.delay_days) : undefined;
+                                const shown = pendingDelay[row.event_type] ?? savedDelay;
+                                // Valeur enregistrée hors liste (ex. 5 jours) : ajoutée pour que l'affichage reflète le serveur
+                                const options = shown !== undefined && !row.options.includes(shown) ? [shown, ...row.options] : row.options;
+                                return (
+                                    <div key={row.event_type} className="p-3 bg-base-200 rounded-lg border flex items-center justify-between">
+                                        <div>
+                                            <div className="font-bold text-base-content/80">{row.title}</div>
+                                            <div className="text-xs text-base-content/70">{row.subtitle}</div>
+                                        </div>
+                                        <div className="flex gap-2 items-center">
+                                            <select
+                                                className="text-sm border border-base-content/50 rounded p-1"
+                                                value={shown === undefined ? '' : String(shown)}
+                                                disabled={settingsStatus !== 'ready' || pendingDelay[row.event_type] !== undefined}
+                                                onChange={(e) => handleSaveSetting(row.event_type, parseInt(e.target.value, 10))}
+                                            >
+                                                {shown === undefined && <option value="" disabled>—</option>}
+                                                {options.map(n => <option key={n} value={String(n)}>{delayLabel(n)}</option>)}
+                                            </select>
+                                            {settingsStatus === 'ready' && (saved
+                                                ? <span className={`text-xs px-2 py-1 rounded ${saved.active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-base-300 text-base-content/80'}`}>{saved.active ? 'Actif' : 'Inactif'}</span>
+                                                : <span className="text-xs px-2 py-1 rounded bg-base-300 text-base-content/80">Non configuré</span>)}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </>
+                    )}
                 </div>
 
                 <div className="flex justify-end">
