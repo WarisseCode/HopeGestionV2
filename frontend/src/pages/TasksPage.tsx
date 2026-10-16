@@ -84,8 +84,9 @@ const TasksPage: React.FC = () => {
 
   const getPriorityColor = (p: string) => {
       switch(p) {
-          case 'urgent': return 'text-red-600 bg-red-50 border-red-200';
-          case 'high': return 'text-orange-600 bg-orange-50 border-orange-200';
+          // -700 au lieu de -600 : 4,36:1 (urgent) et 3,37:1 (high) sur le fond -50, sous 4,5:1 (T-054a)
+          case 'urgent': return 'text-red-700 bg-red-50 border-red-200';
+          case 'high': return 'text-orange-700 bg-orange-50 border-orange-200';
           case 'medium': return 'text-teal-700 bg-teal-50 border-teal-200';
           default: return 'text-base-content/70 bg-base-200 border-base-300';
       }

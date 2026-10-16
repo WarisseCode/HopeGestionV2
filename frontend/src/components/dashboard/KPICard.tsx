@@ -1,6 +1,6 @@
 import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 interface KPICardProps {
   icon: React.ElementType;
@@ -60,7 +60,10 @@ const colorClasses = {
 
 const KPICard: React.FC<KPICardProps> = ({ icon: Icon, label, value, color, trend, onClick }) => {
   const classes = colorClasses[color] || colorClasses.blue;
-  
+  // MotionConfig reducedMotion="user" rend le survol instantané sans le supprimer : la carte se
+  // soulevait encore (y −5 px, ×1,02). Aucun déplacement si l'OS réduit les animations (T-054a)
+  const reduceMotion = useReducedMotion();
+
   return (
     <motion.div 
       onClick={onClick}
@@ -73,7 +76,7 @@ const KPICard: React.FC<KPICardProps> = ({ icon: Icon, label, value, color, tren
         onClick();
       } : undefined}
       className={`relative overflow-hidden rounded-2xl p-5 border ${classes.border} ${classes.bg} shadow-lg ${classes.shadow} h-full min-h-[150px] flex flex-col justify-between transition-all duration-300 hover:shadow-xl ${onClick ? 'cursor-pointer hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary' : ''}`}
-      whileHover={{ y: -5, scale: 1.02 }}
+      whileHover={reduceMotion ? undefined : { y: -5, scale: 1.02 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >
       

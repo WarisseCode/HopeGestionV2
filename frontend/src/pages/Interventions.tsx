@@ -76,17 +76,19 @@ interface ServiceContract {
 // Status configuration
 const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: any }> = {
   'Ouvert': { color: 'text-teal-700 dark:text-teal-200', bg: 'bg-teal-100 dark:bg-teal-900/40', icon: AlertCircle },
-  'En cours': { color: 'text-orange-700', bg: 'bg-orange-100', icon: Clock },
-  'En attente': { color: 'text-yellow-700', bg: 'bg-yellow-100', icon: PauseCircle },
-  'Résolu': { color: 'text-green-700', bg: 'bg-green-100', icon: CheckCheck },
-  'Clos': { color: 'text-base-content/70', bg: 'bg-base-300', icon: Archive },
+  // Variantes dark: (motif T-051) : les fonds -100 restaient clairs en thème sombre ; Clos à 4,25:1 en sombre (T-054a)
+  'En cours': { color: 'text-orange-700 dark:text-orange-300', bg: 'bg-orange-100 dark:bg-orange-900/30', icon: Clock },
+  'En attente': { color: 'text-yellow-700 dark:text-yellow-300', bg: 'bg-yellow-100 dark:bg-yellow-900/30', icon: PauseCircle },
+  'Résolu': { color: 'text-green-700 dark:text-green-300', bg: 'bg-green-100 dark:bg-green-900/30', icon: CheckCheck },
+  'Clos': { color: 'text-base-content/70 dark:text-base-content/80', bg: 'bg-base-300', icon: Archive },
 };
 
 const PRIORITY_CONFIG: Record<string, string> = {
   'Basse': 'badge-info',
   'Moyenne': 'badge-warning',
   'Haute': 'badge-error',
-  'Urgente': 'badge-error animate-pulse',
+  // « ! » : l'animation .animate-pulse de globals.css, hors couche, l'emportait sur l'utilitaire (T-054a)
+  'Urgente': 'badge-error animate-pulse motion-reduce:animate-none!',
 };
 
 const CATEGORIES = ['Maintenance corrective', 'Maintenance préventive', 'Services connexes'];
@@ -444,7 +446,9 @@ const Interventions: React.FC = () => {
     return (
       <div className="space-y-6 max-w-[1800px] mx-auto">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <button onClick={() => setShowCreateModal(false)} className="flex items-center gap-2 text-base-content/70 hover:text-base-content transition">
+          {/* Zone de clic de 20px de haut portée à 24px par ::before (2px dessus/dessous), sans changer la mise
+              en page : min-h-6 décalait le titre de 4px quand il passe à la ligne (375 px) (T-054a) */}
+          <button onClick={() => setShowCreateModal(false)} className="relative flex items-center gap-2 before:absolute before:-inset-y-0.5 before:inset-x-0 before:content-[''] text-base-content/70 hover:text-base-content transition">
             <ArrowLeft size={20} />
             <span className="text-sm font-medium">Retour aux interventions</span>
           </button>
@@ -480,10 +484,12 @@ const Interventions: React.FC = () => {
               <textarea id={`${formId}-description`} className="w-full border border-base-content/50 rounded-lg p-2" rows={3} placeholder="Décrivez le problème en détail..." value={ticketForm.description} onChange={e => setTicketForm({...ticketForm, description: e.target.value})} />
             </div>
             <div>
-              <label className="block text-sm font-bold mb-1">Urgence</label>
-              <div className="flex flex-wrap gap-2">
+              {/* Boutons radio natifs (name="urgency") : groupe nommé par son libellé visible ; bordure des
+                  choix non sélectionnés à 1,39:1 (clair) / 1,65:1 (sombre), portée à celle des champs (T-054a) */}
+              <label id={`${formId}-urgency`} className="block text-sm font-bold mb-1">Urgence</label>
+              <div role="group" aria-labelledby={`${formId}-urgency`} className="flex flex-wrap gap-2">
                 {['Basse', 'Moyenne', 'Haute', 'Urgente'].map(u => (
-                  <label key={u} className={`flex-1 text-center py-2 px-3 rounded-lg border cursor-pointer transition-all ${ticketForm.urgency === u ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-base-200'}`}>
+                  <label key={u} className={`flex-1 text-center py-2 px-3 rounded-lg border cursor-pointer transition-all ${ticketForm.urgency === u ? 'border-primary bg-primary/10 text-primary' : 'border-base-content/50 hover:bg-base-200'}`}>
                     <input type="radio" name="urgency" value={u} checked={ticketForm.urgency === u} onChange={e => setTicketForm({...ticketForm, urgency: e.target.value, priorite: e.target.value})} className="sr-only" />
                     {u}
                   </label>
@@ -495,12 +501,14 @@ const Interventions: React.FC = () => {
               <Input label="Téléphone" value={ticketForm.requester_phone} onChange={e => setTicketForm({...ticketForm, requester_phone: e.target.value})} placeholder="+229 00 00 00 00" />
             </div>
             <div>
-              <label className="block text-sm font-bold mb-2">Photos (avant intervention)</label>
-              <div className="flex flex-wrap gap-2">
+              {/* Libellé sans contrôle unique : nomme le groupe d'envoi (vignettes + bouton Photo) (T-054a) */}
+              <label id={`${formId}-photos`} className="block text-sm font-bold mb-2">Photos (avant intervention)</label>
+              <div role="group" aria-labelledby={`${formId}-photos`} className="flex flex-wrap gap-2">
                 {ticketForm.photos_before.map((p, i) => (
                   <div key={i} className="relative w-20 h-20">
                     <img src={p} alt="" className="w-full h-full object-cover rounded-lg" />
-                    <button onClick={() => setTicketForm(prev => ({...prev, photos_before: prev.photos_before.filter((_, idx) => idx !== i)}))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><XCircle size={14} /></button>
+                    {/* Bouton sans nom (icône seule) ; zone de clic 22px portée à 26px par ::before, rendu inchangé (T-054a) */}
+                    <button type="button" aria-label={`Retirer la photo ${i + 1}`} onClick={() => setTicketForm(prev => ({...prev, photos_before: prev.photos_before.filter((_, idx) => idx !== i)}))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 before:absolute before:-inset-0.5 before:rounded-full before:content-['']"><XCircle size={14} /></button>
                   </div>
                 ))}
                 <button onClick={() => photoInputRef.current?.click()} className="w-20 h-20 border-2 border-dashed border-current rounded-lg flex flex-col items-center justify-center text-base-content/70 hover:border-primary hover:text-primary transition-all">
@@ -767,8 +775,9 @@ const Interventions: React.FC = () => {
             <h3 id="intervention-assign-title" className="text-lg font-bold mb-4">Assigner Intervention #{selectedTicket.id}</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-bold mb-1">Prestataire *</label>
-                <select className="w-full border border-base-content/50 rounded-lg p-2" value={assignForm.provider_id} onChange={e => setAssignForm({...assignForm, provider_id: e.target.value})}>
+                {/* Libellés associés à leur champ (motif T-050) (T-054a) */}
+                <label htmlFor={`${formId}-assign-provider`} className="block text-sm font-bold mb-1">Prestataire *</label>
+                <select id={`${formId}-assign-provider`} className="w-full border border-base-content/50 rounded-lg p-2" value={assignForm.provider_id} onChange={e => setAssignForm({...assignForm, provider_id: e.target.value})}>
                   <option value="">Sélectionner...</option>
                   {providers.map(p => <option key={p.id} value={p.id}>{p.name} ({p.specialty})</option>)}
                 </select>
@@ -791,14 +800,14 @@ const Interventions: React.FC = () => {
             <h3 id="intervention-close-title" className="text-lg font-bold mb-4">Clôturer Intervention #{selectedTicket.id}</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-bold mb-1">Actions réalisées *</label>
-                <textarea className="w-full border border-base-content/50 rounded-lg p-2" rows={3} value={closeForm.actions_done} onChange={e => setCloseForm({...closeForm, actions_done: e.target.value})} placeholder="Décrivez les travaux effectués..." />
+                <label htmlFor={`${formId}-close-actions`} className="block text-sm font-bold mb-1">Actions réalisées *</label>
+                <textarea id={`${formId}-close-actions`} className="w-full border border-base-content/50 rounded-lg p-2" rows={3} value={closeForm.actions_done} onChange={e => setCloseForm({...closeForm, actions_done: e.target.value})} placeholder="Décrivez les travaux effectués..." />
               </div>
               <Input type="number" label="Coût Réel (FCFA)" value={closeForm.cost_real} onChange={e => setCloseForm({...closeForm, cost_real: parseFloat(e.target.value)})} />
               <Input label="Commentaires" value={closeForm.comments} onChange={e => setCloseForm({...closeForm, comments: e.target.value})} />
               <div>
-                <label className="block text-sm font-bold mb-2">Photos (après intervention)</label>
-                <div className="flex flex-wrap gap-2">
+                <label id={`${formId}-photos-after`} className="block text-sm font-bold mb-2">Photos (après intervention)</label>
+                <div role="group" aria-labelledby={`${formId}-photos-after`} className="flex flex-wrap gap-2">
                   {closeForm.photos_after.map((p, i) => (
                     <div key={i} className="relative w-20 h-20">
                       <img src={p} alt="" className="w-full h-full object-cover rounded-lg" />
@@ -866,8 +875,8 @@ const Interventions: React.FC = () => {
             <div className="space-y-4">
               <Input label="Titre" value={contractForm.title} onChange={e => setContractForm({...contractForm, title: e.target.value})} placeholder="Ex: Gardiennage mensuel" />
               <div>
-                <label className="block text-sm font-bold mb-1">Prestataire</label>
-                <select className="w-full border border-base-content/50 rounded-lg p-2" value={contractForm.provider_id} onChange={e => setContractForm({...contractForm, provider_id: e.target.value})}>
+                <label htmlFor={`${formId}-contract-provider`} className="block text-sm font-bold mb-1">Prestataire</label>
+                <select id={`${formId}-contract-provider`} className="w-full border border-base-content/50 rounded-lg p-2" value={contractForm.provider_id} onChange={e => setContractForm({...contractForm, provider_id: e.target.value})}>
                   <option value="">Sélectionner...</option>
                   {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>

@@ -190,7 +190,8 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                                                 />
                                               )}
 
-                                              <span className={`relative z-10 ${isActive(item.path) ? 'text-primary-content' : 'text-slate-400 group-hover:text-primary'} transition-colors duration-200 motion-reduce:transition-none`}>
+                                              {/* Menu réduit : l'icône porte seule le sens, slate-400 à 2,59:1 en clair ; slate-500 (sombre inchangé) (T-054a) */}
+                                              <span className={`relative z-10 ${isActive(item.path) ? 'text-primary-content' : `${(!isOpen && !isMobile) ? 'text-slate-500 dark:text-slate-400' : 'text-slate-400'} group-hover:text-primary`} transition-colors duration-200 motion-reduce:transition-none`}>
                                                   {item.icon}
                                               </span>
                                               

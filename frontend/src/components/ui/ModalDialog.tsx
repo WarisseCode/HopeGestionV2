@@ -1,7 +1,8 @@
 // src/components/ui/ModalDialog.tsx
 // Enveloppe accessible des modales « maison » (fond div.fixed + Card) : role="dialog",
 // aria-modal, aria-labelledby, Échap = Annuler, focus initial dans la modale, piège de focus
-// Tab/Maj+Tab et focus rendu à l'élément d'ouverture. Apparence inchangée : le fond reprend
+// Tab/Maj+Tab et focus rendu à l'élément d'ouverture (ou, s'il a disparu, au titre de la page,
+// T-054a). Apparence inchangée : le fond reprend
 // les classes d'origine et le contenu (Card) est rendu tel quel (T-049).
 import React, { useEffect, useRef } from 'react';
 
@@ -80,7 +81,17 @@ const ModalDialog: React.FC<ModalDialogProps> = ({ onClose, labelledBy, classNam
       // dessous qui se ferme ne doit pas sortir le focus de celle restée ouverte au-dessus)
       const wasTop = i >= 0 && i === openDialogs.length - 1;
       if (i >= 0) openDialogs.splice(i, 1);
-      if (wasTop && opener && opener.isConnected) opener.focus();
+      if (!wasTop) return;
+      if (opener && opener.isConnected) {
+        opener.focus();
+        return;
+      }
+      // Ouvreur démonté (lignes rechargées après soumission) : le focus tombait sur <body>.
+      // Repli stable : titre de la page (rendu focusable par programme), à défaut <main> (T-054a)
+      const fallback = document.querySelector<HTMLElement>('main h1') ?? document.querySelector<HTMLElement>('main');
+      if (!fallback) return;
+      if (!fallback.hasAttribute('tabindex')) fallback.setAttribute('tabindex', '-1');
+      fallback.focus({ preventScroll: true });
     };
   }, []);
 

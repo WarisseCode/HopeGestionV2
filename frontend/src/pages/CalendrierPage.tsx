@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { 
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, 
   eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, 
@@ -55,6 +55,8 @@ const delayLabel = (n: number) => `${n} jour${n > 1 ? 's' : ''} avant`;
 const CalendrierPage: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
+  // Préfixe des id des modales : libellés associés à leur champ (motif T-050) (T-054a)
+  const formId = useId();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   // true dès le montage : la grille s'affichait vide, sans indicateur, avant la réponse (T-042)
   const [loading, setLoading] = useState(true);
@@ -412,16 +414,16 @@ const CalendrierPage: React.FC = () => {
                           <Input type="time" label="Heure" value={newEvent.time} onChange={e => setNewEvent({...newEvent, time: e.target.value})} />
                       </div>
                       <div>
-                          <label className="block text-sm font-medium mb-1">Type</label>
-                          <select className="w-full border border-base-content/50 rounded-lg p-2" value={newEvent.type} onChange={e => setNewEvent({...newEvent, type: e.target.value as any})}>
+                          <label htmlFor={`${formId}-type`} className="block text-sm font-medium mb-1">Type</label>
+                          <select id={`${formId}-type`} className="w-full border border-base-content/50 rounded-lg p-2" value={newEvent.type} onChange={e => setNewEvent({...newEvent, type: e.target.value as any})}>
                               <option value="rdv">Rendez-vous</option>
                               <option value="rappel">Rappel</option>
                               <option value="custom">Autre</option>
                           </select>
                       </div>
                       <div>
-                          <label className="block text-sm font-medium mb-1">Description</label>
-                          <textarea className="w-full border border-base-content/50 rounded-lg p-2" rows={3} value={newEvent.description} onChange={e => setNewEvent({...newEvent, description: e.target.value})} />
+                          <label htmlFor={`${formId}-description`} className="block text-sm font-medium mb-1">Description</label>
+                          <textarea id={`${formId}-description`} className="w-full border border-base-content/50 rounded-lg p-2" rows={3} value={newEvent.description} onChange={e => setNewEvent({...newEvent, description: e.target.value})} />
                       </div>
                       <div className="flex justify-end gap-2 mt-4">
                           <Button variant="secondary" onClick={() => setShowEventModal(false)}>Annuler</Button>
@@ -462,11 +464,13 @@ const CalendrierPage: React.FC = () => {
                                 return (
                                     <div key={row.event_type} className="p-3 bg-base-200 rounded-lg border flex items-center justify-between">
                                         <div>
-                                            <div className="font-bold text-base-content/80">{row.title}</div>
+                                            <div id={`${formId}-${row.event_type}-title`} className="font-bold text-base-content/80">{row.title}</div>
                                             <div className="text-xs text-base-content/70">{row.subtitle}</div>
                                         </div>
                                         <div className="flex gap-2 items-center">
+                                            {/* Select sans nom : nommé par le titre visible de sa ligne (T-054a) */}
                                             <select
+                                                aria-labelledby={`${formId}-${row.event_type}-title`}
                                                 className="text-sm border border-base-content/50 rounded p-1"
                                                 value={shown === undefined ? '' : String(shown)}
                                                 disabled={settingsStatus !== 'ready' || pendingDelay[row.event_type] !== undefined}

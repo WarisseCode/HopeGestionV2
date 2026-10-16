@@ -42,9 +42,28 @@ const ALERT_TYPE_LABELS: Record<string, { label: string, desc: string }> = {
   'INTERVENTION_PLANNED': { label: 'Intervention planifiée', desc: 'Rappel de date d\'intervention' },
 };
 
+// Ordre des onglets pour la navigation aux flèches (T-054a)
+const TAB_ORDER = ['alertes', 'notifications', 'parametres'] as const;
+type AlertesTab = typeof TAB_ORDER[number];
+
 const Alertes: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'alertes' | 'notifications' | 'parametres'>('alertes');
+  const [activeTab, setActiveTab] = useState<AlertesTab>('alertes');
+
+  // Motif onglets (activation automatique) : flèches gauche/droite (en boucle), Début/Fin
+  // déplacent le focus et l'onglet actif ; tabindex itinérant, Tab sort de la liste (T-054a)
+  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const i = TAB_ORDER.indexOf(activeTab);
+    const next = e.key === 'ArrowRight' ? TAB_ORDER[(i + 1) % TAB_ORDER.length]
+      : e.key === 'ArrowLeft' ? TAB_ORDER[(i - 1 + TAB_ORDER.length) % TAB_ORDER.length]
+      : e.key === 'Home' ? TAB_ORDER[0]
+      : e.key === 'End' ? TAB_ORDER[TAB_ORDER.length - 1]
+      : null;
+    if (!next) return;
+    e.preventDefault();
+    setActiveTab(next);
+    document.getElementById(`alertes-tab-${next}`)?.focus();
+  };
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -240,14 +259,15 @@ const Alertes: React.FC = () => {
 
        {/* Tabs */}
      <motion.div variants={itemVariants} className="flex justify-center md:justify-start">
-        {/* Onglets exposés comme tels (role, état sélectionné) ; pas de navigation aux flèches, Tab inchangé (T-050) */}
-        <div role="tablist" aria-label="Centre d'alertes" className="flex p-1.5 bg-base-200/50 rounded-2xl overflow-x-auto w-full sm:w-auto shadow-inner ring-1 ring-base-content/5">
+        {/* Onglets exposés comme tels (role, état sélectionné) (T-050) ; flèches, Début/Fin et tabindex itinérant (T-054a) */}
+        <div role="tablist" aria-label="Centre d'alertes" onKeyDown={handleTabKeyDown} className="flex p-1.5 bg-base-200/50 rounded-2xl overflow-x-auto w-full sm:w-auto shadow-inner ring-1 ring-base-content/5">
              <button
                 onClick={() => setActiveTab('alertes')}
                 role="tab"
                 id="alertes-tab-alertes"
                 aria-selected={activeTab === 'alertes'}
                 aria-controls="alertes-panel"
+                tabIndex={activeTab === 'alertes' ? 0 : -1}
                 className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm transition-all duration-300 flex items-center justify-center gap-2.5 whitespace-nowrap ${
                 activeTab === 'alertes' ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-content/5 font-bold' : 'text-base-content/70 hover:text-base-content/90 hover:bg-base-100/50 font-medium'
                 }`}
@@ -262,6 +282,7 @@ const Alertes: React.FC = () => {
                 id="alertes-tab-notifications"
                 aria-selected={activeTab === 'notifications'}
                 aria-controls="alertes-panel"
+                tabIndex={activeTab === 'notifications' ? 0 : -1}
                 className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm transition-all duration-300 flex items-center justify-center gap-2.5 whitespace-nowrap ${
                 activeTab === 'notifications' ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-content/5 font-bold' : 'text-base-content/70 hover:text-base-content/90 hover:bg-base-100/50 font-medium'
                 }`}
@@ -276,6 +297,7 @@ const Alertes: React.FC = () => {
                 id="alertes-tab-parametres"
                 aria-selected={activeTab === 'parametres'}
                 aria-controls="alertes-panel"
+                tabIndex={activeTab === 'parametres' ? 0 : -1}
                 className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm transition-all duration-300 flex items-center justify-center gap-2.5 whitespace-nowrap ${
                 activeTab === 'parametres' ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-content/5 font-bold' : 'text-base-content/70 hover:text-base-content/90 hover:bg-base-100/50 font-medium'
                 }`}
@@ -347,7 +369,7 @@ const Alertes: React.FC = () => {
                                                     <CheckCircle size={48} strokeWidth={1.5} />
                                                 </div>
                                                 <div className="absolute -bottom-1 -right-1 w-8 h-8 flex items-center justify-center">
-                                                    <div className="w-6 h-6 bg-success/30 rounded-full animate-ping absolute"></div>
+                                                    <div className="w-6 h-6 bg-success/30 rounded-full animate-ping motion-reduce:animate-none absolute"></div>
                                                     <div className="w-4 h-4 bg-success rounded-full shadow-md ring-2 ring-base-100"></div>
                                                 </div>
                                             </div>
@@ -381,7 +403,8 @@ const Alertes: React.FC = () => {
                                                                                 'bg-sky-100 text-sky-900 ring-sky-300 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-500/30'
                                                 }`}>
                                                 <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                                                    alerte.priorite === 'Urgente' ? 'bg-red-600 animate-pulse' :
+                                                    // « ! » : .animate-pulse de globals.css, hors couche, l'emportait sur l'utilitaire (T-054a)
+                                                    alerte.priorite === 'Urgente' ? 'bg-red-600 animate-pulse motion-reduce:animate-none!' :
                                                     alerte.priorite === 'Haute'   ? 'bg-amber-600' :
                                                                                     'bg-sky-600'
                                                 }`} />
@@ -465,13 +488,15 @@ const Alertes: React.FC = () => {
                              >
                                  <div className="flex flex-col md:flex-row justify-between gap-5">
                                      <div className="flex items-start gap-5">
-                                         <div className={`p-3.5 rounded-2xl ${notif.type === 'success' ? 'bg-green-100/80 text-green-600 dark:bg-green-900/30' : notif.type === 'error' ? 'bg-red-100/80 text-red-600 dark:bg-red-900/30' : 'bg-teal-100/80 text-teal-600 dark:bg-teal-900/30 dark:text-teal-300'} flex-shrink-0 shadow-sm`}>
+                                         {/* dark:text-*-300 : icônes -600 sur fond -900/30 sous 3:1 en sombre (motif T-051) ; vert -700 en
+                                             clair (2,88:1 avec -600) (T-054a) */}
+                                         <div className={`p-3.5 rounded-2xl ${notif.type === 'success' ? 'bg-green-100/80 text-green-700 dark:bg-green-900/30 dark:text-green-300' : notif.type === 'error' ? 'bg-red-100/80 text-red-600 dark:bg-red-900/30 dark:text-red-300' : 'bg-teal-100/80 text-teal-600 dark:bg-teal-900/30 dark:text-teal-300'} flex-shrink-0 shadow-sm`}>
                                              {notif.type === 'success' ? <CheckCircle size={22} /> : <AlertTriangle size={22} />}
                                          </div>
                                          <div className="pt-1">
                                              <div className="flex items-center gap-3 mb-1.5">
                                                  <h3 className={`text-[15px] font-bold ${!notif.is_read ? 'text-base-content' : 'text-base-content/70 group-hover:text-base-content transition-colors'}`}>{notif.title}</h3>
-                                                 {!notif.is_read && <span className="badge badge-primary badge-sm px-2 py-2 text-[10px] font-bold tracking-wider text-white shadow-sm ring-1 ring-primary/20">NOUVEAU</span>}
+                                                 {!notif.is_read && <span className="badge badge-primary badge-sm px-2 py-2 text-[10px] font-bold tracking-wider text-white dark:text-primary-content shadow-sm ring-1 ring-primary/20">NOUVEAU</span>}
                                              </div>
                                              <p className="text-sm text-base-content/70 leading-relaxed max-w-2xl">{notif.message}</p>
                                              <div className="flex items-center gap-4 mt-3 text-xs font-medium text-base-content/70">
@@ -482,8 +507,9 @@ const Alertes: React.FC = () => {
                                      <div className="flex items-center gap-3 self-end md:self-center">
                                          {notif.link && (
                                              // Masqué hors survol seulement à partir de md sur écran à survol ; visible au
-                                             // focus clavier (carte ou bouton), sous md et sur écran tactile (T-049)
-                                             <Button variant="primary" size="sm" className="h-9 px-4 gap-2 text-white shadow-md shadow-primary/20 hover:shadow-primary/40 md:[@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); if (!notif.is_read) handleMarkAsRead(notif.id); navigate(notif.link!); }}>
+                                             // focus clavier (carte ou bouton), sous md et sur écran tactile (T-049).
+                                             // text-white sur le primary clair du thème sombre : 2,1:1, d'où dark:text-primary-content (T-054a)
+                                             <Button variant="primary" size="sm" className="h-9 px-4 gap-2 text-white dark:text-primary-content shadow-md shadow-primary/20 hover:shadow-primary/40 md:[@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); if (!notif.is_read) handleMarkAsRead(notif.id); navigate(notif.link!); }}>
                                                  Consulter
                                              </Button>
                                          )}

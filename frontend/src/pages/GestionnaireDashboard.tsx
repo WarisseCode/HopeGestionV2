@@ -65,6 +65,9 @@ interface KPIData {
     modulePath: string;
 }
 
+// Graduations des axes : même teinte que text-base-content/70, suit le thème clair/sombre (T-054a)
+const AXIS_TICK_FILL = 'color-mix(in oklab, var(--color-base-content) 70%, transparent)';
+
 const GestionnaireDashboard: React.FC = () => {
   const { user, stats, loading: userLoading } = useUser();
   const { t } = useTranslation();
@@ -323,9 +326,10 @@ const GestionnaireDashboard: React.FC = () => {
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <p className="text-primary-content/80 text-sm font-medium">{t('dashboard.globalPerformance')}</p>
-              {/* Pendant le chargement des KPI : squelette au lieu d'un faux « 0 FCFA » (T-042) */}
+              {/* Pendant le chargement des KPI : squelette au lieu d'un faux « 0 FCFA » (T-042) ;
+                  role="status" : aria-label interdit sur un span sans rôle (axe aria-prohibited-attr) (T-054a) */}
               {isLoadingKpis
-                ? <span className="block h-9 w-44 my-0.5 rounded-lg bg-base-100/20 animate-pulse" aria-label="Chargement" />
+                ? <span role="status" className="block h-9 w-44 my-0.5 rounded-lg bg-base-100/20 animate-pulse motion-reduce:animate-none!" aria-label="Chargement" />
                 : <p className="text-3xl font-bold">{new Intl.NumberFormat('fr-FR').format(revenuNet)} FCFA</p>}
               <p className="text-primary-content/60 text-xs mt-1">{t('dashboard.revenueCollectedMonth')}</p>
             </div>
@@ -333,13 +337,13 @@ const GestionnaireDashboard: React.FC = () => {
               <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
                 <p className="text-primary-content/80 text-xs font-medium">{t('dashboard.collections')}</p>
                 {isLoadingKpis
-                  ? <span className="block h-6 w-14 mx-auto my-0.5 rounded bg-base-100/20 animate-pulse" />
+                  ? <span className="block h-6 w-14 mx-auto my-0.5 rounded bg-base-100/20 animate-pulse motion-reduce:animate-none!" />
                   : <p className="text-lg font-bold text-green-300">+{new Intl.NumberFormat('fr-FR').format(totalRevenus)}</p>}
               </div>
               <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
                 <p className="text-primary-content/80 text-xs font-medium">{t('dashboard.unpaid')}</p>
                 {isLoadingKpis
-                  ? <span className="block h-6 w-14 mx-auto my-0.5 rounded bg-base-100/20 animate-pulse" />
+                  ? <span className="block h-6 w-14 mx-auto my-0.5 rounded bg-base-100/20 animate-pulse motion-reduce:animate-none!" />
                   : <p className="text-lg font-bold text-orange-300">{new Intl.NumberFormat('fr-FR').format(totalImpayes)}</p>}
               </div>
             </div>
@@ -380,7 +384,7 @@ const GestionnaireDashboard: React.FC = () => {
           {isLoadingKpis ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-base-100 rounded-2xl p-6 border border-base-200 animate-pulse">
+                <div key={i} className="bg-base-100 rounded-2xl p-6 border border-base-200 animate-pulse motion-reduce:animate-none!">
                   <div className="flex items-center justify-between mb-4">
                     <div className="w-12 h-12 bg-base-300 rounded-full" />
                     <div className="w-16 h-6 bg-base-300 rounded" />
@@ -484,8 +488,9 @@ const GestionnaireDashboard: React.FC = () => {
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-base-300)" />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
+                            {/* Graduations : #94a3b8 fixe à 2,56:1 en clair ; couleur de texte secondaire du thème (T-054a) */}
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: AXIS_TICK_FILL, fontSize: 12 }} dy={10} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: AXIS_TICK_FILL, fontSize: 12 }} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
                             <Tooltip
                                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)' }}
                                 formatter={(value: any) => [`${Number(value).toLocaleString('fr-FR')} FCFA`]}
@@ -523,7 +528,7 @@ const GestionnaireDashboard: React.FC = () => {
                 {loadingWidgets ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {[1, 2].map(i => (
-                             <div key={i} className="bg-base-300 rounded-2xl h-32 animate-pulse"></div>
+                             <div key={i} className="bg-base-300 rounded-2xl h-32 animate-pulse motion-reduce:animate-none!"></div>
                         ))}
                     </div>
                 ) : widgetErrors.properties !== null ? (
@@ -611,7 +616,7 @@ const GestionnaireDashboard: React.FC = () => {
                             {/* stats (UserContext) encore null = pas encore reçues : pas de faux « 0% » (T-042) */}
                             {stats
                               ? <span className="text-3xl font-extrabold text-base-content/90">{stats.tauxOccupation || 0}%</span>
-                              : <span className="block h-9 w-16 rounded-lg bg-base-300 animate-pulse" aria-label="Chargement" />}
+                              : <span role="status" className="block h-9 w-16 rounded-lg bg-base-300 animate-pulse motion-reduce:animate-none!" aria-label="Chargement" />}
                             <span className="text-xs text-base-content/70 font-medium uppercase tracking-wide">{t('dashboard.occupied')}</span>
                         </div>
                     </div>
@@ -629,7 +634,7 @@ const GestionnaireDashboard: React.FC = () => {
                     </div>
                     {loadingWidgets ? (
                          <div className="space-y-4">
-                             {[1, 2, 3].map(i => <div key={i} className="h-16 bg-base-300 rounded-xl animate-pulse"></div>)}
+                             {[1, 2, 3].map(i => <div key={i} className="h-16 bg-base-300 rounded-xl animate-pulse motion-reduce:animate-none!"></div>)}
                          </div>
                     ) : widgetErrors.activity !== null ? (
                         <LoadErrorState message={widgetErrors.activity} onRetry={retryWidgets} className="border-none" />

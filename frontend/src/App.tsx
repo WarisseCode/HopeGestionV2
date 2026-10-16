@@ -2,6 +2,7 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { MotionConfig } from 'framer-motion';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import RouteProtection from './components/RouteProtection';
 import { getToken, logoutUser } from './api/authApi';
@@ -140,6 +141,9 @@ const App: React.FC = () => {
 
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+      {/* Préférence OS « réduire les animations » respectée par tous les composants framer-motion
+          (auparavant seul le menu latéral l'était, T-045). Ne rend aucun élément DOM (T-054a) */}
+      <MotionConfig reducedMotion="user">
       <Router>
         <Toaster position="top-center" toastOptions={{ duration: 4000, className: 'text-sm font-medium' }} />
         <CookieConsentBanner />
@@ -269,6 +273,7 @@ const App: React.FC = () => {
         </Suspense>
         </MaintenanceWrapper>
       </Router>
+      </MotionConfig>
     </GoogleOAuthProvider>
   );
 };
