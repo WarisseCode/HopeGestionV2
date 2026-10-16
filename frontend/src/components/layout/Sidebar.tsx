@@ -170,6 +170,9 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
                                           <Link
                                               to={`/dashboard${item.path}`}
                                               aria-current={isActive(item.path) ? 'page' : undefined}
+                                              // Menu réduit : icône seule, l'infobulle ne nomme pas le lien ; même libellé que le
+                                              // menu ouvert (buildDashboardMenu). Ouvert : nommé par son texte visible (T-054b)
+                                              aria-label={(!isOpen && !isMobile) ? item.label : undefined}
                                               onClick={() => isMobile && toggleSidebar()}
                                               className={`
                                                 flex items-center gap-3 rounded-xl group relative

@@ -19,6 +19,7 @@ import { apiCall } from '../utils/apiUtils';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
 import LoadErrorState from '../components/ui/LoadErrorState';
 import ModalDialog from '../components/ui/ModalDialog';
+import { handleTabListKeyDown } from '../utils/tabKeyboard';
 
 // Types
 interface Ticket {
@@ -98,10 +99,14 @@ const CATEGORY_EXAMPLES = {
   'Services connexes': ['Nettoyage cour', 'Gardiennage', 'Vidange fosse septique', 'Jardinage'],
 };
 
+// Ordre des onglets pour la navigation aux flèches (motif des onglets d'Alertes) (T-054b)
+const TAB_ORDER = ['demandes', 'interventions', 'partenaires', 'contrats'] as const;
+type InterventionsTab = typeof TAB_ORDER[number];
+
 const Interventions: React.FC = () => {
   // Préfixe unique des id du formulaire de création : libellés associés à leur champ (T-050)
   const formId = useId();
-  const [activeTab, setActiveTab] = useState<'demandes' | 'interventions' | 'partenaires' | 'contrats'>('demandes');
+  const [activeTab, setActiveTab] = useState<InterventionsTab>('demandes');
   
   // Data
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -488,8 +493,10 @@ const Interventions: React.FC = () => {
                   choix non sélectionnés à 1,39:1 (clair) / 1,65:1 (sombre), portée à celle des champs (T-054a) */}
               <label id={`${formId}-urgency`} className="block text-sm font-bold mb-1">Urgence</label>
               <div role="group" aria-labelledby={`${formId}-urgency`} className="flex flex-wrap gap-2">
+                {/* Radio sr-only : aucun indicateur au focus clavier (WCAG 2.4.7) ; anneau primary sur le
+                    libellé quand son radio a le focus clavier (T-054b) */}
                 {['Basse', 'Moyenne', 'Haute', 'Urgente'].map(u => (
-                  <label key={u} className={`flex-1 text-center py-2 px-3 rounded-lg border cursor-pointer transition-all ${ticketForm.urgency === u ? 'border-primary bg-primary/10 text-primary' : 'border-base-content/50 hover:bg-base-200'}`}>
+                  <label key={u} className={`flex-1 text-center py-2 px-3 rounded-lg border cursor-pointer transition-all has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary ${ticketForm.urgency === u ? 'border-primary bg-primary/10 text-primary' : 'border-base-content/50 hover:bg-base-200'}`}>
                     <input type="radio" name="urgency" value={u} checked={ticketForm.urgency === u} onChange={e => setTicketForm({...ticketForm, urgency: e.target.value, priorite: e.target.value})} className="sr-only" />
                     {u}
                   </label>
@@ -559,17 +566,28 @@ const Interventions: React.FC = () => {
         <KPICard icon={Users} label="Prestataires" value={loading ? '…' : loadErrors.providers ? '—' : providers.length.toString()} color="teal" />
       </div>
 
-      {/* Tabs */}
-      <div className="flex flex-wrap gap-2 bg-base-100 p-2 rounded-xl border">
-        {[
+      {/* Tabs — exposés comme des onglets (tablist, état sélectionné, panneau associé), flèches, Début/Fin
+          et tabindex itinérant, comme Alertes (T-054b) */}
+      <div
+        role="tablist"
+        aria-label="Interventions"
+        onKeyDown={e => handleTabListKeyDown(e, TAB_ORDER, activeTab, setActiveTab, tab => `interventions-tab-${tab}`)}
+        className="flex flex-wrap gap-2 bg-base-100 p-2 rounded-xl border"
+      >
+        {([
           { key: 'demandes', label: 'Demandes', icon: AlertCircle, count: demandes.length },
           { key: 'interventions', label: 'Interventions', icon: Wrench, count: interventions.length },
           { key: 'partenaires', label: 'Prestataires', icon: Users, count: providers.length },
           { key: 'contrats', label: 'Contrats', icon: FileText, count: contracts.length },
-        ].map(tab => (
+        ] as const).map(tab => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key as any)}
+            onClick={() => setActiveTab(tab.key)}
+            role="tab"
+            id={`interventions-tab-${tab.key}`}
+            aria-selected={activeTab === tab.key}
+            aria-controls="interventions-panel"
+            tabIndex={activeTab === tab.key ? 0 : -1}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
               activeTab === tab.key ? 'bg-primary text-primary-content' : 'text-base-content/70 hover:bg-base-300'
             }`}
@@ -586,6 +604,8 @@ const Interventions: React.FC = () => {
         ))}
       </div>
 
+      {/* Panneau de l'onglet actif (filtres + tableau), même espacement que la page (T-054b) */}
+      <div role="tabpanel" id="interventions-panel" aria-labelledby={`interventions-tab-${activeTab}`} className="space-y-6">
       {/* Filters */}
       {(activeTab === 'demandes' || activeTab === 'interventions') && (
         <div className="flex flex-wrap gap-3 items-center">
@@ -767,6 +787,7 @@ const Interventions: React.FC = () => {
           )}
         </div>
       </Card>
+      </div>
 
       {/* Assign Modal */}
       {showAssignModal && selectedTicket && (

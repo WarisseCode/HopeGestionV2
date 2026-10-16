@@ -24,6 +24,7 @@ import type { Alert } from '../api/alertApi';
 import { getNotificationSettings, updateNotificationSettings } from '../api/notificationApi';
 import type { NotificationSetting } from '../api/notificationApi';
 import LoadErrorState from '../components/ui/LoadErrorState';
+import { handleTabListKeyDown } from '../utils/tabKeyboard';
 
 const DEFAULT_SETTINGS: NotificationSetting[] = [
     { alert_type: 'PAYMENT_RECEIVED', channel_email: true, channel_whatsapp: true, channel_sms: false },
@@ -51,19 +52,10 @@ const Alertes: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AlertesTab>('alertes');
 
   // Motif onglets (activation automatique) : flèches gauche/droite (en boucle), Début/Fin
-  // déplacent le focus et l'onglet actif ; tabindex itinérant, Tab sort de la liste (T-054a)
-  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    const i = TAB_ORDER.indexOf(activeTab);
-    const next = e.key === 'ArrowRight' ? TAB_ORDER[(i + 1) % TAB_ORDER.length]
-      : e.key === 'ArrowLeft' ? TAB_ORDER[(i - 1 + TAB_ORDER.length) % TAB_ORDER.length]
-      : e.key === 'Home' ? TAB_ORDER[0]
-      : e.key === 'End' ? TAB_ORDER[TAB_ORDER.length - 1]
-      : null;
-    if (!next) return;
-    e.preventDefault();
-    setActiveTab(next);
-    document.getElementById(`alertes-tab-${next}`)?.focus();
-  };
+  // déplacent le focus et l'onglet actif ; tabindex itinérant, Tab sort de la liste (T-054a).
+  // Logique partagée avec Interventions (T-054b)
+  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) =>
+    handleTabListKeyDown(e, TAB_ORDER, activeTab, setActiveTab, tab => `alertes-tab-${tab}`);
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);

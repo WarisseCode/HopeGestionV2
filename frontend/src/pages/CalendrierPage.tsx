@@ -60,7 +60,6 @@ const CalendrierPage: React.FC = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   // true dès le montage : la grille s'affichait vide, sans indicateur, avant la réponse (T-042)
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'payment' | 'intervention'>('all');
 
   // Modals
   const [showEventModal, setShowEventModal] = useState(false);
@@ -241,14 +240,15 @@ const CalendrierPage: React.FC = () => {
                             <span className="block text-right text-sm font-medium mb-1 text-base-content/70">
                                 <span className={isToday ? TODAY_BADGE : undefined}>{format(day, 'd')}</span>
                             </span>
-                            {/* Sous sm : pastilles de couleur par type + compteur, à la place du texte coupé */}
-                            <span className="flex sm:hidden flex-wrap items-center gap-1" aria-hidden="true">
+                            {/* Sous lg : pastilles de couleur par type + compteur, à la place du texte coupé. Seuil sm → lg :
+                                à 768 (menu ouvert par défaut) une cellule fait 61 px, 2-3 caractères visibles ; 8-10 à 1024 (T-054b) */}
+                            <span className="flex lg:hidden flex-wrap items-center gap-1" aria-hidden="true">
                                 {dayEvents.slice(0, 3).map(e => (
                                     <span key={e.id} title={e.title} className={`w-2 h-2 rounded-full ${getEventDot(e.type)}`}></span>
                                 ))}
                                 {count > 3 && <span className="text-xs leading-none text-base-content/70">+{count - 3}</span>}
                             </span>
-                            <span className="hidden sm:block space-y-1">
+                            <span className="hidden lg:block space-y-1">
                                 {dayEvents.slice(0, 3).map(e => (
                                     <span key={e.id} title={e.title} className={`text-[10px] p-1 rounded border truncate flex items-center gap-1 ${getEventColor(e.type)}`}>
                                         <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${getEventDot(e.type)}`}></span>
@@ -337,9 +337,11 @@ const CalendrierPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col xl:flex-row justify-between items-center gap-4">
-        <div>
+        {/* Sous md : titre à gauche (abscisse de main) comme les autres pages, il était centré ; md et plus inchangés.
+            H1 = libellé du menu « Planning » (était « Agenda ») (T-054b) */}
+        <div className="self-start md:self-auto">
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <CalendarIcon className="text-primary" /> Agenda
+            <CalendarIcon className="text-primary" /> Planning
           </h1>
           <p className="text-base-content/70">Gérez vos échéances et rappels</p>
         </div>
@@ -364,7 +366,9 @@ const CalendrierPage: React.FC = () => {
                 <button onClick={() => setViewMode('week')} aria-pressed={viewMode === 'week'} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'week' ? 'bg-base-100 shadow' : ''}`}>Semaine</button>
                 <button onClick={() => setViewMode('day')} aria-pressed={viewMode === 'day'} className={`px-3 py-1 rounded-md text-sm ${viewMode === 'day' ? 'bg-base-100 shadow' : ''}`}>Jour</button>
             </div>
-            <Button variant="secondary" onClick={() => { setShowSettingsModal(true); fetchSettings(); }} aria-label="Configurer les rappels" title="Configurer les rappels">
+            {/* Discret (ghost) pour que le CTA « Événement » domine ; nom et taille inchangés. Anneau de focus primary :
+                celui du ghost (base-300) tombait à 1,27:1 (clair) / 1,36:1 (sombre) (T-054b) */}
+            <Button variant="ghost" className="focus-visible:ring-primary" onClick={() => { setShowSettingsModal(true); fetchSettings(); }} aria-label="Configurer les rappels" title="Configurer les rappels">
                 <Settings size={18} />
             </Button>
             <Button onClick={() => setShowEventModal(true)}>

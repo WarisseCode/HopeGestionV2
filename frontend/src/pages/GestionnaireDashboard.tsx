@@ -13,8 +13,7 @@ import {
   DollarSign, 
   Clock, 
   Search, 
-  Plus, 
-  MoreVertical, 
+  Plus,
   Eye,
   ChevronDown,
   ChevronUp,
@@ -67,6 +66,10 @@ interface KPIData {
 
 // Graduations des axes : même teinte que text-base-content/70, suit le thème clair/sombre (T-054a)
 const AXIS_TICK_FILL = 'color-mix(in oklab, var(--color-base-content) 70%, transparent)';
+
+// Libellés du bandeau « Performance globale » en thème sombre (fond bleu clair) : primary-content
+// assombri de 20 %, les opacités /60-/80 tombaient à 2,47-3,51:1 (pixels mesurés) (T-054b)
+const BANNER_DARK_TEXT = 'dark:text-[color-mix(in_oklab,var(--color-primary-content)_80%,black)]';
 
 const GestionnaireDashboard: React.FC = () => {
   const { user, stats, loading: userLoading } = useUser();
@@ -300,8 +303,9 @@ const GestionnaireDashboard: React.FC = () => {
       {/* Header Section */}
       <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
+          {/* Même clé que le menu et le fil d'Ariane (« Bureau » / « Dashboard ») (T-054b) */}
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
-            {t('nav.tableauDeBord')}
+            {t('nav.bureau')}
           </h1>
           <p className="text-base-content/70 font-medium mt-1">
             {t('dashboard.welcome', { name: user?.nom || '' })}
@@ -316,7 +320,10 @@ const GestionnaireDashboard: React.FC = () => {
 
       {/* Financial Summary Banner */}
       <motion.div variants={itemVariants}>
-        <div className="bg-gradient-to-r from-primary via-primary to-secondary rounded-2xl p-6 text-primary-content shadow-xl relative overflow-hidden">
+        {/* Contrastes mesurés sur les pixels rendus (T-054b) : en clair, textes clairs sous 4,5:1 sur la fin claire
+            du dégradé (orange 1,71:1, vert 2,99:1) → fin à 30 % de secondary dans primary, verts/oranges un cran plus
+            clairs ; en sombre (fond clair, texte foncé), dégradé inchangé, textes assombris (BANNER_DARK_TEXT, -950) */}
+        <div className="bg-gradient-to-r from-primary via-primary to-[color-mix(in_oklab,var(--color-secondary)_30%,var(--color-primary))] dark:to-secondary rounded-2xl p-6 text-primary-content shadow-xl relative overflow-hidden">
           {/* Decorative background pattern */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-0 right-0 w-64 h-64 bg-base-100 rounded-full -translate-y-1/2 translate-x-1/3"></div>
@@ -325,26 +332,26 @@ const GestionnaireDashboard: React.FC = () => {
           
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <p className="text-primary-content/80 text-sm font-medium">{t('dashboard.globalPerformance')}</p>
+              <p className={`text-primary-content/90 ${BANNER_DARK_TEXT} text-sm font-medium`}>{t('dashboard.globalPerformance')}</p>
               {/* Pendant le chargement des KPI : squelette au lieu d'un faux « 0 FCFA » (T-042) ;
                   role="status" : aria-label interdit sur un span sans rôle (axe aria-prohibited-attr) (T-054a) */}
               {isLoadingKpis
                 ? <span role="status" className="block h-9 w-44 my-0.5 rounded-lg bg-base-100/20 animate-pulse motion-reduce:animate-none!" aria-label="Chargement" />
                 : <p className="text-3xl font-bold">{new Intl.NumberFormat('fr-FR').format(revenuNet)} FCFA</p>}
-              <p className="text-primary-content/60 text-xs mt-1">{t('dashboard.revenueCollectedMonth')}</p>
+              <p className={`text-primary-content/70 ${BANNER_DARK_TEXT} text-xs mt-1`}>{t('dashboard.revenueCollectedMonth')}</p>
             </div>
             <div className="flex gap-4 flex-wrap">
               <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
-                <p className="text-primary-content/80 text-xs font-medium">{t('dashboard.collections')}</p>
+                <p className={`text-primary-content/90 ${BANNER_DARK_TEXT} text-xs font-medium`}>{t('dashboard.collections')}</p>
                 {isLoadingKpis
                   ? <span className="block h-6 w-14 mx-auto my-0.5 rounded bg-base-100/20 animate-pulse motion-reduce:animate-none!" />
-                  : <p className="text-lg font-bold text-green-300">+{new Intl.NumberFormat('fr-FR').format(totalRevenus)}</p>}
+                  : <p className="text-lg font-bold text-green-200 dark:text-green-950">+{new Intl.NumberFormat('fr-FR').format(totalRevenus)}</p>}
               </div>
               <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
-                <p className="text-primary-content/80 text-xs font-medium">{t('dashboard.unpaid')}</p>
+                <p className={`text-primary-content/90 ${BANNER_DARK_TEXT} text-xs font-medium`}>{t('dashboard.unpaid')}</p>
                 {isLoadingKpis
                   ? <span className="block h-6 w-14 mx-auto my-0.5 rounded bg-base-100/20 animate-pulse motion-reduce:animate-none!" />
-                  : <p className="text-lg font-bold text-orange-300">{new Intl.NumberFormat('fr-FR').format(totalImpayes)}</p>}
+                  : <p className="text-lg font-bold text-orange-100 dark:text-orange-950">{new Intl.NumberFormat('fr-FR').format(totalImpayes)}</p>}
               </div>
             </div>
           </div>
@@ -626,11 +633,9 @@ const GestionnaireDashboard: React.FC = () => {
             {/* Recent Activity */}
             <motion.div variants={itemVariants}>
                 <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200">
-                    <div className="flex justify-between items-center mb-6">
+                    {/* Bouton ⋮ retiré : sans nom ni action (T-054b) ; min-h-[34px] = sa hauteur, titre et contenu ne bougent pas */}
+                    <div className="flex justify-between items-center min-h-[34px] mb-6">
                         <h3 className="font-bold text-base-content/90">{t('dashboard.activityFeed')}</h3>
-                        <Button variant="ghost" className="btn-xs text-base-content/50">
-                            <MoreVertical size={16} />
-                        </Button>
                     </div>
                     {loadingWidgets ? (
                          <div className="space-y-4">

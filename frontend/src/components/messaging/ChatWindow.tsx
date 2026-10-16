@@ -100,8 +100,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ contextType, contextId, recipie
             {/* Input Area */}
             <div className="p-3 border-t bg-base-100 flex gap-2 items-center">
                 <button className="text-base-content/50 hover:text-base-content/70"><Paperclip size={20}/></button>
-                <input 
-                    className="flex-1 border border-base-content/50 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-primary"
+                {/* min-w-0 : largeur minimale intrinsèque du champ (~230 px), le bouton d'envoi sortait du cadre à 320 px (T-054b) */}
+                <input
+                    className="flex-1 min-w-0 border border-base-content/50 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-primary"
                     placeholder={`Message (${channel})...`}
                     value={newMessage}
                     onChange={e => setNewMessage(e.target.value)}
