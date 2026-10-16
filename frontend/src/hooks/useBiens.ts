@@ -28,6 +28,21 @@ const DEFAULT_LOT: Partial<Lot> = {
   reference: '', type: 'Appartement', building_id: 0, etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: ''
 };
 
+// ── Filtre rapide par statut et tri (refonte T-060) ──────────────────────────
+// Les statuts existent sous plusieurs graphies selon l'ancienneté des données
+// (« libre »/« disponible », « loue »/« occupe »/« occupé ») : on raisonne par groupe.
+export type StatusGroup = 'all' | 'free' | 'rented' | 'reserved';
+export type SortKey = 'free' | 'name' | 'recent';
+
+export const STATUS_GROUPS: Record<Exclude<StatusGroup, 'all'>, string[]> = {
+  free:     ['disponible', 'libre'],
+  rented:   ['occupe', 'occupé', 'loue', 'loué'],
+  reserved: ['reserve', 'réservé'],
+};
+
+export const lotInGroup = (lot: Lot, group: StatusGroup) =>
+  group === 'all' || STATUS_GROUPS[group].includes(lot.statut?.toLowerCase() ?? '');
+
 // ── ConfirmConfig type ────────────────────────────────────────────────────────
 
 export interface ConfirmConfig {
@@ -104,6 +119,8 @@ export function useBiens() {
   const [searchQuery, setSearchQuery]   = useState('');
   const [filterValues, setFilterValues] = useState<FilterValues>({});
   const [currentPage, setCurrentPage]   = useState(1);
+  const [statusGroup, setStatusGroup]   = useState<StatusGroup>('all');
+  const [sortKey, setSortKey]           = useState<SortKey>('free');
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab]       = useState<'immeubles' | 'lots'>('immeubles');
@@ -152,7 +169,7 @@ export function useBiens() {
   }, [t]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { setCurrentPage(1); }, [searchQuery, filterValues, activeTab]);
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, filterValues, activeTab, statusGroup, sortKey]);
 
   // ── Filtered data ─────────────────────────────────────────────────────────
 
@@ -163,7 +180,8 @@ export function useBiens() {
         const match = immeuble.nom?.toLowerCase().includes(q) ||
           immeuble.adresse?.toLowerCase().includes(q) ||
           immeuble.ville?.toLowerCase().includes(q) ||
-          immeuble.type?.toLowerCase().includes(q);
+          immeuble.type?.toLowerCase().includes(q) ||
+          immeuble.proprietaire?.toLowerCase().includes(q);
         if (!match) return false;
       }
       if (filterValues.type   && immeuble.type   !== filterValues.type)   return false;
@@ -173,17 +191,30 @@ export function useBiens() {
     });
   }, [immeubles, searchQuery, filterValues]);
 
+  // Locataire en place par lot (bail actif ou signé) : affiché dans la liste et cherchable
+  const tenantByLot = useMemo(() => {
+    const m = new Map<number, string>();
+    locations.forEach(l => {
+      if (['actif', 'signe'].includes(l.statut) && (l.locataire_nom || l.locataire_prenoms)) {
+        m.set(l.lot_id, [l.locataire_prenoms, l.locataire_nom].filter(Boolean).join(' '));
+      }
+    });
+    return m;
+  }, [locations]);
+
   const filteredLots = useMemo(() => {
     return lots.filter(lot => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const match = lot.reference?.toLowerCase().includes(q) ||
           lot.immeuble?.toLowerCase().includes(q) ||
-          lot.type?.toLowerCase().includes(q);
+          lot.type?.toLowerCase().includes(q) ||
+          tenantByLot.get(lot.id)?.toLowerCase().includes(q);
         if (!match) return false;
       }
       if (filterValues.type   && lot.type   !== filterValues.type)   return false;
       if (filterValues.statut && lot.statut !== filterValues.statut) return false;
+      if (!lotInGroup(lot, statusGroup)) return false;
       if (filterValues.loyer) {
         const range = filterValues.loyer as { min?: number; max?: number };
         if (range.min !== undefined && lot.loyer < range.min) return false;
@@ -191,9 +222,43 @@ export function useBiens() {
       }
       return true;
     });
-  }, [lots, searchQuery, filterValues]);
+  }, [lots, searchQuery, filterValues, statusGroup, tenantByLot]);
 
-  const currentData  = activeTab === 'immeubles' ? filteredImmeubles : filteredLots;
+  // Lots libres par immeuble : sert au tri « libres d'abord » et à l'affichage des lignes
+  const freeLotsByBuilding = useMemo(() => {
+    const m = new Map<number, number>();
+    lots.forEach(l => {
+      if (l.building_id != null && lotInGroup(l, 'free')) m.set(l.building_id, (m.get(l.building_id) ?? 0) + 1);
+    });
+    return m;
+  }, [lots]);
+
+  // Tri appliqué après filtrage, avant pagination. « Plus récents » = id décroissant (ids séquentiels).
+  const sortedImmeubles = useMemo(() => {
+    const arr = [...filteredImmeubles];
+    if (sortKey === 'name') arr.sort((a, b) => (a.nom ?? '').localeCompare(b.nom ?? '', 'fr'));
+    else if (sortKey === 'recent') arr.sort((a, b) => b.id - a.id);
+    else arr.sort((a, b) => (freeLotsByBuilding.get(b.id) ?? 0) - (freeLotsByBuilding.get(a.id) ?? 0) || (a.nom ?? '').localeCompare(b.nom ?? '', 'fr'));
+    return arr;
+  }, [filteredImmeubles, sortKey, freeLotsByBuilding]);
+
+  const sortedLots = useMemo(() => {
+    const arr = [...filteredLots];
+    if (sortKey === 'name') arr.sort((a, b) => (a.reference ?? '').localeCompare(b.reference ?? '', 'fr', { numeric: true }));
+    else if (sortKey === 'recent') arr.sort((a, b) => b.id - a.id);
+    else arr.sort((a, b) => Number(lotInGroup(b, 'free')) - Number(lotInGroup(a, 'free')) || (a.reference ?? '').localeCompare(b.reference ?? '', 'fr', { numeric: true }));
+    return arr;
+  }, [filteredLots, sortKey]);
+
+  // Compteurs des filtres rapides (sur tous les lots, indépendamment de la recherche)
+  const statusCounts = useMemo(() => ({
+    all: lots.length,
+    free: lots.filter(l => lotInGroup(l, 'free')).length,
+    rented: lots.filter(l => lotInGroup(l, 'rented')).length,
+    reserved: lots.filter(l => lotInGroup(l, 'reserved')).length,
+  }), [lots]);
+
+  const currentData  = activeTab === 'immeubles' ? sortedImmeubles : sortedLots;
   const totalPages   = Math.ceil(currentData.length / ITEMS_PER_PAGE);
   const paginatedData = currentData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
@@ -290,6 +355,9 @@ export function useBiens() {
 
     // ── Filtered
     filteredImmeubles, filteredLots,
+    statusGroup, setStatusGroup, statusCounts,
+    sortKey, setSortKey,
+    freeLotsByBuilding, tenantByLot,
     dynamicImmeubleFilters, lotFilters,
 
     // ── UI

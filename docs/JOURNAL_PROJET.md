@@ -907,3 +907,43 @@ Mis à jour automatiquement après chaque tâche.
 - **Décisions & justifications** : Défauts principaux relevés : recherche en double (en-tête global et champ de page), bouton principal dont le sens change selon l'onglet (« Nouvel immeuble » / « Nouveau lot »), filtres cachés derrière un bouton, cartes à grandes photos qui n'affichent que 3 immeubles par écran, aucune vue d'ensemble libres/loués, lots séparés de leur immeuble, actions modifier/supprimer en icônes de 14 px côte à côte (suppression trop exposée), données de test visibles (« eerr », « nknn4 »). La maquette propose une liste compacte par défaut, une barre unique (onglets, recherche, ville, tri), des filtres rapides par occupation toujours visibles, un panneau latéral immeuble + ses lots, l'action « Attribuer » sur les lots libres, et un menu « ⋯ » pour modifier/supprimer.
 - **Problèmes rencontrés** : Les comptes par statut, les locataires et certains loyers ne figurent pas sur les captures : ils restent entre crochets dans la maquette.
 - **Remplace / modifie** : aucune
+
+### T-060 : Refonte de la page Parc immobilier (application de la maquette T-059)
+- **Date** : 2026-10-16
+- **Statut** : Terminée
+- **Type** : Fonctionnalité
+- **Description** : La vue liste de `/dashboard/biens` reprend la maquette T-059 :
+  - deux boutons d'ajout fixes (Nouveau lot, Nouvel immeuble) ;
+  - une barre d'outils unique (onglets, recherche, ville, tri) ;
+  - des filtres rapides Tous / Libres / Loués / Réservés avec compteurs ;
+  - une liste compacte, une ligne par immeuble (occupation, lots libres) ou par lot (statut, loyer, locataire, « Attribuer ») ;
+  - un panneau latéral immeuble + ses lots ;
+  - un menu « ⋯ » pour les actions secondaires ;
+  - une pagination « 1–9 sur N » avec Précédent/Suivant.
+- **Fichiers touchés** : `frontend/src/pages/Biens.tsx`, `frontend/src/hooks/useBiens.ts`, `frontend/src/i18n/locales/fr.json`, `frontend/src/i18n/locales/en.json`, `docs/JOURNAL_PROJET.md` (entrée T-060)
+- **Décisions & justifications** :
+  - **Existant conservé** :
+    - formulaires immeuble, lot et affectation ;
+    - modales de détail immeuble et lot, galerie, confirmation de suppression ;
+    - droits d'écriture (`canWrite`) et plafond d'abonnement sur les deux boutons d'ajout ;
+    - `?action=nouveau` ;
+    - états chargement / erreur / vide ;
+    - panneau de filtres avancés (type, statut, loyer), accessible par « Plus de filtres ».
+
+    Les actions des anciennes cartes (modifier, supprimer, détail, galerie) passent dans le menu « ⋯ » ou dans le panneau. « Ajouter un lot » depuis le panneau préremplit l'immeuble.
+  - **Vue grille retirée** : la maquette n'en a pas, et la liste compacte affiche environ deux fois plus de biens par écran. `ImmeubleCard` et `LotCard` ne sont plus utilisés, mais restent dans le dépôt.
+  - **Hook** :
+    - groupes de statut (libre/disponible, loué/occupé, réservé), car les données ont plusieurs graphies ;
+    - tri « libres d'abord », par défaut comme sur la maquette, ou par nom, ou du plus récent (id décroissant) ;
+    - recherche étendue au propriétaire (immeubles) et au locataire du bail actif ou signé (lots) ;
+    - un filtre rapide autre que « Tous » bascule sur les lots, comme la maquette.
+  - **Panneau** : immeuble choisi dérivé au rendu, sans effet (`useSyncExternalStore` sur la media query). Le premier immeuble de la page s'ouvre d'office à partir de 1024 px. Sur mobile, rien n'est ouvert par défaut ; un clic sur une ligne fait défiler jusqu'au panneau, placé sous la liste. Le panneau reste fixe à l'écran (sticky) à partir de 1024 px.
+  - **Responsive** : `@container` ; lignes en `flex-wrap` qui s'empilent ; onglets pleine largeur et icônes masquées sous 384 px de contenu ; menus Ville/Trier extensibles ; cibles de 36 à 44 px.
+  - **Couleurs** : pastilles de la maquette (Libre orange, Loué vert, Réservé bleu) en teintes foncées sur fond pâle, et l'inverse en sombre.
+  - **Libellé** : « Attribuer » (court, comme la maquette) sur le bouton de ligne ; « Affecter (Louer/Vendre) » reste dans l'info-bulle.
+- **Problèmes rencontrés** :
+  - Contrôle Playwright avec API simulée (12 immeubles, 42 lots, baux) : aucun débordement horizontal à 360, 768, 1024 et 1440 px (clair et sombre), aucune erreur JS.
+  - Parcours vérifiés : panneau par défaut puis changement d'immeuble ; menu « ⋯ » (fermeture par Échap, Supprimer ouvre la confirmation, Modifier ouvre le formulaire) ; Ajouter un lot ; fiche complète ; fermeture du panneau ; recherche par propriétaire et par locataire ; Ville ; tri par nom ; pagination ; filtre « Libres » (lots libres seulement, Attribuer ouvre l'affectation) ; détail d'un lot ; Plus de filtres ; Nouvel immeuble ; panneau amené à l'écran sur mobile.
+  - Corrigé pendant le contrôle : lignes qui passaient à la ligne à 1440 px, bouton « Plus de filtres » seul sur une ligne, onglet « Lots » qui dépassait du cadre sur mobile, et un setState dans un effet signalé par le lint.
+  - `tsc -b` propre. Lint de `Biens.tsx` : 1 erreur → 0. `useBiens.ts` : ses 5 erreurs antérieures restent (`any`, `saveLot` non utilisé), aucune nouvelle.
+- **Remplace / modifie** : aucune (mise en œuvre de la maquette T-059)

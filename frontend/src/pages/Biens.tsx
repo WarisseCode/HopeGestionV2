@@ -1,12 +1,11 @@
 // frontend/src/pages/Biens.tsx
 // Orchestrateur mince — délègue state/logique à useBiens, rendu complexe aux sous-composants.
-import React from 'react';
+import React, { useEffect, useRef, useState, forwardRef, useSyncExternalStore } from 'react';
 import {
-  Building2, Home, Plus, Edit3, Trash2, MapPin,
-  ArrowLeft, LayoutGrid, List, X, ChevronLeft, ChevronRight, UserPlus,
+  Building2, Home, Plus, ArrowLeft, X, ChevronLeft, ChevronRight, UserPlus,
+  MoreHorizontal, SlidersHorizontal, Images,
 } from 'lucide-react';
 import Button from '../components/ui/Button';
-import Card from '../components/ui/Card';
 import Alert from '../components/ui/Alert';
 import Modal from '../components/ui/Modal';
 import SearchInput from '../components/ui/SearchInput';
@@ -18,18 +17,17 @@ import ConfirmModal from '../components/ui/ConfirmModal';
 import EmptyState from '../components/ui/EmptyState';
 import LoadErrorState from '../components/ui/LoadErrorState';
 import AssignmentForm from '../components/biens/AssignmentForm';
-import ImmeubleCard from '../components/biens/ImmeubleCard';
-import LotCard from '../components/biens/LotCard';
 import ImmeubleDetailModal from '../components/biens/ImmeubleDetailModal';
 import LotDetailModal from '../components/biens/LotDetailModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { saveLot } from '../api/bienApi';
 import type { Immeuble, Lot } from '../api/bienApi';
-import { useBiens } from '../hooks/useBiens';
+import { useBiens, lotInGroup } from '../hooks/useBiens';
+import type { StatusGroup, SortKey } from '../hooks/useBiens';
 import { useCreateFromUrl } from '../hooks/useCreateFromUrl';
 import NoPhotoPlaceholder from '../components/ui/NoPhotoPlaceholder';
-import { getLotStatut } from '../utils/bienUtils';
+import { getLotStatut, ITEMS_PER_PAGE } from '../utils/bienUtils';
 import toast from 'react-hot-toast';
 
 // ── Animation variants ────────────────────────────────────────────────────────
@@ -43,59 +41,232 @@ const itemVariants = {
   visible: { y: 0, opacity: 1 },
 };
 
-// ── Skeleton loaders (presentational only, stays local) ──────────────────────
+// ── Styles partagés de la refonte (T-060) ──────────────────────────────────────
 
-const GridSkeleton = () => (
-  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+const OUTLINE_BTN = 'inline-flex items-center justify-center gap-1.5 rounded-xl border border-base-300 bg-base-100 text-sm font-semibold text-base-content hover:bg-base-200 transition-colors whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+const SELECT_WRAP = 'flex-[1_1_150px] @3xl:flex-none flex items-center gap-2 h-11 px-3 rounded-xl border border-base-300 bg-base-100 text-sm text-base-content/70 focus-within:outline-2 focus-within:outline-primary';
+
+// Même règle d'occupation que l'ancienne carte immeuble (ImmeubleCard)
+const OCCUPIED_STATUSES = ['loue', 'occupe', 'occupé', 'vendu'];
+
+// Pastilles de la maquette : Libre orange, Loué vert, Réservé bleu ; teintes foncées sur fond pâle (≥ 4,5:1),
+// et l'inverse en thème sombre
+const FREE_PILL = 'bg-orange-100 text-orange-900 dark:bg-orange-400/20 dark:text-orange-100';
+const FULL_PILL = 'bg-emerald-100 text-emerald-900 dark:bg-emerald-400/20 dark:text-emerald-100';
+const statusPillClass = (statut?: string) => {
+  switch (statut?.toLowerCase()) {
+    case 'disponible': case 'libre': return FREE_PILL;
+    case 'occupe': case 'occupé': case 'loue': case 'loué': return FULL_PILL;
+    case 'reserve': case 'réservé': return 'bg-sky-100 text-sky-900 dark:bg-sky-400/20 dark:text-sky-100';
+    case 'vendu': return 'bg-indigo-100 text-indigo-900 dark:bg-indigo-400/20 dark:text-indigo-100';
+    default: return 'bg-base-200 text-base-content/80';
+  }
+};
+
+const DESKTOP_QUERY = '(min-width: 1024px)';
+const isDesktop = () => typeof window !== 'undefined' && window.matchMedia(DESKTOP_QUERY).matches;
+
+// Abonnement à la media query : le défaut du panneau suit le passage mobile ↔ bureau
+const useIsDesktop = () => useSyncExternalStore(
+  (cb) => { const m = window.matchMedia(DESKTOP_QUERY); m.addEventListener('change', cb); return () => m.removeEventListener('change', cb); },
+  isDesktop,
+  () => false,
+);
+
+// ── Skeleton (presentational only, stays local) ──────────────────────────────
+
+const ListSkeleton = () => (
+  <div role="status" aria-label="Chargement" className="bg-base-100 rounded-2xl border border-base-300/70 divide-y divide-base-300/70">
     {[1, 2, 3, 4, 5, 6].map(i => (
-      <div key={i} className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden animate-pulse">
-        <SkeletonLoader variant="rectangular" height={192} />
-        <div className="p-5 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <SkeletonLoader variant="rectangular" height={60} className="rounded-xl" />
-            <SkeletonLoader variant="rectangular" height={60} className="rounded-xl" />
-          </div>
-          <SkeletonLoader variant="text" width="60%" />
+      <div key={i} className="flex items-center gap-4 px-5 py-3.5 animate-pulse motion-reduce:animate-none!">
+        <SkeletonLoader variant="rectangular" width={56} height={56} className="rounded-xl" />
+        <div className="flex-1 space-y-2">
+          <SkeletonLoader variant="text" width="40%" />
+          <SkeletonLoader variant="text" width="25%" />
         </div>
+        <SkeletonLoader variant="rectangular" width={160} height={8} className="rounded-full hidden sm:block" />
       </div>
     ))}
   </div>
 );
 
-const TableSkeleton = () => (
-  <Card className="border-none shadow-xl bg-base-100 overflow-hidden p-0">
-    <div className="overflow-x-auto">
-      <table className="table w-full">
-        <thead className="bg-base-200/50">
-          <tr>
-            {['Référence', 'Type', 'Immeuble', 'Loyer', 'Statut', 'Actions'].map(h => (
-              <th key={h} className="py-4 text-xs uppercase font-bold text-base-content/50" scope="col">
-                <SkeletonLoader variant="text" width={80} />
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {[1, 2, 3, 4, 5].map(i => (
-            <tr key={i} className="border-b border-base-200">
-              {[1, 2, 3, 4, 5, 6].map(j => (
-                <td key={j} className="py-4">
-                  <SkeletonLoader variant="text" width={j === 6 ? 60 : 100} />
-                </td>
-              ))}
-            </tr>
+// ── Menu « ⋯ » : actions secondaires (modifier, supprimer…) hors de portée d'un clic accidentel ─────
+
+interface RowMenuItem { label: string; onSelect: () => void; danger?: boolean }
+
+const RowMenu: React.FC<{ label: string; items: RowMenuItem[] }> = ({ label, items }) => {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Écouteurs posés seulement menu ouvert : clic à l'extérieur et Échap le referment
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => { if (!rootRef.current?.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen(o => !o)}
+        className={`${OUTLINE_BTN} w-10 h-10`}
+      >
+        <MoreHorizontal size={16} aria-hidden="true" />
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 top-full mt-1.5 z-30 min-w-44 py-1.5 rounded-xl border border-base-300 bg-base-100 shadow-lg">
+          {items.map(item => (
+            <button
+              key={item.label}
+              type="button"
+              role="menuitem"
+              onClick={() => { setOpen(false); item.onSelect(); }}
+              className={`w-full text-left px-3.5 min-h-10 text-sm font-medium hover:bg-base-200 focus-visible:bg-base-200 outline-none ${item.danger ? 'text-error' : 'text-base-content'}`}
+            >
+              {item.label}
+            </button>
           ))}
-        </tbody>
-      </table>
+        </div>
+      )}
     </div>
-  </Card>
+  );
+};
+
+// ── Panneau latéral : un immeuble et ses lots ───────────────────────────────
+
+interface BuildingPanelProps {
+  immeuble: Immeuble;
+  lots: Lot[];
+  canWrite: boolean;
+  onClose: () => void;
+  onGallery: () => void;
+  onAddLot: () => void;
+  onOpenLot: (lot: Lot) => void;
+  onFullSheet: () => void;
+  onEdit: () => void;
+}
+
+const PANEL_LOTS_MAX = 6;
+
+const BuildingPanel = forwardRef<HTMLElement, BuildingPanelProps>(
+  ({ immeuble, lots, canWrite, onClose, onGallery, onAddLot, onOpenLot, onFullSheet, onEdit }, ref) => {
+    const { t } = useTranslation();
+    const occupied = lots.filter(l => OCCUPIED_STATUSES.includes(l.statut?.toLowerCase() || '')).length;
+    const free = lots.filter(l => lotInGroup(l, 'free')).length;
+    const total = immeuble.nbLots || lots.length || 0;
+    const photo = immeuble.photo || immeuble.photos?.[0];
+    const photoCount = immeuble.photos?.length ?? (photo ? 1 : 0);
+
+    return (
+      <aside
+        ref={ref}
+        aria-label={t('properties.detailLabel')}
+        className="flex-[1_1_340px] min-w-0 bg-base-100 rounded-2xl border border-base-300/70 p-5 space-y-4 scroll-mt-4 lg:sticky lg:top-4"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold text-base-content break-words">{immeuble.nom}</h2>
+            <p className="text-sm text-base-content/70 break-words">
+              {[immeuble.ville, t('properties.ownerLabel', { name: immeuble.proprietaire || t('properties.notAssigned') })].filter(Boolean).join(' · ')}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} aria-label={t('properties.closeDetail')} className={`${OUTLINE_BTN} w-10 h-10 shrink-0`}>
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={onGallery}
+          aria-label={t('properties.openGallery')}
+          className="relative block w-full h-36 rounded-xl overflow-hidden bg-base-200 group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          {photo
+            ? <img src={photo} alt="" className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300" />
+            : <NoPhotoPlaceholder className="w-full h-full" />}
+          {photoCount > 0 && (
+            <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-black/60 text-white text-xs font-semibold">
+              <Images size={12} aria-hidden="true" /> {photoCount}
+            </span>
+          )}
+        </button>
+
+        <dl className="grid grid-cols-3 gap-2">
+          <div className="p-2.5 rounded-xl bg-base-200/70 dark:bg-base-200"><dt className="text-xs text-base-content/70">{t('properties.statLots')}</dt><dd className="text-lg font-bold tabular-nums">{total}</dd></div>
+          <div className="p-2.5 rounded-xl bg-base-200/70 dark:bg-base-200"><dt className="text-xs text-base-content/70">{t('properties.statOccupied')}</dt><dd className="text-lg font-bold tabular-nums">{occupied}</dd></div>
+          <div className={`p-2.5 rounded-xl ${FREE_PILL}`}><dt className="text-xs">{t('properties.statFree')}</dt><dd className="text-lg font-bold tabular-nums">{free}</dd></div>
+        </dl>
+
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-[15px] font-bold text-base-content">{t('properties.buildingLots')}</h3>
+          {canWrite && (
+            <button type="button" onClick={onAddLot} className={`${OUTLINE_BTN} h-9 px-3 text-[13px]`}>
+              <Plus size={14} aria-hidden="true" /> {t('properties.addLotHere')}
+            </button>
+          )}
+        </div>
+
+        {lots.length === 0 ? (
+          <p className="text-sm text-base-content/70">{t('properties.noLotInBuilding')}</p>
+        ) : (
+          <ul className="space-y-2">
+            {lots.slice(0, PANEL_LOTS_MAX).map(lot => {
+              const s = getLotStatut(lot.statut);
+              return (
+                <li key={lot.id}>
+                  <button
+                    type="button"
+                    onClick={() => onOpenLot(lot)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-base-300/70 text-left hover:bg-base-200/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-sm font-semibold text-base-content break-words">{lot.reference}</span>
+                      <span className="block text-xs text-base-content/70 tabular-nums">{lot.loyer?.toLocaleString('fr-FR')} {t('properties.perMonthShort')}</span>
+                    </span>
+                    <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-bold ${statusPillClass(lot.statut)}`}>{t(s.labelKey)}</span>
+                  </button>
+                </li>
+              );
+            })}
+            {lots.length > PANEL_LOTS_MAX && (
+              <li className="text-xs text-base-content/70 px-1">{t('properties.moreLots', { count: lots.length - PANEL_LOTS_MAX })}</li>
+            )}
+          </ul>
+        )}
+
+        <div className="flex flex-wrap gap-2 pt-4 border-t border-base-300/70">
+          <Button variant="primary" className="flex-1 h-11" onClick={onFullSheet}>{t('properties.viewFullSheet')}</Button>
+          {canWrite && <button type="button" onClick={onEdit} className={`${OUTLINE_BTN} h-11 px-4`}>{t('common.edit')}</button>}
+        </div>
+      </aside>
+    );
+  }
 );
+BuildingPanel.displayName = 'BuildingPanel';
 
 // ── Main component ────────────────────────────────────────────────────────────
 
 const Biens: React.FC = () => {
   const b = useBiens();
   const { t } = useTranslation();
+
+  // Immeuble affiché dans le panneau latéral. Sur grand écran, le premier de la page est montré d'office
+  // (comme la maquette) tant que l'utilisateur n'a pas fermé le panneau ; sur mobile, rien par défaut.
+  // Valeur dérivée au rendu (pas d'effet) : un immeuble supprimé retombe simplement sur ce défaut.
+  const [pickedId, setSelectedId] = useState<number | null>(null);
+  const [panelDismissed, setPanelDismissed] = useState(false);
+  const desktop = useIsDesktop();
+  const panelRef = useRef<HTMLElement>(null);
+  const firstOnPage = b.activeTab === 'immeubles' ? (b.paginatedData[0] as Immeuble | undefined)?.id : undefined;
+  const pickedExists = pickedId != null && b.immeubles.some(i => i.id === pickedId);
+  const selectedId = pickedExists ? pickedId : (desktop ? firstOnPage ?? null : null);
 
   // Action rapide « Nouveau Bien » du tableau de bord (?action=nouveau) : mêmes règles que le bouton
   // « Nouvel immeuble » (droits d'écriture, plafond d'abonnement), décidées une fois les données chargées.
@@ -216,112 +387,193 @@ const Biens: React.FC = () => {
   }
 
   // ── List view ────────────────────────────────────────────────────────────
+  // Refonte T-060 (maquette T-059) : liste compacte, barre d'outils unique, filtres rapides par statut,
+  // panneau latéral « immeuble + ses lots », actions secondaires dans un menu « ⋯ ».
+
+  const isImm = b.activeTab === 'immeubles';
+  const total = b.currentData.length;
+  const from = total === 0 ? 0 : (b.currentPage - 1) * ITEMS_PER_PAGE + 1;
+  const to = Math.min(b.currentPage * ITEMS_PER_PAGE, total);
+  const selected = selectedId != null ? b.immeubles.find(i => i.id === selectedId) ?? null : null;
+  const cityOptions = (b.dynamicImmeubleFilters.find(f => f.id === 'ville')?.options ?? []) as { value: string; label: string }[];
+  const extraFilterCount = Object.keys(b.filterValues).filter(k => k !== 'ville').length;
+
+  const guardedCreate = (open: () => void) => {
+    if (b.isLimitReached) { toast(t('properties.limitReachedToast'), { icon: '👑' }); return; }
+    open();
+  };
+  const editImmeuble = (immeuble: Immeuble) => { b.setEditingImmeuble(immeuble); b.setFormView('immeuble'); };
+  const editLot = (lot: Lot) => { b.setEditingLot(lot); b.setFormView('lot'); };
+  const assignLot = (lot: Lot) => { b.setEditingLot(lot); b.setActiveAssignmentLot(lot); b.setFormView('assignment'); };
+  const addLotTo = (immeuble: Immeuble) => guardedCreate(() => {
+    b.setEditingLot({ reference: '', type: 'Appartement', building_id: immeuble.id, etage: '', superficie: 0, nbPieces: 1, loyer: 0, charges: 0, description: '' });
+    b.setFormView('lot');
+  });
+  const selectBuilding = (immeuble: Immeuble) => {
+    setSelectedId(immeuble.id);
+    setPanelDismissed(false);
+    // Sous 1024 px le panneau passe sous la liste : on l'amène à l'écran
+    if (!isDesktop()) requestAnimationFrame(() => panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
+  const pickGroup = (g: StatusGroup) => {
+    b.setStatusGroup(g);
+    // Comme la maquette : un filtre de statut autre que « Tous » affiche les lots
+    if (g !== 'all' && b.activeTab !== 'lots') { b.setActiveTab('lots'); b.setFilterValues({}); }
+  };
+
+  const groups: { key: StatusGroup; label: string; dot: string }[] = [
+    { key: 'all', label: t('properties.groupAll'), dot: 'bg-base-content/50' },
+    { key: 'free', label: t('properties.groupFree'), dot: 'bg-orange-500' },
+    { key: 'rented', label: t('properties.groupRented'), dot: 'bg-emerald-600' },
+    { key: 'reserved', label: t('properties.groupReserved'), dot: 'bg-sky-600' },
+  ];
 
   return (
     <motion.div
-      className="space-y-6 max-w-[1600px] mx-auto"
+      className="@container space-y-5 max-w-[1600px] mx-auto"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      {/* Header */}
-      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
-            {t('nav.parcImmobilier')}
-          </h1>
-          <p className="text-base-content/60 font-medium mt-1">{t('properties.subtitle')}</p>
+      {/* En-tête : deux boutons d'ajout fixes (le bouton ne change plus de sens selon l'onglet) */}
+      <motion.div variants={itemVariants} className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-extrabold text-base-content tracking-tight">{t('nav.parcImmobilier')}</h1>
+          <p className="text-base-content/70 font-medium mt-1 tabular-nums">
+            {b.loading ? t('properties.subtitle') : t('properties.headerCounts', { buildings: b.immeubles.length, lots: b.lots.length })}
+          </p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <SearchInput
-            placeholder={t('properties.searchPlaceholder')}
-            value={b.searchQuery}
-            onChange={b.setSearchQuery}
-            className="w-64"
-          />
-          {b.canWrite && (
-            <div className="relative group" title={b.isLimitReached ? t('properties.limitReachedTitle') : ''}>
-              <Button
-                variant="primary"
-                disabled={b.isLimitReached}
-                className={`rounded-full px-6 shadow-lg shadow-primary/20 transition-all font-semibold ${b.isLimitReached ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-primary/40'}`}
-                onClick={() => {
-                  if (b.isLimitReached) { toast(t('properties.limitReachedToast'), { icon: '👑' }); return; }
-                  if (b.activeTab === 'immeubles') b.openNewImmeuble();
-                  else b.openNewLot();
-                }}
-              >
-                <Plus size={18} className="mr-2" />
-                {b.activeTab === 'immeubles' ? t('properties.newBuilding') : t('properties.newLot')}
-              </Button>
-            </div>
-          )}
-        </div>
+        {b.canWrite && (
+          <div className="flex flex-wrap gap-2" title={b.isLimitReached ? t('properties.limitReachedTitle') : undefined}>
+            <button
+              type="button"
+              onClick={() => guardedCreate(b.openNewLot)}
+              aria-disabled={b.isLimitReached}
+              className={`${OUTLINE_BTN} h-11 px-4 ${b.isLimitReached ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <Plus size={16} aria-hidden="true" /> {t('properties.newLot')}
+            </button>
+            <Button
+              variant="primary"
+              onClick={() => guardedCreate(b.openNewImmeuble)}
+              aria-disabled={b.isLimitReached}
+              className={`h-11 px-5 gap-1.5 ${b.isLimitReached ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+            >
+              <Plus size={16} aria-hidden="true" /> {t('properties.newBuilding')}
+            </Button>
+          </div>
+        )}
       </motion.div>
 
       {/* Alerts */}
       {b.error   && <Alert variant="error"   onClose={() => b.setError(null)}>{b.error}</Alert>}
       {b.success && <Alert variant="success" onClose={() => b.setSuccess(null)}>{b.success}</Alert>}
 
-      {/* Tabs & Controls */}
-      <motion.div variants={itemVariants} className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200">
-        <div className="flex p-1 bg-base-300/50 rounded-xl">
-          {(['immeubles', 'lots'] as const).map(tab => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => { b.setActiveTab(tab); b.setFilterValues({}); }}
-              className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
-                b.activeTab === tab ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/60 hover:text-base-content/80'
-              }`}
-            >
-              {tab === 'immeubles' ? <Building2 size={18} /> : <Home size={18} />}
-              {tab === 'immeubles' ? t('properties.buildings') : t('properties.lots')}
-              <span className="ml-1 px-2 py-0.5 rounded-full bg-base-300 text-xs">
-                {tab === 'immeubles' ? b.immeubles.length : b.lots.length}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* View mode */}
-          <div className="flex bg-base-300 rounded-lg p-1">
-            {(['grid', 'list'] as const).map(mode => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => b.setViewMode(mode)}
-                className={`p-2 rounded-md transition-all ${b.viewMode === mode ? 'bg-base-100 shadow-sm text-primary' : 'text-base-content/50 hover:text-base-content/70'}`}
-                title={mode === 'grid' ? t('common.gridView') : t('common.listView')}
-              >
-                {mode === 'grid' ? <LayoutGrid size={18} /> : <List size={18} />}
-              </button>
-            ))}
+      {/* Barre d'outils unique : onglets, recherche, ville, tri, autres filtres, puis filtres rapides */}
+      <motion.div variants={itemVariants} className="bg-base-100 rounded-2xl p-4 border border-base-300/70 space-y-3.5">
+        <div className="flex flex-wrap items-center gap-3">
+          <div role="tablist" aria-label={t('properties.viewLabel')} className="flex w-full @lg:w-auto gap-1 p-1 rounded-xl bg-base-200 dark:bg-base-300/60">
+            {(['immeubles', 'lots'] as const).map(tab => {
+              const on = b.activeTab === tab;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => { b.setActiveTab(tab); b.setFilterValues({}); if (tab === 'immeubles') b.setStatusGroup('all'); }}
+                  className={`h-9 px-2.5 @sm:px-3.5 min-w-0 flex-1 @lg:flex-none justify-center rounded-lg text-sm font-semibold inline-flex items-center gap-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    on ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/70 hover:text-base-content'}`}
+                >
+                  {/* Icônes masquées sous 384 px de contenu : les deux onglets tiennent alors côte à côte */}
+                  {tab === 'immeubles' ? <Building2 size={16} aria-hidden="true" className="hidden @sm:block" /> : <Home size={16} aria-hidden="true" className="hidden @sm:block" />}
+                  {tab === 'immeubles' ? t('properties.buildings') : t('properties.lots')}
+                  <span className={`text-xs px-2 py-px rounded-full tabular-nums ${on ? 'bg-primary text-primary-content' : 'bg-base-300 text-base-content/80'}`}>
+                    {tab === 'immeubles' ? b.immeubles.length : b.lots.length}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Filter toggle */}
-          <Button
-            variant={b.showFilters ? 'primary' : 'ghost'}
-            size="sm"
-            onClick={() => b.setShowFilters(!b.showFilters)}
-            className={b.showFilters ? '' : 'text-base-content/60'}
-          >
-            {b.showFilters && <X size={16} className="mr-1" />}
-            {t('common.filters')}
-            {Object.keys(b.filterValues).length > 0 && (
-              <span className="ml-2 w-5 h-5 rounded-full bg-primary text-primary-content text-xs flex items-center justify-center">
-                {Object.keys(b.filterValues).length}
-              </span>
-            )}
-          </Button>
+          <SearchInput
+            placeholder={isImm ? t('properties.searchBuildingsPh') : t('properties.searchLotsPh')}
+            value={b.searchQuery}
+            onChange={b.setSearchQuery}
+            className="flex-[1_1_280px] min-w-0"
+          />
 
-          <div className="h-6 w-px bg-base-300" />
-          <span className="text-sm font-semibold text-base-content/60">{t('common.results', { count: b.currentData.length })}</span>
+          {isImm && (
+            <label className={SELECT_WRAP}>
+              <span>{t('properties.cityLabel')}</span>
+              <select
+                value={(b.filterValues.ville as string) ?? ''}
+                onChange={e => {
+                  const v = e.target.value;
+                  const next = { ...b.filterValues };
+                  if (v) next.ville = v; else delete next.ville;
+                  b.setFilterValues(next);
+                }}
+                className="bg-transparent font-semibold text-base-content outline-none max-w-[10rem]"
+              >
+                <option value="">{t('properties.cityAll')}</option>
+                {cityOptions.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+            </label>
+          )}
+
+          <label className={SELECT_WRAP}>
+            <span>{t('properties.sortLabel')}</span>
+            <select
+              value={b.sortKey}
+              onChange={e => b.setSortKey(e.target.value as SortKey)}
+              className="bg-transparent font-semibold text-base-content outline-none"
+            >
+              <option value="free">{t('properties.sortFree')}</option>
+              <option value="name">{t('properties.sortName')}</option>
+              <option value="recent">{t('properties.sortRecent')}</option>
+            </select>
+          </label>
+
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div role="group" aria-label={t('properties.quickFilterLabel')} className="flex flex-wrap gap-2">
+          {groups.map(g => {
+            const on = b.statusGroup === g.key && (g.key === 'all' || !isImm);
+            return (
+              <button
+                key={g.key}
+                type="button"
+                aria-pressed={on}
+                onClick={() => pickGroup(g.key)}
+                className={`h-9 px-3.5 rounded-full text-sm font-semibold inline-flex items-center gap-2 border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  on ? 'bg-primary text-primary-content border-primary' : 'bg-base-100 text-base-content border-base-300 hover:bg-base-200'}`}
+              >
+                <span className={`w-2 h-2 rounded-full ${on ? 'bg-primary-content' : g.dot}`} aria-hidden="true" />
+                {g.label}
+                <span className="tabular-nums opacity-80">{b.statusCounts[g.key]}</span>
+              </button>
+            );
+          })}
+        </div>
+          {/* Filtres avancés existants (type, statut, loyer…) conservés derrière ce bouton */}
+          <button
+            type="button"
+            onClick={() => b.setShowFilters(!b.showFilters)}
+            aria-expanded={b.showFilters}
+            className={`${OUTLINE_BTN} h-9 px-3.5 ${b.showFilters ? 'border-primary text-primary' : ''}`}
+          >
+            {b.showFilters ? <X size={16} aria-hidden="true" /> : <SlidersHorizontal size={16} aria-hidden="true" />}
+            {t('properties.moreFilters')}
+            {extraFilterCount > 0 && (
+              <span className="w-5 h-5 rounded-full bg-primary text-primary-content text-xs inline-flex items-center justify-center">{extraFilterCount}</span>
+            )}
+          </button>
         </div>
       </motion.div>
 
-      {/* Filter panel */}
+      {/* Filter panel (filtres avancés existants) */}
       <AnimatePresence>
         {b.showFilters && (
           <motion.div
@@ -332,7 +584,7 @@ const Biens: React.FC = () => {
             className="overflow-hidden"
           >
             <FilterPanel
-              filters={b.activeTab === 'immeubles' ? b.dynamicImmeubleFilters : b.lotFilters}
+              filters={isImm ? b.dynamicImmeubleFilters : b.lotFilters}
               values={b.filterValues}
               onChange={b.setFilterValues}
               onClear={() => b.setFilterValues({})}
@@ -342,231 +594,179 @@ const Biens: React.FC = () => {
       </AnimatePresence>
 
       {/* Content */}
-      <AnimatePresence mode="wait">
-        {b.loading ? (
-          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            {b.viewMode === 'grid' ? <GridSkeleton /> : <TableSkeleton />}
-          </motion.div>
-        ) : b.loadError ? (
-          // Échec du chargement : ne pas afficher « Aucun immeuble trouvé » (T-042)
-          <motion.div key="load-error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <LoadErrorState message={b.loadError} onRetry={b.fetchData} className="mt-6" />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="content"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            {b.activeTab === 'immeubles' ? (
-              b.viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {b.paginatedData.length === 0 ? (
-                    <EmptyState
-                      icon={<Building2 size={40} />}
-                      title={t('properties.noBuildingsFound')}
-                      description={t('properties.noBuildingsDesc')}
-                      actionLabel={b.canWrite ? t('properties.addBuilding') : undefined}
-                      onAction={b.canWrite ? () => b.openNewImmeuble() : undefined}
-                      className="mt-6"
-                    />
-                  ) : (
-                    (b.paginatedData as Immeuble[]).map(immeuble => (
-                      <ImmeubleCard
-                        key={immeuble.id}
-                        immeuble={immeuble}
-                        lots={b.lots}
-                        canWrite={b.canWrite}
-                        onEdit={() => { b.setEditingImmeuble(immeuble); b.setFormView('immeuble'); }}
-                        onDelete={() => b.handleDeleteImmeuble(immeuble.id)}
-                        onDetail={() => b.setDetailImmeuble(immeuble)}
-                        onGallery={() => { b.setGallerySelectedBuilding(immeuble); b.setShowGalleryModal(true); }}
-                      />
-                    ))
-                  )}
-                </div>
+      {b.loading ? (
+        <ListSkeleton />
+      ) : b.loadError ? (
+        // Échec du chargement : ne pas afficher « Aucun immeuble trouvé » (T-042)
+        <LoadErrorState message={b.loadError} onRetry={b.fetchData} className="mt-6" />
+      ) : (
+        <div className="flex flex-wrap items-start gap-5">
+          {/* Liste : une ligne lisible par bien */}
+          <section aria-label={t('properties.results')} className="flex-[999_1_560px] min-w-0 bg-base-100 rounded-2xl border border-base-300/70 overflow-hidden">
+            {isImm ? (
+              (b.paginatedData as Immeuble[]).length === 0 ? (
+                <EmptyState
+                  icon={<Building2 size={40} />}
+                  title={t('properties.noBuildingsFound')}
+                  description={t('properties.noBuildingsDesc')}
+                  actionLabel={b.canWrite ? t('properties.addBuilding') : undefined}
+                  onAction={b.canWrite ? () => guardedCreate(b.openNewImmeuble) : undefined}
+                  className="border-none"
+                />
               ) : (
-                // Immeubles — list view
-                <Card className="border-none shadow-xl bg-base-100 overflow-hidden p-0">
-                  <div className="overflow-x-auto">
-                    <table className="table w-full">
-                      <thead className="bg-base-200/50">
-                        <tr>
-                          <th className="py-4 pl-6">{t('properties.colPhoto')}</th>
-                          <th className="py-4">{t('common.name')}</th>
-                          <th className="py-4 hidden md:table-cell">{t('properties.colCity')}</th>
-                          <th className="py-4 hidden sm:table-cell">{t('properties.colNbLots')}</th>
-                          <th className="py-4 hidden lg:table-cell">{t('dashboard.occupancy')}</th>
-                          <th className="py-4 pr-6 text-right">{t('common.actions')}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {(b.paginatedData as Immeuble[]).map(immeuble => (
-                          <tr key={immeuble.id} className="hover:bg-base-200/50 transition-colors">
-                            <td className="pl-6">
-                              <div
-                                className="avatar h-12 w-16 rounded cursor-pointer overflow-hidden relative shadow-sm"
-                                onClick={() => { b.setGallerySelectedBuilding(immeuble); b.setShowGalleryModal(true); }}
-                                title={t('properties.openGallery')}
-                              >
-                                {immeuble.photo || immeuble.photos?.[0] ? (
-                                  <img
-                                    src={immeuble.photo || immeuble.photos?.[0]}
-                                    alt={`${immeuble.nom} — ${immeuble.ville}`}
-                                    className="h-full w-full object-cover transition-transform hover:scale-110"
-                                  />
-                                ) : (
-                                  <NoPhotoPlaceholder className="h-full w-full" showLabel={false} iconSize={18} />
-                                )}
-                              </div>
-                            </td>
-                            <td className="font-bold text-base-content/90">{immeuble.nom}</td>
-                            <td className="text-base-content/70 hidden md:table-cell">{immeuble.ville}</td>
-                            <td className="font-mono hidden sm:table-cell">{immeuble.nbLots || 0}</td>
-                            <td className="hidden lg:table-cell">
-                              <div className="flex items-center gap-2">
-                                <progress className="progress progress-primary w-20" value={immeuble.occupation || 0} max="100" />
-                                <span className="text-xs font-bold">{immeuble.occupation || 0}%</span>
-                              </div>
-                            </td>
-                            <td className="pr-6 text-right">
-                              <div className="flex justify-end gap-1">
-                                {b.canWrite && <button type="button" title={t('common.edit')} onClick={() => { b.setEditingImmeuble(immeuble); b.setFormView('immeuble'); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
-                                {b.canWrite && <button type="button" title={t('common.delete')} onClick={() => b.handleDeleteImmeuble(immeuble.id)} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
+                <ul className="divide-y divide-base-300/70">
+                  {(b.paginatedData as Immeuble[]).map(immeuble => {
+                    const buildingLots = b.lots.filter(l => l.building_id === immeuble.id);
+                    const occupied = buildingLots.filter(l => OCCUPIED_STATUSES.includes(l.statut?.toLowerCase() || '')).length;
+                    const totalLots = immeuble.nbLots || buildingLots.length || 0;
+                    const free = b.freeLotsByBuilding.get(immeuble.id) ?? 0;
+                    const pct = totalLots ? Math.round((occupied / totalLots) * 100) : 0;
+                    const active = !panelDismissed && selectedId === immeuble.id;
+                    const photo = immeuble.photo || immeuble.photos?.[0];
+                    return (
+                      <li key={immeuble.id} className={`flex flex-wrap items-center gap-x-6 gap-y-3 px-4 @xl:px-5 py-3.5 transition-colors ${active ? 'bg-primary/10' : 'hover:bg-base-200/60'}`}>
+                        <button
+                          type="button"
+                          onClick={() => selectBuilding(immeuble)}
+                          aria-label={t('properties.openItem', { name: immeuble.nom })}
+                          aria-current={active ? 'true' : undefined}
+                          className="flex-[1_1_240px] min-w-0 flex items-center gap-3.5 text-left rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        >
+                          <span className="w-14 h-14 shrink-0 rounded-xl overflow-hidden bg-base-200">
+                            {photo
+                              ? <img src={photo} alt="" className="w-full h-full object-cover" />
+                              : <NoPhotoPlaceholder className="w-full h-full" showLabel={false} iconSize={18} />}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-[15px] font-bold text-base-content break-words">{immeuble.nom}</span>
+                            <span className="block text-sm text-base-content/70 break-words">
+                              {[immeuble.ville, immeuble.proprietaire || t('properties.notAssigned')].filter(Boolean).join(' · ')}
+                            </span>
+                          </span>
+                        </button>
+                        <div className="flex-[1_1_190px] min-w-0 flex items-center gap-3">
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            <div className="h-2 rounded-full bg-base-200 dark:bg-base-300 overflow-hidden" aria-hidden="true">
+                              <div className={`h-full rounded-full ${pct >= 80 ? 'bg-emerald-600' : pct >= 50 ? 'bg-orange-500' : 'bg-orange-700'}`} style={{ width: `${Math.max(pct, totalLots ? 2 : 0)}%` }} />
+                            </div>
+                            <span className="block text-sm text-base-content/80 tabular-nums">{t('properties.lotsOccupiedOf', { occupied, total: totalLots })}</span>
+                          </div>
+                          <span className={`shrink-0 min-w-[78px] text-center px-2.5 py-1.5 rounded-full text-xs font-bold tabular-nums ${
+                            totalLots === 0 ? 'bg-base-200 text-base-content/80' : free > 0 ? FREE_PILL : FULL_PILL}`}>
+                            {totalLots === 0 ? t('properties.noLotYet') : free > 0 ? t('properties.freeCount', { count: free }) : t('properties.full')}
+                          </span>
+                        </div>
+                        <div className="flex gap-1.5">
+                          <button type="button" onClick={() => selectBuilding(immeuble)} className={`${OUTLINE_BTN} h-10 px-3.5 text-[13px]`}>{t('properties.open')}</button>
+                          <RowMenu
+                            label={t('properties.moreActions')}
+                            items={[
+                              { label: t('properties.viewDetail'), onSelect: () => b.setDetailImmeuble(immeuble) },
+                              { label: t('properties.openGallery'), onSelect: () => { b.setGallerySelectedBuilding(immeuble); b.setShowGalleryModal(true); } },
+                              ...(b.canWrite ? [
+                                { label: t('common.edit'), onSelect: () => editImmeuble(immeuble) },
+                                { label: t('common.delete'), onSelect: () => b.handleDeleteImmeuble(immeuble.id), danger: true },
+                              ] : []),
+                            ]}
+                          />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               )
             ) : (
-              b.viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                  {(b.paginatedData as Lot[]).length === 0 ? (
-                    <div className="col-span-full text-center py-12 text-base-content/50">
-                      <Home size={48} className="mx-auto mb-4 opacity-50" />
-                      <p className="font-medium">{t('properties.noLotsFound')}</p>
-                    </div>
-                  ) : (
-                    (b.paginatedData as Lot[]).map(lot => (
-                      <LotCard
-                        key={lot.id}
-                        lot={lot}
-                        canWrite={b.canWrite}
-                        onEdit={e => { e.stopPropagation(); b.setEditingLot(lot); b.setFormView('lot'); }}
-                        onDetail={() => b.setDetailLot(lot)}
-                      />
-                    ))
-                  )}
+              (b.paginatedData as Lot[]).length === 0 ? (
+                <div className="text-center py-12 text-base-content/70">
+                  <Home size={40} className="mx-auto mb-3 opacity-50" aria-hidden="true" />
+                  <p className="font-medium">{t('properties.noLotsFound')}</p>
                 </div>
               ) : (
-                // Lots — list view
-                <Card className="border-none shadow-xl bg-base-100 overflow-hidden p-0">
-                  <div className="overflow-x-auto">
-                    <table className="table w-full">
-                      <thead className="bg-base-200/50">
-                        <tr>
-                          <th className="py-4 pl-6">{t('properties.colPhoto')}</th>
-                          <th className="py-4">{t('properties.colReference')}</th>
-                          <th className="py-4 hidden md:table-cell">{t('properties.colBuilding')}</th>
-                          <th className="py-4">{t('common.status')}</th>
-                          <th className="py-4 hidden sm:table-cell">{t('properties.colRentPrice')}</th>
-                          <th className="py-4 pr-6 text-right">{t('common.actions')}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {(b.paginatedData as Lot[]).length === 0 ? (
-                          <tr><td colSpan={6} className="text-center py-12 text-base-content/50">{t('properties.noLotsFound')}</td></tr>
-                        ) : (
-                          (b.paginatedData as Lot[]).map(lot => {
-                            const s = getLotStatut(lot.statut);
-                            return (
-                              <tr key={lot.id} className="hover:bg-base-200/50 transition-colors group cursor-pointer" onClick={() => b.setDetailLot(lot)}>
-                                <td className="pl-6">
-                                  <div className="avatar h-10 w-16 rounded overflow-hidden shadow-sm">
-                                    {lot.photos?.[0] ? (
-                                      <img
-                                        src={lot.photos[0]}
-                                        alt={lot.reference}
-                                        className="h-full w-full object-cover transition-transform hover:scale-110"
-                                      />
-                                    ) : (
-                                      <NoPhotoPlaceholder className="h-full w-full" showLabel={false} iconSize={18} />
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="font-bold text-base-content/90">{lot.reference}</td>
-                                <td className="text-base-content/70 hidden md:table-cell">{lot.immeuble}</td>
-                                <td>
-                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${s.pill}`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                                    {t(s.labelKey)}
-                                  </span>
-                                </td>
-                                <td className="font-mono font-medium text-base-content/80 hidden sm:table-cell">
-                                  {lot.type === 'Vente' || lot.prix_vente
-                                    ? <span className="text-teal-700">{lot.prix_vente?.toLocaleString()} FCFA ({t('properties.sale')})</span>
-                                    : <span>{lot.loyer?.toLocaleString()} FCFA/{t('properties.perMonth')}</span>
-                                  }
-                                </td>
-                                <td className="pr-6 text-right">
-                                  <div className="flex justify-end gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {b.canWrite && (lot.statut === 'disponible' || lot.statut === 'libre') && (
-                                      <button
-                                        type="button"
-                                        title={t('properties.assign')}
-                                        onClick={e => { e.stopPropagation(); b.setEditingLot(lot); b.setActiveAssignmentLot(lot); b.setFormView('assignment'); }}
-                                        className="btn btn-ghost btn-xs btn-square text-primary tooltip tooltip-left"
-                                        data-tip={t('properties.assign')}
-                                      >
-                                        <UserPlus size={14} />
-                                      </button>
-                                    )}
-                                    {b.canWrite && <button type="button" title={t('common.edit')} onClick={e => { e.stopPropagation(); b.setEditingLot(lot); b.setFormView('lot'); }} className="btn btn-ghost btn-xs btn-square"><Edit3 size={14} /></button>}
-                                    {b.canWrite && <button type="button" title={t('common.delete')} onClick={e => { e.stopPropagation(); b.handleDeleteLot(lot.id); }} className="btn btn-ghost btn-xs btn-square text-error"><Trash2 size={14} /></button>}
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
+                <ul className="divide-y divide-base-300/70">
+                  {(b.paginatedData as Lot[]).map(lot => {
+                    const s = getLotStatut(lot.statut);
+                    const isFree = lotInGroup(lot, 'free');
+                    const isSale = lot.type === 'Vente' || !!lot.prix_vente;
+                    const tenant = b.tenantByLot.get(lot.id);
+                    return (
+                      <li key={lot.id} className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4 @xl:px-5 py-3.5 hover:bg-base-200/60 transition-colors">
+                        <button
+                          type="button"
+                          onClick={() => b.setDetailLot(lot)}
+                          aria-label={t('properties.openItem', { name: lot.reference })}
+                          className="flex-[1_1_240px] min-w-0 text-left rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        >
+                          <span className="block text-[15px] font-bold text-base-content break-words">{lot.reference}</span>
+                          <span className="block text-sm text-base-content/70 break-words">{[lot.type, lot.immeuble].filter(Boolean).join(' · ')}</span>
+                        </button>
+                        <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-bold ${statusPillClass(lot.statut)}`}>{t(s.labelKey)}</span>
+                        <span className="flex-[0_0_150px] text-sm font-semibold text-base-content tabular-nums">
+                          {isSale
+                            ? <>{lot.prix_vente?.toLocaleString('fr-FR')} FCFA <span className="text-xs font-medium text-base-content/70">({t('properties.sale')})</span></>
+                            : <>{lot.loyer?.toLocaleString('fr-FR')} <span className="text-xs font-medium text-base-content/70">{t('properties.perMonthShort')}</span></>}
+                        </span>
+                        <span className="flex-[1_1_160px] min-w-0 text-sm text-base-content/80 break-words">{tenant || t('properties.noTenant')}</span>
+                        <div className="flex gap-1.5">
+                          {b.canWrite && isFree && (
+                            <Button variant="primary" size="sm" className="h-10 px-3.5" title={t('properties.assign')} onClick={() => assignLot(lot)}>
+                              <UserPlus size={14} className="mr-1.5" aria-hidden="true" /> {t('properties.assignShort')}
+                            </Button>
+                          )}
+                          <RowMenu
+                            label={t('properties.moreActions')}
+                            items={[
+                              { label: t('properties.viewDetail'), onSelect: () => b.setDetailLot(lot) },
+                              ...(b.canWrite ? [
+                                { label: t('common.edit'), onSelect: () => editLot(lot) },
+                                { label: t('common.delete'), onSelect: () => b.handleDeleteLot(lot.id), danger: true },
+                              ] : []),
+                            ]}
+                          />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               )
             )}
 
-            {/* Pagination */}
-            {b.totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-8">
-                <button type="button" title={t('common.prevPage')} onClick={() => b.setCurrentPage(p => Math.max(1, p - 1))} disabled={b.currentPage === 1} className="btn btn-ghost btn-sm btn-circle disabled:opacity-40">
-                  <ChevronLeft size={18} />
-                </button>
-                {Array.from({ length: b.totalPages }, (_, i) => i + 1).map(page => (
-                  <button
-                    key={page}
-                    type="button"
-                    aria-label={t('common.page', { number: page })}
-                    onClick={() => b.setCurrentPage(page)}
-                    className={`btn btn-sm btn-circle ${b.currentPage === page ? 'btn-primary' : 'btn-ghost'}`}
-                  >
-                    {page}
-                  </button>
-                ))}
-                <button type="button" title={t('common.nextPage')} onClick={() => b.setCurrentPage(p => Math.min(b.totalPages, p + 1))} disabled={b.currentPage === b.totalPages} className="btn btn-ghost btn-sm btn-circle disabled:opacity-40">
-                  <ChevronRight size={18} />
-                </button>
+            {/* Pagination : position + Précédent / Suivant */}
+            {total > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 px-4 @xl:px-5 py-3.5 border-t border-base-300/70 text-sm text-base-content/70">
+                <span className="tabular-nums">
+                  {isImm ? t('properties.rangeInfoBuildings', { from, to, total }) : t('properties.rangeInfoLots', { from, to, total })}
+                </span>
+                {b.totalPages > 1 && (
+                  <div className="flex gap-1.5">
+                    <button type="button" onClick={() => b.setCurrentPage(p => Math.max(1, p - 1))} disabled={b.currentPage === 1} className={`${OUTLINE_BTN} h-10 px-3.5 text-[13px] disabled:opacity-40 disabled:cursor-not-allowed`}>
+                      <ChevronLeft size={16} aria-hidden="true" /> {t('properties.previous')}
+                    </button>
+                    <button type="button" onClick={() => b.setCurrentPage(p => Math.min(b.totalPages, p + 1))} disabled={b.currentPage === b.totalPages} className={`${OUTLINE_BTN} h-10 px-3.5 text-[13px] disabled:opacity-40 disabled:cursor-not-allowed`}>
+                      {t('properties.next')} <ChevronRight size={16} aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </section>
+
+          {/* Panneau de détail : l'immeuble et SES lots, sans changer de page ni d'onglet */}
+          {isImm && selected && !panelDismissed && (
+            <BuildingPanel
+              ref={panelRef}
+              immeuble={selected}
+              lots={b.lots.filter(l => l.building_id === selected.id)}
+              canWrite={b.canWrite}
+              onClose={() => setPanelDismissed(true)}
+              onGallery={() => { b.setGallerySelectedBuilding(selected); b.setShowGalleryModal(true); }}
+              onAddLot={() => addLotTo(selected)}
+              onOpenLot={lot => b.setDetailLot(lot)}
+              onFullSheet={() => b.setDetailImmeuble(selected)}
+              onEdit={() => editImmeuble(selected)}
+            />
+          )}
+        </div>
+      )}
 
       {/* Modals */}
       <ImmeubleDetailModal
