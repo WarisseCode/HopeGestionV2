@@ -1,9 +1,9 @@
 // frontend/src/pages/Biens.tsx
 // Orchestrateur mince — délègue state/logique à useBiens, rendu complexe aux sous-composants.
-import React, { useEffect, useRef, useState, forwardRef, useSyncExternalStore } from 'react';
+import React, { useRef, useState, forwardRef } from 'react';
 import {
   Building2, Home, Plus, ArrowLeft, X, ChevronLeft, ChevronRight, UserPlus,
-  MoreHorizontal, SlidersHorizontal, Images,
+  SlidersHorizontal, Images,
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Alert from '../components/ui/Alert';
@@ -28,6 +28,8 @@ import type { StatusGroup, SortKey } from '../hooks/useBiens';
 import { useCreateFromUrl } from '../hooks/useCreateFromUrl';
 import NoPhotoPlaceholder from '../components/ui/NoPhotoPlaceholder';
 import { getLotStatut, ITEMS_PER_PAGE } from '../utils/bienUtils';
+import RowMenu, { OUTLINE_BTN } from '../components/ui/RowMenu';
+import { useIsDesktop, isDesktop } from '../hooks/useIsDesktop';
 import toast from 'react-hot-toast';
 
 // ── Animation variants ────────────────────────────────────────────────────────
@@ -43,7 +45,6 @@ const itemVariants = {
 
 // ── Styles partagés de la refonte (T-060) ──────────────────────────────────────
 
-const OUTLINE_BTN = 'inline-flex items-center justify-center gap-1.5 rounded-xl border border-base-300 bg-base-100 text-sm font-semibold text-base-content hover:bg-base-200 transition-colors whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const SELECT_WRAP = 'flex-[1_1_150px] @3xl:flex-none flex items-center gap-2 h-11 px-3 rounded-xl border border-base-300 bg-base-100 text-sm text-base-content/70 focus-within:outline-2 focus-within:outline-primary';
 
 // Même règle d'occupation que l'ancienne carte immeuble (ImmeubleCard)
@@ -63,15 +64,6 @@ const statusPillClass = (statut?: string) => {
   }
 };
 
-const DESKTOP_QUERY = '(min-width: 1024px)';
-const isDesktop = () => typeof window !== 'undefined' && window.matchMedia(DESKTOP_QUERY).matches;
-
-// Abonnement à la media query : le défaut du panneau suit le passage mobile ↔ bureau
-const useIsDesktop = () => useSyncExternalStore(
-  (cb) => { const m = window.matchMedia(DESKTOP_QUERY); m.addEventListener('change', cb); return () => m.removeEventListener('change', cb); },
-  isDesktop,
-  () => false,
-);
 
 // ── Skeleton (presentational only, stays local) ──────────────────────────────
 
@@ -89,55 +81,6 @@ const ListSkeleton = () => (
     ))}
   </div>
 );
-
-// ── Menu « ⋯ » : actions secondaires (modifier, supprimer…) hors de portée d'un clic accidentel ─────
-
-interface RowMenuItem { label: string; onSelect: () => void; danger?: boolean }
-
-const RowMenu: React.FC<{ label: string; items: RowMenuItem[] }> = ({ label, items }) => {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  // Écouteurs posés seulement menu ouvert : clic à l'extérieur et Échap le referment
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => { if (!rootRef.current?.contains(e.target as Node)) setOpen(false); };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
-  }, [open]);
-
-  return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        aria-label={label}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen(o => !o)}
-        className={`${OUTLINE_BTN} w-10 h-10`}
-      >
-        <MoreHorizontal size={16} aria-hidden="true" />
-      </button>
-      {open && (
-        <div role="menu" className="absolute right-0 top-full mt-1.5 z-30 min-w-44 py-1.5 rounded-xl border border-base-300 bg-base-100 shadow-lg">
-          {items.map(item => (
-            <button
-              key={item.label}
-              type="button"
-              role="menuitem"
-              onClick={() => { setOpen(false); item.onSelect(); }}
-              className={`w-full text-left px-3.5 min-h-10 text-sm font-medium hover:bg-base-200 focus-visible:bg-base-200 outline-none ${item.danger ? 'text-error' : 'text-base-content'}`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
 // ── Panneau latéral : un immeuble et ses lots ───────────────────────────────
 
