@@ -947,3 +947,54 @@ Mis à jour automatiquement après chaque tâche.
   - Corrigé pendant le contrôle : lignes qui passaient à la ligne à 1440 px, bouton « Plus de filtres » seul sur une ligne, onglet « Lots » qui dépassait du cadre sur mobile, et un setState dans un effet signalé par le lint.
   - `tsc -b` propre. Lint de `Biens.tsx` : 1 erreur → 0. `useBiens.ts` : ses 5 erreurs antérieures restent (`any`, `saveLot` non utilisé), aucune nouvelle.
 - **Remplace / modifie** : aucune (mise en œuvre de la maquette T-059)
+
+### T-061 : Audit visuel de la page Locataires et maquette de refonte
+- **Date** : 2026-10-16
+- **Statut** : Terminée
+- **Type** : Documentation
+- **Description** : Analyse de `/dashboard/locataires` à partir de 3 captures (cartes en sombre et en clair, tableau) et du code (`Locataires.tsx`, `LocataireCard`, `LocataireListRow`). Une maquette de refonte interactive a été publiée sur un canevas Design privé, hors dépôt. Aucun code de l'application n'a été modifié.
+- **Fichiers touchés** : `docs/JOURNAL_PROJET.md` (entrée T-061)
+- **Décisions & justifications** :
+  - **Défauts relevés** : badge « Actif » répété sur chaque fiche (aucune information quand tout le monde est actif) ; boutons WhatsApp/Appeler/Voir réduits à des icônes sans nom ; cartes de hauteurs inégales ; onglet « Affectations » qui n'est qu'un renvoi vers les baux ; tableau aux colonnes tronquées (noms et téléphones sur 2 lignes, loyers « 45511.00 F » non formatés, colonne Actions vide) ; aucun filtre rapide sur la situation de paiement ; recherche en double (en-tête global et champ de page) ; données de test visibles (« Wdgeg CODEMAN », « hdhrsr jhfhtcr »).
+  - **Maquette** : liste compacte, une ligne par personne (nom, téléphone, logement ou nombre de logements, loyer formaté, pastille de paiement, WhatsApp/Appeler/« ⋯ ») ; barre unique (onglets Locataires/Acheteurs, recherche, tri « Retards d'abord ») et lien « Voir les baux » à la place de l'onglet Affectations ; filtres rapides Tous / À jour / En attente / En retard / Sans logement ; panneau « fiche rapide » (contact, logements avec statut de paiement, « Enregistrer un paiement », « Attribuer un logement » s'il n'y en a pas).
+- **Problèmes rencontrés** : Les retards, les paiements en attente et le logement de certains locataires ne figurent pas sur les captures : ils restent entre crochets dans la maquette.
+- **Remplace / modifie** : aucune
+
+### T-062 : Refonte de la page Locataires (application de la maquette T-061)
+- **Date** : 2026-10-16
+- **Statut** : Terminée
+- **Type** : Fonctionnalité
+- **Description** : La vue liste de `/dashboard/locataires` reprend la maquette T-061 :
+  - en-tête avec Inviter et Nouveau locataire (ou Nouvel acheteur) ;
+  - une barre d'outils unique : onglets Locataires/Acheteurs, recherche, tri « Retards d'abord », lien « Voir les baux » qui remplace l'onglet Affectations ;
+  - des filtres rapides Tous / À jour / En attente / En retard / Sans logement ;
+  - une ligne par personne (logement, loyer formaté, pastille de paiement, WhatsApp, Appeler, menu « ⋯ ») ;
+  - un panneau « fiche rapide » (contact, logements, actions) ;
+  - une pagination « 1–N sur N » avec Précédent/Suivant.
+
+  Le menu « ⋯ » et la détection grand écran de T-060 sont sortis dans des fichiers partagés.
+- **Fichiers touchés** : `frontend/src/pages/Locataires.tsx`, `frontend/src/pages/Biens.tsx`, `frontend/src/components/ui/RowMenu.tsx` (nouveau), `frontend/src/hooks/useIsDesktop.ts` (nouveau), `frontend/src/i18n/locales/fr.json`, `frontend/src/i18n/locales/en.json`, `docs/JOURNAL_PROJET.md` (entrée T-062)
+- **Décisions & justifications** :
+  - **Existant conservé** :
+    - formulaire de création locataire ou acheteur, avec `canWrite` et le plafond d'abonnement (toast puis redirection vers l'abonnement) ;
+    - `?action=nouveau` ;
+    - invitation (`InvitationLinkModal`) ;
+    - suppression avec `ConfirmModal`, par « ⋯ » ;
+    - détail des loyers (`LoyerDetailsModal`, par « ⋯ » quand la personne a un logement) ;
+    - fiche complète (`/dashboard/locataires/:id`), WhatsApp (`wa.me`), appel (`tel:`) ;
+    - filtres avancés (statut, paiement multiple), via « Plus de filtres » ;
+    - état vide avec création.
+
+    Le message de succès après création, qui n'était jamais affiché dans la liste, l'est maintenant.
+  - **Affectations** : l'onglet ne faisait que renvoyer vers les baux. Il devient un lien « Voir les baux », et `?tab=affectation` retombe sur les locataires.
+  - **Situation de paiement** : `getPaymentStatus` pour un seul bail. Pour plusieurs baux : « à jour » si `leases_paid ≥ active_leases`, sinon le statut agrégé du serveur, à défaut « en attente ». « Sans logement » quand il n'y a ni bail actif ni loyer. L'affichage multi « X/N à jour » est conservé.
+  - **Recherche et tri** : la recherche porte aussi sur le logement. Tri par défaut : retards, puis en attente, inconnu, à jour, sans logement.
+  - **Fiche rapide** : baux actifs ou signés chargés à l'ouverture (`getLocataireDetails`, comme `LoyerDetailsModal`), avec chargement et erreur. « Enregistrer un paiement » mène à `finances?action=nouveau` ; « Attribuer un logement » (sans logement, gestionnaire) mène à `contrats?action=nouveau`. Mêmes règles d'ouverture que le panneau de T-060 (premier de la page à partir de 1024 px, rien sur mobile, défilement au clic).
+  - **Vue grille retirée** : la maquette n'en a pas. `LocataireCard` et `LocataireListRow` ne sont plus utilisés, mais restent dans le dépôt.
+  - **Accessibilité** : boutons WhatsApp et Appeler nommés (« WhatsApp {nom} », « Appeler {nom} ») et désactivés sans téléphone ; pastilles en teintes foncées sur fond pâle, et l'inverse en sombre.
+- **Problèmes rencontrés** :
+  - Contrôle Playwright avec API simulée (7 locataires, 1 acheteur, baux) : aucun débordement horizontal à 360, 768, 1024 et 1440 px (clair et sombre), aucune erreur JS.
+  - Parcours vérifiés : tri retards d'abord ; fiche rapide avec les 2 baux ; Attribuer un logement ; Enregistrer un paiement ; Fiche complète ; WhatsApp ; « ⋯ » (Détail des loyers, Supprimer avec confirmation) ; les 5 filtres rapides ; recherche par logement ; tri par nom ; pagination ; Plus de filtres ; fermeture de la fiche ; onglet et formulaire Acheteurs ; invitation ; Voir les baux ; `?tab=affectation` ; fiche amenée à l'écran sur mobile.
+  - Corrigé pendant le contrôle : boutons de ligne qui passaient à la ligne à 1440 px, et boutons WhatsApp/Appeler/Email trop serrés dans la fiche (texte seul, comme la maquette).
+  - `tsc -b` propre. Lint de `Locataires.tsx` : 11 erreurs → 6 (les `any` qui existaient déjà) ; `Biens.tsx`, `RowMenu.tsx` et `useIsDesktop.ts` sans erreur.
+- **Remplace / modifie** : aucune (mise en œuvre de la maquette T-061 ; T-060 inchangée fonctionnellement, son menu et son hook sont mutualisés)
