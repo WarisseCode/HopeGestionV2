@@ -947,3 +947,15 @@ Mis à jour automatiquement après chaque tâche.
   - Corrigé pendant le contrôle : lignes qui passaient à la ligne à 1440 px, bouton « Plus de filtres » seul sur une ligne, onglet « Lots » qui dépassait du cadre sur mobile, et un setState dans un effet signalé par le lint.
   - `tsc -b` propre. Lint de `Biens.tsx` : 1 erreur → 0. `useBiens.ts` : ses 5 erreurs antérieures restent (`any`, `saveLot` non utilisé), aucune nouvelle.
 - **Remplace / modifie** : aucune (mise en œuvre de la maquette T-059)
+
+### T-061 : Audit visuel de la page Locataires et maquette de refonte
+- **Date** : 2026-10-16
+- **Statut** : Terminée
+- **Type** : Documentation
+- **Description** : Analyse de `/dashboard/locataires` à partir de 3 captures (cartes en sombre et en clair, tableau) et du code (`Locataires.tsx`, `LocataireCard`, `LocataireListRow`). Une maquette de refonte interactive a été publiée sur un canevas Design privé, hors dépôt. Aucun code de l'application n'a été modifié.
+- **Fichiers touchés** : `docs/JOURNAL_PROJET.md` (entrée T-061)
+- **Décisions & justifications** :
+  - **Défauts relevés** : badge « Actif » répété sur chaque fiche (aucune information quand tout le monde est actif) ; boutons WhatsApp/Appeler/Voir réduits à des icônes sans nom ; cartes de hauteurs inégales ; onglet « Affectations » qui n'est qu'un renvoi vers les baux ; tableau aux colonnes tronquées (noms et téléphones sur 2 lignes, loyers « 45511.00 F » non formatés, colonne Actions vide) ; aucun filtre rapide sur la situation de paiement ; recherche en double (en-tête global et champ de page) ; données de test visibles (« Wdgeg CODEMAN », « hdhrsr jhfhtcr »).
+  - **Maquette** : liste compacte, une ligne par personne (nom, téléphone, logement ou nombre de logements, loyer formaté, pastille de paiement, WhatsApp/Appeler/« ⋯ ») ; barre unique (onglets Locataires/Acheteurs, recherche, tri « Retards d'abord ») et lien « Voir les baux » à la place de l'onglet Affectations ; filtres rapides Tous / À jour / En attente / En retard / Sans logement ; panneau « fiche rapide » (contact, logements avec statut de paiement, « Enregistrer un paiement », « Attribuer un logement » s'il n'y en a pas).
+- **Problèmes rencontrés** : Les retards, les paiements en attente et le logement de certains locataires ne figurent pas sur les captures : ils restent entre crochets dans la maquette.
+- **Remplace / modifie** : aucune
