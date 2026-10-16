@@ -246,7 +246,6 @@
     "actionNewTenant": "Nouveau locataire",
     "actionNewLease": "Nouveau contrat",
     "actionRecordPayment": "Enregistrer un paiement",
-    "subtitleLabel": "Dashboard",
     "quickActionsTitle": "Actions rapides",
     "actionRecordPaymentHint": "Saisir un loyer reçu",
     "actionNewPropertyHint": "Ajouter un immeuble et ses lots",
@@ -266,7 +265,7 @@
       "biensLocations": "Biens & locations",
       "argent": "Argent"
     },
-    "bureau": "Bureau",
+    "bureau": "Dashboard",
     "tableauDeBord": "Tableau de bord",
     "vueDensemble": "Vue d'ensemble",
     "alertes": "Alertes",

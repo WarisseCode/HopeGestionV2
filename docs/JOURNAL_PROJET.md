@@ -876,7 +876,7 @@ Mis à jour automatiquement après chaque tâche.
 
 ### T-057 : Première ligne du Bureau — sous-titre, alertes mises en avant, actions rapides
 - **Date** : 2026-10-16
-- **Statut** : Terminée
+- **Statut** : Modifiée (voir T-058)
 - **Type** : Fonctionnalité
 - **Description** : À la demande de l'utilisateur, le sous-titre « Bonjour {nom} » devient « Dashboard · {date} ». Le nombre d'alertes est affiché dans une pastille rouge cliquable qui mène aux Alertes. Les 4 boutons d'action quittent l'en-tête pour une carte « Actions rapides » (paiement en bouton principal, nouveau bien, nouveau locataire, nouveau contrat). Cette carte remplace le bloc « À traiter », dont l'utilisateur juge le contenu peu important.
 - **Fichiers touchés** : `frontend/src/pages/GestionnaireDashboard.tsx`, `frontend/src/i18n/locales/fr.json`, `frontend/src/i18n/locales/en.json`, `docs/JOURNAL_PROJET.md` (entrée T-057)
@@ -887,3 +887,13 @@ Mis à jour automatiquement après chaque tâche.
   - **Nettoyage** : logique et clés i18n « À traiter » (`toDo`, `todo*`) et `greeting` retirées, car plus utilisées. Les données correspondantes (plaintes, réservations, montant à recouvrer) restent disponibles dans l'API.
 - **Problèmes rencontrés** : la PR de T-056 étant fusionnée, la branche est repartie de `main`. Contrôle Playwright avec API simulée : aucun débordement horizontal à 360, 768, 1024 et 1440 px (clair et sombre). Pastille et 4 actions vérifiées (`/dashboard/alertes`, `finances|biens|locataires|contrats?action=nouveau`). `tsc -b` propre, lint de la page sans erreur.
 - **Remplace / modifie** : T-056 (en-tête et bloc « À traiter »)
+
+### T-058 : « Dashboard » au menu, au fil d'Ariane et en titre
+- **Date** : 2026-10-16
+- **Statut** : Terminée
+- **Type** : Fonctionnalité
+- **Description** : À la demande de l'utilisateur, le libellé français de `nav.bureau` passe de « Bureau » à « Dashboard » (l'anglais l'était déjà). Il apparaît dans le menu latéral, le fil d'Ariane, le titre H1 du Bureau gestionnaire et l'en-tête du dashboard propriétaire. Le sous-titre n'affiche plus que la date et la pastille d'alertes : « Dashboard · date » aurait répété le titre.
+- **Fichiers touchés** : `frontend/src/i18n/locales/fr.json`, `frontend/src/i18n/locales/en.json`, `frontend/src/pages/GestionnaireDashboard.tsx`, `docs/JOURNAL_PROJET.md` (entrée T-058)
+- **Décisions & justifications** : une seule clé pour les quatre emplacements, ce qui garde la cohérence voulue par T-054b. Le changement vaut pour tous les rôles (gestionnaire, propriétaire, locataire), puisque leurs menus partagent la clé. La clé `dashboard.subtitleLabel` est retirée, car elle n'est plus utilisée. Les valeurs « Bureau » de type de lot (formulaires de lots, filtres) n'ont rien à voir avec ce libellé et ne changent pas.
+- **Problèmes rencontrés** : contrôle Playwright à 360 et 1440 px : menu, fil d'Ariane et H1 affichent « Dashboard », aucun débordement. `tsc -b` propre, lint de la page sans erreur.
+- **Remplace / modifie** : T-057 (sous-titre « Dashboard · date »)
