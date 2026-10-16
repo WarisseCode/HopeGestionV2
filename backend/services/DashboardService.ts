@@ -479,10 +479,23 @@ export class DashboardService {
     static async getFeaturedProperties(
         dbClient: PoolClient,
         validOwnerIds: number[],
-        isAdmin: boolean
+        isAdmin: boolean,
+        sort: 'featured' | 'attention' = 'featured'
     ): Promise<FeaturedProperty[]> {
         const fpParams    = isAdmin ? [] : [validOwnerIds];
         const whereClause = isAdmin ? 'TRUE' : 'b.owner_id = ANY($1::int[])';
+        // 'featured' (défaut, dashboard propriétaire) : les plus occupés d'abord.
+        // 'attention' (Bureau gestionnaire) : les moins occupés d'abord, biens sans lot exclus
+        // (0 % sans lot n'est pas un problème d'occupation). Fragments issus de cette table
+        // close uniquement, jamais de la requête HTTP.
+        const ORDERING = {
+            featured:  { having: '', orderBy: 'occupied_units DESC, total_units DESC' },
+            attention: {
+                having: 'HAVING COUNT(l.id) > 0',
+                orderBy: 'SUM(CASE WHEN l.statut = \'occupe\' THEN 1 ELSE 0 END)::float / COUNT(l.id) ASC, total_units DESC',
+            },
+        } as const;
+        const { having, orderBy } = ORDERING[sort];
 
         const result = await dbClient.query(`
             SELECT b.id, b.nom, b.ville, b.quartier,
@@ -492,7 +505,8 @@ export class DashboardService {
             FROM buildings b LEFT JOIN lots l ON b.id = l.building_id
             WHERE ${whereClause}
             GROUP BY b.id
-            ORDER BY occupied_units DESC, total_units DESC
+            ${having}
+            ORDER BY ${orderBy}
             LIMIT 4
         `, fpParams);
 
