@@ -246,7 +246,6 @@
     "actionNewTenant": "New tenant",
     "actionNewLease": "New lease",
     "actionRecordPayment": "Record a payment",
-    "subtitleLabel": "Dashboard",
     "quickActionsTitle": "Quick actions",
     "actionRecordPaymentHint": "Record a rent payment",
     "actionNewPropertyHint": "Add a building and its units",

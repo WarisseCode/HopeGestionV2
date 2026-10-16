@@ -358,15 +358,16 @@ const GestionnaireDashboard: React.FC = () => {
       initial="hidden"
       animate="visible"
     >
-      {/* En-tête : titre, « Dashboard · date », alertes mises en avant ; les actions sont dans la carte « Actions rapides » */}
+      {/* En-tête : titre, date, alertes mises en avant ; les actions sont dans la carte « Actions rapides » */}
       <motion.div variants={itemVariants} className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          {/* Même clé que le menu et le fil d'Ariane (« Bureau » / « Dashboard ») (T-054b) */}
+          {/* Même clé que le menu et le fil d'Ariane (« Dashboard » en fr et en en, T-058) */}
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
             {t('nav.bureau')}
           </h1>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-2 mt-1.5 text-base-content/70 font-medium">
-            <span>{t('dashboard.subtitleLabel')} · {today}</span>
+            {/* Date seule : « Dashboard » est déjà le titre (nav.bureau, T-058) */}
+            <span>{today}</span>
             {alertsCount !== null && (alertsCount > 0 ? (
               // Pastille cliquable : l'information urgente de l'en-tête doit se voir et mener aux alertes
               <button
