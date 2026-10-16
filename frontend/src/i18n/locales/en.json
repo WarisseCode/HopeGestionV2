@@ -349,5 +349,11 @@
     "pwdTooShort": "The new password must be at least 6 characters",
     "pwdChanged": "Password changed successfully",
     "pwdError": "Error changing password"
+  },
+  "messaging": {
+    "attachFile": "Attach a file",
+    "closeConversation": "Close conversation",
+    "sendMessage": "Send message",
+    "messageLabel": "Your message"
   }
 }

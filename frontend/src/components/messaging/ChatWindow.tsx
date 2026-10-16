@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Send, Phone, MessageCircle, Mail, Paperclip, X } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -20,6 +21,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ contextType, contextId, recipie
     const [channel, setChannel] = useState('internal');
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const { t } = useTranslation();
+    const inputId = useId(); // champ de saisie associé à son libellé masqué (T-054c)
 
     useEffect(() => {
         fetchMessages();
@@ -76,7 +79,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ contextType, contextId, recipie
                         <button onClick={() => setChannel('email')} className={`px-2 py-0.5 rounded ${channel === 'email' ? 'bg-teal-500 text-white' : 'bg-base-300'}`}>Email</button>
                     </div>
                 </div>
-                <button onClick={onClose} className="text-base-content/50 hover:text-base-content/70"><X size={20}/></button>
+                {/* Boutons icône sans nom accessible : aria-label traduit, icône décorative masquée (T-054c) */}
+                <button onClick={onClose} aria-label={t('messaging.closeConversation')} className="text-base-content/50 hover:text-base-content/70"><X size={20} aria-hidden="true"/></button>
             </div>
 
             {/* Messages Area */}
@@ -99,9 +103,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ contextType, contextId, recipie
 
             {/* Input Area */}
             <div className="p-3 border-t bg-base-100 flex gap-2 items-center">
-                <button className="text-base-content/50 hover:text-base-content/70"><Paperclip size={20}/></button>
+                <button aria-label={t('messaging.attachFile')} className="text-base-content/50 hover:text-base-content/70"><Paperclip size={20} aria-hidden="true"/></button>
+                {/* Le placeholder n'est pas un libellé : libellé masqué associé au champ (T-054c) */}
+                <label htmlFor={inputId} className="sr-only">{t('messaging.messageLabel')}</label>
                 {/* min-w-0 : largeur minimale intrinsèque du champ (~230 px), le bouton d'envoi sortait du cadre à 320 px (T-054b) */}
                 <input
+                    id={inputId}
                     className="flex-1 min-w-0 border border-base-content/50 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-primary"
                     placeholder={`Message (${channel})...`}
                     value={newMessage}
@@ -113,8 +120,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ contextType, contextId, recipie
                     className="rounded-full w-10 h-10 p-0 flex items-center justify-center"
                     onClick={handleSend}
                     disabled={loading}
+                    aria-label={t('messaging.sendMessage')}
                 >
-                    <Send size={18} />
+                    <Send size={18} aria-hidden="true" />
                 </Button>
             </div>
         </div>

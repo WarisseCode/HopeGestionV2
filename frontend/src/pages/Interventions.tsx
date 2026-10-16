@@ -430,6 +430,12 @@ const Interventions: React.FC = () => {
     : activeTab === 'contrats' ? loadErrors.contracts
     : loadErrors.tickets;
   const showRows = !loading && !currentTabError;
+  // Panneau sans élément focusable (Contrats : lignes sans action ; Prestataires vide ; chargement hors
+  // Demandes/Interventions) : inatteignable au clavier, d'où tabIndex={0} sur le panneau (motif WAI-ARIA
+  // Tabs). Seulement dans ce cas, pour ne pas ajouter d'arrêt avant les filtres, lignes ou Réessayer ;
+  // -1 sinon (hors tabulation) : le focus posé sur le panneau n'est pas perdu à la fin du chargement (T-054c)
+  const panelHasFocusable = activeTab === 'demandes' || activeTab === 'interventions'
+    || (!loading && (!!currentTabError || (activeTab === 'partenaires' && providers.length > 0)));
 
   // KPIs
   const urgentCount = tickets.filter(t => t.priorite === 'Urgente' && t.statut === 'Ouvert').length;
@@ -605,7 +611,13 @@ const Interventions: React.FC = () => {
       </div>
 
       {/* Panneau de l'onglet actif (filtres + tableau), même espacement que la page (T-054b) */}
-      <div role="tabpanel" id="interventions-panel" aria-labelledby={`interventions-tab-${activeTab}`} className="space-y-6">
+      <div
+        role="tabpanel"
+        id="interventions-panel"
+        aria-labelledby={`interventions-tab-${activeTab}`}
+        tabIndex={panelHasFocusable ? -1 : 0}
+        className="space-y-6 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      >
       {/* Filters */}
       {(activeTab === 'demandes' || activeTab === 'interventions') && (
         <div className="flex flex-wrap gap-3 items-center">

@@ -215,6 +215,14 @@ const Alertes: React.FC = () => {
       }
   };
 
+  // Panneau sans élément focusable (liste vide, chargement) : inatteignable au clavier, d'où tabIndex={0}
+  // sur le panneau (motif WAI-ARIA Tabs). Seulement dans ce cas, pour ne pas ajouter d'arrêt avant les
+  // boutons, cartes, interrupteurs ou Réessayer ; -1 sinon (hors tabulation) : le focus posé sur le panneau
+  // n'est pas perdu à la fin du chargement. Paramètres jamais vide (DEFAULT_SETTINGS) (T-054c)
+  const panelHasFocusable = activeTab === 'alertes'
+    ? dismissedCount > 0 || (!loading && (!!alertsError || alertes.length > 0))
+    : !loading && (activeTab === 'parametres' || !!notificationsError || notifications.length > 0);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -307,10 +315,11 @@ const Alertes: React.FC = () => {
             role="tabpanel"
             id="alertes-panel"
             aria-labelledby={`alertes-tab-${activeTab}`}
+            tabIndex={panelHasFocusable ? -1 : 0}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="space-y-8"
+            className="space-y-8 rounded-3xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
             {/* KPIs */}
             {/* '…' pendant le chargement, comme Interventions : pas de faux « 0 » (T-047) */}

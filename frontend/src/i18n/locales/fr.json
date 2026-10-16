@@ -349,5 +349,11 @@
     "pwdTooShort": "Le nouveau mot de passe doit contenir au moins 6 caractères",
     "pwdChanged": "Mot de passe modifié avec succès",
     "pwdError": "Erreur lors du changement de mot de passe"
+  },
+  "messaging": {
+    "attachFile": "Joindre un fichier",
+    "closeConversation": "Fermer la conversation",
+    "sendMessage": "Envoyer le message",
+    "messageLabel": "Votre message"
   }
 }
