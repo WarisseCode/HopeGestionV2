@@ -1,56 +1,53 @@
 // frontend/src/pages/GestionnaireDashboard.tsx
+// Refonte T-056 (maquette T-055) : un seul niveau de chiffres clés (plus de bandeau qui répétait
+// les KPI), un bloc « À traiter », des flux revenus/dépenses en couleurs distinctes, des biens triés
+// par besoin d'attention, et une mise en page pilotée par la largeur réelle du contenu (container queries).
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Building2, 
-  Home, 
-  Wallet, 
-  AlertTriangle, 
-  Percent, 
-  FileText, 
-  MessageCircle, 
-  Calendar, 
-  DollarSign, 
-  Clock, 
-  Search, 
+import {
+  Building2,
+  Users,
+  Wallet,
+  FileText,
   Plus,
-  Eye,
-  ChevronDown,
-  ChevronUp,
   RefreshCw,
   TrendingUp,
+  Bell,
+  AlertTriangle,
+  MessageCircle,
+  Calendar,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  Wrench,
+  AlertCircle,
+  Home,
 } from 'lucide-react';
-import Card from '../components/ui/Card';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    AreaChart,
-    Area,
-    PieChart,
-    Pie,
-    Cell,
+import { motion } from 'framer-motion';
+import {
+    BarChart,
+    Bar,
     XAxis,
     YAxis,
     CartesianGrid,
     Tooltip,
-    Legend,
     ResponsiveContainer
 } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { useUser } from '../contexts/UserContext';
 import {
-  KPICard,
-  QuickActions, 
-  ActivityFeed,
   PeriodFilter,
   DashboardSkeleton,
   ChartSkeleton
-} from '../components/dashboard'; 
+} from '../components/dashboard';
 import type { Activity } from '../components/dashboard/ActivityFeed';
 import type { Period } from '../components/dashboard/PeriodFilter';
 import Button from '../components/ui/Button';
 import { apiCall } from '../utils/apiUtils';
 import { API_URL } from '../config';
 import { getToken } from '../api/authApi';
+import { getAlerts } from '../api/alertApi';
+import { withCreateAction } from '../hooks/useCreateFromUrl';
 import EmptyState from '../components/ui/EmptyState';
 import LoadErrorState from '../components/ui/LoadErrorState';
 
@@ -64,43 +61,120 @@ interface KPIData {
     modulePath: string;
 }
 
+// Agrégats renvoyés par /dashboard/kpi à côté de la liste (déjà présents côté API, inutilisés jusqu'ici)
+interface KPISummary {
+    totalBiens: number; totalLots: number; lotsOccupes: number; lotsLibres: number;
+    tauxOccupation: number; loyersEncaisses: number; loyersImpayes: number;
+    contratsActifs: number; plaintesOuvertes: number; reservationsEnAttente: number;
+    montantARecouvrer: number;
+}
+
+// Élément brut de /dashboard/activity (DashboardService.getActivity)
+interface RawActivity {
+    id: number;
+    type: Activity['type'];
+    title: string;
+    description: string;
+    created_at: string;
+    montant?: number | null;
+}
+
+interface WatchedProperty {
+    id: number;
+    name: string;
+    location: string;
+    units: number;
+    occupancy: number;
+    image: string | null;
+}
+
 // Graduations des axes : même teinte que text-base-content/70, suit le thème clair/sombre (T-054a)
 const AXIS_TICK_FILL = 'color-mix(in oklab, var(--color-base-content) 70%, transparent)';
 
-// Libellés du bandeau « Performance globale » en thème sombre (fond bleu clair) : primary-content
-// assombri de 20 %, les opacités /60-/80 tombaient à 2,47-3,51:1 (pixels mesurés) (T-054b)
-const BANNER_DARK_TEXT = 'dark:text-[color-mix(in_oklab,var(--color-primary-content)_80%,black)]';
+// Séries du graphique : bleu (secondary) et ambre (warning) diffèrent en teinte ET en clarté
+// dans les deux thèmes (63 %/77 % en clair, 71 %/83 % en sombre) ; les deux bleus d'avant se confondaient.
+const REVENUE_COLOR = 'var(--color-secondary)';
+const EXPENSE_COLOR = 'var(--color-warning)';
+
+const OUTLINE_BTN = 'whitespace-nowrap inline-flex items-center justify-center gap-1.5 min-h-11 px-3 rounded-xl border border-base-300 bg-base-100 text-sm font-semibold text-base-content hover:bg-base-200 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+
+const fmt = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
+
+// L'ancien modulePath '/paiements' menait à une page inexistante (404) : les paiements sont dans Finances
+const resolveModulePath = (modulePath: string) => {
+    const path = modulePath.startsWith('/') ? modulePath : `/${modulePath}`;
+    return path === '/paiements' ? '/finances' : path;
+};
+
+// « , Cotonou » quand le quartier est vide côté API : on retire les morceaux vides
+const cleanLocation = (location: string) =>
+    location.split(',').map(s => s.trim()).filter(Boolean).join(', ');
+
+const activityStyle = (type: Activity['type']) => {
+    switch (type) {
+        case 'payment':      return { icon: Wallet, cls: 'bg-success text-success-content' };
+        case 'reminder':     return { icon: Clock, cls: 'bg-warning text-warning-content' };
+        case 'alert':        return { icon: AlertCircle, cls: 'bg-error text-error-content' };
+        case 'contract':     return { icon: FileText, cls: 'bg-info text-info-content' };
+        case 'property':     return { icon: Home, cls: 'bg-primary text-primary-content' };
+        case 'intervention': return { icon: Wrench, cls: 'bg-secondary text-secondary-content' };
+        default:             return { icon: AlertCircle, cls: 'bg-base-300 text-base-content' };
+    }
+};
+
+// Carte d'indicateur : un vrai <button> (clavier, lecteur d'écran) qui mène au module concerné
+const StatCard: React.FC<{
+    label: string;
+    onClick: () => void;
+    children: React.ReactNode;
+}> = ({ label, onClick, children }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        className="group w-full h-full text-left bg-base-100 rounded-2xl p-5 border border-base-300/70 hover:border-primary/40 hover:shadow-md transition-all flex flex-col gap-2.5 min-w-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+    >
+        <span className="text-sm font-medium text-base-content/70">{label}</span>
+        {children}
+    </button>
+);
+
+const ProgressBar: React.FC<{ value: number; className: string }> = ({ value, className }) => (
+    <span className="block h-1.5 rounded-full bg-base-200 dark:bg-base-300 overflow-hidden" aria-hidden="true">
+        <span className={`block h-full rounded-full ${className}`} style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
+    </span>
+);
 
 const GestionnaireDashboard: React.FC = () => {
   const { user, stats, loading: userLoading } = useUser();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  
+
   // States
   const [kpis, setKpis] = useState<KPIData[]>([]);
-  const [showAllKpis, setShowAllKpis] = useState(false);
+  const [summary, setSummary] = useState<KPISummary | null>(null);
   const [period, setPeriod] = useState<Period>('30d');
   const [isLoadingKpis, setIsLoadingKpis] = useState(true);
   const [isLoadingChart, setIsLoadingChart] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   // Échec du chargement des KPI, distinct d'un compte sans indicateur (200 + kpis: []) (T-047)
   const [kpiError, setKpiError] = useState<string | null>(null);
+  // null = inconnu (chargement ou échec) : la ligne « Alertes » est alors masquée plutôt qu'à 0
+  const [alertsCount, setAlertsCount] = useState<number | null>(null);
 
-  const handleKpiClick = (kpi: KPIData) => {
-      if (kpi.id === 'lots_occupation') {
+  const goToKpi = (id: string, fallback: string) => {
+      if (id === 'lots_occupation') {
           navigate('/dashboard/biens?tab=lots');
           return;
       }
-      
-      const path = kpi.modulePath.startsWith('/') ? kpi.modulePath : `/${kpi.modulePath}`;
-      navigate(`/dashboard${path}`);
+      const kpi = kpis.find(k => k.id === id);
+      navigate(`/dashboard${resolveModulePath(kpi?.modulePath ?? fallback)}`);
   };
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1, 
-      transition: { staggerChildren: 0.05 } 
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.05 }
     }
   };
 
@@ -109,85 +183,47 @@ const GestionnaireDashboard: React.FC = () => {
     visible: { y: 0, opacity: 1 }
   };
 
-  // Helper to format values based on KPI type
-  const formatValue = (kpi: KPIData) => {
-      // 1. Currency KPIs
-      if (['loyers_encaisses', 'loyers_impayes', 'recouvrement'].includes(kpi.id)) {
-          if (typeof kpi.value === 'number') {
-              return new Intl.NumberFormat('fr-FR').format(kpi.value) + ' FCFA';
-          }
-          return kpi.value + ' FCFA';
-      }
-      
-      // 2. Percentage or Special String KPIs
-      if (kpi.id === 'lots_occupation') {
-          return kpi.value;
-      }
-      
-      // 3. Count KPIs (Integer)
-      if (typeof kpi.value === 'number') {
-           return new Intl.NumberFormat('fr-FR').format(kpi.value);
-      }
-      return kpi.value;
-  };
-
-  const getIcon = (iconName: string) => {
-      switch(iconName) {
-          case 'Building2': return Building2;
-          case 'Home': return Home;
-          case 'Wallet': return Wallet;
-          case 'AlertTriangle': return AlertTriangle;
-          case 'Percent': return Percent;
-          case 'FileText': return FileText;
-          case 'MessageCircle': return MessageCircle;
-          case 'Calendar': return Calendar;
-          case 'DollarSign': return DollarSign;
-          case 'Clock': return Clock;
-          default: return Building2;
-      }
-  };
-
-  const getKeyColor = (kpi: KPIData): 'blue' | 'green' | 'teal' | 'orange' | 'pink' => {
-      switch(kpi.id) {
-          case 'total_biens': return 'blue';
-          case 'lots_occupation': return 'teal';
-          case 'loyers_encaisses': return 'green';
-          case 'loyers_impayes': return 'pink';
-          case 'contrats_actifs': return 'green';
-          case 'plaintes_ouvertes': return 'orange';
-          case 'reservations': return 'teal';
-          case 'recouvrement': return 'pink';
-          case 'echelonements_retard': return 'orange';
-          default: return 'blue';
-      }
-  };
-
-  // Fetch KPIs with period filter
+  // Fetch KPIs. L'API calcule les KPI sur le mois en cours quelle que soit la période :
+  // le filtre de période ne pilote donc que le graphique (il est placé dans sa carte).
   useEffect(() => {
     const fetchKPIs = async () => {
       setIsLoadingKpis(true);
       setKpiError(null);
       try {
-        const data = await apiCall<{ kpis: any[] }>(`${API_URL}/dashboard/kpi?period=${period}`);
+        const data = await apiCall<{ kpis: KPIData[]; summary?: KPISummary }>(`${API_URL}/dashboard/kpi`);
         setKpis(data.kpis);
+        setSummary(data.summary ?? null);
       } catch (error) {
         console.error('Error fetching KPIs:', error);
         setKpis([]);
+        setSummary(null);
         // Chaîne vide => LoadErrorState affiche son message de repli traduit
         setKpiError((error as Error)?.message || '');
       } finally {
         setIsLoadingKpis(false);
       }
     };
-    
+
     fetchKPIs();
-  }, [stats, period, refreshKey]);
+  }, [stats, refreshKey]);
+
+  // Nombre d'alertes (même source que le badge du menu, DashboardLayout)
+  useEffect(() => {
+    let cancelled = false;
+    getAlerts()
+      .then(({ alerts }) => { if (!cancelled) setAlertsCount(alerts.length); })
+      .catch((error) => {
+        console.error('Error fetching alerts count', error);
+        if (!cancelled) setAlertsCount(null);
+      });
+    return () => { cancelled = true; };
+  }, [refreshKey]);
 
 
   // Fetch chart data and other dashboard widgets
   const [chartData, setChartData] = useState<{ name: string; revenus: number; depenses: number }[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [featuredProperties, setFeaturedProperties] = useState<any[]>([]);
+  const [watchedProperties, setWatchedProperties] = useState<WatchedProperty[]>([]);
   const [loadingWidgets, setLoadingWidgets] = useState(true);
   // Erreur par widget (null = pas d'erreur) : un 500 s'affichait comme un état vide
   // (« Pas encore assez de données », « Aucun bien en vedette »…) (T-047)
@@ -202,7 +238,7 @@ const GestionnaireDashboard: React.FC = () => {
       setLoadingWidgets(true);
       setWidgetErrors({ chart: null, activity: null, properties: null });
       const token = getToken();
-      
+
       if (!token) {
         setChartData([{ name: 'N/A', revenus: 0, depenses: 0 }]);
         setIsLoadingChart(false);
@@ -222,20 +258,13 @@ const GestionnaireDashboard: React.FC = () => {
         res.status === 'rejected' ? ((res.reason as Error)?.message || '') : null;
 
       try {
-        // 1. Chart Data
-        const chartPromise = fetchJson(`${API_URL}/dashboard/chart-data?period=${period}`);
-
-        // 2. Activity Feed
-        const activityPromise = fetchJson(`${API_URL}/dashboard/activity`);
-
-        // 3. Featured Properties
-        const propertiesPromise = fetchJson(`${API_URL}/dashboard/featured-properties`);
-
-        // allSettled : l'échec d'un widget n'empêche plus l'affichage des deux autres
+        // allSettled : l'échec d'un widget n'empêche pas l'affichage des deux autres
         const [chartResult, activityResult, propertiesResult] = await Promise.allSettled([
-            chartPromise,
-            activityPromise,
-            propertiesPromise
+            fetchJson(`${API_URL}/dashboard/chart-data?period=${period}`),
+            fetchJson(`${API_URL}/dashboard/activity`),
+            // sort=attention : moins occupés d'abord (T-056) ; une API plus ancienne ignore le paramètre,
+            // le tri côté client ci-dessous garde alors l'ordre « à surveiller »
+            fetchJson(`${API_URL}/dashboard/featured-properties?sort=attention`),
         ]);
         setWidgetErrors({ chart: reason(chartResult), activity: reason(activityResult), properties: reason(propertiesResult) });
         const chartRes = chartResult.status === 'fulfilled' ? chartResult.value : {};
@@ -244,22 +273,27 @@ const GestionnaireDashboard: React.FC = () => {
 
         if (chartRes.chartData) setChartData(chartRes.chartData);
         if (activityRes.activities) {
-             // Map backend activity to frontend format
-             const mappedActivities = activityRes.activities.map((a: any) => ({
+             const mappedActivities = activityRes.activities.map((a: RawActivity) => ({
                  id: a.id,
                  type: a.type,
                  title: a.title,
                  // Le montant + l'heure précise permettent de distinguer deux entrées
                  // du même jour pour le même locataire (ex. paiements échelonnés).
                  description: a.montant != null
-                     ? `${a.description} · ${new Intl.NumberFormat('fr-FR').format(a.montant)} FCFA`
+                     ? `${a.description} · ${fmt(a.montant)} FCFA`
                      : a.description,
                  time: new Date(a.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
                      + ', ' + new Date(a.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
              }));
              setActivities(mappedActivities);
         }
-        if (propertiesRes.properties) setFeaturedProperties(propertiesRes.properties);
+        if (propertiesRes.properties) {
+            setWatchedProperties(
+                (propertiesRes.properties as WatchedProperty[])
+                    .filter(p => p.units > 0)
+                    .sort((a, b) => a.occupancy - b.occupancy || b.units - a.units)
+            );
+        }
 
       } catch (error) {
         console.error('Error fetching dashboard widgets:', error);
@@ -268,147 +302,139 @@ const GestionnaireDashboard: React.FC = () => {
         setLoadingWidgets(false);
       }
     };
-    
+
     fetchDashboardData();
   }, [period, widgetsRetryKey]);
 
-  // Alias for chart
-  const revenusData = chartData;
+  const refreshAll = () => {
+      setRefreshKey(k => k + 1);
+      retryWidgets();
+  };
 
-  const occupationData = [
-    { name: t('dashboard.occupied'), value: stats?.tauxOccupation || 0, color: '#0d9488' },
-    { name: t('dashboard.vacant'), value: 100 - (stats?.tauxOccupation || 0), color: 'var(--color-base-300)' },
+  const periodLabel =
+      period === '7d' ? t('dashboard.period7d') :
+      period === '30d' ? t('dashboard.period30d') :
+      period === '90d' ? t('dashboard.period90d') :
+      period === '1y' ? t('dashboard.period1y') : t('dashboard.periodAll');
+
+  // Totaux de la période affichée, calculés sur les points du graphique (mêmes données que les barres)
+  const chartTotals = useMemo(() => {
+      const revenus = chartData.reduce((s, d) => s + (Number(d.revenus) || 0), 0);
+      const depenses = chartData.reduce((s, d) => s + (Number(d.depenses) || 0), 0);
+      return { revenus, depenses, solde: revenus - depenses };
+  }, [chartData]);
+
+  // Recouvrement du mois. L'API ne renvoie pas les loyers attendus, mais impayés = max(0, attendus − encaissés) :
+  // si impayés > 0, attendus = encaissés + impayés ; si impayés = 0, tout l'attendu est encaissé (100 %).
+  const collection = useMemo(() => {
+      if (!summary) return null;
+      const encaisses = summary.loyersEncaisses;
+      const impayes = summary.loyersImpayes;
+      if (encaisses === 0 && impayes === 0) return { rate: null as number | null, remaining: 0 };
+      const rate = impayes > 0 ? Math.round((encaisses / (encaisses + impayes)) * 100) : 100;
+      return { rate, remaining: impayes };
+  }, [summary]);
+
+  const todoItems = useMemo(() => {
+      const items: { key: string; icon: React.ElementType; count: string; label: string; hint: string; tone: 'danger' | 'warning' | 'ok'; onClick: () => void }[] = [];
+      if (alertsCount !== null) {
+          items.push({ key: 'alerts', icon: Bell, count: fmt(alertsCount), label: t('dashboard.todoAlerts'), hint: t('dashboard.todoAlertsHint'),
+              tone: alertsCount > 0 ? 'danger' : 'ok', onClick: () => navigate('/dashboard/alertes') });
+      }
+      // Lignes issues des KPI seulement quand ils sont chargés (en erreur, les alertes restent visibles)
+      if (summary && kpis.length > 0) items.push(
+          { key: 'recovery', icon: AlertTriangle, count: summary.montantARecouvrer > 0 ? '' : '0',
+            label: t('dashboard.todoRecovery'),
+            // Montant dans le texte : en pastille, « 410 000 FCFA » écrasait le libellé
+            hint: summary.montantARecouvrer > 0 ? `${fmt(summary.montantARecouvrer)} FCFA · ${t('dashboard.todoRecoveryHint')}` : t('dashboard.todoRecoveryHint'),
+            tone: summary.montantARecouvrer > 0 ? 'warning' : 'ok', onClick: () => goToKpi('recouvrement', '/finances') },
+          { key: 'complaints', icon: MessageCircle, count: fmt(summary.plaintesOuvertes), label: t('dashboard.todoComplaints'), hint: t('dashboard.todoComplaintsHint'),
+            tone: summary.plaintesOuvertes > 0 ? 'warning' : 'ok', onClick: () => goToKpi('plaintes_ouvertes', '/alertes') },
+          { key: 'reservations', icon: Calendar, count: fmt(summary.reservationsEnAttente), label: t('dashboard.todoReservations'), hint: t('dashboard.todoReservationsHint'),
+            tone: summary.reservationsEnAttente > 0 ? 'warning' : 'ok', onClick: () => goToKpi('reservations', '/biens') },
+      );
+      return items;
+      // goToKpi ne dépend que de kpis et navigate
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summary, alertsCount, kpis, t]);
+
+  const quickActions = [
+      { icon: Plus, label: t('dashboard.actionNewProperty'), path: withCreateAction('/dashboard/biens') },
+      { icon: Users, label: t('dashboard.actionNewTenant'), path: withCreateAction('/dashboard/locataires') },
+      { icon: FileText, label: t('dashboard.actionNewLease'), path: withCreateAction('/dashboard/contrats') },
   ];
-
-  const allKpis = kpis; 
-  const visibleKpis = showAllKpis ? allKpis : allKpis.slice(0, 4);
-
-  // Financial Banner Values
-  const totalRevenus = kpis.find(k => k.id === 'loyers_encaisses')?.value as number || 0;
-  const totalImpayes = kpis.find(k => k.id === 'loyers_impayes')?.value as number || 0;
-  const revenuNet = totalRevenus;
 
   // Show full skeleton while user context loads
   if (userLoading) {
     return <DashboardSkeleton type="gestionnaire" />;
   }
 
+  const todayRaw = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const today = todayRaw.charAt(0).toUpperCase() + todayRaw.slice(1);
+
   return (
-    <motion.div 
-      className="space-y-8 max-w-[1700px] mx-auto"
+    <motion.div
+      // @container : les colonnes suivent la largeur réelle du contenu (menu latéral ouvert ou replié),
+      // pas celle de l'écran
+      className="@container space-y-6 max-w-[1700px] mx-auto"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      {/* Header Section */}
-      <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div>
+      {/* En-tête : titre, salutation + urgences, actions principales (remplacent la carte « Actions rapides ») */}
+      <motion.div variants={itemVariants} className="flex flex-col @3xl:flex-row @3xl:items-end justify-between gap-4">
+        <div className="min-w-0">
           {/* Même clé que le menu et le fil d'Ariane (« Bureau » / « Dashboard ») (T-054b) */}
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
             {t('nav.bureau')}
           </h1>
           <p className="text-base-content/70 font-medium mt-1">
-            {t('dashboard.welcome', { name: user?.nom || '' })}
+            {t('dashboard.greeting', { name: user?.nom || '' })}
+            <span> · {today}</span>
+            {alertsCount !== null && (
+              <> · {alertsCount > 0 ? t('dashboard.alertsPending', { count: alertsCount }) : t('dashboard.nothingUrgent')}</>
+            )}
           </p>
         </div>
-        
-        <div className="flex items-center gap-3 flex-wrap">
-            {/* Period Filter */}
-            <PeriodFilter value={period} onChange={setPeriod} />
+
+        <div className="flex flex-wrap items-stretch gap-2">
+            {/* Action principale en premier, pleine largeur sur mobile ; les autres s'enchaînent sans couper leur libellé */}
+            <Button variant="primary" size="sm" className="gap-1.5 min-h-11 w-full @lg:w-auto whitespace-nowrap" onClick={() => navigate(withCreateAction('/dashboard/finances'))}>
+                <Wallet size={16} aria-hidden="true" /> {t('dashboard.actionRecordPayment')}
+            </Button>
+            {/* Boutons natifs : le variant ghost de Button impose bordure et fond transparents */}
+            {quickActions.map(a => (
+                <button key={a.path} type="button" onClick={() => navigate(a.path)} className={OUTLINE_BTN}>
+                    <a.icon size={16} aria-hidden="true" /> {a.label}
+                </button>
+            ))}
+            <button type="button" onClick={refreshAll} aria-label={t('common.refresh')} title={t('common.refresh')} className={`${OUTLINE_BTN} min-w-11 px-0`}>
+                <RefreshCw size={16} aria-hidden="true" />
+            </button>
         </div>
       </motion.div>
 
-      {/* Financial Summary Banner */}
+      {/* KPI : 4 mesures distinctes, chacune avec son contexte (le bandeau qui les répétait est retiré) */}
       <motion.div variants={itemVariants}>
-        {/* Contrastes mesurés sur les pixels rendus (T-054b) : en clair, textes clairs sous 4,5:1 sur la fin claire
-            du dégradé (orange 1,71:1, vert 2,99:1) → fin à 30 % de secondary dans primary, verts/oranges un cran plus
-            clairs ; en sombre (fond clair, texte foncé), dégradé inchangé, textes assombris (BANNER_DARK_TEXT, -950) */}
-        <div className="bg-gradient-to-r from-primary via-primary to-[color-mix(in_oklab,var(--color-secondary)_30%,var(--color-primary))] dark:to-secondary rounded-2xl p-6 text-primary-content shadow-xl relative overflow-hidden">
-          {/* Decorative background pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-base-100 rounded-full -translate-y-1/2 translate-x-1/3"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-base-100 rounded-full translate-y-1/2 -translate-x-1/4"></div>
-          </div>
-          
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <p className={`text-primary-content/90 ${BANNER_DARK_TEXT} text-sm font-medium`}>{t('dashboard.globalPerformance')}</p>
-              {/* Pendant le chargement des KPI : squelette au lieu d'un faux « 0 FCFA » (T-042) ;
-                  role="status" : aria-label interdit sur un span sans rôle (axe aria-prohibited-attr) (T-054a) */}
-              {isLoadingKpis
-                ? <span role="status" className="block h-9 w-44 my-0.5 rounded-lg bg-base-100/20 animate-pulse motion-reduce:animate-none!" aria-label="Chargement" />
-                : <p className="text-3xl font-bold">{new Intl.NumberFormat('fr-FR').format(revenuNet)} FCFA</p>}
-              <p className={`text-primary-content/70 ${BANNER_DARK_TEXT} text-xs mt-1`}>{t('dashboard.revenueCollectedMonth')}</p>
-            </div>
-            <div className="flex gap-4 flex-wrap">
-              <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
-                <p className={`text-primary-content/90 ${BANNER_DARK_TEXT} text-xs font-medium`}>{t('dashboard.collections')}</p>
-                {isLoadingKpis
-                  ? <span className="block h-6 w-14 mx-auto my-0.5 rounded bg-base-100/20 animate-pulse motion-reduce:animate-none!" />
-                  : <p className="text-lg font-bold text-green-200 dark:text-green-950">+{new Intl.NumberFormat('fr-FR').format(totalRevenus)}</p>}
-              </div>
-              <div className="text-center bg-base-100/10 rounded-xl px-4 py-2 backdrop-blur-sm">
-                <p className={`text-primary-content/90 ${BANNER_DARK_TEXT} text-xs font-medium`}>{t('dashboard.unpaid')}</p>
-                {isLoadingKpis
-                  ? <span className="block h-6 w-14 mx-auto my-0.5 rounded bg-base-100/20 animate-pulse motion-reduce:animate-none!" />
-                  : <p className="text-lg font-bold text-orange-100 dark:text-orange-950">{new Intl.NumberFormat('fr-FR').format(totalImpayes)}</p>}
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* KPI Section */}
-       <motion.div variants={itemVariants} className="relative">
-          <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-base-content/90 dark:text-base-content">{t('dashboard.strategicIndicators')}</span>
-                {/* Compteur masqué pendant le chargement : sinon « 0 indicateurs » (T-042) */}
-                {!isLoadingKpis && (
-                <span className="px-2 py-0.5 rounded-full bg-base-300 text-xs font-medium text-base-content/80">
-                    {showAllKpis ? `${allKpis.length} ${t('dashboard.metrics')}` : `${Math.min(4, allKpis.length)} ${t('dashboard.metrics')}`}
-                </span>
-                )}
-              </div>
-              
-              <button 
-                onClick={() => setShowAllKpis(!showAllKpis)}
-                // min-h-6 : cible de 20px de haut portée à 24px, centrée dans la ligne (aucun décalage visible) (T-050)
-                className="flex items-center gap-1 min-h-6 text-sm font-semibold text-primary hover:text-primary-focus transition-colors"
-                >
-                  {showAllKpis ? (
-                      <>
-                        {t('common.seeLess')} <ChevronUp size={16} />
-                      </>
-                  ) : (
-                      <>
-                        {t('common.seeAll')} <ChevronDown size={16} />
-                      </>
-                  )}
-              </button>
-          </div>
-
           {isLoadingKpis ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div role="status" aria-label="Chargement" className="grid grid-cols-1 @xl:grid-cols-2 @5xl:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-base-100 rounded-2xl p-6 border border-base-200 animate-pulse motion-reduce:animate-none!">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 bg-base-300 rounded-full" />
-                    <div className="w-16 h-6 bg-base-300 rounded" />
-                  </div>
-                  <div className="w-24 h-4 bg-base-300 rounded mb-2" />
-                  <div className="w-32 h-8 bg-base-300 rounded" />
+                <div key={i} className="bg-base-100 rounded-2xl p-5 border border-base-300/70 animate-pulse motion-reduce:animate-none!">
+                  <div className="w-28 h-4 bg-base-300 rounded mb-3" />
+                  <div className="w-36 h-8 bg-base-300 rounded mb-3" />
+                  <div className="w-full h-1.5 bg-base-300 rounded mb-3" />
+                  <div className="w-40 h-3 bg-base-300 rounded" />
                 </div>
               ))}
             </div>
           ) : kpiError !== null ? (
             // Vrai échec : message et « Réessayer » qui relance la requête (plus de reload) (T-047)
-            <div className="col-span-full py-8">
+            <div className="py-8">
               <LoadErrorState message={kpiError} onRetry={() => setRefreshKey(k => k + 1)} />
             </div>
-          ) : visibleKpis.length === 0 ? (
+          ) : kpis.length === 0 || !summary ? (
             // 200 sans indicateur (compte neuf) : accueil, pas « Données indisponibles » (T-047)
-            <div className="col-span-full py-8">
+            <div className="py-8">
               <EmptyState
                 icon={<Building2 size={48} />}
                 title={t('dashboard.noKpisTitle')}
@@ -416,64 +442,75 @@ const GestionnaireDashboard: React.FC = () => {
               />
             </div>
           ) : (
-            <motion.div 
-              layout
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-            >
-              <AnimatePresence>
-                  {visibleKpis.map((kpi) => (
-                  <motion.div
-                      key={kpi.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ duration: 0.2 }}
-                  >
-                      <KPICard 
-                          icon={getIcon(kpi.icon)}
-                          label={kpi.label}
-                          value={formatValue(kpi)}
-                          color={getKeyColor(kpi)}
-                          onClick={() => handleKpiClick(kpi)}
-                      />
-                  </motion.div>
-                  ))}
-              </AnimatePresence>
-            </motion.div>
+            <div className="grid grid-cols-1 @xl:grid-cols-2 @5xl:grid-cols-4 gap-4">
+                <StatCard label={`${t('dashboard.rentsCollected')} · ${t('dashboard.thisMonth')}`} onClick={() => goToKpi('loyers_encaisses', '/finances')}>
+                    <span className="text-2xl @7xl:text-3xl font-bold tracking-tight tabular-nums break-words">
+                        {fmt(summary.loyersEncaisses)} <span className="text-sm font-semibold text-base-content/70">FCFA</span>
+                    </span>
+                    {collection?.rate != null && <ProgressBar value={collection.rate} className="bg-secondary" />}
+                    <span className="text-sm text-base-content/70">
+                        {collection?.rate == null
+                            ? t('dashboard.noRentExpected')
+                            : collection.remaining > 0
+                                ? t('dashboard.collectedRate', { rate: collection.rate, remaining: fmt(collection.remaining) })
+                                : t('dashboard.collectedAll')}
+                    </span>
+                </StatCard>
+
+                <StatCard label={t('dashboard.occupancyTitle')} onClick={() => goToKpi('lots_occupation', '/biens')}>
+                    <span className="text-2xl @7xl:text-3xl font-bold tracking-tight tabular-nums">{summary.tauxOccupation} %</span>
+                    <ProgressBar value={summary.tauxOccupation} className="bg-primary" />
+                    <span className="text-sm text-base-content/70 tabular-nums">
+                        {t('dashboard.lotsOccupiedOf', { occupied: fmt(summary.lotsOccupes), total: fmt(summary.totalLots) })}
+                        {' · '}{t('dashboard.lotsAvailable', { count: summary.lotsLibres })}
+                    </span>
+                </StatCard>
+
+                <StatCard label={`${t('dashboard.unpaidTitle')} · ${t('dashboard.thisMonth')}`} onClick={() => goToKpi('loyers_impayes', '/finances')}>
+                    <span className="text-2xl @7xl:text-3xl font-bold tracking-tight tabular-nums break-words">
+                        {fmt(summary.loyersImpayes)} <span className="text-sm font-semibold text-base-content/70">FCFA</span>
+                    </span>
+                    {summary.loyersImpayes === 0 ? (
+                        <span className="self-start inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-success/15 text-base-content">
+                            <CheckCircle2 size={14} className="text-success" aria-hidden="true" /> {t('dashboard.noUnpaid')}
+                        </span>
+                    ) : (
+                        <span className="self-start inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-error/15 text-base-content">
+                            <AlertTriangle size={14} className="text-error" aria-hidden="true" /> {t('dashboard.unpaidToFollow')}
+                        </span>
+                    )}
+                </StatCard>
+
+                <StatCard label={t('dashboard.portfolio')} onClick={() => goToKpi('total_biens', '/biens')}>
+                    <span className="text-2xl @7xl:text-3xl font-bold tracking-tight tabular-nums">
+                        {fmt(summary.totalBiens)} <span className="text-sm font-semibold text-base-content/70">{t('dashboard.buildingsUnit')}</span>
+                    </span>
+                    <span className="text-sm text-base-content/70 tabular-nums">
+                        {t('dashboard.portfolioDetail', { lots: fmt(summary.totalLots), leases: fmt(summary.contratsActifs) })}
+                    </span>
+                </StatCard>
+            </div>
           )}
       </motion.div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        
-        {/* Left Column (Charts & Properties) - 2/3 width */}
-        <div className="xl:col-span-2 space-y-8">
-            
-            {/* Finance Chart */}
-            <motion.div variants={itemVariants}>
+      {/* Ligne 2 : flux financiers (2/3) + À traiter (1/3), empilés quand le contenu est étroit */}
+      <div className="grid grid-cols-1 @5xl:grid-cols-3 gap-6">
+            <motion.section variants={itemVariants} aria-labelledby="flux-title" className="@5xl:col-span-2 min-w-0">
               {isLoadingChart ? (
                 <ChartSkeleton height={350} />
               ) : (
-                <Card className="overflow-hidden border-none shadow-xl bg-base-100">
-                    <div className="flex justify-between items-center mb-6 px-2">
-                        <div>
-                            <h2 className="text-xl font-bold text-base-content/90">{t('dashboard.financialAnalysis')}</h2>
-                            <p className="text-sm text-base-content/70">{t('dashboard.revenueVsExpenses')} ({
-                              period === '7d' ? t('dashboard.period7d') :
-                              period === '30d' ? t('dashboard.period30d') :
-                              period === '90d' ? t('dashboard.period90d') :
-                              period === '1y' ? t('dashboard.period1y') : t('dashboard.periodAll')
-                            })</p>
+                <div className="bg-base-100 rounded-2xl p-5 @xl:p-6 border border-base-300/70 h-full">
+                    <div className="flex flex-col @xl:flex-row @xl:items-start justify-between gap-3 mb-4">
+                        <div className="min-w-0">
+                            <h2 id="flux-title" className="text-lg font-bold text-base-content">{t('dashboard.financialFlows')}</h2>
+                            <p className="text-sm text-base-content/70">{t('dashboard.revenueVsExpenses')} · {periodLabel}</p>
                         </div>
-                        <Button variant="ghost" size="sm" className="gap-1" onClick={() => setRefreshKey(k => k + 1)}>
-                          <RefreshCw size={14} />
-                          {t('common.refresh')}
-                        </Button>
+                        {/* Libellés courts (7j, 30j…) : la version longue est dans le sous-titre ci-dessus */}
+                        <PeriodFilter value={period} onChange={setPeriod} compact showIcon={false} className="self-start" />
                     </div>
                     {widgetErrors.chart !== null ? (
                       <LoadErrorState message={widgetErrors.chart} onRetry={retryWidgets} className="border-none" />
-                    ) : revenusData.length < 2 ? (
+                    ) : chartData.length < 2 ? (
                       <EmptyState
                         icon={<TrendingUp size={32} />}
                         title={t('dashboard.notEnoughDataTitle')}
@@ -481,177 +518,174 @@ const GestionnaireDashboard: React.FC = () => {
                         className="border-none"
                       />
                     ) : (
-                    <div className="h-[350px] w-full min-h-[350px]">
+                    <>
+                    <div className="flex gap-4 text-sm text-base-content/80 mb-2" aria-hidden="true">
+                        <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: REVENUE_COLOR }} />{t('dashboard.revenue')}</span>
+                        <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: EXPENSE_COLOR }} />{t('dashboard.expenses')}</span>
+                    </div>
+                    <div className="h-[260px] @xl:h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={revenusData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorRevenusGest" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.45}/>
-                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.04}/>
-                                </linearGradient>
-                                <linearGradient id="colorDepensesGest" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%"  stopColor="#0891b2" stopOpacity={0.45}/>
-                                    <stop offset="95%" stopColor="#0891b2" stopOpacity={0.04}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-base-300)" />
-                            {/* Graduations : #94a3b8 fixe à 2,56:1 en clair ; couleur de texte secondaire du thème (T-054a) */}
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: AXIS_TICK_FILL, fontSize: 12 }} dy={10} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: AXIS_TICK_FILL, fontSize: 12 }} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
+                        <BarChart data={chartData} margin={{ top: 10, right: 4, left: -8, bottom: 0 }} barGap={2} barCategoryGap="20%">
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-base-300)" vertical={false} />
+                            {/* Graduations : couleur de texte secondaire du thème (T-054a) ; minTickGap évite les dates qui se chevauchent */}
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: AXIS_TICK_FILL, fontSize: 12 }} dy={8} minTickGap={12} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: AXIS_TICK_FILL, fontSize: 12 }} width={44} tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
                             <Tooltip
-                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)' }}
-                                formatter={(value: any) => [`${Number(value).toLocaleString('fr-FR')} FCFA`]}
-                                labelStyle={{ color: '#64748b', marginBottom: '0.4rem', fontWeight: 600 }}
+                                cursor={{ fill: 'color-mix(in oklab, var(--color-base-content) 6%, transparent)' }}
+                                contentStyle={{ borderRadius: '12px', border: '1px solid var(--color-base-300)', background: 'var(--color-base-100)', color: 'var(--color-base-content)', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)' }}
+                                formatter={(value, name) => [`${Number(value).toLocaleString('fr-FR')} FCFA`, name]}
+                                labelStyle={{ color: 'var(--color-base-content)', marginBottom: '0.4rem', fontWeight: 600 }}
+                                // Valeurs en couleur de texte : l'ambre des dépenses sur fond clair tombait sous 2:1
+                                itemStyle={{ color: 'var(--color-base-content)' }}
                             />
-                            <Legend
-                                iconType="circle"
-                                iconSize={9}
-                                wrapperStyle={{ paddingTop: '14px', fontSize: '12px', color: '#64748b' }}
-                                // Libellé en texte neutre (la couleur de série donnait 2,43:1 / 3,68:1), pastille colorée conservée (T-051)
-                                formatter={(value) => <span className="text-base-content/70">{value}</span>}
-                            />
-                            <Area type="monotone" dataKey="revenus"  name={t('dashboard.revenue')}  stroke="#3b82f6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRevenusGest)"  dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
-                            <Area type="monotone" dataKey="depenses" name={t('dashboard.expenses')} stroke="#0891b2" strokeWidth={2.5} fillOpacity={1} fill="url(#colorDepensesGest)" dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
-                        </AreaChart>
+                            <Bar dataKey="revenus"  name={t('dashboard.revenue')}  fill={REVENUE_COLOR} radius={[4, 4, 0, 0]} maxBarSize={22} />
+                            <Bar dataKey="depenses" name={t('dashboard.expenses')} fill={EXPENSE_COLOR} radius={[4, 4, 0, 0]} maxBarSize={22} />
+                        </BarChart>
                         </ResponsiveContainer>
                     </div>
+                    <dl className="grid grid-cols-1 @md:grid-cols-3 gap-3 mt-4 pt-4 border-t border-base-300/70">
+                        <div><dt className="text-xs text-base-content/70">{t('dashboard.revenue')}</dt><dd className="font-bold tabular-nums">{fmt(chartTotals.revenus)} FCFA</dd></div>
+                        <div><dt className="text-xs text-base-content/70">{t('dashboard.expenses')}</dt><dd className="font-bold tabular-nums">{fmt(chartTotals.depenses)} FCFA</dd></div>
+                        <div><dt className="text-xs text-base-content/70">{t('dashboard.netBalance')}</dt><dd className="font-bold tabular-nums">{chartTotals.solde > 0 ? '+' : ''}{fmt(chartTotals.solde)} FCFA</dd></div>
+                    </dl>
+                    </>
                     )}
-                </Card>
+                </div>
               )}
-            </motion.div>
+            </motion.section>
 
-            {/* Properties Grid */}
-            <motion.div variants={itemVariants}>
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold text-base-content/90 flex items-center gap-2">
-                        <Building2 size={20} className="text-primary" />
-                        {t('dashboard.featuredProperties')}
-                    </h3>
-                    <Button variant="ghost" className="text-primary btn-sm hover:bg-primary/5" onClick={() => navigate('/dashboard/biens')}>
-                        {t('common.viewAll')} <Eye size={16} className="ml-1" />
+            <motion.section variants={itemVariants} aria-labelledby="todo-title" className="bg-base-100 rounded-2xl p-5 @xl:p-6 border border-base-300/70 min-w-0">
+                <h2 id="todo-title" className="text-lg font-bold text-base-content mb-3">{t('dashboard.toDo')}</h2>
+                {isLoadingKpis ? (
+                    <div className="space-y-2">
+                        {[1, 2, 3, 4].map(i => <div key={i} className="h-14 bg-base-300 rounded-xl animate-pulse motion-reduce:animate-none!" />)}
+                    </div>
+                ) : todoItems.length === 0 ? (
+                    // Rien de connu : en cas d'échec, ne pas affirmer qu'il n'y a « rien d'urgent »
+                    <p className="text-sm text-base-content/70 py-4">{kpiError !== null ? t('dashboard.dataUnavailable') : t('dashboard.nothingUrgent')}</p>
+                ) : (
+                    <ul className="space-y-2">
+                        {todoItems.map(item => (
+                            <li key={item.key}>
+                                <button
+                                    type="button"
+                                    onClick={item.onClick}
+                                    className="w-full flex items-center gap-3 min-h-14 px-3 py-2.5 rounded-xl bg-base-200/70 dark:bg-base-200 hover:bg-base-200 dark:hover:bg-base-300 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                                >
+                                    <span className={`shrink-0 min-w-9 h-9 px-2 rounded-lg inline-flex items-center justify-center text-sm font-bold tabular-nums ${
+                                        // Fond teinté + texte du thème : texte blanc sur error/warning en clair < 4,5:1
+                                        item.tone === 'danger' ? 'bg-error/20 ring-1 ring-error/50 text-base-content'
+                                        : item.tone === 'warning' ? 'bg-warning/25 ring-1 ring-warning/60 text-base-content'
+                                        : 'bg-base-100 text-base-content'}`}>
+                                        {/* Sans nombre (montant porté par le texte) : l'icône de la ligne, décorative */}
+                                        {item.count !== '' ? item.count : <item.icon size={16} aria-hidden="true" />}
+                                    </span>
+                                    <span className="flex-1 min-w-0">
+                                        <span className="block text-sm font-semibold text-base-content">{item.label}</span>
+                                        <span className="block text-xs text-base-content/70">{item.hint}</span>
+                                    </span>
+                                    <ChevronRight size={16} className="shrink-0 text-base-content/60" aria-hidden="true" />
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </motion.section>
+      </div>
+
+      {/* Ligne 3 : biens à surveiller (2/3) + activité récente (1/3) */}
+      <div className="grid grid-cols-1 @5xl:grid-cols-3 gap-6">
+            <motion.section variants={itemVariants} aria-labelledby="watch-title" className="@5xl:col-span-2 bg-base-100 rounded-2xl p-5 @xl:p-6 border border-base-300/70 min-w-0">
+                <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0">
+                        <h2 id="watch-title" className="text-lg font-bold text-base-content">{t('dashboard.watchProperties')}</h2>
+                        <p className="text-sm text-base-content/70">{t('dashboard.watchSubtitle')}</p>
+                    </div>
+                    <Button variant="ghost" size="sm" className="text-primary gap-1 min-h-11" onClick={() => navigate('/dashboard/biens')}>
+                        {t('dashboard.allProperties')} <ChevronRight size={16} aria-hidden="true" />
                     </Button>
                 </div>
-                
+
                 {loadingWidgets ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {[1, 2].map(i => (
-                             <div key={i} className="bg-base-300 rounded-2xl h-32 animate-pulse motion-reduce:animate-none!"></div>
-                        ))}
+                    <div className="space-y-2">
+                        {[1, 2, 3].map(i => <div key={i} className="h-16 bg-base-300 rounded-xl animate-pulse motion-reduce:animate-none!" />)}
                     </div>
                 ) : widgetErrors.properties !== null ? (
-                    <LoadErrorState message={widgetErrors.properties} onRetry={retryWidgets} />
-                ) : featuredProperties.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {featuredProperties.map(property => (
-                            <div key={property.id} className="bg-base-100 rounded-2xl p-4 shadow-lg border border-base-200 flex gap-4 hover:shadow-xl transition-all cursor-pointer group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => navigate(`/dashboard/biens?id=${property.id}`)}
-                                // Atteignable au clavier, Entrée/Espace = clic (T-049)
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(e) => {
-                                    if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
-                                    e.preventDefault();
-                                    navigate(`/dashboard/biens?id=${property.id}`);
-                                }}
-                            >
-                                <div className="w-24 h-24 rounded-xl bg-base-300 overflow-hidden relative shrink-0">
-                                    {property.image ? (
-                                        <img src={property.image} alt={property.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-base-300 text-base-content/50">
-                                            <Building2 size={32} />
-                                        </div>
-                                    )}
-                                     <div
-                                       className={`absolute top-1 right-1 w-3 h-3 border-2 border-white rounded-full ${property.occupancy >= 80 ? 'bg-green-500' : property.occupancy >= 50 ? 'bg-orange-500' : 'bg-red-500'}`}
-                                       role="img"
-                                       aria-label={`Taux d'occupation : ${property.occupancy}%`}
-                                     ></div>
-                                </div>
-                                <div className="flex-1 min-w-0 py-1">
-                                    <h4 className="font-bold text-base-content truncate">{property.name}</h4>
-                                    <p className="text-sm text-base-content/70 mb-2 truncate">{property.location}</p>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs font-medium bg-teal-50 text-teal-700 px-2 py-1 rounded-lg">{property.units} {t('dashboard.lots')}</span>
-                                        <span className="text-sm font-bold text-base-content">{property.occupancy}% {t('dashboard.occ')}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="p-8 text-center text-base-content/70 bg-base-200 rounded-xl">
-                        {t('dashboard.noFeaturedProperties')}
-                    </div>
-                )}
-            </motion.div>
-        </div>
-
-        {/* Right Column (Activity & Actions) - 1/3 width */}
-        <div className="space-y-8">
-            
-            {/* Quick Actions */}
-            <motion.div variants={itemVariants}>
-                <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200">
-                    <h3 className="font-bold text-base-content/90 mb-4">{t('dashboard.quickActions')}</h3>
-                    <QuickActions userType="gestionnaire" />
-                </div>
-            </motion.div>
-
-            {/* Occupation Pie Chart (Compact) */}
-            <motion.div variants={itemVariants}>
-                 <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200 relative overflow-hidden">
-                    <h3 className="font-bold text-base-content/90 mb-2">{t('dashboard.occupancy')}</h3>
-                    <div className="h-[200px] flex items-center justify-center relative z-10">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={occupationData}
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
-                                    dataKey="value"
+                    <LoadErrorState message={widgetErrors.properties} onRetry={retryWidgets} className="border-none" />
+                ) : watchedProperties.length > 0 ? (
+                    // Liste plutôt que tableau : pas de défilement horizontal sur mobile, noms jamais tronqués
+                    <ul className="divide-y divide-base-300/70">
+                        {watchedProperties.map(property => {
+                            const barClass = property.occupancy >= 80 ? 'bg-success' : property.occupancy >= 50 ? 'bg-warning' : 'bg-error';
+                            return (
+                            <li key={property.id}>
+                                <button
+                                    type="button"
+                                    onClick={() => navigate(`/dashboard/biens?id=${property.id}`)}
+                                    className="w-full grid grid-cols-[48px_minmax(0,1fr)] @lg:grid-cols-[48px_minmax(0,1fr)_minmax(140px,30%)] items-center gap-x-3 gap-y-2 py-3 text-left rounded-lg hover:bg-base-200/60 dark:hover:bg-base-200 px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                                 >
-                                    {occupationData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        {/* Center Text */}
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            {/* stats (UserContext) encore null = pas encore reçues : pas de faux « 0% » (T-042) */}
-                            {stats
-                              ? <span className="text-3xl font-extrabold text-base-content/90">{stats.tauxOccupation || 0}%</span>
-                              : <span role="status" className="block h-9 w-16 rounded-lg bg-base-300 animate-pulse motion-reduce:animate-none!" aria-label="Chargement" />}
-                            <span className="text-xs text-base-content/70 font-medium uppercase tracking-wide">{t('dashboard.occupied')}</span>
-                        </div>
-                    </div>
-                </div>
-            </motion.div>
+                                    <span className="w-12 h-12 rounded-lg bg-base-300 overflow-hidden row-span-2 @lg:row-span-1 shrink-0">
+                                        {property.image ? (
+                                            <img src={property.image} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="w-full h-full flex items-center justify-center text-base-content/50"><Building2 size={20} aria-hidden="true" /></span>
+                                        )}
+                                    </span>
+                                    <span className="min-w-0">
+                                        <span className="block font-semibold text-base-content break-words">{property.name}</span>
+                                        <span className="block text-xs text-base-content/70 break-words">
+                                            {cleanLocation(property.location)}{cleanLocation(property.location) ? ' · ' : ''}{property.units} {t('dashboard.lots').toLowerCase()}
+                                        </span>
+                                    </span>
+                                    <span className="flex items-center gap-2.5 col-start-2 @lg:col-start-3">
+                                        {/* Texte masqué plutôt qu'aria-label : interdit sur un span sans rôle (axe aria-prohibited-attr, T-054a) */}
+                                        <span className="sr-only">{t('dashboard.occupancyOf', { rate: property.occupancy })}</span>
+                                        <span className="flex-1" aria-hidden="true"><ProgressBar value={property.occupancy} className={barClass} /></span>
+                                        <span className="w-14 text-right text-sm font-semibold tabular-nums whitespace-nowrap text-base-content" aria-hidden="true">{property.occupancy} %</span>
+                                    </span>
+                                </button>
+                            </li>
+                            );
+                        })}
+                    </ul>
+                ) : (
+                    <p className="p-6 text-center text-base-content/70 bg-base-200 rounded-xl">{t('dashboard.noWatchProperties')}</p>
+                )}
+            </motion.section>
 
-            {/* Recent Activity */}
-            <motion.div variants={itemVariants}>
-                <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-200">
-                    {/* Bouton ⋮ retiré : sans nom ni action (T-054b) ; min-h-[34px] = sa hauteur, titre et contenu ne bougent pas */}
-                    <div className="flex justify-between items-center min-h-[34px] mb-6">
-                        <h3 className="font-bold text-base-content/90">{t('dashboard.activityFeed')}</h3>
-                    </div>
-                    {loadingWidgets ? (
-                         <div className="space-y-4">
-                             {[1, 2, 3].map(i => <div key={i} className="h-16 bg-base-300 rounded-xl animate-pulse motion-reduce:animate-none!"></div>)}
-                         </div>
-                    ) : widgetErrors.activity !== null ? (
-                        <LoadErrorState message={widgetErrors.activity} onRetry={retryWidgets} className="border-none" />
-                    ) : activities.length > 0 ? (
-                        <ActivityFeed activities={activities} />
-                    ) : (
-                        <p className="text-center text-base-content/70 py-4">{t('dashboard.noRecentActivity')}</p>
-                    )}
-                </div>
-            </motion.div>
-            
-        </div>
+            <motion.section variants={itemVariants} aria-labelledby="activity-title" className="bg-base-100 rounded-2xl p-5 @xl:p-6 border border-base-300/70 min-w-0">
+                <h2 id="activity-title" className="text-lg font-bold text-base-content mb-3">{t('dashboard.recentActivity')}</h2>
+                {loadingWidgets ? (
+                     <div className="space-y-3">
+                         {[1, 2, 3].map(i => <div key={i} className="h-14 bg-base-300 rounded-xl animate-pulse motion-reduce:animate-none!" />)}
+                     </div>
+                ) : widgetErrors.activity !== null ? (
+                    <LoadErrorState message={widgetErrors.activity} onRetry={retryWidgets} className="border-none" />
+                ) : activities.length > 0 ? (
+                    // Rendu local (et non ActivityFeed, partagé avec d'autres tableaux de bord) : textes renvoyés à la ligne au lieu d'être tronqués
+                    <ul className="divide-y divide-base-300/70">
+                        {activities.slice(0, 5).map(activity => {
+                            const { icon: Icon, cls } = activityStyle(activity.type);
+                            return (
+                                <li key={`${activity.type}-${activity.id}`} className="flex gap-3 py-3">
+                                    <span className={`shrink-0 w-8 h-8 rounded-full inline-flex items-center justify-center ${cls}`} aria-hidden="true">
+                                        <Icon size={14} strokeWidth={2.5} />
+                                    </span>
+                                    <span className="flex-1 min-w-0">
+                                        <span className="flex flex-wrap items-baseline justify-between gap-x-2">
+                                            <span className="text-sm font-semibold text-base-content break-words">{activity.title}</span>
+                                            <span className="text-xs text-base-content/70 whitespace-nowrap tabular-nums">{activity.time}</span>
+                                        </span>
+                                        <span className="block text-sm text-base-content/80 break-words">{activity.description}</span>
+                                    </span>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                ) : (
+                    <p className="text-center text-base-content/70 py-4">{t('dashboard.noRecentActivity')}</p>
+                )}
+            </motion.section>
       </div>
     </motion.div>
   );

@@ -156,7 +156,9 @@ router.get('/featured-properties', tenantGuard, async (req: AuthenticatedRequest
         if (!isAdmin && validOwnerIds.length === 0) {
             return res.json({ properties: [] });
         }
-        const properties = await DashboardService.getFeaturedProperties(dbClient, validOwnerIds, isAdmin);
+        // ?sort=attention : moins occupés d'abord (Bureau gestionnaire) ; toute autre valeur = tri historique
+        const sort = req.query.sort === 'attention' ? 'attention' : 'featured';
+        const properties = await DashboardService.getFeaturedProperties(dbClient, validOwnerIds, isAdmin, sort);
         res.json({ properties });
     } catch (error) {
         console.error('Error fetching featured properties:', error);
