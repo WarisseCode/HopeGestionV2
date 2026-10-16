@@ -998,3 +998,61 @@ Mis à jour automatiquement après chaque tâche.
   - Corrigé pendant le contrôle : boutons de ligne qui passaient à la ligne à 1440 px, et boutons WhatsApp/Appeler/Email trop serrés dans la fiche (texte seul, comme la maquette).
   - `tsc -b` propre. Lint de `Locataires.tsx` : 11 erreurs → 6 (les `any` qui existaient déjà) ; `Biens.tsx`, `RowMenu.tsx` et `useIsDesktop.ts` sans erreur.
 - **Remplace / modifie** : aucune (mise en œuvre de la maquette T-061 ; T-060 inchangée fonctionnellement, son menu et son hook sont mutualisés)
+
+### T-063 : Audit visuel de la page Propriétaires et maquette de refonte
+- **Date** : 2026-10-16
+- **Statut** : Terminée
+- **Type** : Documentation
+- **Description** : Analyse de `/dashboard/proprietaires` à partir d'une capture et du code (`Proprietaires.tsx`, `CompteProprietaires.tsx`, route `GET /api/compte/proprietaires`). Une maquette de refonte interactive, construite sur le modèle de la page Locataires (T-061/T-062), a été publiée sur un canevas Design privé, hors dépôt. Aucun code de l'application n'a été modifié.
+- **Fichiers touchés** : `docs/JOURNAL_PROJET.md` (entrée T-063)
+- **Décisions & justifications** :
+  - **Défauts relevés** :
+    - la carte « Total biens » affiche 0 : elle additionne `total_properties`, un champ que la route `GET /compte/proprietaires` ne renvoie pas (à confirmer côté données) ;
+    - colonne Type identique sur toutes les lignes (« Particulier ») ;
+    - identifiant technique « ID: #0013 » mis en avant ;
+    - adresse réduite à la ville ou à du texte libre ;
+    - aucun nombre de biens par propriétaire ;
+    - pas d'appel ni de WhatsApp direct ;
+    - filtres et « Colonnes » cachés dans des menus ;
+    - « Désactiver » et « Supprimer » appellent le même `deleteProprietaire` alors que leurs messages promettent deux actions différentes ;
+    - le menu « ⋮ » est un `dropdown` daisyUI fait de `<a>` sans `href` ;
+    - « Chargement des propriétaires... » en texte brut ;
+    - données de test visibles (« DEZ sddzs », « wdcds »).
+  - **Maquette** :
+    - sous-titre chiffré à la place des 3 cartes de stats ;
+    - barre unique (recherche, tri) et filtres rapides par type et par mode de gestion ;
+    - une ligne par propriétaire (type · ville, téléphone et email, nombre de biens et de lots, pastille Directe/Déléguée, WhatsApp/Appeler/« ⋯ ») ;
+    - fiche rapide (contact, adresse, Mobile Money, ses biens avec leur occupation, « Ajouter un bien », « Modifier la fiche »).
+- **Problèmes rencontrés** : Le nombre de biens de la plupart des propriétaires, le compte particuliers/sociétés et le Mobile Money ne figurent pas sur la capture : ils restent entre crochets. Les biens d'AHOUANSOU et d'OTCHADE viennent de la capture de la page Parc immobilier.
+- **Remplace / modifie** : aucune
+
+### T-064 : Refonte de la page Propriétaires (application de la maquette T-063)
+- **Date** : 2026-10-16
+- **Statut** : Terminée
+- **Type** : Fonctionnalité
+- **Description** : `/dashboard/proprietaires` reprend la maquette T-063 et la logique de Locataires (T-062) : sous-titre chiffré à la place des 3 cartes de stats, Inviter et Nouveau propriétaire, barre unique (recherche, tri), filtres rapides par type et par mode de gestion (à la place des menus « Filtres » et « Colonnes »), une ligne par propriétaire, fiche rapide avec ses biens, menu « ⋯ » (Modifier, Supprimer). L'API renvoie désormais le nombre d'immeubles et de lots par propriétaire.
+- **Fichiers touchés** : `frontend/src/components/CompteProprietaires.tsx`, `backend/routes/compteRoutes.ts`, `docs/JOURNAL_PROJET.md` (entrée T-064)
+- **Décisions & justifications** :
+  - **API (accord de l'utilisateur)** :
+    - `GET /compte/proprietaires` renvoie `total_properties` (immeubles hors corbeille) et `total_lots` (lots hors corbeille d'immeubles hors corbeille), par sous-requêtes `COUNT(*)::int` sur les colonnes déjà utilisées par `GET /biens/immeubles` ;
+    - le front lisait ces champs sans qu'ils soient jamais renvoyés, d'où « Total biens : 0 » ;
+    - `created_at` n'est pas ajouté, la colonne n'étant pas confirmée sur `owners` : le tri « Plus récents » utilise l'id ;
+    - requête vérifiée sur un Postgres local jetable (immeuble à la corbeille, lot supprimé, propriétaire sans bien).
+  - **Supprimer seul (décision de l'utilisateur)** : « Désactiver » et « Supprimer » appelaient le même `DELETE /compte/proprietaires/:id`, qui désactive (`is_active = FALSE`). Il ne reste que « Supprimer », avec un message conforme à l'API : retiré de la liste, plus d'accès, biens conservés. L'ancien message annonçant que les biens seraient dissociés était inexact.
+  - **Existant conservé** :
+    - formulaire de création et de modification (`ProprietaireForm`, avec rattachement de documents via le retour de `onSave`) ;
+    - limite d'agences selon le plan ;
+    - invitation (`InvitationLinkModal type="owner"`) et `ConfirmModal` ;
+    - recherche, à laquelle s'ajoutent la ville et l'adresse ;
+    - filtres type et mode, désormais en filtres rapides avec compteurs.
+
+    Le menu « Colonnes » est retiré : la liste compacte n'a plus de colonnes à masquer.
+  - **Fiche rapide** : contact, adresse, Mobile Money, WhatsApp/Appeler/Email. « Ses biens » vient de `GET /biens/immeubles` filtré sur `owner_id` (mêmes données et même occupation que Parc immobilier). Elle propose aussi « Ajouter un bien » (`biens?action=nouveau`), « Modifier la fiche » et « Voir ses biens ». Ouverture comme T-060/T-062 (premier de la page à partir de 1024 px, rien sur mobile, défilement au clic).
+  - **Mise en page** : nombre de biens et pastille Directe/Déléguée empilés dans une même cellule. Avec le menu latéral, 5 colonnes ne tenaient pas sur une rangée à 1440 px.
+  - **Divers** : formulaire précédé d'un seul lien « Retour aux propriétaires », car le formulaire a déjà son titre. Chargement en squelette au lieu du texte brut. Avatars en teintes foncées (texte blanc ≥ 4,5:1). Libellés en français dans le code, comme le composant d'origine (pas d'i18n).
+- **Problèmes rencontrés** :
+  - Contrôle Playwright avec API simulée (6 propriétaires dont une société, 4 immeubles) : aucun débordement horizontal à 360, 768, 1024 et 1440 px (clair et sombre), aucune erreur JS.
+  - Parcours vérifiés : sous-titre chiffré ; ligne « 2 biens · 22 lots » ; fiche avec les biens et leur occupation, Mobile Money, cas sans bien ; « ⋯ » (Modifier ouvre le formulaire puis retour à la liste ; Supprimer, confirmation, appel `DELETE`, ligne retirée) ; filtres Sociétés et Déléguée ; recherche par ville ; tri par biens ; WhatsApp ; WhatsApp désactivé sans téléphone ; Ajouter un bien ; Voir ses biens ; Modifier la fiche ; fermeture de la fiche ; Nouveau propriétaire ; invitation ; fiche amenée à l'écran sur mobile.
+  - Corrigé pendant le contrôle : titre en double au-dessus du formulaire, actions de ligne renvoyées sous la ligne à 1440 px, emails coupés au milieu.
+  - `tsc -b` front et `tsc --noEmit` back propres. Lint de `CompteProprietaires.tsx` : 9 erreurs → 3 (les `any` qui existaient déjà).
+- **Remplace / modifie** : aucune (mise en œuvre de la maquette T-063)

@@ -123,7 +123,13 @@ router.get('/proprietaires', async (req: AuthenticatedRequest, res: Response) =>
                    photo, photo_url, phone_secondary,
                    management_mode as "modeGestion",
                    mobile_money_number as "mobileMoney", 
-                   id_number as "rccmNumber"
+                   id_number as "rccmNumber",
+                   -- Patrimoine (T-064) : immeubles et lots hors corbeille, mêmes règles que GET /biens/immeubles.
+                   -- Le front lisait déjà total_properties / total_lots, jamais renvoyés (« Total biens : 0 »).
+                   (SELECT COUNT(*)::int FROM buildings b
+                     WHERE b.owner_id = owners.id AND b.deleted_at IS NULL) as total_properties,
+                   (SELECT COUNT(*)::int FROM lots l JOIN buildings b ON l.building_id = b.id
+                     WHERE b.owner_id = owners.id AND b.deleted_at IS NULL AND l.deleted_at IS NULL) as total_lots
             FROM owners
             WHERE is_active = TRUE
         `;
