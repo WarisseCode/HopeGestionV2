@@ -217,7 +217,6 @@
     "noRecentActivity": "Aucune activité récente",
     "revenue": "Revenus",
     "expenses": "Dépenses",
-    "greeting": "Bonjour {{name}}",
     "alertsPending_one": "{{count}} alerte à consulter",
     "alertsPending_other": "{{count}} alertes à consulter",
     "nothingUrgent": "Rien d'urgent pour le moment",
@@ -235,15 +234,6 @@
     "portfolio": "Patrimoine géré",
     "buildingsUnit": "biens",
     "portfolioDetail": "{{lots}} lots · {{leases}} contrats actifs",
-    "toDo": "À traiter",
-    "todoAlerts": "Alertes",
-    "todoAlertsHint": "Rappels et signalements",
-    "todoRecovery": "Loyers à recouvrer",
-    "todoRecoveryHint": "Baux actifs sans paiement ce mois",
-    "todoComplaints": "Plaintes ouvertes",
-    "todoComplaintsHint": "Tickets en attente de traitement",
-    "todoReservations": "Réservations en attente",
-    "todoReservationsHint": "Lots réservés à confirmer",
     "financialFlows": "Flux financiers",
     "netBalance": "Solde net",
     "watchProperties": "Biens à surveiller",
@@ -255,7 +245,13 @@
     "actionNewProperty": "Nouveau bien",
     "actionNewTenant": "Nouveau locataire",
     "actionNewLease": "Nouveau contrat",
-    "actionRecordPayment": "Enregistrer un paiement"
+    "actionRecordPayment": "Enregistrer un paiement",
+    "subtitleLabel": "Dashboard",
+    "quickActionsTitle": "Actions rapides",
+    "actionRecordPaymentHint": "Saisir un loyer reçu",
+    "actionNewPropertyHint": "Ajouter un immeuble et ses lots",
+    "actionNewTenantHint": "Créer une fiche locataire",
+    "actionNewLeaseHint": "Établir un bail"
   },
   "nav": {
     "groups": {

@@ -217,7 +217,6 @@
     "noRecentActivity": "No recent activity",
     "revenue": "Revenue",
     "expenses": "Expenses",
-    "greeting": "Hello {{name}}",
     "alertsPending_one": "{{count}} alert to review",
     "alertsPending_other": "{{count}} alerts to review",
     "nothingUrgent": "Nothing urgent right now",
@@ -235,15 +234,6 @@
     "portfolio": "Managed portfolio",
     "buildingsUnit": "properties",
     "portfolioDetail": "{{lots}} units · {{leases}} active leases",
-    "toDo": "To do",
-    "todoAlerts": "Alerts",
-    "todoAlertsHint": "Reminders and reports",
-    "todoRecovery": "Rent to collect",
-    "todoRecoveryHint": "Active leases with no payment this month",
-    "todoComplaints": "Open complaints",
-    "todoComplaintsHint": "Tickets awaiting action",
-    "todoReservations": "Pending reservations",
-    "todoReservationsHint": "Reserved units to confirm",
     "financialFlows": "Cash flow",
     "netBalance": "Net balance",
     "watchProperties": "Properties to watch",
@@ -255,7 +245,13 @@
     "actionNewProperty": "New property",
     "actionNewTenant": "New tenant",
     "actionNewLease": "New lease",
-    "actionRecordPayment": "Record a payment"
+    "actionRecordPayment": "Record a payment",
+    "subtitleLabel": "Dashboard",
+    "quickActionsTitle": "Quick actions",
+    "actionRecordPaymentHint": "Record a rent payment",
+    "actionNewPropertyHint": "Add a building and its units",
+    "actionNewTenantHint": "Create a tenant record",
+    "actionNewLeaseHint": "Draw up a lease"
   },
   "nav": {
     "groups": {

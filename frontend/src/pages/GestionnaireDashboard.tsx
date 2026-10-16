@@ -1,6 +1,6 @@
 // frontend/src/pages/GestionnaireDashboard.tsx
 // Refonte T-056 (maquette T-055) : un seul niveau de chiffres clés (plus de bandeau qui répétait
-// les KPI), un bloc « À traiter », des flux revenus/dépenses en couleurs distinctes, des biens triés
+// les KPI), une carte « Actions rapides » (T-057, à la place de « À traiter »), des flux revenus/dépenses en couleurs distinctes, des biens triés
 // par besoin d'attention, et une mise en page pilotée par la largeur réelle du contenu (container queries).
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -14,8 +14,6 @@ import {
   TrendingUp,
   Bell,
   AlertTriangle,
-  MessageCircle,
-  Calendar,
   CheckCircle2,
   ChevronRight,
   Clock,
@@ -145,7 +143,7 @@ const ProgressBar: React.FC<{ value: number; className: string }> = ({ value, cl
 );
 
 const GestionnaireDashboard: React.FC = () => {
-  const { user, stats, loading: userLoading } = useUser();
+  const { stats, loading: userLoading } = useUser();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -335,33 +333,12 @@ const GestionnaireDashboard: React.FC = () => {
       return { rate, remaining: impayes };
   }, [summary]);
 
-  const todoItems = useMemo(() => {
-      const items: { key: string; icon: React.ElementType; count: string; label: string; hint: string; tone: 'danger' | 'warning' | 'ok'; onClick: () => void }[] = [];
-      if (alertsCount !== null) {
-          items.push({ key: 'alerts', icon: Bell, count: fmt(alertsCount), label: t('dashboard.todoAlerts'), hint: t('dashboard.todoAlertsHint'),
-              tone: alertsCount > 0 ? 'danger' : 'ok', onClick: () => navigate('/dashboard/alertes') });
-      }
-      // Lignes issues des KPI seulement quand ils sont chargés (en erreur, les alertes restent visibles)
-      if (summary && kpis.length > 0) items.push(
-          { key: 'recovery', icon: AlertTriangle, count: summary.montantARecouvrer > 0 ? '' : '0',
-            label: t('dashboard.todoRecovery'),
-            // Montant dans le texte : en pastille, « 410 000 FCFA » écrasait le libellé
-            hint: summary.montantARecouvrer > 0 ? `${fmt(summary.montantARecouvrer)} FCFA · ${t('dashboard.todoRecoveryHint')}` : t('dashboard.todoRecoveryHint'),
-            tone: summary.montantARecouvrer > 0 ? 'warning' : 'ok', onClick: () => goToKpi('recouvrement', '/finances') },
-          { key: 'complaints', icon: MessageCircle, count: fmt(summary.plaintesOuvertes), label: t('dashboard.todoComplaints'), hint: t('dashboard.todoComplaintsHint'),
-            tone: summary.plaintesOuvertes > 0 ? 'warning' : 'ok', onClick: () => goToKpi('plaintes_ouvertes', '/alertes') },
-          { key: 'reservations', icon: Calendar, count: fmt(summary.reservationsEnAttente), label: t('dashboard.todoReservations'), hint: t('dashboard.todoReservationsHint'),
-            tone: summary.reservationsEnAttente > 0 ? 'warning' : 'ok', onClick: () => goToKpi('reservations', '/biens') },
-      );
-      return items;
-      // goToKpi ne dépend que de kpis et navigate
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [summary, alertsCount, kpis, t]);
-
+  // Actions rapides (T-057) : déplacées de l'en-tête vers la carte qui remplace « À traiter »
   const quickActions = [
-      { icon: Plus, label: t('dashboard.actionNewProperty'), path: withCreateAction('/dashboard/biens') },
-      { icon: Users, label: t('dashboard.actionNewTenant'), path: withCreateAction('/dashboard/locataires') },
-      { icon: FileText, label: t('dashboard.actionNewLease'), path: withCreateAction('/dashboard/contrats') },
+      { key: 'payment', icon: Wallet, label: t('dashboard.actionRecordPayment'), hint: t('dashboard.actionRecordPaymentHint'), path: withCreateAction('/dashboard/finances'), primary: true },
+      { key: 'property', icon: Plus, label: t('dashboard.actionNewProperty'), hint: t('dashboard.actionNewPropertyHint'), path: withCreateAction('/dashboard/biens'), primary: false },
+      { key: 'tenant', icon: Users, label: t('dashboard.actionNewTenant'), hint: t('dashboard.actionNewTenantHint'), path: withCreateAction('/dashboard/locataires'), primary: false },
+      { key: 'lease', icon: FileText, label: t('dashboard.actionNewLease'), hint: t('dashboard.actionNewLeaseHint'), path: withCreateAction('/dashboard/contrats'), primary: false },
   ];
 
   // Show full skeleton while user context loads
@@ -381,37 +358,38 @@ const GestionnaireDashboard: React.FC = () => {
       initial="hidden"
       animate="visible"
     >
-      {/* En-tête : titre, salutation + urgences, actions principales (remplacent la carte « Actions rapides ») */}
-      <motion.div variants={itemVariants} className="flex flex-col @3xl:flex-row @3xl:items-end justify-between gap-4">
+      {/* En-tête : titre, « Dashboard · date », alertes mises en avant ; les actions sont dans la carte « Actions rapides » */}
+      <motion.div variants={itemVariants} className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           {/* Même clé que le menu et le fil d'Ariane (« Bureau » / « Dashboard ») (T-054b) */}
           <h1 className="text-3xl font-extrabold text-base-content tracking-tight">
             {t('nav.bureau')}
           </h1>
-          <p className="text-base-content/70 font-medium mt-1">
-            {t('dashboard.greeting', { name: user?.nom || '' })}
-            <span> · {today}</span>
-            {alertsCount !== null && (
-              <> · {alertsCount > 0 ? t('dashboard.alertsPending', { count: alertsCount }) : t('dashboard.nothingUrgent')}</>
-            )}
-          </p>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-2 mt-1.5 text-base-content/70 font-medium">
+            <span>{t('dashboard.subtitleLabel')} · {today}</span>
+            {alertsCount !== null && (alertsCount > 0 ? (
+              // Pastille cliquable : l'information urgente de l'en-tête doit se voir et mener aux alertes
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard/alertes')}
+                className="inline-flex items-center gap-1.5 min-h-9 px-3 rounded-full bg-error/15 ring-1 ring-error/50 text-sm font-semibold text-base-content hover:bg-error/25 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <span className="relative flex w-2 h-2" aria-hidden="true">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-error opacity-60 animate-ping motion-reduce:hidden" />
+                  <span className="relative inline-flex w-2 h-2 rounded-full bg-error" />
+                </span>
+                <Bell size={14} className="text-error" aria-hidden="true" />
+                {t('dashboard.alertsPending', { count: alertsCount })}
+              </button>
+            ) : (
+              <span>· {t('dashboard.nothingUrgent')}</span>
+            ))}
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-stretch gap-2">
-            {/* Action principale en premier, pleine largeur sur mobile ; les autres s'enchaînent sans couper leur libellé */}
-            <Button variant="primary" size="sm" className="gap-1.5 min-h-11 w-full @lg:w-auto whitespace-nowrap" onClick={() => navigate(withCreateAction('/dashboard/finances'))}>
-                <Wallet size={16} aria-hidden="true" /> {t('dashboard.actionRecordPayment')}
-            </Button>
-            {/* Boutons natifs : le variant ghost de Button impose bordure et fond transparents */}
-            {quickActions.map(a => (
-                <button key={a.path} type="button" onClick={() => navigate(a.path)} className={OUTLINE_BTN}>
-                    <a.icon size={16} aria-hidden="true" /> {a.label}
-                </button>
-            ))}
-            <button type="button" onClick={refreshAll} aria-label={t('common.refresh')} title={t('common.refresh')} className={`${OUTLINE_BTN} min-w-11 px-0`}>
-                <RefreshCw size={16} aria-hidden="true" />
-            </button>
-        </div>
+        <button type="button" onClick={refreshAll} aria-label={t('common.refresh')} title={t('common.refresh')} className={`${OUTLINE_BTN} min-w-11 px-0 shrink-0`}>
+            <RefreshCw size={16} aria-hidden="true" />
+        </button>
       </motion.div>
 
       {/* KPI : 4 mesures distinctes, chacune avec son contexte (le bandeau qui les répétait est retiré) */}
@@ -554,42 +532,31 @@ const GestionnaireDashboard: React.FC = () => {
               )}
             </motion.section>
 
-            <motion.section variants={itemVariants} aria-labelledby="todo-title" className="bg-base-100 rounded-2xl p-5 @xl:p-6 border border-base-300/70 min-w-0">
-                <h2 id="todo-title" className="text-lg font-bold text-base-content mb-3">{t('dashboard.toDo')}</h2>
-                {isLoadingKpis ? (
-                    <div className="space-y-2">
-                        {[1, 2, 3, 4].map(i => <div key={i} className="h-14 bg-base-300 rounded-xl animate-pulse motion-reduce:animate-none!" />)}
-                    </div>
-                ) : todoItems.length === 0 ? (
-                    // Rien de connu : en cas d'échec, ne pas affirmer qu'il n'y a « rien d'urgent »
-                    <p className="text-sm text-base-content/70 py-4">{kpiError !== null ? t('dashboard.dataUnavailable') : t('dashboard.nothingUrgent')}</p>
-                ) : (
-                    <ul className="space-y-2">
-                        {todoItems.map(item => (
-                            <li key={item.key}>
-                                <button
-                                    type="button"
-                                    onClick={item.onClick}
-                                    className="w-full flex items-center gap-3 min-h-14 px-3 py-2.5 rounded-xl bg-base-200/70 dark:bg-base-200 hover:bg-base-200 dark:hover:bg-base-300 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                                >
-                                    <span className={`shrink-0 min-w-9 h-9 px-2 rounded-lg inline-flex items-center justify-center text-sm font-bold tabular-nums ${
-                                        // Fond teinté + texte du thème : texte blanc sur error/warning en clair < 4,5:1
-                                        item.tone === 'danger' ? 'bg-error/20 ring-1 ring-error/50 text-base-content'
-                                        : item.tone === 'warning' ? 'bg-warning/25 ring-1 ring-warning/60 text-base-content'
-                                        : 'bg-base-100 text-base-content'}`}>
-                                        {/* Sans nombre (montant porté par le texte) : l'icône de la ligne, décorative */}
-                                        {item.count !== '' ? item.count : <item.icon size={16} aria-hidden="true" />}
-                                    </span>
-                                    <span className="flex-1 min-w-0">
-                                        <span className="block text-sm font-semibold text-base-content">{item.label}</span>
-                                        <span className="block text-xs text-base-content/70">{item.hint}</span>
-                                    </span>
-                                    <ChevronRight size={16} className="shrink-0 text-base-content/60" aria-hidden="true" />
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                )}
+            <motion.section variants={itemVariants} aria-labelledby="actions-title" className="bg-base-100 rounded-2xl p-5 @xl:p-6 border border-base-300/70 min-w-0 flex flex-col">
+                <h2 id="actions-title" className="text-lg font-bold text-base-content mb-3">{t('dashboard.quickActionsTitle')}</h2>
+                {/* 2×2 dans la colonne de droite ; sur une ligne de 4 quand la carte prend toute la largeur (contenu moyen) */}
+                <ul className="grid grid-cols-1 @md:grid-cols-2 @3xl:grid-cols-4 @5xl:grid-cols-2 gap-3 flex-1 auto-rows-fr">
+                    {quickActions.map(a => (
+                        <li key={a.key} className="min-w-0">
+                            <button
+                                type="button"
+                                onClick={() => navigate(a.path)}
+                                className={`w-full h-full min-h-24 flex flex-col items-start justify-between gap-3 p-4 rounded-xl text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                                    a.primary
+                                        ? 'bg-primary text-primary-content hover:bg-primary/90'
+                                        : 'bg-base-200/70 dark:bg-base-200 text-base-content hover:bg-base-200 dark:hover:bg-base-300'}`}
+                            >
+                                <span className={`w-10 h-10 rounded-lg inline-flex items-center justify-center ${a.primary ? 'bg-primary-content/15' : 'bg-base-100'}`} aria-hidden="true">
+                                    <a.icon size={20} />
+                                </span>
+                                <span className="min-w-0">
+                                    <span className="block text-sm font-bold break-words">{a.label}</span>
+                                    <span className={`block text-xs mt-0.5 break-words ${a.primary ? 'text-primary-content/90' : 'text-base-content/70'}`}>{a.hint}</span>
+                                </span>
+                            </button>
+                        </li>
+                    ))}
+                </ul>
             </motion.section>
       </div>
 
