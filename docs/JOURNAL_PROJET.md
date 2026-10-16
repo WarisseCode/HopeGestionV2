@@ -897,3 +897,13 @@ Mis à jour automatiquement après chaque tâche.
 - **Décisions & justifications** : une seule clé pour les quatre emplacements, ce qui garde la cohérence voulue par T-054b. Le changement vaut pour tous les rôles (gestionnaire, propriétaire, locataire), puisque leurs menus partagent la clé. La clé `dashboard.subtitleLabel` est retirée, car elle n'est plus utilisée. Les valeurs « Bureau » de type de lot (formulaires de lots, filtres) n'ont rien à voir avec ce libellé et ne changent pas.
 - **Problèmes rencontrés** : contrôle Playwright à 360 et 1440 px : menu, fil d'Ariane et H1 affichent « Dashboard », aucun débordement. `tsc -b` propre, lint de la page sans erreur.
 - **Remplace / modifie** : T-057 (sous-titre « Dashboard · date »)
+
+### T-059 : Audit visuel de la page Parc immobilier et maquette de refonte
+- **Date** : 2026-10-16
+- **Statut** : Terminée
+- **Type** : Documentation
+- **Description** : Analyse de la page `/dashboard/biens` à partir de 3 captures (immeubles en grille et en liste, lots en grille) et du code (`Biens.tsx`, `useBiens.ts`). Une maquette de refonte interactive a été publiée sur un canevas Design privé, hors dépôt. Aucun code de l'application n'a été modifié.
+- **Fichiers touchés** : `docs/JOURNAL_PROJET.md` (entrée T-059)
+- **Décisions & justifications** : Défauts principaux relevés : recherche en double (en-tête global et champ de page), bouton principal dont le sens change selon l'onglet (« Nouvel immeuble » / « Nouveau lot »), filtres cachés derrière un bouton, cartes à grandes photos qui n'affichent que 3 immeubles par écran, aucune vue d'ensemble libres/loués, lots séparés de leur immeuble, actions modifier/supprimer en icônes de 14 px côte à côte (suppression trop exposée), données de test visibles (« eerr », « nknn4 »). La maquette propose une liste compacte par défaut, une barre unique (onglets, recherche, ville, tri), des filtres rapides par occupation toujours visibles, un panneau latéral immeuble + ses lots, l'action « Attribuer » sur les lots libres, et un menu « ⋯ » pour modifier/supprimer.
+- **Problèmes rencontrés** : Les comptes par statut, les locataires et certains loyers ne figurent pas sur les captures : ils restent entre crochets dans la maquette.
+- **Remplace / modifie** : aucune
