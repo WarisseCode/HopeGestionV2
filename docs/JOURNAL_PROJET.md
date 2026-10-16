@@ -998,3 +998,30 @@ Mis à jour automatiquement après chaque tâche.
   - Corrigé pendant le contrôle : boutons de ligne qui passaient à la ligne à 1440 px, et boutons WhatsApp/Appeler/Email trop serrés dans la fiche (texte seul, comme la maquette).
   - `tsc -b` propre. Lint de `Locataires.tsx` : 11 erreurs → 6 (les `any` qui existaient déjà) ; `Biens.tsx`, `RowMenu.tsx` et `useIsDesktop.ts` sans erreur.
 - **Remplace / modifie** : aucune (mise en œuvre de la maquette T-061 ; T-060 inchangée fonctionnellement, son menu et son hook sont mutualisés)
+
+### T-063 : Audit visuel de la page Propriétaires et maquette de refonte
+- **Date** : 2026-10-16
+- **Statut** : Terminée
+- **Type** : Documentation
+- **Description** : Analyse de `/dashboard/proprietaires` à partir d'une capture et du code (`Proprietaires.tsx`, `CompteProprietaires.tsx`, route `GET /api/compte/proprietaires`). Une maquette de refonte interactive, construite sur le modèle de la page Locataires (T-061/T-062), a été publiée sur un canevas Design privé, hors dépôt. Aucun code de l'application n'a été modifié.
+- **Fichiers touchés** : `docs/JOURNAL_PROJET.md` (entrée T-063)
+- **Décisions & justifications** :
+  - **Défauts relevés** :
+    - la carte « Total biens » affiche 0 : elle additionne `total_properties`, un champ que la route `GET /compte/proprietaires` ne renvoie pas (à confirmer côté données) ;
+    - colonne Type identique sur toutes les lignes (« Particulier ») ;
+    - identifiant technique « ID: #0013 » mis en avant ;
+    - adresse réduite à la ville ou à du texte libre ;
+    - aucun nombre de biens par propriétaire ;
+    - pas d'appel ni de WhatsApp direct ;
+    - filtres et « Colonnes » cachés dans des menus ;
+    - « Désactiver » et « Supprimer » appellent le même `deleteProprietaire` alors que leurs messages promettent deux actions différentes ;
+    - le menu « ⋮ » est un `dropdown` daisyUI fait de `<a>` sans `href` ;
+    - « Chargement des propriétaires... » en texte brut ;
+    - données de test visibles (« DEZ sddzs », « wdcds »).
+  - **Maquette** :
+    - sous-titre chiffré à la place des 3 cartes de stats ;
+    - barre unique (recherche, tri) et filtres rapides par type et par mode de gestion ;
+    - une ligne par propriétaire (type · ville, téléphone et email, nombre de biens et de lots, pastille Directe/Déléguée, WhatsApp/Appeler/« ⋯ ») ;
+    - fiche rapide (contact, adresse, Mobile Money, ses biens avec leur occupation, « Ajouter un bien », « Modifier la fiche »).
+- **Problèmes rencontrés** : Le nombre de biens de la plupart des propriétaires, le compte particuliers/sociétés et le Mobile Money ne figurent pas sur la capture : ils restent entre crochets. Les biens d'AHOUANSOU et d'OTCHADE viennent de la capture de la page Parc immobilier.
+- **Remplace / modifie** : aucune
