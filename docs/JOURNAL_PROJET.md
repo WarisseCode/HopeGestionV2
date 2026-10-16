@@ -859,7 +859,7 @@ Mis à jour automatiquement après chaque tâche.
 
 ### T-056 : Refonte du Bureau gestionnaire (application de la maquette T-055)
 - **Date** : 2026-10-16
-- **Statut** : Terminée
+- **Statut** : Modifiée (voir T-057)
 - **Type** : Fonctionnalité
 - **Description** : Le Bureau gestionnaire reprend la maquette T-055. Le bandeau « Performance globale » et le bouton « Voir tous » sont retirés. La page affiche 4 indicateurs avec leur contexte (encaissé et taux de recouvrement, occupation et lots disponibles, impayés, patrimoine et contrats actifs), puis un bloc « À traiter » (alertes, loyers à recouvrer, plaintes, réservations). Suivent les « Flux financiers » en barres bleu/ambre avec totaux et solde, et les « Biens à surveiller » triés du moins occupé au plus occupé. Les actions rapides passent dans l'en-tête. La mise en page s'adapte à la largeur réelle du contenu.
 - **Fichiers touchés** : `frontend/src/pages/GestionnaireDashboard.tsx`, `frontend/src/i18n/locales/fr.json`, `frontend/src/i18n/locales/en.json`, `backend/services/DashboardService.ts`, `backend/routes/dashboardRoutes.ts`, `docs/JOURNAL_PROJET.md` (entrée T-056)
@@ -873,3 +873,17 @@ Mis à jour automatiquement après chaque tâche.
   - **Correction au passage** : les KPI d'argent menaient à `/dashboard/paiements`, une route inexistante (404). Ils mènent maintenant à `/dashboard/finances`.
 - **Problèmes rencontrés** : SQL vérifié sur un Postgres local jetable (tri historique identique, nouveau tri correct). Contrôle Playwright (Chromium) avec API simulée : aucun débordement horizontal à 360, 768, 1024 et 1440 px, en clair et en sombre. Navigations des cartes, de « À traiter », des actions et des biens vérifiées, ainsi que l'appel `chart-data?period=90d` après changement de période et les états vide et erreur. Corrigé pendant le contrôle : boutons d'action dont le libellé passait sur deux lignes, « 100 % » coupé, montant à recouvrer qui écrasait son libellé, et « Rien d'urgent » affiché quand les KPI étaient en erreur. `tsc -b` front et `tsc --noEmit` back propres. Lint de la page : 7 erreurs avant, 0 après. Hors périmètre : le menu latéral et l'en-tête (communs à toutes les pages) ne sont pas modifiés, et le composant partagé `PeriodFilter` garde des boutons de 28 px de haut.
 - **Remplace / modifie** : aucune (mise en œuvre de la maquette T-055)
+
+### T-057 : Première ligne du Bureau — sous-titre, alertes mises en avant, actions rapides
+- **Date** : 2026-10-16
+- **Statut** : Terminée
+- **Type** : Fonctionnalité
+- **Description** : À la demande de l'utilisateur, le sous-titre « Bonjour {nom} » devient « Dashboard · {date} ». Le nombre d'alertes est affiché dans une pastille rouge cliquable qui mène aux Alertes. Les 4 boutons d'action quittent l'en-tête pour une carte « Actions rapides » (paiement en bouton principal, nouveau bien, nouveau locataire, nouveau contrat). Cette carte remplace le bloc « À traiter », dont l'utilisateur juge le contenu peu important.
+- **Fichiers touchés** : `frontend/src/pages/GestionnaireDashboard.tsx`, `frontend/src/i18n/locales/fr.json`, `frontend/src/i18n/locales/en.json`, `docs/JOURNAL_PROJET.md` (entrée T-057)
+- **Décisions & justifications** :
+  - **Titre** : le H1 reste `nav.bureau` (« Bureau », décision T-054b, cohérence avec le menu et le fil d'Ariane). Seul « Bonjour » est remplacé, comme demandé.
+  - **Alertes** : vraie pastille `<button>` (fond `error/15`, contour `error/50`, texte du thème pour le contraste), point animé désactivé si `prefers-reduced-motion`, hauteur 36 px. Sans alerte : texte neutre « Rien d'urgent pour le moment ». En cas d'échec de l'API des alertes : rien n'est affiché.
+  - **Actions rapides** : tuiles 2×2 dans la colonne de droite. Sur une largeur intermédiaire (carte pleine largeur), une ligne de 4. Sur mobile, une colonne. Le bouton Actualiser reste seul à droite du titre. Les chemins `?action=nouveau` n'ont pas changé.
+  - **Nettoyage** : logique et clés i18n « À traiter » (`toDo`, `todo*`) et `greeting` retirées, car plus utilisées. Les données correspondantes (plaintes, réservations, montant à recouvrer) restent disponibles dans l'API.
+- **Problèmes rencontrés** : la PR de T-056 étant fusionnée, la branche est repartie de `main`. Contrôle Playwright avec API simulée : aucun débordement horizontal à 360, 768, 1024 et 1440 px (clair et sombre). Pastille et 4 actions vérifiées (`/dashboard/alertes`, `finances|biens|locataires|contrats?action=nouveau`). `tsc -b` propre, lint de la page sans erreur.
+- **Remplace / modifie** : T-056 (en-tête et bloc « À traiter »)
