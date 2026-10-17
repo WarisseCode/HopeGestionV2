@@ -522,6 +522,12 @@
     "actionNewLeaseHint": "Draw up a lease"
   },
   "nav": {
+    "accountMenu": "My account",
+    "accountOf": "My account: {{name}}",
+    "collapseMenu": "Collapse menu",
+    "expandMenu": "Expand menu",
+    "closeMenu": "Close menu",
+    "mainNav": "Main navigation",
     "groups": {
       "principal": "Main",
       "gestion": "Management",
@@ -532,7 +538,9 @@
       "compte": "Account",
       "activite": "Activity",
       "biensLocations": "Properties & leases",
-      "argent": "Money"
+      "argent": "Money",
+      "gestionLocative": "Rental management",
+      "suiviLogements": "Property follow-up"
     },
     "bureau": "Dashboard",
     "tableauDeBord": "Dashboard",

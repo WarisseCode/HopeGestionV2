@@ -1124,3 +1124,39 @@ Mis à jour automatiquement après chaque tâche.
   - Contrôle Playwright avec API simulée (4 locations, 1 vente, 1 réservation, 1 ticket, 1 PDF existant) : aucun débordement à 360, 768, 1024 et 1440 px (clair et sombre), aucune erreur JS ; vérifiés : filtres, recherche, tris, lien de téléchargement, génération (la ligne passe à « PDF prêt »), signature, menu, échéancier, gérer le bail, ventes, interventions, nouveau contrat, `?action=nouveau`, vue propriétaire sans écriture, panneau sur mobile.
   - `tsc -b` propre ; lint de la page : 0 erreur (l'ancienne page et ses composants en comptaient 4 et 3 avertissements).
 - **Remplace / modifie** : aucune (mise en œuvre de la maquette T-067)
+
+### T-069 : Audit et maquette de refonte de la barre latérale
+- **Date** : 2026-10-17
+- **Statut** : Terminée
+- **Type** : Documentation
+- **Description** : Audit de la barre latérale du tableau de bord (`frontend/src/components/layout/Sidebar.tsx`, `dashboardMenu.tsx`) et maquette interactive (https://claude.ai/artifact/5NYbk7sFiWFVBDeMkk2dmY) : navigation en sections courtes toujours ouvertes, réglages du compte regroupés dans un menu sur la carte du profil, rail d'icônes réductible, thème clair et sombre. Aucun code applicatif modifié ; mise en œuvre en attente de validation.
+- **Fichiers touchés** : `docs/JOURNAL_PROJET.md`
+- **Décisions & justifications** :
+  - Le gestionnaire voit 22 entrées en 4 groupes repliables ; on passe à 18 entrées de travail (Dashboard, Alertes, Tâches, Planning ; Gestion locative ; Suivi des logements ; Argent ; Documents) et 4 réglages (Mon profil, Paramètres, Abonnement, Corbeille) déplacés dans le menu « Mon compte » avec la déconnexion.
+  - Sections non repliables : le repli actuel cache des pages et le groupe actif se rouvre de lui-même à chaque navigation, ce qui rend le geste peu utile.
+  - « Interventions » rejoint États des lieux et Inventaires (suivi des logements) ; « Réservations » rejoint la gestion locative ; « Documents » sort de « Compte ».
+  - Actif contrasté dans les deux thèmes, icônes et titres de section lisibles (≥ 4,5:1), éléments de 40 px de haut.
+  - Les menus propriétaire et locataire, plus courts, gardent leur contenu ; seule la présentation commune changerait (à confirmer lors de la mise en œuvre).
+- **Problèmes rencontrés** : constats de l'audit — liste longue qui défile même groupes ouverts ; réglages du compte mêlés aux pages de travail ; carte du profil non cliquable et bouton « Déconnexion » rouge toujours visible ; logo haut de 80 px ; icônes `text-slate-400` à environ 2,6:1 sur fond clair ; titres de section en 11 px majuscules peu lisibles ; en thème sombre l'élément actif se distingue mal ; libellés hétérogènes (« Comptes MoMo », « Données & Rapports », « Parc Immobilier » avec majuscule).
+- **Remplace / modifie** : aucune
+
+### T-070 : Refonte de la barre latérale
+- **Date** : 2026-10-17
+- **Statut** : Terminée
+- **Type** : Fonctionnalité
+- **Description** : Application de la maquette T-069 à la barre latérale du layout gestionnaire / admin / invité. 18 pages de travail en sections courtes toujours ouvertes (en tête : Dashboard, Alertes, Tâches, Planning ; Gestion locative ; Suivi des logements ; Argent ; Documents), en-tête compact avec bouton pour réduire en rail d'icônes, et menu « Mon compte » sur la carte du profil (Mon profil, Paramètres, Abonnement, Corbeille, Déconnexion).
+- **Fichiers touchés** : `frontend/src/components/layout/Sidebar.tsx`, `frontend/src/components/layout/dashboardMenu.tsx`, `frontend/src/layout/DashboardLayout.tsx`, `frontend/src/i18n/locales/fr.json`, `frontend/src/i18n/locales/en.json`, `docs/JOURNAL_PROJET.md`
+- **Décisions & justifications** :
+  - Groupes repliables supprimés (validé par l'utilisateur) : avec 18 entrées la liste tient presque entière, et le repli se défaisait de lui-même à chaque navigation.
+  - Réglages déplacés dans `buildAccountMenu` (mêmes conditions : Abonnement sauf invité, Corbeille pour le personnel). Le fil d'Ariane reçoit ces entrées pour garder « Paramètres », « Mon profil »… ; la carte du profil se marque active sur ces pages.
+  - Conditions de visibilité des pages inchangées, élément par élément ; seuls l'ordre et le rangement changent (Interventions → Suivi des logements, Réservations → Gestion locative, Documents hors « Compte »).
+  - Menu du compte : fermeture au clic extérieur et à Échap, navigation qui ferme aussi le tiroir mobile, déconnexion toujours confirmée (`ConfirmModal` conservé).
+  - Pastille active glissante (`layoutId`) conservée ; couleurs `primary` du thème, lisibles en clair et en sombre ; icônes à 70 % d'opacité au lieu de `slate-400`. Lignes de 36 px à la souris, 44 px dans le tiroir mobile.
+  - Libellés harmonisés : « Parc immobilier », « Baux & locations », « États des lieux », « Mon profil » ; le menu utilise « Mobile Money » et « Rapports ».
+  - Thème sombre : logo affiché en blanc (`brightness-0 invert`, comme le pied de page public), le seul fichier de logo étant bleu foncé.
+  - Les layouts propriétaire et locataire, distincts, ne sont pas touchés.
+- **Problèmes rencontrés** :
+  - Liste encore un peu trop haute à 1440×900 : espacements resserrés (reste 40 px de défilement à 900 px de haut).
+  - Contrôle Playwright avec API simulée : sections et 18 liens attendus, élément actif, navigation, menu du compte (ouverture, Échap, lien Paramètres, fil d'Ariane), confirmation de déconnexion, rail (80 px, noms en `aria-label`, badge des alertes), retour à 256 px, tiroir mobile (ouverture, navigation qui le referme), clair et sombre ; aucune erreur JS.
+  - `tsc -b` propre ; lint des trois fichiers : 4 erreurs → 3 (préexistantes : `any` et `setState` dans un effet de `DashboardLayout`).
+- **Remplace / modifie** : aucune (mise en œuvre de la maquette T-069)

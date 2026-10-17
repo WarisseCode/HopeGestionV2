@@ -120,71 +120,90 @@ export const buildDashboardMenu = (
     }
 
     // --- 3. GESTIONNAIRE / ADMIN / GUEST ---
-    // On construit dynamiquement selon les permissions. Quatre domaines (T-045) : Activité,
-    // Biens & locations, Argent, Compte. Conditions de visibilité inchangées, élément par élément.
+    // Refonte T-070 (maquette T-069) : cinq sections courtes, toujours ouvertes ; les réglages du
+    // compte (profil, paramètres, abonnement, corbeille) passent dans le menu « Mon compte »
+    // (buildAccountMenu). Conditions de visibilité inchangées, élément par élément.
+    // Une section au titre vide s'affiche sans titre (simple séparateur).
     const isStaff = role === 'admin' || role === 'gestionnaire';
 
-    // Groupe Activité
-    const activiteItems: MenuItem[] = [
-        { icon: <LayoutDashboard size={20} />, label: t('nav.bureau'), path: '/' },
-        { icon: <Bell size={20} />, label: t('nav.alertes'), path: '/alertes', badge: alertsCount },
+    // En tête, sans titre : le quotidien
+    const principalItems: MenuItem[] = [
+        { icon: <LayoutDashboard size={18} />, label: t('nav.bureau'), path: '/' },
+        { icon: <Bell size={18} />, label: t('nav.alertes'), path: '/alertes', badge: alertsCount },
     ];
     if (isStaff) {
-        activiteItems.push({ icon: <CheckSquare size={20} />, label: t('nav.taches'), path: '/tasks' });
-        activiteItems.push({ icon: <Calendar size={20} />, label: t('nav.planning'), path: '/calendrier' });
-        activiteItems.push({ icon: <Wrench size={20} />, label: t('nav.interventions'), path: '/interventions' });
+        principalItems.push({ icon: <CheckSquare size={18} />, label: t('nav.taches'), path: '/tasks' });
+        principalItems.push({ icon: <Calendar size={18} />, label: t('nav.planning'), path: '/calendrier' });
     }
 
-    // Groupe Biens & locations (« Baux & Locations » et « Contrats » restent deux entrées distinctes)
-    const biensItems: MenuItem[] = [];
-    if (perms.biens_read || isStaff) biensItems.push({ icon: <Building2 size={20} />, label: t('nav.parcImmobilier'), path: '/biens' });
+    // Gestion locative
+    const gestionItems: MenuItem[] = [];
+    if (perms.biens_read || isStaff) gestionItems.push({ icon: <Building2 size={18} />, label: t('nav.parcImmobilier'), path: '/biens' });
     if (perms.locataires_read || isStaff) {
-        biensItems.push({ icon: <Users size={20} />, label: t('nav.locataires'), path: '/locataires' });
+        gestionItems.push({ icon: <Users size={18} />, label: t('nav.locataires'), path: '/locataires' });
     }
     if ((perms.owners_read || isStaff) && type !== 'proprietaire') {
-        biensItems.push({ icon: <UserCheck size={20} />, label: t('nav.proprietaires'), path: '/proprietaires' });
-    }
-    if (isStaff) {
-        biensItems.push({ icon: <Boxes size={20} />, label: t('nav.inventaires'), path: '/inventories' });
-        biensItems.push({ icon: <ClipboardCheck size={20} />, label: t('nav.etatsDesLieux'), path: '/etats-des-lieux' });
-        biensItems.push({ icon: <CalendarCheck size={20} />, label: t('nav.reservations'), path: '/reservations' });
+        gestionItems.push({ icon: <UserCheck size={18} />, label: t('nav.proprietaires'), path: '/proprietaires' });
     }
     if (perms.locataires_read || isStaff) {
-        biensItems.push({ icon: <Home size={20} />, label: t('nav.bauxLocations'), path: '/locations' });
-        biensItems.push({ icon: <ClipboardList size={20} />, label: t('nav.contrats'), path: '/contrats' });
+        gestionItems.push({ icon: <Home size={18} />, label: t('nav.bauxLocations'), path: '/locations' });
+        gestionItems.push({ icon: <ClipboardList size={18} />, label: t('nav.contrats'), path: '/contrats' });
+    }
+    if (isStaff) {
+        gestionItems.push({ icon: <CalendarCheck size={18} />, label: t('nav.reservations'), path: '/reservations' });
     }
 
-    // Groupe Argent
+    // Suivi des logements
+    const suiviItems: MenuItem[] = [];
+    if (isStaff) {
+        suiviItems.push({ icon: <ClipboardCheck size={18} />, label: t('nav.etatsDesLieux'), path: '/etats-des-lieux' });
+        suiviItems.push({ icon: <Boxes size={18} />, label: t('nav.inventaires'), path: '/inventories' });
+        suiviItems.push({ icon: <Wrench size={18} />, label: t('nav.interventions'), path: '/interventions' });
+    }
+
+    // Argent
     const argentItems: MenuItem[] = [];
     if (perms.finance_read || isStaff) {
-        argentItems.push({ icon: <Wallet size={20} />, label: t('nav.transactions'), path: '/finances' });
-        argentItems.push({ icon: <Receipt size={20} />, label: t('nav.quittances'), path: '/quittances' });
+        argentItems.push({ icon: <Wallet size={18} />, label: t('nav.transactions'), path: '/finances' });
+        argentItems.push({ icon: <Receipt size={18} />, label: t('nav.quittances'), path: '/quittances' });
     }
     if (perms.finance_validate || isStaff) {
-        argentItems.push({ icon: <CreditCard size={20} />, label: t('nav.comptesMomo'), path: '/mobile-money' });
+        argentItems.push({ icon: <CreditCard size={18} />, label: t('nav.mobileMoney'), path: '/mobile-money' });
     }
     if (isStaff) {
-        argentItems.push({ icon: <BarChart3 size={20} />, label: t('nav.donneesRapports'), path: '/rapports' });
+        argentItems.push({ icon: <BarChart3 size={18} />, label: t('nav.rapports'), path: '/rapports' });
     }
 
-    // Groupe Compte
+    // Documents, seul en fin de liste
     // Note : « Audit & Sécurité » a été déplacé dans l'espace administrateur (/admin/logs).
-    const compteItems: MenuItem[] = [];
-    if (perms.documents_read || isStaff) compteItems.push({ icon: <FolderOpen size={20} />, label: t('nav.documents'), path: '/documents' });
-    compteItems.push({ icon: <UserCog size={20} />, label: t('nav.monProfil'), path: '/mon-compte' });
-    compteItems.push({ icon: <Settings size={20} />, label: t('nav.parametres'), path: '/parametres' });
-    // if guest/admin/gestionnaire have access to subscription
-    if (type !== 'guest') {
-        compteItems.push({ icon: <Crown size={20} />, label: t('nav.abonnement'), path: '/abonnement' });
-    }
-    if (isStaff) {
-        compteItems.push({ icon: <Trash2 size={20} />, label: t('nav.corbeille'), path: '/corbeille' });
-    }
+    const documentItems: MenuItem[] = [];
+    if (perms.documents_read || isStaff) documentItems.push({ icon: <FolderOpen size={18} />, label: t('nav.documents'), path: '/documents' });
 
     return [
-        { id: "activite", title: t('nav.groups.activite'), items: activiteItems },
-        { id: "biensLocations", title: t('nav.groups.biensLocations'), items: biensItems },
+        { id: "principal", title: '', items: principalItems },
+        { id: "gestionLocative", title: t('nav.groups.gestionLocative'), items: gestionItems },
+        { id: "suiviLogements", title: t('nav.groups.suiviLogements'), items: suiviItems },
         { id: "argent", title: t('nav.groups.argent'), items: argentItems },
-        { id: "compte", title: t('nav.groups.compte'), items: compteItems },
+        { id: "documents", title: '', items: documentItems },
     ].filter(group => group.items.length > 0);
+};
+
+/**
+ * Menu « Mon compte » de la barre latérale (gestionnaire / admin / invité) : les réglages,
+ * sortis de la navigation principale (T-070). Mêmes conditions de visibilité qu'avant.
+ */
+export const buildAccountMenu = (
+  userProfile: MenuProfile | null | undefined,
+  t: (key: string) => string,
+): MenuItem[] => {
+  const role = userProfile?.role || 'user';
+  const type = userProfile?.userType;
+  const isStaff = role === 'admin' || role === 'gestionnaire';
+  const items: MenuItem[] = [
+    { icon: <UserCog size={16} />, label: t('nav.monProfil'), path: '/mon-compte' },
+    { icon: <Settings size={16} />, label: t('nav.parametres'), path: '/parametres' },
+  ];
+  if (type !== 'guest') items.push({ icon: <Crown size={16} />, label: t('nav.abonnement'), path: '/abonnement' });
+  if (isStaff) items.push({ icon: <Trash2 size={16} />, label: t('nav.corbeille'), path: '/corbeille' });
+  return items;
 };
