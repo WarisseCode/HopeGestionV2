@@ -1,31 +1,77 @@
-import React, { useEffect, useState } from 'react';
+// frontend/src/pages/EdlDetails.tsx
+// Fiche d'un état des lieux.
+// Refonte T-072 (maquette T-071) : bandeau d'étape avec la seule prochaine action en tête,
+// actions secondaires dans un menu, résumé des constats avant le détail, états en clair.
+// Le document (sous le bandeau) reste celui qu'on imprime.
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import {
-    Printer, Edit, ArrowLeft, Calendar, User,
-    ClipboardCheck, Building, CheckCircle, FileSignature, GitCompareArrows, Download,
-    Archive, FileCheck
-} from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { apiCall } from '../utils/apiUtils';
 import { resolveComparison } from '../utils/edlCompare';
 import { downloadPdf } from '../utils/downloadPdf';
 import { API_URL } from '../config';
+import { useUser } from '../contexts/UserContext';
+import Button from '../components/ui/Button';
+import ConfirmModal from '../components/ui/ConfirmModal';
+import RowMenu from '../components/ui/RowMenu';
+import SkeletonLoader from '../components/ui/SkeletonLoader';
+import EdlSteps from '../components/edl/EdlSteps';
+import { ITEM_ETATS, itemEtat, edlTypeLabel } from '../utils/edlStatus';
+
+interface EdlItem {
+    id: number;
+    piece: string;
+    nom: string;
+    description?: string;
+    etat: string;
+    observation?: string;
+    photos?: string[];
+}
+
+interface EdlDetail {
+    id: number;
+    ref_edl: string;
+    type_edl: string;
+    statut: string;
+    date_realisation: string;
+    ref_lot?: string;
+    lot_type?: string;
+    ref_location?: string;
+    location_id?: number | null;
+    agent_name?: string;
+    locataire_name?: string;
+    locataire_present?: boolean;
+    commentaires?: string;
+    items?: EdlItem[];
+    signatures_json?: {
+        agent?: { signature_url?: string };
+        locataire?: { signature_url?: string; refused?: boolean; reason?: string };
+    };
+}
 
 const EdlDetails: React.FC = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [edl, setEdl] = useState<any>(null);
+    const { user } = useUser();
+    const canWrite = !['proprietaire', 'locataire'].includes(user?.userType || '');
+    const [edl, setEdl] = useState<EdlDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [pdfLoading, setPdfLoading] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [hasCounterpart, setHasCounterpart] = useState(false);
+    const [confirm, setConfirm] = useState<'archive' | 'delete' | null>(null);
 
     useEffect(() => {
         loadData();
+        // La comparaison n'est proposée que si l'EDL opposé (entrée↔sortie) existe
+        resolveComparison(id!).then(pair => setHasCounterpart(!!pair)).catch(() => setHasCounterpart(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     const loadData = async () => {
         try {
-            const data = await apiCall<any>(`${API_URL}/edl/${id}`);
+            const data = await apiCall<EdlDetail>(`${API_URL}/edl/${id}`);
             setEdl(data);
         } catch (error) {
             console.error(error);
@@ -34,7 +80,6 @@ const EdlDetails: React.FC = () => {
         }
     };
 
-    // Cherche l'EDL de type opposé (entrée↔sortie) du même bail/lot, puis ouvre la comparaison.
     const handleCompare = async () => {
         try {
             const pair = await resolveComparison(id!);
@@ -62,250 +107,245 @@ const EdlDetails: React.FC = () => {
     };
 
     // Transition de statut (clôture / archivage). Le backend valide la transition.
-    const changeStatus = async (statut: string, confirmMsg?: string) => {
-        if (confirmMsg && !window.confirm(confirmMsg)) return;
+    const changeStatus = async (statut: 'cloture' | 'archive') => {
+        setBusy(true);
         try {
             await apiCall(`${API_URL}/edl/${id}`, { method: 'PUT', body: JSON.stringify({ statut }) });
-            toast.success('Statut mis à jour.');
+            toast.success(statut === 'cloture' ? 'État des lieux clôturé.' : 'État des lieux archivé.');
             loadData();
         } catch (e) {
             console.error(e);
             toast.error('Échec de la mise à jour du statut.');
+        } finally {
+            setBusy(false);
         }
     };
 
-    if (loading) return <div className="p-12 text-center">Chargement...</div>;
-    if (!edl) return <div className="p-12 text-center">Introuvable</div>;
-
-    const groupItemsByPiece = () => {
-        const groups: {[key: string]: any[]} = {};
-        (edl.items || []).forEach((item: any) => {
-            if (!groups[item.piece]) groups[item.piece] = [];
-            groups[item.piece].push(item);
-        });
-        return groups;
-    };
-
-    const groupedItems = groupItemsByPiece();
-
-    const getTypeLabel = (type: string) => {
-        switch (type) {
-            case 'entree': return 'État des lieux d\'Entrée';
-            case 'sortie': return 'État des lieux de Sortie';
-            case 'intermediaire': return 'Contrôle Intermédiaire';
-            default: return type;
+    const deleteEdl = async () => {
+        try {
+            await apiCall(`${API_URL}/edl/${id}`, { method: 'DELETE' });
+            toast.success('État des lieux déplacé vers la corbeille.');
+            navigate('/dashboard/etats-des-lieux');
+        } catch (e) {
+            console.error(e);
+            toast.error('Échec de la suppression.');
         }
     };
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'signe':
-                return <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 flex items-center gap-1"><CheckCircle size={12} /> Signé</span>;
-            case 'brouillon':
-                return <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">Brouillon</span>;
-            case 'cloture':
-                return <span className="px-3 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-700">Clôturé</span>;
-            default:
-                return null;
-        }
-    };
+    // Pièces dans l'ordre de saisie, et résumé des constats par état
+    const { rooms, summary, photoCount } = useMemo(() => {
+        const items = edl?.items || [];
+        const map = new Map<string, EdlItem[]>();
+        items.forEach(it => map.set(it.piece || 'Autre', [...(map.get(it.piece || 'Autre') || []), it]));
+        return {
+            rooms: [...map.entries()],
+            summary: ITEM_ETATS.map(e => ({ ...e, count: items.filter(i => i.etat === e.value).length })),
+            photoCount: items.reduce((n, i) => n + (Array.isArray(i.photos) ? i.photos.length : 0), 0),
+        };
+    }, [edl]);
+
+    if (loading) {
+        return (
+            <div role="status" aria-label="Chargement" className="max-w-[900px] mx-auto space-y-4">
+                <SkeletonLoader variant="rectangular" height={150} className="rounded-2xl" />
+                <SkeletonLoader variant="rectangular" height={360} className="rounded-2xl" />
+            </div>
+        );
+    }
+    if (!edl) {
+        return (
+            <div className="max-w-[900px] mx-auto p-10 text-center space-y-3">
+                <p className="text-lg font-bold text-base-content">État des lieux introuvable</p>
+                <Link to="/dashboard/etats-des-lieux" className="text-primary font-semibold">← États des lieux</Link>
+            </div>
+        );
+    }
+
+    const itemCount = edl.items?.length || 0;
+    const next = !canWrite ? null
+        : edl.statut === 'brouillon' ? { label: 'Finaliser et signer', run: () => navigate(`/dashboard/etats-des-lieux/${id}/signer`) }
+            : edl.statut === 'signe' ? { label: 'Clôturer', run: () => changeStatus('cloture') }
+                : edl.statut === 'cloture' ? { label: 'Archiver', run: () => setConfirm('archive') }
+                    : null;
+    const agentSig = edl.signatures_json?.agent;
+    const tenantSig = edl.signatures_json?.locataire;
 
     return (
-        <div className="p-6 lg:p-12 max-w-4xl mx-auto print:p-0">
-            {/* Nav & Actions */}
-            <div className="flex items-center justify-between mb-8 print:hidden">
-                <Link to="/dashboard/etats-des-lieux" className="flex items-center gap-2 text-base-content/60 hover:text-base-content">
-                    <ArrowLeft size={20} /> Retour
-                </Link>
-                <div className="flex gap-3">
-                    <button
-                        type="button"
-                        onClick={handleCompare}
-                        className="btn-secondary flex items-center gap-2"
-                    >
-                        <GitCompareArrows size={18} /> Comparer
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleDownloadPdf}
-                        disabled={pdfLoading}
-                        className="btn-secondary flex items-center gap-2"
-                    >
-                        <Download size={18} /> {pdfLoading ? 'PDF…' : 'PDF'}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => window.print()}
-                        className="btn-secondary flex items-center gap-2"
-                    >
-                        <Printer size={18} /> Imprimer
-                    </button>
-                    {edl.statut === 'brouillon' && (
-                        <button
-                            type="button"
-                            className="btn-primary flex items-center gap-2"
-                            onClick={() => navigate(`/dashboard/etats-des-lieux/${id}/signer`)}
-                        >
-                            <FileSignature size={18} /> Finaliser & Signer
-                        </button>
-                    )}
-                    {edl.statut === 'signe' && (
-                        <button
-                            type="button"
-                            className="btn-secondary flex items-center gap-2"
-                            onClick={() => changeStatus('cloture')}
-                        >
-                            <FileCheck size={18} /> Clôturer
-                        </button>
-                    )}
-                    {(edl.statut === 'signe' || edl.statut === 'cloture') && (
-                        <button
-                            type="button"
-                            className="btn-secondary flex items-center gap-2"
-                            onClick={() => changeStatus('archive', 'Archiver cet état des lieux ? Il restera consultable mais figé.')}
-                        >
-                            <Archive size={18} /> Archiver
-                        </button>
-                    )}
-                </div>
-            </div>
+        <div className="@container max-w-[900px] mx-auto space-y-4 print:max-w-none print:space-y-0">
+            <Link to="/dashboard/etats-des-lieux" className="inline-flex items-center gap-1.5 min-h-10 text-sm font-semibold text-primary print:hidden">
+                <ArrowLeft size={16} aria-hidden="true" /> États des lieux
+            </Link>
 
-            {/* Document Layout */}
-            <div className="bg-base-100 p-8 rounded-2xl shadow-sm border border-base-200 print:shadow-none print:border-none">
-                {/* Header */}
-                <div className="border-b border-base-200 pb-6 mb-8 flex justify-between items-start">
-                    <div>
-                        <h1 className="text-3xl font-bold text-base-content mb-2">{getTypeLabel(edl.type_edl)}</h1>
-                        <p className="text-base-content/60 uppercase tracking-widest font-medium text-sm">
-                            Document Officiel
+            {/* Bandeau d'étape : où en est le document et la seule prochaine action */}
+            <div className="bg-base-100 rounded-2xl border border-base-300/70 p-4 @xl:p-5 space-y-4 print:hidden">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-1">
+                        <p className="text-[13px] font-bold font-mono text-base-content/70">{edl.ref_edl}</p>
+                        <h1 className="text-2xl font-bold text-base-content tracking-tight">{edlTypeLabel(edl.type_edl)}</h1>
+                        <p className="text-sm text-base-content/70 tabular-nums break-words">
+                            {[edl.ref_lot, edl.locataire_name, new Date(edl.date_realisation).toLocaleDateString('fr-FR')].filter(Boolean).join(' · ')}
                         </p>
                     </div>
-                    <div className="text-right">
-                        <div className="inline-block px-3 py-1 bg-base-300 rounded text-sm font-mono mb-2">
-                             {edl.ref_edl}
-                        </div>
-                        <div className="mb-2">{getStatusBadge(edl.statut)}</div>
-                        <p className="text-sm text-base-content/60">{new Date(edl.date_realisation).toLocaleDateString('fr-FR')}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {next && <Button variant="primary" className="h-11 px-5 font-bold" loading={busy} onClick={next.run}>{next.label}</Button>}
+                        <RowMenu
+                            label="Plus d'actions"
+                            items={[
+                                { label: pdfLoading ? 'PDF en préparation…' : 'Télécharger le PDF', onSelect: handleDownloadPdf },
+                                { label: 'Imprimer', onSelect: () => window.print() },
+                                ...(hasCounterpart ? [{ label: edl.type_edl === 'sortie' ? 'Comparer avec l’entrée' : 'Comparer avec la sortie', onSelect: handleCompare }] : []),
+                                ...(canWrite && edl.statut === 'signe' ? [{ label: 'Archiver', onSelect: () => setConfirm('archive') }] : []),
+                                ...(canWrite ? [{ label: 'Mettre à la corbeille…', onSelect: () => setConfirm('delete'), danger: true }] : []),
+                            ]}
+                        />
                     </div>
                 </div>
+                <EdlSteps statut={edl.statut} withHints />
+                {!hasCounterpart && edl.type_edl === 'entree' && (
+                    <p className="text-xs text-base-content/70">La comparaison sera possible une fois l'état des lieux de sortie réalisé.</p>
+                )}
+            </div>
 
-                {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-8 mb-8 bg-base-200 p-6 rounded-xl print:bg-base-100 print:border print:border-base-300">
-                    <div>
-                        <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider mb-3">Bien Concerné</h3>
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                                <Building size={16} className="text-teal-500" />
-                                <span className="font-medium text-base-content">{edl.ref_lot}</span>
-                            </div>
-                            {edl.ref_location && (
-                                <div className="text-sm text-base-content/70">
-                                    Contrat: {edl.ref_location}
-                                </div>
-                            )}
-                        </div>
+            {/* Le document (imprimé tel quel) */}
+            <article className="bg-base-100 rounded-2xl border border-base-300/70 p-5 @xl:p-8 space-y-6 print:border-none print:p-0">
+                <header className="hidden print:block border-b border-base-300 pb-4">
+                    <h1 className="text-2xl font-bold">{edlTypeLabel(edl.type_edl)}</h1>
+                    <p className="text-sm">{edl.ref_edl} · {new Date(edl.date_realisation).toLocaleDateString('fr-FR')}</p>
+                </header>
+
+                <dl className="grid grid-cols-1 @lg:grid-cols-3 gap-3">
+                    <div className="p-3.5 rounded-xl bg-base-200/70 dark:bg-base-200 min-w-0">
+                        <dt className="text-xs font-semibold text-base-content/70">Logement</dt>
+                        <dd className="text-[15px] font-bold text-base-content break-words">{[edl.ref_lot, edl.lot_type].filter(Boolean).join(' · ') || '—'}</dd>
+                        {edl.ref_location && (
+                            <dd>
+                                {edl.location_id
+                                    ? <Link to={`/dashboard/locations/${edl.location_id}`} className="text-[13px] font-semibold text-primary print:text-base-content">{edl.ref_location} →</Link>
+                                    : <span className="text-[13px] text-base-content/70">{edl.ref_location}</span>}
+                            </dd>
+                        )}
                     </div>
-                    <div>
-                        <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider mb-3">Parties Présentes</h3>
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                                <User size={16} className="text-teal-500" />
-                                <div>
-                                    <div className="font-medium text-base-content">Agent: {edl.agent_name}</div>
-                                    {edl.locataire_name && (
-                                        <div className="text-sm text-base-content/70">Locataire: {edl.locataire_name}</div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                    <div className="p-3.5 rounded-xl bg-base-200/70 dark:bg-base-200 min-w-0">
+                        <dt className="text-xs font-semibold text-base-content/70">Locataire</dt>
+                        <dd className="text-[15px] font-bold text-base-content break-words">{edl.locataire_name || '—'}</dd>
+                        {edl.locataire_name && edl.locataire_present !== undefined && (
+                            <dd className="text-[13px] text-base-content/70">{edl.locataire_present ? 'présent' : 'absent'}</dd>
+                        )}
                     </div>
-                </div>
+                    <div className="p-3.5 rounded-xl bg-base-200/70 dark:bg-base-200 min-w-0">
+                        <dt className="text-xs font-semibold text-base-content/70">Réalisé par</dt>
+                        {edl.agent_name
+                            ? <dd className="text-[15px] font-bold text-base-content break-words">{edl.agent_name}</dd>
+                            : <dd className="text-[15px] font-semibold text-red-800 dark:text-red-200">Agent non renseigné</dd>}
+                    </div>
+                </dl>
 
-                {/* Items List by Room */}
-                <div className="space-y-8">
-                    <h2 className="text-xl font-bold text-base-content border-b pb-2">Constats par Pièce</h2>
-                    {Object.entries(groupedItems).map(([piece, items]) => (
-                        <div key={piece}>
-                            <h3 className="flex items-center gap-2 text-lg font-bold text-base-content border-b border-base-300 pb-2 mb-4">
-                                <ClipboardCheck className="text-teal-500" size={20} /> 
-                                {piece}
-                            </h3>
-                            <div className="grid grid-cols-1 gap-3">
-                                {(items as any[]).map((item: any) => (
-                                    <div key={item.id} className="bg-base-200/50 p-4 rounded-lg hover:bg-base-200 transition print:bg-base-100 print:border-b">
-                                        <div className="flex items-start justify-between mb-2">
-                                            <div className="flex-1">
-                                                <h4 className="font-semibold text-base-content">{item.nom}</h4>
-                                                {item.description && (
-                                                    <p className="text-xs text-base-content/60">{item.description}</p>
-                                                )}
-                                            </div>
-                                            <span className={`px-2 py-1 rounded text-xs font-bold capitalize 
-                                                ${item.etat === 'neuf' ? 'bg-green-100 text-green-700' : ''}
-                                                ${item.etat === 'bon' ? 'bg-teal-100 text-teal-700' : ''}
-                                                ${item.etat === 'usager' ? 'bg-yellow-100 text-yellow-700' : ''}
-                                                ${item.etat === 'mauvais' ? 'bg-orange-100 text-orange-700' : ''}
-                                                ${item.etat === 'hs' ? 'bg-red-100 text-red-700' : ''}
-                                            `}>
-                                                {item.etat}
-                                            </span>
-                                        </div>
-                                        
-                                        {item.observation && (
-                                            <div className="text-sm text-orange-600 mb-2 italic">
-                                                ⚠️ {item.observation}
-                                            </div>
-                                        )}
+                {/* Résumé : l'état général avant le détail */}
+                <section className="space-y-2.5">
+                    <h2 className="text-lg font-bold text-base-content">Résumé des constats</h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {summary.map(s => (
+                            <span key={s.value} className={`px-3 py-1.5 rounded-full text-[13px] tabular-nums ${s.count > 0 ? `font-bold ${s.pill}` : 'font-semibold bg-base-200 text-base-content/70'}`}>
+                                {s.count} {s.label.toLowerCase()}
+                            </span>
+                        ))}
+                        <span className="text-[13px] text-base-content/70 tabular-nums">
+                            · {rooms.length} pièce{rooms.length > 1 ? 's' : ''} · {itemCount} élément{itemCount > 1 ? 's' : ''} · {photoCount} photo{photoCount > 1 ? 's' : ''}
+                        </span>
+                    </div>
+                </section>
 
-                                        {item.photos && Array.isArray(item.photos) && item.photos.length > 0 && (
-                                            <div className="flex gap-1 mt-2">
-                                                {item.photos.slice(0, 3).map((src: string, idx: number) => (
-                                                    <img key={idx} src={src} className="w-16 h-16 rounded border border-base-300 object-cover" alt="" />
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
+                {/* Pièces : une ligne par élément, l'état en clair */}
+                <section className="space-y-2.5">
+                    <h2 className="text-lg font-bold text-base-content">Pièces</h2>
+                    {rooms.length === 0 ? (
+                        <p className="text-sm text-base-content/70">Aucun constat saisi.</p>
+                    ) : rooms.map(([piece, items]) => (
+                        <div key={piece} className="rounded-xl border border-base-300/70 overflow-hidden break-inside-avoid">
+                            <div className="flex items-center justify-between gap-2.5 px-3.5 py-3 bg-base-200/70 dark:bg-base-200">
+                                <h3 className="text-[15px] font-bold text-base-content">{piece}</h3>
+                                <span className="text-[13px] text-base-content/70">{items.length} élément{items.length > 1 ? 's' : ''}</span>
                             </div>
+                            <ul className="divide-y divide-base-300/70">
+                                {items.map(item => {
+                                    const etat = itemEtat(item.etat);
+                                    return (
+                                        <li key={item.id} className="px-3.5 py-3 space-y-2">
+                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                                <span className="flex-[1_1_220px] min-w-0">
+                                                    <span className="block text-[15px] font-semibold text-base-content break-words">{item.nom}</span>
+                                                    <span className="block text-[13px] text-base-content/70 break-words">{item.description || (item.observation ? '' : 'Aucune observation')}</span>
+                                                </span>
+                                                <span className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold ${etat?.pill || 'bg-base-200 text-base-content/80'}`}>
+                                                    {etat?.label || item.etat || '—'}
+                                                </span>
+                                            </div>
+                                            {item.observation && (
+                                                <p className="text-sm text-orange-900 dark:text-orange-100 bg-orange-50 dark:bg-orange-400/10 rounded-lg px-3 py-2 break-words">{item.observation}</p>
+                                            )}
+                                            {Array.isArray(item.photos) && item.photos.length > 0 && (
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {item.photos.map((src, idx) => (
+                                                        <a key={idx} href={src} target="_blank" rel="noopener noreferrer" aria-label={`Photo ${idx + 1} de ${item.nom}`}>
+                                                            <img src={src} alt="" className="w-16 h-16 rounded-lg border border-base-300 object-cover" />
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </li>
+                                    );
+                                })}
+                            </ul>
                         </div>
                     ))}
-                </div>
+                </section>
 
-                {/* Comments */}
                 {edl.commentaires && (
-                    <div className="mt-8 p-4 bg-teal-50 rounded-xl">
-                        <h3 className="font-bold text-teal-900 mb-2">Commentaires</h3>
-                        <p className="text-sm text-teal-800">{edl.commentaires}</p>
-                    </div>
+                    <section className="p-4 rounded-xl bg-base-200/70 dark:bg-base-200 space-y-1">
+                        <h2 className="text-[15px] font-bold text-base-content">Commentaires</h2>
+                        <p className="text-sm text-base-content/80 whitespace-pre-line break-words">{edl.commentaires}</p>
+                    </section>
                 )}
 
                 {/* Signatures */}
-                <div className="mt-12 pt-8 border-t border-base-300 grid grid-cols-2 gap-12">
-                    <div className="border rounded-xl h-32 p-4 relative">
-                        <span className="text-xs text-base-content/50 uppercase font-bold absolute top-3 left-3">Signature Agent</span>
-                        {edl.signatures_json?.agent?.signature_url && (
-                            <img src={edl.signatures_json.agent.signature_url} className="h-full w-full object-contain" alt="Signature Agent" />
-                        )}
-                    </div>
-                    <div className="border rounded-xl h-32 p-4 relative">
-                        <span className="text-xs text-base-content/50 uppercase font-bold absolute top-3 left-3">Signature Locataire</span>
-                        {edl.signatures_json?.locataire?.refused ? (
-                            <div className="h-full w-full flex flex-col items-center justify-center text-center">
-                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">Refus de signature</span>
-                                {edl.signatures_json.locataire.reason && (
-                                    <p className="text-xs text-base-content/60 mt-2 italic">« {edl.signatures_json.locataire.reason} »</p>
+                <section className="space-y-2.5 break-inside-avoid">
+                    <h2 className="text-lg font-bold text-base-content">Signatures</h2>
+                    <div className="grid grid-cols-1 @md:grid-cols-2 gap-3">
+                        {[
+                            { who: 'Agent', url: agentSig?.signature_url, refused: false, reason: undefined as string | undefined },
+                            { who: 'Locataire', url: tenantSig?.signature_url, refused: !!tenantSig?.refused, reason: tenantSig?.reason },
+                        ].map(sig => (
+                            <div key={sig.who} className={`min-h-[120px] p-3.5 rounded-xl flex flex-col items-center justify-center gap-1.5 text-center ${sig.url ? 'border border-base-300' : 'border border-dashed border-base-300'}`}>
+                                <strong className="text-sm text-base-content">{sig.who}</strong>
+                                {sig.url ? (
+                                    <img src={sig.url} alt={`Signature ${sig.who.toLowerCase()}`} className="h-20 w-full object-contain" />
+                                ) : sig.refused ? (
+                                    <>
+                                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-900 dark:bg-orange-400/20 dark:text-orange-100">Refus de signature</span>
+                                        {sig.reason && <span className="text-xs text-base-content/70 italic">« {sig.reason} »</span>}
+                                    </>
+                                ) : (
+                                    <span className="text-[13px] text-base-content/70">en attente de signature</span>
                                 )}
                             </div>
-                        ) : edl.signatures_json?.locataire?.signature_url && (
-                            <img src={edl.signatures_json.locataire.signature_url} className="h-full w-full object-contain" alt="Signature Locataire" />
-                        )}
+                        ))}
                     </div>
-                </div>
-                
-                <div className="mt-8 text-center text-xs text-base-content/50 print:block hidden">
+                </section>
+
+                <p className="hidden print:block text-center text-xs text-base-content/60">
                     Document généré électroniquement via HopeGestion. Fait foi conformément aux CGU.
-                </div>
-            </div>
+                </p>
+            </article>
+
+            <ConfirmModal
+                isOpen={!!confirm}
+                onClose={() => setConfirm(null)}
+                onConfirm={() => { if (confirm === 'archive') changeStatus('archive'); else if (confirm === 'delete') deleteEdl(); setConfirm(null); }}
+                title={confirm === 'archive' ? 'Archiver cet état des lieux ?' : 'Mettre à la corbeille ?'}
+                message={confirm === 'archive' ? 'Il restera consultable mais figé.' : 'Il sera restaurable depuis la Corbeille.'}
+                confirmLabel={confirm === 'archive' ? 'Archiver' : 'Mettre à la corbeille'}
+                type={confirm === 'archive' ? 'warning' : 'danger'}
+            />
         </div>
     );
 };
