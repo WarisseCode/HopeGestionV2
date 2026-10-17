@@ -1124,3 +1124,18 @@ Mis à jour automatiquement après chaque tâche.
   - Contrôle Playwright avec API simulée (4 locations, 1 vente, 1 réservation, 1 ticket, 1 PDF existant) : aucun débordement à 360, 768, 1024 et 1440 px (clair et sombre), aucune erreur JS ; vérifiés : filtres, recherche, tris, lien de téléchargement, génération (la ligne passe à « PDF prêt »), signature, menu, échéancier, gérer le bail, ventes, interventions, nouveau contrat, `?action=nouveau`, vue propriétaire sans écriture, panneau sur mobile.
   - `tsc -b` propre ; lint de la page : 0 erreur (l'ancienne page et ses composants en comptaient 4 et 3 avertissements).
 - **Remplace / modifie** : aucune (mise en œuvre de la maquette T-067)
+
+### T-069 : Audit et maquette de refonte de la barre latérale
+- **Date** : 2026-10-17
+- **Statut** : Terminée
+- **Type** : Documentation
+- **Description** : Audit de la barre latérale du tableau de bord (`frontend/src/components/layout/Sidebar.tsx`, `dashboardMenu.tsx`) et maquette interactive (https://claude.ai/artifact/5NYbk7sFiWFVBDeMkk2dmY) : navigation en sections courtes toujours ouvertes, réglages du compte regroupés dans un menu sur la carte du profil, rail d'icônes réductible, thème clair et sombre. Aucun code applicatif modifié ; mise en œuvre en attente de validation.
+- **Fichiers touchés** : `docs/JOURNAL_PROJET.md`
+- **Décisions & justifications** :
+  - Le gestionnaire voit 22 entrées en 4 groupes repliables ; on passe à 18 entrées de travail (Dashboard, Alertes, Tâches, Planning ; Gestion locative ; Suivi des logements ; Argent ; Documents) et 4 réglages (Mon profil, Paramètres, Abonnement, Corbeille) déplacés dans le menu « Mon compte » avec la déconnexion.
+  - Sections non repliables : le repli actuel cache des pages et le groupe actif se rouvre de lui-même à chaque navigation, ce qui rend le geste peu utile.
+  - « Interventions » rejoint États des lieux et Inventaires (suivi des logements) ; « Réservations » rejoint la gestion locative ; « Documents » sort de « Compte ».
+  - Actif contrasté dans les deux thèmes, icônes et titres de section lisibles (≥ 4,5:1), éléments de 40 px de haut.
+  - Les menus propriétaire et locataire, plus courts, gardent leur contenu ; seule la présentation commune changerait (à confirmer lors de la mise en œuvre).
+- **Problèmes rencontrés** : constats de l'audit — liste longue qui défile même groupes ouverts ; réglages du compte mêlés aux pages de travail ; carte du profil non cliquable et bouton « Déconnexion » rouge toujours visible ; logo haut de 80 px ; icônes `text-slate-400` à environ 2,6:1 sur fond clair ; titres de section en 11 px majuscules peu lisibles ; en thème sombre l'élément actif se distingue mal ; libellés hétérogènes (« Comptes MoMo », « Données & Rapports », « Parc Immobilier » avec majuscule).
+- **Remplace / modifie** : aucune
