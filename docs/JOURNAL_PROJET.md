@@ -1071,3 +1071,23 @@ Mis à jour automatiquement après chaque tâche.
   - Lien vers la page détail existante `locations/:id` (échéancier, paiements), aujourd'hui inaccessible depuis la liste.
 - **Problèmes rencontrés** : constats de l'audit — « Renouveler » n'a aucun `onClick` ; la page `LocationDetails` n'est liée nulle part ; la carte « Actifs » et le total des loyers ne comptent que `actif` (pas `signe`) alors que le filtre « Actif » inclut les deux ; statuts affichés bruts sans accents (« Signe », « Refuse ») ; `refuse` absent du filtre ; réservations web affichées avec un loyer « 0 F CFA » ; la génération du PDF remplace toute la page par le spinner global.
 - **Remplace / modifie** : aucune
+
+### T-066 : Refonte de la page Baux & Locations
+- **Date** : 2026-10-17
+- **Statut** : Terminée
+- **Type** : Fonctionnalité
+- **Description** : Application de la maquette T-065 à `/dashboard/locations` : en-tête chiffré (contrats, en cours, loyers mensuels) avec « Nouveau bail », encadrés cliquables « à faire signer » / « arrivent à échéance », barre unique (recherche, tri, filtres rapides Tous / En cours / À signer / Échéance < 60 j / Terminés / Refusés), une ligne par bail avec barre d'avancement de la période, et panneau latéral à la place de la fenêtre modale. « Renouveler » fonctionne désormais et la page détail (échéancier, paiements) est accessible.
+- **Fichiers touchés** : `frontend/src/pages/Locations.tsx`, `frontend/src/i18n/locales/fr.json`, `frontend/src/i18n/locales/en.json`, `docs/JOURNAL_PROJET.md`
+- **Décisions & justifications** :
+  - Mêmes briques que les pages déjà refondues (`RowMenu`, `OUTLINE_BTN`, `useIsDesktop`, `SearchInput`, `EmptyState`, `LoadErrorState`) : panneau ouvert d'office sur le premier bail en grand écran, amené à l'écran sur mobile.
+  - Statut séparé en état (« En cours » pour `actif` et `signe ») et signature (« Signé » / « À signer ») : la liste du serveur ne renvoie pas `signature_url`, seul le passage `actif` → `signe` indique la signature.
+  - Total des loyers et compteur « en cours » calculés sur `actif` + `signe` (hors ventes et réservations), au lieu de `actif` seul.
+  - Renouvellement via l'API existante `POST /locations/:id/renouveler` (nouvelle date de fin proposée à +1 an, nouveau loyer facultatif).
+  - Rechargements après action « silencieux » : la génération du PDF ou la signature ne remplacent plus toute la page par le chargement.
+  - Tous les parcours existants conservés : création et modification (formulaire pleine page inchangé), signature (`SignatureModal`), génération du bail, résiliation avec confirmation, recherche, erreur de chargement avec « Réessayer ».
+- **Problèmes rencontrés** :
+  - Encadrés invisibles (laissant un vide) car montés après la fin de l'animation en cascade du parent : animation propre ajoutée.
+  - Lignes coupées en deux à 1440 px avec le panneau : colonnes resserrées et « Signature manquante » raccourci en « À signer ».
+  - Contrôle Playwright avec API simulée (7 baux) : aucun débordement horizontal à 360, 768, 1024 et 1440 px (clair et sombre), aucune erreur JS ; appels vérifiés : renouvellement, génération, résiliation ; menu, filtres, recherche, tris, modification, nouveau bail, lien vers l'échéancier, panneau sur mobile.
+  - `tsc -b` propre ; lint de `Locations.tsx` : 10 erreurs → 0.
+- **Remplace / modifie** : aucune (mise en œuvre de la maquette T-065)
