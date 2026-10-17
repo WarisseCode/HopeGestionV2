@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ChevronLeft, ChevronRight, Save, Check, Plus, Camera, Trash2,
     Building, User, Calendar, FileText, ClipboardCheck, Loader2, Image as ImageIcon, X,
     ClipboardList, Download
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiCall } from '../utils/apiUtils';
 import { getToken } from '../api/authApi';
 import { compressImage } from '../utils/imageCompress';
@@ -48,13 +48,19 @@ const etatMeta = (v: string) => ETATS.find(e => e.value === v);
 
 const EdlCreate: React.FC = () => {
     const navigate = useNavigate();
+    // Pré-remplissage depuis la liste (« + État des lieux de sortie ») : ?lot=<id>&type=sortie (T-072)
+    const [searchParams] = useSearchParams();
+    const presetLot = Number(searchParams.get('lot')) || 0;
+    const presetType = searchParams.get('type');
+    // Copie stable pour le chargement des lots (lu une seule fois au montage)
+    const presetLotRef = useRef(presetLot);
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
 
     // Step 1: Context
     const [context, setContext] = useState({
-        lot_id: 0,
-        type_edl: 'entree' as 'entree' | 'sortie' | 'intermediaire',
+        lot_id: presetLot,
+        type_edl: (presetType === 'sortie' || presetType === 'intermediaire' ? presetType : 'entree') as 'entree' | 'sortie' | 'intermediaire',
         date_realisation: new Date().toISOString().split('T')[0],
         locataire_name: '',
         locataire_present: true,
@@ -81,7 +87,12 @@ const EdlCreate: React.FC = () => {
     const loadLots = async () => {
         try {
             const data = await apiCall<{ lots: any[] }>(`${API_URL}/edl/rented-lots`);
-            setLots(data.lots || []);
+            const list = data.lots || [];
+            setLots(list);
+            // Logement pré-sélectionné : on reprend son locataire comme le ferait le sélecteur
+            const wanted = presetLotRef.current;
+            const preset = wanted ? list.find((l: { lot_id: number; locataire_name?: string }) => l.lot_id === wanted) : null;
+            if (preset) setContext(prev => (prev.lot_id === wanted ? { ...prev, locataire_name: preset.locataire_name || '' } : prev));
         } catch { /* ignore si l'endpoint est indisponible */ }
     };
 

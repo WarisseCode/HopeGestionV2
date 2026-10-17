@@ -1177,3 +1177,20 @@ Mis à jour automatiquement après chaque tâche.
   - États des lieux : emojis comme icônes de type ; « Comparer » proposé même sans EDL de sortie (message « Aucun EDL opposé ») ; confirmations par `window.confirm` ; l'étape suivante (« Finaliser & Signer ») n'est visible que dans la fiche.
   - Fiche : état brut affiché (« usager » au lieu de « Moyen », « hs ») ; « Agent: » vide quand l'agent n'est pas renseigné ; « Contrat: Bail #22 » non cliquable ; quatre boutons d'égale importance dans la barre d'actions.
 - **Remplace / modifie** : aucune
+
+### T-072 : Refonte des pages Réservations et États des lieux
+- **Date** : 2026-10-17
+- **Statut** : Terminée
+- **Type** : Fonctionnalité
+- **Description** : Application des maquettes T-071. Réservations en boîte de réception (onglets À traiter / Validées / Refusées, cartes avec Accepter / Refuser… et Appeler / WhatsApp, « Créer le bail » pour les validées, refusées en liste compacte dépliable). États des lieux groupés par logement avec barre d'étapes et bouton d'étape suivante ; fiche avec bandeau d'étape, menu d'actions, résumé des constats et états en clair.
+- **Fichiers touchés** : `frontend/src/pages/ReservationsList.tsx`, `frontend/src/pages/EdlList.tsx`, `frontend/src/pages/EdlDetails.tsx`, `frontend/src/pages/EdlCreate.tsx`, `frontend/src/components/edl/EdlSteps.tsx` (créé), `frontend/src/utils/edlStatus.ts` (créé), `docs/JOURNAL_PROJET.md`
+- **Décisions & justifications** :
+  - Réservations : la demande web (« Immeuble: X. Réservation Web - Projet: … Message: … ») est découpée pour afficher l'immeuble, le projet et le message séparément ; « Immeuble Complet / Non assigné » n'est plus montré comme un logement. Refus confirmé (`ConfirmModal`), retours par toasts au lieu de `alert`. Création du bail : même appel `POST /reservations/:id/transform`, mêmes champs. Le bouton « Voir le formulaire public » de la maquette est retiré faute de page publique identifiée ; « Actualiser » est conservé.
+  - États des lieux : étapes et libellés partagés (`utils/edlStatus.ts`, `components/edl/EdlSteps.tsx`) ; prochaine action unique (Finaliser et signer → page de signature, Clôturer, Archiver avec confirmation) réservée aux rôles qui peuvent écrire ; « Comparer » seulement si entrée et sortie existent (liste) ou si le serveur trouve la contrepartie (fiche, `GET /edl/:id/counterpart`).
+  - « + État des lieux de sortie » ouvre la création pré-remplie (`?lot=<id>&type=sortie`) : EdlCreate lit ces paramètres et reprend le locataire du lot loué.
+  - Fiche : « Modifier » de la maquette non repris (aucune page d'édition) ; la mise à la corbeille, jusque-là absente de la fiche, est ajoutée avec confirmation ; lien vers le bail (`/dashboard/locations/:location_id`) ; agent manquant signalé ; impression conservée (bandeau masqué à l'impression).
+- **Problèmes rencontrés** :
+  - Onglets des réservations sur deux lignes à 360 px : passés sur une ligne.
+  - Contrôle Playwright avec API simulée : aucun débordement à 360, 768 et 1440 px (clair et sombre) sur les trois écrans, aucune erreur JS ; appels vérifiés : acceptation, refus, création du bail, clôture, comparaison, corbeille, finalisation, création de sortie pré-remplie ; vue propriétaire sans actions d'écriture.
+  - `tsc -b` propre ; lint des quatre pages : 23 erreurs → 6 (celles d'EdlCreate, préexistantes).
+- **Remplace / modifie** : aucune (mise en œuvre des maquettes T-071)
