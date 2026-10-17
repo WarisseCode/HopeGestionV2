@@ -1160,3 +1160,20 @@ Mis à jour automatiquement après chaque tâche.
   - Contrôle Playwright avec API simulée : sections et 18 liens attendus, élément actif, navigation, menu du compte (ouverture, Échap, lien Paramètres, fil d'Ariane), confirmation de déconnexion, rail (80 px, noms en `aria-label`, badge des alertes), retour à 256 px, tiroir mobile (ouverture, navigation qui le referme), clair et sombre ; aucune erreur JS.
   - `tsc -b` propre ; lint des trois fichiers : 4 erreurs → 3 (préexistantes : `any` et `setState` dans un effet de `DashboardLayout`).
 - **Remplace / modifie** : aucune (mise en œuvre de la maquette T-069)
+
+### T-071 : Audit et maquettes de refonte des pages Réservations et États des lieux
+- **Date** : 2026-10-17
+- **Statut** : Terminée
+- **Type** : Documentation
+- **Description** : Audit de `/dashboard/reservations` (`ReservationsList.tsx`) et `/dashboard/etats-des-lieux` (`EdlList.tsx`, `EdlDetails.tsx`) et maquettes interactives (https://claude.ai/artifact/7AM3wPGRmB6AF5pPdgPvmZ) : boîte de réception des réservations, suivi des états des lieux par logement, fiche d'état des lieux. Aucun code applicatif modifié ; mise en œuvre en attente de validation.
+- **Fichiers touchés** : `docs/JOURNAL_PROJET.md`
+- **Décisions & justifications** :
+  - Modèle différent des pages Biens / Locataires (demande de l'utilisateur) : ces pages sont des flux de travail, pas des annuaires.
+  - Réservations en boîte de réception : onglets À traiter / Validées / Refusées ; une carte par demande à traiter avec « Accepter » / « Refuser… » en gros boutons, Appeler / WhatsApp, logement demandé, date d'entrée, dépôt, message ; validées → « Créer le bail » (transformation existante) ; refusées en liste compacte avec la demande dépliable.
+  - États des lieux groupés par logement (entrée puis sortie), chaque document avec une barre d'étapes Brouillon → Signé → Clôturé → Archivé et un seul bouton pour l'étape suivante ; la comparaison n'est proposée que quand l'entrée et la sortie existent.
+  - Fiche : bandeau d'étape avec l'action suivante en tête, actions secondaires (PDF, impression, comparaison, corbeille) dans un menu, résumé des constats par état, pièces lisibles, signatures en attente visibles.
+- **Problèmes rencontrés** : constats de l'audit —
+  - Réservations : classes Tailwind construites dynamiquement (`border-${color}-500`, `text-${color}-600`) non générées, d'où des compteurs sans couleur sauf « Total » ; « Immeuble Complet » / « Non assigné » affichés comme logement alors que le nom de l'immeuble est dans le message brut (« Immeuble: hgfryh. Réservation Web - Projet: location. Message: ») ; acceptation et refus sans confirmation ni retour (`alert`) ; pas de recherche ni de contact direct.
+  - États des lieux : emojis comme icônes de type ; « Comparer » proposé même sans EDL de sortie (message « Aucun EDL opposé ») ; confirmations par `window.confirm` ; l'étape suivante (« Finaliser & Signer ») n'est visible que dans la fiche.
+  - Fiche : état brut affiché (« usager » au lieu de « Moyen », « hs ») ; « Agent: » vide quand l'agent n'est pas renseigné ; « Contrat: Bail #22 » non cliquable ; quatre boutons d'égale importance dans la barre d'actions.
+- **Remplace / modifie** : aucune
