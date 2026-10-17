@@ -1091,3 +1091,36 @@ Mis à jour automatiquement après chaque tâche.
   - Contrôle Playwright avec API simulée (7 baux) : aucun débordement horizontal à 360, 768, 1024 et 1440 px (clair et sombre), aucune erreur JS ; appels vérifiés : renouvellement, génération, résiliation ; menu, filtres, recherche, tris, modification, nouveau bail, lien vers l'échéancier, panneau sur mobile.
   - `tsc -b` propre ; lint de `Locations.tsx` : 10 erreurs → 0.
 - **Remplace / modifie** : aucune (mise en œuvre de la maquette T-065)
+
+### T-067 : Audit et maquette de refonte de la page Contrats
+- **Date** : 2026-10-17
+- **Statut** : Terminée
+- **Type** : Documentation
+- **Description** : Audit de `/dashboard/contrats` (`frontend/src/pages/Contrats.tsx`, `components/contrats/ContratsTable.tsx`, `ContratDetailModal.tsx`) et maquette interactive (https://claude.ai/artifact/XNbi41xWBJ8tSgNzkfC1K3). La page est recentrée sur ce qui la distingue de Baux & Locations : le document du contrat (PDF généré ou non, signé ou non, téléchargeable). Aucun code applicatif modifié ; mise en œuvre en attente de validation.
+- **Fichiers touchés** : `docs/JOURNAL_PROJET.md`
+- **Décisions & justifications** :
+  - Même structure que les pages refondues (en-tête chiffré, barre unique avec onglets Locations / Ventes / Interventions, filtres rapides, lignes compactes, panneau latéral à la place de la fenêtre modale).
+  - Filtres par état du document (PDF à générer, À signer, Signés, Terminés) plutôt que par statut brut, puisque la gestion du bail (renouveler, résilier) vit déjà dans Baux & Locations ; le panneau y renvoie (« Gérer le bail », « Échéancier ») dans le même onglet.
+  - Bouton de document par ligne : « Télécharger » quand le PDF existe (documents `entity_type = 'lease'`, catégorie `baux`, lisibles via `GET /documents`), sinon « Générer » (`POST /documents/generate/lease/:id`).
+  - Alerte de saisie quand les charges dépassent le loyer (cas observé : charges 978 000 F pour un loyer de 80 000 F, ce qui gonfle l'échéance à 1 058 000 F).
+- **Problèmes rencontrés** : constats de l'audit — le bouton « Télécharger » s'appuie sur `signature_url`, que la liste `GET /locations` ne renvoie pas : il affiche toujours « Aucun document signé disponible » (même cause pour l'encadré « Contrat signé » de la fenêtre) ; la page reprend les mêmes données que Baux & Locations sans aucune action ; montants bruts (« 80000.00 F ») et statuts en majuscules sans accents (« SIGNE ») ; « Loyers actifs » ne compte que `actif` ; « Finissant ce mois » compte aussi les baux résiliés ; les réservations n'apparaissent dans aucun onglet ; l'onglet Interventions liste des tickets, pas des contrats ; « Fiche complète » ouvre un nouvel onglet.
+- **Remplace / modifie** : aucune
+
+### T-068 : Refonte de la page Contrats
+- **Date** : 2026-10-17
+- **Statut** : Terminée
+- **Type** : Fonctionnalité
+- **Description** : Application de la maquette T-067 à `/dashboard/contrats`. La page devient le registre des documents de contrat : en-tête chiffré (contrats, PDF à générer, à faire signer), barre unique (onglets Locations / Ventes / Interventions, recherche, tri « À traiter d'abord », filtres Tous / PDF à générer / À signer / Signés / Terminés), une ligne par contrat avec l'état du PDF et de la signature et un bouton « Télécharger » ou « Générer », panneau latéral à la place de la fenêtre modale.
+- **Fichiers touchés** : `frontend/src/pages/Contrats.tsx`, `frontend/src/i18n/locales/fr.json`, `frontend/src/i18n/locales/en.json`, `docs/JOURNAL_PROJET.md` ; supprimés : `frontend/src/components/contrats/ContratsTable.tsx`, `frontend/src/components/contrats/ContratDetailModal.tsx` (utilisés uniquement par l'ancienne page)
+- **Décisions & justifications** :
+  - Le téléchargement s'appuie sur les PDF réellement rangés dans Documents (`GET /documents?entity_type=lease&categorie=baux`, dernier document par bail, URL via `resolveFileUrl`) au lieu de `signature_url`, absent de la liste des baux. Si cette lecture échoue, l'état du PDF est simplement masqué.
+  - Génération via `POST /documents/generate/lease/:id`, proposée uniquement pour les locations en cours (le serveur produit un contrat de bail) et aux rôles qui peuvent écrire ; le serveur refusant une seconde génération, pas de bouton « Régénérer » (écart assumé avec la maquette).
+  - « Faire signer » (`SignatureModal` + `POST /locations/:id/sign`) pour les baux `actif`, comme dans Baux & Locations.
+  - « Gérer le bail » et « Échéancier » ouvrent Baux & Locations et la fiche du bail dans le même onglet ; masqués pour les locataires, qui n'ont pas accès à ces pages.
+  - Alerte « Les charges dépassent le loyer : vérifiez la saisie » dans le panneau.
+  - Conservé : onglets et compteurs, création (formulaire `CreateContratForm`, action rapide `?action=nouveau`), « Nouveau » qui mène aux interventions sur l'onglet Interventions, liste des tickets (avec lien vers leur page), erreurs de chargement avec « Réessayer », droits d'écriture.
+- **Problèmes rencontrés** :
+  - Lignes coupées à 1440 px avec le panneau et noms d'onglets tronqués à 360 px : colonnes resserrées, compteurs d'onglets masqués et texte réduit sur petit écran.
+  - Contrôle Playwright avec API simulée (4 locations, 1 vente, 1 réservation, 1 ticket, 1 PDF existant) : aucun débordement à 360, 768, 1024 et 1440 px (clair et sombre), aucune erreur JS ; vérifiés : filtres, recherche, tris, lien de téléchargement, génération (la ligne passe à « PDF prêt »), signature, menu, échéancier, gérer le bail, ventes, interventions, nouveau contrat, `?action=nouveau`, vue propriétaire sans écriture, panneau sur mobile.
+  - `tsc -b` propre ; lint de la page : 0 erreur (l'ancienne page et ses composants en comptaient 4 et 3 avertissements).
+- **Remplace / modifie** : aucune (mise en œuvre de la maquette T-067)
