@@ -8,7 +8,7 @@ import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
 import { useMobile } from '../hooks/useMobile';
 import { useTranslation } from 'react-i18next';
-import { buildDashboardMenu } from '../components/layout/dashboardMenu';
+import { buildDashboardMenu, buildAccountMenu } from '../components/layout/dashboardMenu';
 import { resolveBreadcrumb } from '../components/layout/navMatching';
 
 interface DashboardLayoutProps {
@@ -60,7 +60,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
 
   // Fil d'Ariane : libellés du menu latéral (même table que Sidebar), et non plus le slug d'URL
   const breadcrumb = resolveBreadcrumb(
-    buildDashboardMenu(userProfile, t).flatMap(g => g.items).map(i => ({ path: `/dashboard${i.path}`, label: i.label })),
+    // Réglages du compte compris : ils ont quitté la navigation pour le menu « Mon compte » (T-070)
+    [...buildDashboardMenu(userProfile, t).flatMap(g => g.items), ...buildAccountMenu(userProfile, t)]
+      .map(i => ({ path: `/dashboard${i.path}`, label: i.label })),
     location.pathname,
     location.hash,
     t,
