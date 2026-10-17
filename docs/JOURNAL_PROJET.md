@@ -1091,3 +1091,17 @@ Mis à jour automatiquement après chaque tâche.
   - Contrôle Playwright avec API simulée (7 baux) : aucun débordement horizontal à 360, 768, 1024 et 1440 px (clair et sombre), aucune erreur JS ; appels vérifiés : renouvellement, génération, résiliation ; menu, filtres, recherche, tris, modification, nouveau bail, lien vers l'échéancier, panneau sur mobile.
   - `tsc -b` propre ; lint de `Locations.tsx` : 10 erreurs → 0.
 - **Remplace / modifie** : aucune (mise en œuvre de la maquette T-065)
+
+### T-067 : Audit et maquette de refonte de la page Contrats
+- **Date** : 2026-10-17
+- **Statut** : Terminée
+- **Type** : Documentation
+- **Description** : Audit de `/dashboard/contrats` (`frontend/src/pages/Contrats.tsx`, `components/contrats/ContratsTable.tsx`, `ContratDetailModal.tsx`) et maquette interactive (https://claude.ai/artifact/XNbi41xWBJ8tSgNzkfC1K3). La page est recentrée sur ce qui la distingue de Baux & Locations : le document du contrat (PDF généré ou non, signé ou non, téléchargeable). Aucun code applicatif modifié ; mise en œuvre en attente de validation.
+- **Fichiers touchés** : `docs/JOURNAL_PROJET.md`
+- **Décisions & justifications** :
+  - Même structure que les pages refondues (en-tête chiffré, barre unique avec onglets Locations / Ventes / Interventions, filtres rapides, lignes compactes, panneau latéral à la place de la fenêtre modale).
+  - Filtres par état du document (PDF à générer, À signer, Signés, Terminés) plutôt que par statut brut, puisque la gestion du bail (renouveler, résilier) vit déjà dans Baux & Locations ; le panneau y renvoie (« Gérer le bail », « Échéancier ») dans le même onglet.
+  - Bouton de document par ligne : « Télécharger » quand le PDF existe (documents `entity_type = 'lease'`, catégorie `baux`, lisibles via `GET /documents`), sinon « Générer » (`POST /documents/generate/lease/:id`).
+  - Alerte de saisie quand les charges dépassent le loyer (cas observé : charges 978 000 F pour un loyer de 80 000 F, ce qui gonfle l'échéance à 1 058 000 F).
+- **Problèmes rencontrés** : constats de l'audit — le bouton « Télécharger » s'appuie sur `signature_url`, que la liste `GET /locations` ne renvoie pas : il affiche toujours « Aucun document signé disponible » (même cause pour l'encadré « Contrat signé » de la fenêtre) ; la page reprend les mêmes données que Baux & Locations sans aucune action ; montants bruts (« 80000.00 F ») et statuts en majuscules sans accents (« SIGNE ») ; « Loyers actifs » ne compte que `actif` ; « Finissant ce mois » compte aussi les baux résiliés ; les réservations n'apparaissent dans aucun onglet ; l'onglet Interventions liste des tickets, pas des contrats ; « Fiche complète » ouvre un nouvel onglet.
+- **Remplace / modifie** : aucune
