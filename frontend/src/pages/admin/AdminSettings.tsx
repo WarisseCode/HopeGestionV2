@@ -1,7 +1,7 @@
 // frontend/src/pages/admin/AdminSettings.tsx
 import React, { useState, useEffect } from 'react';
-import { 
-  Settings, 
+import {
+  Settings,
   Save,
   RefreshCw,
   Server,
@@ -118,7 +118,7 @@ const AdminSettings: React.FC = () => {
   if (loading) {
     return (
       <div className="space-y-6">
-        {[1,2,3].map(i => <div key={i} className="h-64 bg-base-100 rounded-2xl animate-pulse shadow-sm" />)}
+        {[1, 2, 3].map(i => <div key={i} className="h-64 bg-base-100 rounded-2xl animate-pulse shadow-sm" />)}
       </div>
     );
   }
@@ -144,99 +144,6 @@ const AdminSettings: React.FC = () => {
         </div>
       </div>
 
-      {/* Platform Settings */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <div className="bg-base-100 rounded-2xl p-6 shadow-sm border border-base-200">
-          <h3 className="font-bold text-lg flex items-center gap-2 mb-5">
-            <Globe size={18} className="text-primary" />
-            Plateforme
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="label"><span className="label-text font-medium">Nom de la plateforme</span></label>
-              <input 
-                type="text"
-                value={platform.name}
-                onChange={(e) => setPlatform({ ...platform, name: e.target.value })}
-                className="input input-bordered w-full"
-              />
-            </div>
-            <div>
-              <label className="label"><span className="label-text font-medium">Rôle par défaut</span></label>
-              <select 
-                className="select select-bordered w-full"
-                value={platform.defaultUserRole}
-                onChange={(e) => setPlatform({ ...platform, defaultUserRole: e.target.value })}
-              >
-                <option value="gestionnaire">Gestionnaire</option>
-                <option value="viewer">Viewer</option>
-                <option value="comptable">Comptable</option>
-              </select>
-            </div>
-            <div className="md:col-span-2">
-              <label className="label"><span className="label-text font-medium">Description</span></label>
-              <textarea 
-                value={platform.description}
-                onChange={(e) => setPlatform({ ...platform, description: e.target.value })}
-                className="textarea textarea-bordered w-full"
-                rows={2}
-              />
-            </div>
-            <div>
-              <label className="label"><span className="label-text font-medium">Max propriétés par utilisateur</span></label>
-              <input 
-                type="number"
-                value={platform.maxPropertiesPerUser}
-                onChange={(e) => setPlatform({ ...platform, maxPropertiesPerUser: parseInt(e.target.value) || 10 })}
-                className="input input-bordered w-full"
-              />
-            </div>
-          </div>
-
-          {/* Toggles */}
-          <div className="divider my-5" />
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">Mode maintenance</p>
-                <p className="text-xs text-base-content/50">Affiche une page de maintenance aux visiteurs</p>
-              </div>
-              <input 
-                type="checkbox" 
-                className="toggle toggle-error"
-                checked={platform.maintenanceMode}
-                onChange={(e) => setPlatform({ ...platform, maintenanceMode: e.target.checked })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">Autoriser les inscriptions</p>
-                <p className="text-xs text-base-content/50">Permettre aux nouveaux utilisateurs de créer un compte</p>
-              </div>
-              <input 
-                type="checkbox" 
-                className="toggle toggle-success"
-                checked={platform.allowRegistration}
-                onChange={(e) => setPlatform({ ...platform, allowRegistration: e.target.checked })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">Vérification email obligatoire</p>
-                <p className="text-xs text-base-content/50">Exiger la vérification par OTP avant l'accès</p>
-              </div>
-              <input 
-                type="checkbox" 
-                className="toggle toggle-primary"
-                checked={platform.requireEmailVerification}
-                onChange={(e) => setPlatform({ ...platform, requireEmailVerification: e.target.checked })}
-              />
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
       {/* Email Configuration */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <div className="bg-base-100 rounded-2xl p-6 shadow-sm border border-base-200">
@@ -247,7 +154,7 @@ const AdminSettings: React.FC = () => {
           <p className="text-sm text-base-content/50 mb-4">
             Les paramètres email sont configurés via les variables d'environnement sur le serveur.
           </p>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               { label: 'Serveur SMTP', value: email.host || 'Non configuré' },
@@ -284,7 +191,7 @@ const AdminSettings: React.FC = () => {
             <Server size={18} className="text-primary" />
             Informations Système
           </h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-base-200/50 rounded-xl p-4 text-center">
               <p className="text-xs text-base-content/50 mb-1">Node.js</p>
@@ -310,7 +217,7 @@ const AdminSettings: React.FC = () => {
 
           <div className="mt-4 p-3 bg-base-200/30 rounded-xl text-xs text-base-content/50">
             <Shield size={12} className="inline mr-1" />
-            Les informations système sont en lecture seule. Pour modifier les variables d'environnement, utilisez le panneau Render.
+            Les informations système sont en lecture seule. Pour modifier les variables d'environnement, passez par le VPS.
           </div>
         </div>
       </motion.div>
