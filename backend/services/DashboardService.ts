@@ -428,19 +428,24 @@ export class DashboardService {
         let activityParams: any[] = [];
 
         if (userRole === 'locataire') {
-            const userRes = await dbClient.query('SELECT email FROM users WHERE id = $1', [userId]);
-            if (userRes.rows.length === 0) return [];
-
-            const tenantRes = await dbClient.query('SELECT id FROM tenants WHERE email = $1', [userRes.rows[0].email]);
-            if (tenantRes.rows.length === 0) return [];
-
-            const leaseRes = await dbClient.query('SELECT id FROM leases WHERE tenant_id = $1', [tenantRes.rows[0].id]);
+            // [PERF] 3 requetes sequentielles remplacees par 1 JOIN :
+            // users -> tenants (via email) -> leases — 1 seul aller-retour DB.
+            // Securite : WHERE u.id = $1 garantit l'isolation par user (meme resultat
+            // que les 3 gardes 'length === 0' precedentes, en 1 seule requete).
+            const leaseRes = await dbClient.query(`
+                SELECT l.id
+                FROM leases l
+                JOIN tenants t ON l.tenant_id = t.id
+                JOIN users   u ON t.email     = u.email
+                WHERE u.id = $1
+                  AND l.deleted_at IS NULL
+            `, [userId]);
             if (leaseRes.rows.length === 0) return [];
 
             const leaseIds = leaseRes.rows.map((r: any) => r.id);
-            paymentWhere = `p.lease_id = ANY($1::int[])`;
-            leaseWhere   = `l.id = ANY($1::int[])`;
-            ticketWhere  = `l.id = ANY($1::int[])`;
+            paymentWhere   = `p.lease_id = ANY($1::int[])`;
+            leaseWhere     = `l.id = ANY($1::int[])`;
+            ticketWhere    = `l.id = ANY($1::int[])`;
             activityParams = [leaseIds];
         } else if (!isAdmin) {
             if (validOwnerIds.length === 0) return [];
