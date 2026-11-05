@@ -15,6 +15,17 @@ export interface PaymentFilters {
     end_date?: string;
     statut?: string;
     type?: string;
+    // Pagination optionnelle -- undefined = comportement actuel (retrocompatible)
+    page?: number;
+    limit?: number;
+}
+
+/** Reponse paginee de getPayments (toujours retournee, meme sans pagination). */
+export interface PaymentsPage {
+    payments: any[];
+    total: number;
+    page: number;
+    totalPages: number;
 }
 
 export interface CreatePaymentData {
@@ -60,31 +71,65 @@ export class FinanceService {
     // effectiveOwnerIds : liste des propriétaires autorisés (resolvedOwnerId unique OU
     // validOwnerIds pour un gestionnaire multi-propriétaires). Filtrer par = ANY(...)
     // évite le bug "owner_id = NULL" qui vidait toute la page pour un compte multi-owner.
-    static async getPayments(dbClient: PoolClient, effectiveOwnerIds: number[], filters: PaymentFilters) {
+    static async getPayments(dbClient: PoolClient, effectiveOwnerIds: number[], filters: PaymentFilters): Promise<PaymentsPage> {
         const params: any[] = [effectiveOwnerIds];
         let paramIndex = 2;
-        let query = `
-            SELECT ${SELECT_PAYMENTS_FIELDS},
-                l.reference_bail, l.loyer_actuel as loyer_mensuel,
-                t.nom as locataire_nom, t.prenoms as locataire_prenoms,
-                o.name as proprietaire_nom, o.address as proprietaire_adresse, o.phone as proprietaire_tel
+
+        // Clause FROM + WHERE de base (invariante)
+        const baseFrom = `
             FROM payments p
             JOIN leases l ON p.lease_id = l.id
             JOIN tenants t ON l.tenant_id = t.id
             JOIN owners o ON l.owner_id = o.id
-            WHERE p.owner_id = ANY($1::int[])
-        `;
+            WHERE p.owner_id = ANY($1::int[])`;
 
-        if (filters.lease_id)  { query += ` AND p.lease_id = $${paramIndex++}`;        params.push(filters.lease_id); }
-        if (filters.start_date){ query += ` AND p.date_paiement >= $${paramIndex++}`;  params.push(filters.start_date); }
-        if (filters.end_date)  { query += ` AND p.date_paiement <= $${paramIndex++}`;  params.push(filters.end_date); }
-        if (filters.statut)    { query += ` AND p.statut = $${paramIndex++}`;          params.push(filters.statut); }
-        if (filters.type)      { query += ` AND p.type = $${paramIndex++}`;            params.push(filters.type); }
+        // Filtres dynamiques (meme logique qu avant)
+        let whereExtra = '';
+        if (filters.lease_id)  { whereExtra += ` AND p.lease_id = $${paramIndex++}`;       params.push(filters.lease_id); }
+        if (filters.start_date){ whereExtra += ` AND p.date_paiement >= $${paramIndex++}`; params.push(filters.start_date); }
+        if (filters.end_date)  { whereExtra += ` AND p.date_paiement <= $${paramIndex++}`; params.push(filters.end_date); }
+        if (filters.statut)    { whereExtra += ` AND p.statut = $${paramIndex++}`;         params.push(filters.statut); }
+        if (filters.type)      { whereExtra += ` AND p.type = $${paramIndex++}`;           params.push(filters.type); }
 
-        query += ` ORDER BY p.date_paiement DESC, p.created_at DESC`;
+        const selectFields = `SELECT ${SELECT_PAYMENTS_FIELDS},
+                l.reference_bail, l.loyer_actuel as loyer_mensuel,
+                t.nom as locataire_nom, t.prenoms as locataire_prenoms,
+                o.name as proprietaire_nom, o.address as proprietaire_adresse, o.phone as proprietaire_tel`;
+        const orderBy = ` ORDER BY p.date_paiement DESC, p.created_at DESC`;
 
-        const result = await dbClient.query(query, params);
-        return result.rows;
+        // Pagination optionnelle
+        if (filters.page !== undefined && filters.limit !== undefined) {
+            const safeLimit = Math.min(Math.max(1, filters.limit), 200);
+            const offset    = (Math.max(1, filters.page) - 1) * safeLimit;
+
+            // COUNT (memes params et filtres, sans ORDER BY ni SELECT lourd)
+            const countRes = await dbClient.query(
+                `SELECT COUNT(*)${baseFrom}${whereExtra}`,
+                [...params]
+            );
+            const total = parseInt(countRes.rows[0].count, 10);
+
+            // Page demandee
+            const pageParams = [...params, safeLimit, offset];
+            const dataRes = await dbClient.query(
+                `${selectFields}${baseFrom}${whereExtra}${orderBy} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+                pageParams
+            );
+
+            return {
+                payments: dataRes.rows,
+                total,
+                page: filters.page,
+                totalPages: Math.ceil(total / safeLimit),
+            };
+        }
+
+        // Sans pagination -> comportement actuel (retrocompatible)
+        const result = await dbClient.query(
+            `${selectFields}${baseFrom}${whereExtra}${orderBy}`,
+            params
+        );
+        return { payments: result.rows, total: result.rows.length, page: 1, totalPages: 1 };
     }
 
     /** Enregistre un paiement et met à jour l'échéance associée si schedule_id fourni. */

@@ -66,10 +66,16 @@ router.get('/', permissions.canRead('finance'), tenantGuard, async (req: Authent
     const dbClient = (req as any).dbClient;
     const effectiveOwnerIds = getEffectiveOwnerIds(req);
     try {
-        if (effectiveOwnerIds.length === 0) return res.json({ payments: [] });
-        const { lease_id, start_date, end_date, statut, type } = req.query;
-        const payments = await FinanceService.getPayments(dbClient, effectiveOwnerIds, { lease_id, start_date, end_date, statut, type } as any);
-        res.json({ payments });
+        if (effectiveOwnerIds.length === 0) return res.json({ payments: [], total: 0, page: 1, totalPages: 0 });
+        const { lease_id, start_date, end_date, statut, type, page, limit } = req.query;
+        // Pagination optionnelle : uniquement si page ET limit sont tous les deux fournis
+        const pageNum  = page  ? Math.max(1, parseInt(page  as string, 10)) : undefined;
+        const limitNum = limit ? Math.max(1, parseInt(limit as string, 10)) : undefined;
+        const result = await FinanceService.getPayments(dbClient, effectiveOwnerIds, {
+            lease_id, start_date, end_date, statut, type,
+            ...(pageNum !== undefined && limitNum !== undefined ? { page: pageNum, limit: limitNum } : {}),
+        } as any);
+        res.json(result);  // { payments, total, page, totalPages }
     } catch (error) {
         console.error('Error fetching payments:', error);
         res.status(500).json({ message: 'Erreur serveur' });

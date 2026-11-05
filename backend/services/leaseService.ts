@@ -18,7 +18,7 @@ export class LeaseService {
      * @param scope - Owner scope of the caller (admin bypass or validOwnerIds).
      * @param filters - Optional filters (e.g., status).
      */
-    static async findAll(dbClient: PoolClient, scope: LeaseOwnerScope, filters: { statut?: string } = {}) {
+    static async findAll(dbClient: PoolClient, scope: LeaseOwnerScope, filters: { statut?: string; page?: number; limit?: number } = {}) {
         // [SÉCURITÉ] `leases` n'a pas de politique RLS versionnée et le rôle DB peut
         // avoir BYPASSRLS : la RLS ne protège pas. Filtre explicite par propriétaire
         // (même pattern que scopeByOwner dans leaseRoutes.ts), sauf pour l'admin.
@@ -76,8 +76,31 @@ export class LeaseService {
 
         query += ` ORDER BY l.created_at DESC`;
 
-        const result = await dbClient.query(query, params);
+        // Pagination optionnelle
+        if (filters.page !== undefined && filters.limit !== undefined) {
+            const safeLimit = Math.min(Math.max(1, filters.limit), 200);
+            const offset    = (Math.max(1, filters.page) - 1) * safeLimit;
 
-        return result.rows;
+            // COUNT sur la meme base (memes filtres)
+            const countBase = query.replace(/^\s*SELECT[\s\S]*?FROM\s+/i, 'SELECT COUNT(*) FROM ');
+            const countRes  = await dbClient.query(countBase, params);
+            const total     = parseInt(countRes.rows[0].count, 10);
+
+            const dataRes = await dbClient.query(
+                `${query} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+                [...params, safeLimit, offset]
+            );
+
+            return {
+                leases: dataRes.rows,
+                total,
+                page: filters.page,
+                totalPages: Math.ceil(total / safeLimit),
+            };
+        }
+
+        // Sans pagination -> retrocompatible
+        const result = await dbClient.query(query, params);
+        return { leases: result.rows, total: result.rows.length, page: 1, totalPages: 1 };
     }
 }

@@ -15,14 +15,19 @@ const router = express.Router();
 router.get('/', permissions.canRead('locataires'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
     const dbClient = (req as any).dbClient;
     try {
-        const { statut } = req.query;
+        const { statut, page, limit } = req.query;
         // [SÉCURITÉ] Filtre par propriétaire explicite (leases sans RLS versionnée) :
         // même correctif que GET /api/locations.
-        const leases = await LeaseService.findAll(dbClient, {
+        const pageNum  = page  ? Math.max(1, parseInt(page  as string, 10)) : undefined;
+        const limitNum = limit ? Math.max(1, parseInt(limit as string, 10)) : undefined;
+        const result = await LeaseService.findAll(dbClient, {
             isAdmin: (req as any).userRole === 'admin',
             validOwnerIds: (req as any).validOwnerIds || [],
-        }, { statut: statut as string });
-        res.json({ baux: leases });
+        }, {
+            statut: statut as string,
+            ...(pageNum !== undefined && limitNum !== undefined ? { page: pageNum, limit: limitNum } : {}),
+        });
+        res.json(result);  // { leases, total, page, totalPages }
     } catch (error) {
         console.error('Error fetching leases (baux):', error);
         res.status(500).json({ message: 'Erreur serveur' });

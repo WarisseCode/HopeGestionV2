@@ -136,6 +136,28 @@ router.get('/', protect, permissions.canRead('locataires'), tenantGuard, async (
 
         query += ` ORDER BY t.statut DESC, t.nom, t.prenoms`;
 
+        // Pagination optionnelle
+        const pageNum  = req.query.page  ? Math.max(1, parseInt(req.query.page  as string, 10)) : undefined;
+        const limitNum = req.query.limit ? Math.max(1, parseInt(req.query.limit as string, 10)) : undefined;
+
+        if (pageNum !== undefined && limitNum !== undefined) {
+            const safeLimit = Math.min(limitNum, 200);
+            const offset    = (pageNum - 1) * safeLimit;
+
+            // COUNT sur la meme sous-requete (memes filtres)
+            const countRes = await dbClient.query(`SELECT COUNT(*) FROM (${query}) AS _cnt`, params);
+            const total    = parseInt(countRes.rows[0].count, 10);
+
+            const dataRes  = await dbClient.query(`${query} LIMIT ${safeLimit} OFFSET ${offset}`, params);
+            return res.json({
+                locataires: dataRes.rows,
+                total,
+                page: pageNum,
+                totalPages: Math.ceil(total / safeLimit),
+            });
+        }
+
+        // Sans pagination -> retrocompatible
         const result = await dbClient.query(query, params);
         res.json({ locataires: result.rows });
     } catch (error) {
