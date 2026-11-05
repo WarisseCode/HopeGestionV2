@@ -3,11 +3,30 @@ import { Response, NextFunction } from 'express';
 import { PoolClient } from 'pg';
 import { AuthenticatedRequest } from './authMiddleware';
 import pool from '../db/database';
+import { cache, TTL } from '../utils/cache';
 
 // [SÉCURITÉ] Faille C4 : seuls ces rôles peuvent, sans lien owner_user, cibler un
 // propriétaire via owner_id (body/query). 'manager' et 'super_admin' volontairement
 // exclus (cf. journal T-025 : décision produit à trancher séparément).
 export const TENANT_PRIVILEGED_ROLES: readonly string[] = ['admin'];
+
+// [PERF] Résout et met en cache les owner_ids autorisés pour un utilisateur.
+// Clé individuelle par userId — aucun partage entre utilisateurs.
+// TTL = 5 min. Les 3 routes de révocation appellent cache.del(`tenant:owners:${userId}`)
+// pour garantir une révocation immédiate (delegationRoutes, ownerRoutes, userAssignmentRoutes).
+async function resolveValidOwnerIds(userId: number): Promise<number[]> {
+    const cacheKey = `tenant:owners:${userId}`;
+    const cached = cache.get<number[]>(cacheKey);
+    if (cached !== undefined) return cached;
+
+    const ownersRes = await pool.query(
+        `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
+        [userId]
+    );
+    const validOwnerIds = ownersRes.rows.map((row: { owner_id: number }) => row.owner_id);
+    cache.set(cacheKey, validOwnerIds, TTL.OWNER_IDS);
+    return validOwnerIds;
+}
 
 export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.userId) {
@@ -18,13 +37,9 @@ export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next
     let client: PoolClient | undefined;
 
     try {
-        // Récupérer tous les owner_ids liés à cet utilisateur
-        const ownersRes = await pool.query(
-            `SELECT owner_id FROM owner_user WHERE user_id = $1 AND is_active = TRUE`,
-            [req.userId]
-        );
-
-        const validOwnerIds = ownersRes.rows.map(row => row.owner_id);
+        // [PERF] Récupération cachée — 0 requête DB sur cache hit, 1 requête sur miss.
+        // Toute la logique de sécurité (X-Owner-Id, Faille C4, RLS) reste strictement inchangée.
+        const validOwnerIds = await resolveValidOwnerIds(req.userId);
 
         client = await pool.connect();
 
@@ -76,7 +91,7 @@ export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next
 
         } else if (validOwnerIds.length === 1) {
             // Un seul owner → mode propriétaire (RLS filtre sur cet owner)
-            await client.query(`SELECT set_config('app.current_owner_id', $1, false)`, [validOwnerIds[0].toString()]);
+            await client.query(`SELECT set_config('app.current_owner_id', $1, false)`, [(validOwnerIds[0] as number).toString()]);
             (req as any).resolvedOwnerId = validOwnerIds[0];
 
         } else {

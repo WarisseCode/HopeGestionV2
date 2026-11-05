@@ -8,6 +8,7 @@ import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 import pool from '../db/database';
 import { Response } from 'express';
 import { validate } from '../middleware/validate';
+import { cache } from '../utils/cache';
 
 const router = Router();
 
@@ -249,6 +250,10 @@ router.delete('/:userId/:ownerId', validate(deleteAssignRules), async (req: Auth
             'UPDATE owner_user SET is_active = false WHERE user_id = $1 AND owner_id = $2',
             [userId, ownerId]
         );
+        // [PERF+SÉCU] Invalider le cache tenantGuard de l'utilisateur dont
+        // l'affectation est supprimée — révocation immédiate sans attendre le TTL.
+        cache.del(`tenant:owners:${userId}`);
+
         res.json({ message: 'Affectation supprimée' });
     } catch (error) {
         console.error('Error removing assignment:', error);

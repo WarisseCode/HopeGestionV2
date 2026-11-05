@@ -1,4 +1,4 @@
-// backend/routes/ownerRoutes.ts
+﻿// backend/routes/ownerRoutes.ts
 import { Router, Response } from 'express';
 import { body, param } from 'express-validator';
 import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
@@ -6,6 +6,7 @@ import { checkOwnerAccess } from '../middleware/ownerIsolation';
 import { checkAgencyLimit } from '../middleware/subscriptionLimits';
 import { validate } from '../middleware/validate';
 import db from '../db/database';
+import { cache } from '../utils/cache';
 
 const router = Router();
 
@@ -259,6 +260,10 @@ router.delete('/:id/users/:userId', protect, validate(ownerRemoveUserRules), che
             'UPDATE owner_user SET is_active = FALSE, end_date = CURRENT_DATE WHERE owner_id = $1 AND user_id = $2',
             [ownerId, userId]
         );
+        // [PERF+SÉCU] Invalider le cache tenantGuard de l'utilisateur retiré
+        // pour que la révocation soit effective immédiatement.
+        cache.del(`tenant:owners:${userId}`);
+
         res.json({ success: true, message: 'Utilisateur retiré avec succès' });
     } catch (error) {
         console.error('Error removing user from owner:', error);

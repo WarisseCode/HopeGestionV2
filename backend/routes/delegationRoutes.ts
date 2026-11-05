@@ -3,6 +3,7 @@ import { body, param } from 'express-validator';
 import pool from '../db/database';
 import { protect } from '../middleware/authMiddleware';
 import { validate } from '../middleware/validate';
+import { cache } from '../utils/cache';
 
 const router = express.Router();
 
@@ -170,6 +171,10 @@ router.delete('/:targetId', protect, validate(delegationDeleteRules), async (req
        WHERE owner_id = $1 AND user_id = $2`,
       [ownerId, targetId]
     );
+
+    // [PERF+SÉCU] Invalider le cache tenantGuard du membre retiré →
+    // sa révocation est effective immédiatement à sa prochaine requête HTTP.
+    cache.del(`tenant:owners:${targetId}`);
 
     res.json({ message: "Membre retiré de l'équipe." });
   } catch (err: any) {
