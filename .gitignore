@@ -65,3 +65,6 @@ token.txt
 # Audit & working documents
 audit_hopegestion.md
 AUDIT_PROGRESS.md
+
+# Sauvegardes locales
+backups/

@@ -1,298 +1,118 @@
-# HopeGestionV2
+# HopeGestion
 
-Solution de gestion immobilière complète avec authentification sécurisée, API RESTful et interface utilisateur moderne.
+**Plateforme de gestion locative pensée pour le Bénin** : biens, locataires, baux, échéanciers, paiements Mobile Money, quittances et états des lieux, dans un seul outil.
 
-## 📋 Table des matières
+- Application web : [hopegestion.com](https://hopegestion.com)
+- Application mobile (Flutter) : [WarisseCode/HopeGestionMobile](https://github.com/WarisseCode/HopeGestionMobile)
+- **Statut** : en ligne, en phase de tests et d’ajustements avant l’ouverture aux premiers clients.
 
-- [Description](#description)
-- [Fonctionnalités](#fonctionnalités)
-- [Technologies](#technologies)
-- [Architecture](#architecture)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Utilisation](#utilisation)
-- [Structure du projet](#structure-du-projet)
-- [API Endpoints](#api-endpoints)
-- [Déploiement](#déploiement)
-- [Contribution](#contribution)
-- [License](#license)
+---
 
-## Description
+## Le problème
 
-HopeGestionV2 est une application web de gestion immobilière conçue pour aider les gestionnaires immobiliers à gérer efficacement leurs biens, locataires, baux, paiements et dépenses. L'application offre une interface intuitive avec un système d'authentification sécurisé basé sur JWT.
+Au Bénin, beaucoup de gestionnaires et de propriétaires suivent encore loyers, baux et locataires dans des cahiers, des fichiers Excel ou des conversations WhatsApp. Les retards de paiement sont repérés trop tard, les quittances se perdent et personne n’a de vue d’ensemble.
+
+HopeGestion couvre tout le cycle locatif — **bien → locataire → bail → échéancier → paiement → quittance → état des lieux** — avec ce que les utilisateurs utilisent déjà : le **FCFA**, le **Mobile Money** et **WhatsApp**.
 
 ## Fonctionnalités
 
-- 🔐 **Authentification sécurisée** : Inscription et connexion avec hachage bcrypt et tokens JWT
-- 🏠 **Gestion des biens** : CRUD complet pour les biens immobiliers
-- 👥 **Gestion des locataires** : Suivi des informations des locataires
-- 📄 **Gestion des baux** : Contrats de location avec dates de début/fin
-- 💰 **Suivi des paiements** : Enregistrement et suivi des paiements de loyer
-- 📊 **Tableau de bord** : Vue d'ensemble des statistiques
-- 🛡️ **Protection des routes** : Middleware d'authentification JWT
-- 🎨 **Interface moderne** : UI responsive avec Material-UI
+| Domaine | Ce que la plateforme permet |
+|---|---|
+| Parc immobilier | Immeubles et lots, occupation, propriétaires |
+| Locataires | Fiches, situation de paiement, contact direct (appel, WhatsApp) |
+| Baux & contrats | Création, signature électronique, renouvellement, résiliation, génération du contrat en PDF |
+| Argent | Échéanciers, encaissements, paiement en ligne par Mobile Money (FedaPay), quittances PDF, rapports |
+| Suivi des logements | États des lieux avec signature sur place, inventaires, interventions |
+| Réservations | Demandes reçues depuis le site public, transformation en bail |
+| Alertes | Rappels automatiques (échéances, interventions, tâches) |
 
-## Technologies
+**Quatre profils** ont chacun leur espace : gestionnaire, propriétaire, locataire, administrateur. Chaque propriétaire ne voit que ses propres données. Interface en **français et en anglais**, thème clair et sombre, adaptée au mobile.
 
-### Backend
-- [Node.js](https://nodejs.org/) - Environnement d'exécution JavaScript
-- [Express.js](https://expressjs.com/) - Framework web minimaliste
-- [TypeScript](https://www.typescriptlang.org/) - Typage statique pour JavaScript
-- [PostgreSQL](https://www.postgresql.org/) - Base de données relationnelle
-- [pg](https://node-postgres.com/) - Client PostgreSQL pour Node.js
-- [bcrypt](https://github.com/kelektiv/node.bcrypt.js) - Hachage de mots de passe
-- [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) - Implémentation JWT
-- [dotenv](https://github.com/motdotla/dotenv) - Gestion des variables d'environnement
-- [cors](https://github.com/expressjs/cors) - Gestion CORS
+## Stack technique
 
-### Frontend
-- [React](https://reactjs.org/) - Bibliothèque UI
-- [TypeScript](https://www.typescriptlang.org/) - Typage statique
-- [Vite](https://vitejs.dev/) - Outil de build rapide
-- [Material-UI](https://mui.com/) - Composants UI React
-- [Emotion](https://emotion.sh/) - Styling CSS-in-JS
-
-### DevOps
-- [nodemon](https://nodemon.io/) - Redémarrage automatique en développement
-- [ts-node](https://typestrong.org/ts-node/) - Exécution directe de TypeScript
+| Couche | Technologies |
+|---|---|
+| Backend | Node.js 20, Express 5, TypeScript, PostgreSQL (`pg`, requêtes SQL paramétrées, sans ORM) |
+| Authentification | JWT + refresh tokens, cookies httpOnly (web), routes dédiées au mobile, Google OAuth |
+| Frontend | React 19, Vite, TailwindCSS 4 + DaisyUI, TanStack Query, React Router 7, i18next, Recharts |
+| Mobile | Flutter (dépôt séparé), sur la même API |
+| Intégrations | FedaPay (Mobile Money), Twilio (WhatsApp), Nodemailer (emails), PDFKit et ExcelJS (documents) |
+| Fichiers | DigitalOcean Spaces (compatible S3), disque local en développement |
+| Sécurité | Helmet, limitation de débit, validation des entrées, isolation des données par propriétaire |
+| Production | VPS, PM2, Nginx, déploiement automatique par GitHub Actions |
 
 ## Architecture
 
-L'application suit une architecture client-serveur avec séparation claire des responsabilités :
-
-```
-┌─────────────┐    HTTP    ┌──────────────┐
-│   Frontend  │ ──────────▶ │    Backend   │
-│   (React)   │ ◀────────── │ (Node/Express)│
-└─────────────┘    JSON    └──────────────┘
-                              │
-                              ▼
-                        ┌──────────────┐
-                        │  PostgreSQL  │
-                        │   Database   │
-                        └──────────────┘
+```mermaid
+flowchart LR
+  W[Web React] -- HTTPS --> N[Nginx]
+  M[Mobile Flutter] -- HTTPS --> N
+  N --> API[API Express + TypeScript]
+  API --> DB[(PostgreSQL)]
+  API --> S3[(Stockage des fichiers)]
+  API --> PAY[FedaPay · Mobile Money]
+  API --> MSG[WhatsApp · Emails]
+  CRON[Tâches planifiées] --> API
 ```
 
-### Structure Backend
-- `/routes` : Définition des endpoints API
-- `/middleware` : Fonctions intermédiaires (authentification)
-- `/db` : Scripts d'initialisation de la base de données
-- `/api` : Logique métier et accès aux données
+## Structure du dépôt
 
-### Structure Frontend
-- `/src/components` : Composants UI réutilisables
-- `/src/pages` : Pages principales de l'application
-- `/src/api` : Services d'appel à l'API
-- `/src/theme` : Configuration du thème Material-UI
-
-## Installation
-
-### Prérequis
-- Node.js >= 16.x
-- PostgreSQL >= 12.x
-- npm >= 8.x
-
-### Backend
-
-```bash
-# Naviguer vers le dossier backend
-cd backend
-
-# Installer les dépendances
-npm install
-
-# Initialiser la base de données (voir section Configuration)
+```
+backend/        API Express (routes, services, middleware, tests, scripts)
+frontend/       Application web React
+shared/types/   Types TypeScript partagés entre le backend et le frontend
+nginx/          Configuration Nginx de production
+scripts/        Scripts d’installation du serveur et utilitaires
+docs/           Documentation (déploiement, architecture, journal du projet, design)
 ```
 
-### Frontend
+## Lancer le projet en local
 
-```bash
-# Naviguer vers le dossier frontend
-cd frontend
+Prérequis : **Node.js 20** (voir `.nvmrc`) et **PostgreSQL**.
 
-# Installer les dépendances
-npm install
-```
+**1. Backend**
 
-## Configuration
-
-### Variables d'environnement
-
-Créer un fichier `.env` dans le dossier `backend/` :
-
-```env
-# Configuration du Serveur
-PORT=5000
-NODE_ENV=development
-
-# Configuration de la Base de Données PostgreSQL
-DB_USER=votre_utilisateur
-DB_PASSWORD=votre_mot_de_passe
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=nom_de_votre_base
-
-# Clés secrètes pour l'authentification
-JWT_SECRET=votre_clé_secrète_très_longue_et_aléatoire
-```
-
-### Base de données
-
-1. Créer une base de données PostgreSQL :
-```sql
-CREATE DATABASE hope_gestion_db;
-```
-
-2. Exécuter le script d'initialisation :
-```bash
-psql -U votre_utilisateur -d hope_gestion_db -f backend/db/init.sql
-```
-
-## Utilisation
-
-### Démarrage en développement
-
-#### Backend
 ```bash
 cd backend
-npm run dev
-# Le serveur démarre sur http://localhost:5000
+cp .env.example .env        # puis renseigner la base (DATABASE_URL ou DB_HOST, DB_USER, DB_PASSWORD, DB_NAME) et JWT_SECRET
+npm install
+psql "$DATABASE_URL" -f db/init.sql   # une seule fois, sur une base vide
+npm run dev                 # les migrations s’appliquent au démarrage
 ```
 
-#### Frontend
+**2. Frontend**
+
 ```bash
 cd frontend
+cp .env.example .env        # VITE_API_URL=http://localhost:5000
+npm install
 npm run dev
-# L'application démarre sur http://localhost:5173
 ```
 
-### Scripts disponibles
+Les intégrations externes (FedaPay, Twilio, Spaces, emails) sont facultatives en local : sans leurs clés, l’application fonctionne avec un stockage local et l’envoi WhatsApp passe en mode simulation.
 
-#### Backend
-- `npm run dev` : Démarrage en mode développement avec nodemon
-- `npm start` : Démarrage en mode production
-- `npm test` : Exécution des tests
+## Tests et qualité
 
-#### Frontend
-- `npm run dev` : Démarrage du serveur de développement
-- `npm run build` : Build pour la production
-- `npm run preview` : Prévisualisation du build
-- `npm run lint` : Vérification du code
-
-## Structure du projet
-
+```bash
+cd backend && npm test        # Jest + Supertest
+cd backend && npm run lint
+cd frontend && npm run lint
+cd frontend && npm run build  # vérification des types puis build
 ```
-HopeGestionV2/
-├── backend/
-│   ├── db/
-│   │   └── init.sql              # Schéma de base de données
-│   ├── middleware/
-│   │   └── authMiddleware.ts     # Protection des routes
-│   ├── routes/
-│   │   ├── authRoutes.ts         # Authentification
-│   │   ├── bienRoutes.ts         # Gestion des biens
-│   │   ├── locataireRoutes.ts    # Gestion des locataires
-│   │   ├── bauxRoutes.ts         # Gestion des baux
-│   │   ├── paiementRoutes.ts     # Gestion des paiements
-│   │   ├── depenseRoutes.ts      # Gestion des dépenses
-│   │   └── dashboardRoutes.ts    # Tableau de bord
-│   ├── .env                      # Variables d'environnement
-│   ├── index.ts                  # Point d'entrée de l'application
-│   ├── package.json              # Dépendances backend
-│   └── tsconfig.json             # Configuration TypeScript
-└── frontend/
-    ├── src/
-    │   ├── api/
-    │   │   └── authApi.ts        # Services d'authentification
-    │   ├── components/
-    │   │   └── LoginForm.tsx     # Formulaire de connexion
-    │   ├── pages/
-    │   │   └── Dashboard.tsx     # Tableau de bord
-    │   ├── theme/
-    │   │   └── Theme.tsx         # Configuration du thème
-    │   ├── App.tsx               # Composant principal
-    │   └── main.tsx              # Point d'entrée React
-    ├── package.json              # Dépendances frontend
-    └── vite.config.ts            # Configuration Vite
-```
-
-## API Endpoints
-
-### Authentification
-- `POST /api/auth/register` : Inscription d'un nouveau gestionnaire
-- `POST /api/auth/login` : Connexion utilisateur
-
-### Biens immobiliers
-- `GET /api/biens` : Liste des biens
-- `POST /api/biens` : Création d'un bien
-- `PUT /api/biens/:id` : Modification d'un bien
-- `DELETE /api/biens/:id` : Suppression d'un bien
-
-### Locataires
-- `GET /api/locataires` : Liste des locataires
-- `POST /api/locataires` : Création d'un locataire
-- `PUT /api/locataires/:id` : Modification d'un locataire
-- `DELETE /api/locataires/:id` : Suppression d'un locataire
-
-### Baux
-- `GET /api/baux` : Liste des baux
-- `POST /api/baux` : Création d'un bail
-- `PUT /api/baux/:id` : Modification d'un bail
-- `DELETE /api/baux/:id` : Suppression d'un bail
-
-### Paiements
-- `GET /api/paiements` : Liste des paiements
-- `POST /api/paiements` : Enregistrement d'un paiement
-
-### Dépenses
-- `GET /api/depenses` : Liste des dépenses
-- `POST /api/depenses` : Enregistrement d'une dépense
-
-### Tableau de bord
-- `GET /api/dashboard/stats` : Statistiques générales
-
-Tous les endpoints (sauf authentification) nécessitent un token JWT valide.
-
-### 📱 Documentation pour l'Application Mobile (Dépôt Distant)
-L'application mobile HopeGestion réside dans un dépôt distant dédié et interagit avec cette API.
-Pour consulter la documentation complète d'intégration (endpoints, cycle de vie des refresh tokens, schémas de données, exemples de requêtes et gestion des notifications push) :
-👉 **[Consulter le Guide d'Intégration API Mobile](docs/API_DOCUMENTATION_MOBILE.md)**
-
-Une documentation interactive OpenAPI / Swagger est également disponible sur `/api/docs` lorsque le serveur backend est en cours d'exécution.
 
 ## Déploiement
 
-### Backend
-1. Compiler le code TypeScript :
-```bash
-cd backend
-npx tsc
-```
+Chaque fusion sur `main` déclenche le déploiement sur le VPS (`.github/workflows/deploy.yml`) : build du backend, migrations, redémarrage PM2, build du frontend, rechargement de Nginx. Guide complet : [docs/DEPLOIEMENT_VPS.md](docs/DEPLOIEMENT_VPS.md).
 
-2. Démarrer le serveur :
-```bash
-node dist/index.js
-```
+## Documentation
 
-### Frontend
-1. Construire l'application :
-```bash
-cd frontend
-npm run build
-```
+- [Journal du projet](docs/JOURNAL_PROJET.md) : chaque évolution, ses choix techniques et ses difficultés
+- [Règles d’architecture](docs/ARCHITECTURE_RULES.md)
+- [API pour l’application mobile](docs/API_DOCUMENTATION_MOBILE.md)
+- [Charte graphique](docs/design/CHARTE_GRAPHIQUE.md)
+- [Suivi des améliorations](docs/suivi/)
+- Anciennes configurations d’hébergement (Render, Railway, DigitalOcean), conservées pour mémoire : [docs/archive/anciens-hebergeurs/](docs/archive/anciens-hebergeurs/)
 
-2. Déployer le contenu du dossier `dist/` sur un serveur web.
+## Auteur
 
-## Contribution
-
-Les contributions sont les bienvenues ! Pour contribuer :
-
-1. Fork le projet
-2. Créer une branche pour votre fonctionnalité (`git checkout -b feature/AmazingFeature`)
-3. Committer vos modifications (`git commit -m 'Add some AmazingFeature'`)
-4. Push vers la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrir une Pull Request
-
-## License
-
-Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus d'informations.
+**Warisse Olouwadamilaré OTCHADE** — conception et développement, depuis décembre 2025, avec l’assistance de Claude Code.
