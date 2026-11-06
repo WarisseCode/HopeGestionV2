@@ -1602,6 +1602,37 @@ const MIGRATIONS: Migration[] = [
               ADD COLUMN IF NOT EXISTS client_type VARCHAR(10) NOT NULL DEFAULT 'web'
               CONSTRAINT refresh_tokens_client_type_check CHECK (client_type IN ('web', 'mobile'));
         `
+    },
+    {
+        name: '065_donations_table',
+        // Module Dons de soutien (dashboard super-admin) : le donateur n'est jamais un
+        // utilisateur de la plateforme (pas de compte, pas de page publique pour l'instant —
+        // l'admin initie le don depuis le dashboard) -> identité libre, pas de FK vers users
+        // pour le donateur. created_by trace l'admin qui a initié la transaction FedaPay.
+        sql: `
+            CREATE TABLE IF NOT EXISTS donations (
+                id SERIAL PRIMARY KEY,
+                donor_name VARCHAR(255) NOT NULL,
+                donor_email VARCHAR(255),
+                donor_phone VARCHAR(50),
+                amount DECIMAL(12, 2) NOT NULL,
+                currency VARCHAR(10) DEFAULT 'XOF',
+                description TEXT,
+                -- pending | approved | declined | canceled | refunded | transferred
+                status VARCHAR(20) NOT NULL DEFAULT 'pending',
+                fedapay_transaction_id VARCHAR(255) UNIQUE,
+                payment_url TEXT,
+                receipt_url TEXT,
+                created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                paid_at TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_donations_status ON donations(status);
+            CREATE INDEX IF NOT EXISTS idx_donations_fedapay_id ON donations(fedapay_transaction_id);
+            CREATE INDEX IF NOT EXISTS idx_donations_created_by ON donations(created_by);
+            CREATE INDEX IF NOT EXISTS idx_donations_created_at ON donations(created_at);
+        `
     }
 ];
 

@@ -320,6 +320,12 @@ app.use('/api/deploy', deployRoutes);
 import rentPaymentRoutes from './routes/rentPaymentRoutes';
 app.use('/api/rent-payments', protect, rentPaymentRoutes);
 
+// Routes Dons (super-admin) — PAS de `protect` global : /webhook est appelé
+// directement par FedaPay (sans jeton), l'auth est appliquée route par route
+// dans donationRoutes.ts (même raison que subscriptionRoutes.ts ci-dessus).
+import donationRoutes from './routes/donationRoutes';
+app.use('/api/donations', donationRoutes);
+
 // Route Test Protégée (pour validation rapide de 'protect')
 // Route Test Protégée (pour validation rapide de 'protect')
 app.get('/api/profil', protect, async (req: AuthenticatedRequest, res: Response) => {
