@@ -1213,4 +1213,28 @@ Mis à jour automatiquement après chaque tâche.
 - **Problèmes rencontrés** :
   - `migrate_fix.js` contenait un mot de passe PostgreSQL en clair, en repli d'une variable d'environnement ; il reste dans l'historique public : à considérer comme compromis et à changer s'il a servi quelque part.
   - Vérification sur un clone neuf, avec les commandes du déploiement : `npm ci` + build backend OK, `npm ci --legacy-peer-deps` + build frontend OK, sans `node_modules` racine. Tests backend : 397 réussis, 22 en échec (7 fichiers) — résultat strictement identique sur `main` avant le changement, échecs préexistants non traités ici.
+
+### T-074 : Commit du module Dons de soutien (super-admin)
+- **Date** : 2026-11-07
+- **Statut** : Terminée
+- **Type** : Fonctionnalité
+- **Description** : Enregistrement dans git (commit `8775f3bc`) du module Dons, jusque-là non committé : table `donations` (migration `065_donations_table`), routes `/api/donations` montées dans `index.ts`, service de reçus PDF et son test. Le code avait été écrit avant cette session ; aucune modification n'y a été apportée.
+- **Fichiers touchés** : `backend/index.ts`, `backend/scripts/runMigrations.ts`, `backend/routes/donationRoutes.ts`, `backend/services/DonationReceiptService.ts`, `backend/tests/services/donationReceiptService.filename.test.ts`
+- **Décisions & justifications** : Commit séparé de l'étape perf T-075 à la demande de l'utilisateur, pour ne pas mêler les deux sujets alors que les deux migrations sont dans le même fichier. Avant le commit : pas de secret en dur, `tsc --noEmit` à 0 erreur, test des reçus OK. Logos, `deploy-helper.sh` et `.claude/audit-ui-ux.md` laissés hors commit (sans rapport).
+- **Remplace / modifie** : aucune
+
+### T-075 : Index de performance sur les tables cœur (étape perf 4)
+- **Date** : 2026-11-07
+- **Statut** : Terminée
+- **Type** : Config
+- **Description** : Migration `066_perf_indexes_core_tables` : index sur `payments(lease_id)`, `payments(date_paiement)`, `leases(tenant_id)`, `leases(lot_id)`, `lots(building_id)`, `tenants(email)`, `owner_id` de `payments`/`lots`/`buildings`/`leases`, et composite `leases(owner_id, statut)`. Fait suite aux étapes perf 1 à 3 (commits `4a337da9`, `864318a5`, `942f5651`, non journalisées ici).
+- **Fichiers touchés** : `backend/scripts/runMigrations.ts`, `docs/JOURNAL_PROJET.md`
+- **Décisions & justifications** :
+  - Les migrations sont dans le tableau `MIGRATIONS` de `runMigrations.ts` (le dossier `backend/migrations/` ne contient qu'une archive) : l'entrée y est ajoutée.
+  - `idx_owner_user_user_id` retiré de la liste prévue : il existe déjà (migration 004).
+  - `leases(statut)` seul remplacé par `leases(owner_id, statut)` : 3 valeurs possibles, trop peu sélectif pour être utilisé seul ; les requêtes filtrent par propriétaire et par statut ensemble.
+  - `payments(date_paiement)` conservé pour le `ORDER BY ... LIMIT` ; il n'accélère pas les filtres `EXTRACT(MONTH ...)` du dashboard.
+  - Pas de `CONCURRENTLY` : interdit dans le `BEGIN/COMMIT` du runner. Les écritures sur ces tables sont bloquées le temps de la création des index, au démarrage.
+  - Sécurité : RLS, `set_config`, `req.dbClient` et le filtre `owner_id = ANY(...)` sont inchangés ; aucune donnée modifiée ; tout est idempotent.
+- **Problèmes rencontrés** : `owner_id` sur `buildings`/`lots`/`leases`/`payments` n'est créé par aucune migration suivie (ni `init.sql` ni `_archive`) : ajout manuel en production (à confirmer). Ces index sont créés seulement si la colonne existe (contrôle dans `information_schema` via un bloc `DO`), pour que la migration ne soit pas annulée sur une base neuve. Migration non exécutée contre une base locale pendant la session : à vérifier dans les logs du prochain démarrage (`066_perf_indexes_core_tables — OK`).
 - **Remplace / modifie** : aucune

@@ -1633,6 +1633,50 @@ const MIGRATIONS: Migration[] = [
             CREATE INDEX IF NOT EXISTS idx_donations_created_by ON donations(created_by);
             CREATE INDEX IF NOT EXISTS idx_donations_created_at ON donations(created_at);
         `
+    },
+    {
+        name: '066_perf_indexes_core_tables',
+        // Index de performance sur les colonnes de jointure / filtre des tables cœur.
+        // N'affecte pas RLS : les politiques s'appliquent toujours, l'index accélère
+        // seulement l'accès aux lignes déjà filtrées.
+        // Pas de CONCURRENTLY : le runner exécute chaque migration dans un BEGIN/COMMIT,
+        // et CONCURRENTLY est interdit dans une transaction.
+        // idx_owner_user_user_id existe déjà (migration 004) -> non recréé ici.
+        sql: `
+            -- Clés étrangères utilisées dans les JOIN (colonnes présentes dans init.sql)
+            CREATE INDEX IF NOT EXISTS idx_payments_lease_id  ON payments(lease_id);
+            -- Sert le ORDER BY date_paiement DESC LIMIT n (pas les filtres EXTRACT(MONTH ...))
+            CREATE INDEX IF NOT EXISTS idx_payments_date      ON payments(date_paiement);
+            CREATE INDEX IF NOT EXISTS idx_leases_tenant_id   ON leases(tenant_id);
+            CREATE INDEX IF NOT EXISTS idx_leases_lot_id      ON leases(lot_id);
+            CREATE INDEX IF NOT EXISTS idx_lots_building_id   ON lots(building_id);
+            CREATE INDEX IF NOT EXISTS idx_tenants_email      ON tenants(email);
+
+            -- owner_id sur ces tables n'est créé par aucune migration suivie (ajout manuel
+            -- en prod, à confirmer) : on vérifie la colonne avant de créer l'index, sinon
+            -- l'erreur annulerait toute la migration sur une base neuve.
+            DO $$
+            DECLARE t TEXT;
+            BEGIN
+                FOREACH t IN ARRAY ARRAY['payments', 'lots', 'buildings', 'leases'] LOOP
+                    IF EXISTS (SELECT 1 FROM information_schema.columns
+                               WHERE table_schema = current_schema()
+                                 AND table_name = t AND column_name = 'owner_id') THEN
+                        -- %I échappe les identifiants (liste fixe, jamais d'entrée utilisateur)
+                        EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %I(owner_id)',
+                                       'idx_' || t || '_owner_id', t);
+                    END IF;
+                END LOOP;
+
+                -- Composite "baux actifs d'un propriétaire" : remplace un index sur
+                -- leases(statut) seul, trop peu sélectif (3 valeurs) pour être utilisé.
+                IF EXISTS (SELECT 1 FROM information_schema.columns
+                           WHERE table_schema = current_schema()
+                             AND table_name = 'leases' AND column_name = 'owner_id') THEN
+                    CREATE INDEX IF NOT EXISTS idx_leases_owner_statut ON leases(owner_id, statut);
+                END IF;
+            END $$;
+        `
     }
 ];
 
