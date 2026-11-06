@@ -84,7 +84,7 @@ npm run dev                 # les migrations s’appliquent au démarrage
 
 ```bash
 cd frontend
-cp .env.example .env        # VITE_API_URL=http://localhost:5000/api
+cp .env.example .env        # VITE_API_URL=http://localhost:5000
 npm install
 npm run dev
 ```

@@ -1194,3 +1194,23 @@ Mis à jour automatiquement après chaque tâche.
   - Contrôle Playwright avec API simulée : aucun débordement à 360, 768 et 1440 px (clair et sombre) sur les trois écrans, aucune erreur JS ; appels vérifiés : acceptation, refus, création du bail, clôture, comparaison, corbeille, finalisation, création de sortie pré-remplie ; vue propriétaire sans actions d'écriture.
   - `tsc -b` propre ; lint des quatre pages : 23 erreurs → 6 (celles d'EdlCreate, préexistantes).
 - **Remplace / modifie** : aucune (mise en œuvre des maquettes T-071)
+
+### T-073 : Nettoyage et réorganisation du dépôt, README réécrit
+- **Date** : 2026-11-06
+- **Statut** : Terminée
+- **Type** : Refactorisation
+- **Description** : Le dépôt public sert de vitrine (lien envoyé pour un entretien) : fichiers qui n'auraient jamais dû être suivis retirés, documentation regroupée dans `docs/`, configurations des anciens hébergeurs archivées, README réécrit pour décrire le projet tel qu'il est. Aucun fichier de code applicatif modifié.
+- **Fichiers touchés** :
+  - retirés du suivi : `node_modules/` racine (364 fichiers), `uploads/` et `backups/` racine (fichiers de test, confirmé par l'utilisateur), `migrate_fix.js` ;
+  - archivés dans `docs/archive/anciens-hebergeurs/` : `render.yaml`, `railway.toml`, `.do/app.yaml`, `backend/Procfile`, `DEPLOYMENT.md`, `DEPLOYMENT_QUICKSTART.md`, `deploy-helper.sh`, `RAILWAY_DEPLOYMENT.md`, `CUSTOM_DOMAIN_SETUP.md` ;
+  - déplacés dans `docs/` : `OVH_DEPLOYMENT.md` → `docs/DEPLOIEMENT_VPS.md`, `ARCHITECTURE_RULES.md`, `STATUS.md`, `AMELIORATIONS.md`, `PLAN_ACTION_FRONTEND.md`, `PLAN_CORRECTIONS_BACKEND.md` (→ `docs/suivi/`), charte graphique et `.Jules/palette.md` (→ `docs/design/`) ;
+  - modifiés : `README.md`, `.gitignore` (`backups/`), `scripts/setup-ovh.sh` (chemin du guide), `docs/JOURNAL_PROJET.md`.
+- **Décisions & justifications** :
+  - Vérifié avant de retirer quoi que ce soit : la production sert `backend/uploads/` (Nginx `alias /var/www/hopegestion/backend/uploads/`, `express.static` et écritures sur `backend/dist/../uploads`), jamais `uploads/` ni `backups/` à la racine ; le déploiement installe ses dépendances dans `backend/` et `frontend/` (le frontend a ses propres `tailwindcss` / `@tailwindcss/postcss`), jamais à la racine. Le `git reset --hard` du déploiement supprimera ces copies de la racine du serveur, sans effet sur le site.
+  - Historique git conservé tel quel (fichiers de test, choix de l'utilisateur).
+  - `ecosystem.config.js` (PM2), `nginx/`, `.github/`, `CLAUDE.md` restent à la racine. L'outillage monorepo inutilisé (`packages/` — copie identique de `shared/types` jamais importée —, `turbo.json`, `tsconfig.base.json`, workspaces du `package.json` racine) est laissé en place : le retirer obligerait à régénérer le `package-lock.json` racine pour aucun gain sur le site (à traiter séparément si souhaité).
+  - Le journal n'est pas réécrit : ses anciennes entrées citent les fichiers à leur ancien emplacement.
+- **Problèmes rencontrés** :
+  - `migrate_fix.js` contenait un mot de passe PostgreSQL en clair, en repli d'une variable d'environnement ; il reste dans l'historique public : à considérer comme compromis et à changer s'il a servi quelque part.
+  - Vérification sur un clone neuf, avec les commandes du déploiement : `npm ci` + build backend OK, `npm ci --legacy-peer-deps` + build frontend OK, sans `node_modules` racine. Tests backend : 397 réussis, 22 en échec (7 fichiers) — résultat strictement identique sur `main` avant le changement, échecs préexistants non traités ici.
+- **Remplace / modifie** : aucune
