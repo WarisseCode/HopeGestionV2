@@ -1239,7 +1239,7 @@ Mis à jour automatiquement après chaque tâche.
 - **Problèmes rencontrés** : `owner_id` sur `buildings`/`lots`/`leases`/`payments` n'est créé par aucune migration suivie (ni `init.sql` ni `_archive`) : ajout manuel en production (à confirmer). Ces index sont créés seulement si la colonne existe (contrôle dans `information_schema` via un bloc `DO`), pour que la migration ne soit pas annulée sur une base neuve. Migration non exécutée contre une base locale pendant la session : à vérifier dans les logs du prochain démarrage (`066_perf_indexes_core_tables — OK`).
 - **Remplace / modifie** : aucune
 
-### T-074 : Correction du plantage des pages Biens, Baux & locations et Contrats
+### T-076 : Correction du plantage des pages Biens, Baux & locations et Contrats
 - **Date** : 2026-11-07
 - **Statut** : Terminée
 - **Type** : Correction
