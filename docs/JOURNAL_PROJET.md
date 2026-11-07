@@ -1258,3 +1258,13 @@ Mis à jour automatiquement après chaque tâche.
 - **Décisions & justifications** : DejaVu Sans n'existait qu'en 400 et 700, donc tout ce qui était semi-gras passait en gras. Comparaison visuelle DejaVu / Inter / Plus Jakarta Sans sur la page Locataires : Plus Jakarta Sans retenue par l'utilisateur. Fichiers repris de @fontsource-variable/plus-jakarta-sans 5.1.0 (OFL) et servis depuis /fonts comme avant : aucune dépendance externe, aucun appel à Google Fonts. Un seul fichier de styles change : aucune logique applicative touchée.
 - **Problèmes rencontrés** : l'espace de cette police est très étroite (« En retard » se lisait « Enretard ») : corrigé par `word-spacing`. Les boutons et champs ne l'héritaient pas (le navigateur impose `normal`) : règle `word-spacing: inherit` ajoutée. Reste ouvert : l'espace fine des montants (U+202F, « 391 347 ») reste étroite. Chrome l'ignore pour `word-spacing` et pour `unicode-range` (essais faits puis annulés). La corriger demanderait un formateur de montants partagé (82 appels dans 49 fichiers).
 - **Remplace / modifie** : —
+
+### T-078 : Règle d'attribution des commits et des PR
+- **Date** : 2026-11-07
+- **Statut** : Terminée
+- **Type** : Config
+- **Description** : Ajout dans `CLAUDE.md` d'une section « Commits et pull requests » : les commits sont faits au nom de Warisse OTCHADE, et aucune mention de Claude (Co-Authored-By, lien de session, pied de page) n'apparaît dans les commits, PR ou commentaires.
+- **Fichiers touchés** : CLAUDE.md, docs/JOURNAL_PROJET.md
+- **Décisions & justifications** : demande du propriétaire du dépôt. La règle est écrite dans `CLAUDE.md` pour s'appliquer aussi aux sessions futures. L'historique déjà fusionné n'est pas réécrit : cela demanderait un force-push sur `main`, risqué pour le déploiement automatique.
+- **Problèmes rencontrés** : —
+- **Remplace / modifie** : —
