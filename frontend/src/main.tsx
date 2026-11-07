@@ -1,4 +1,6 @@
 // frontend/src/main.tsx
+// En premier : corrige l'espace des milliers avant tout formatage (voir utils/numberSpacing.ts)
+import './utils/numberSpacing';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
