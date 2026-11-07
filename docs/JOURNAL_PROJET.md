@@ -1268,3 +1268,13 @@ Mis à jour automatiquement après chaque tâche.
 - **Décisions & justifications** : demande du propriétaire du dépôt. La règle est écrite dans `CLAUDE.md` pour s'appliquer aussi aux sessions futures. L'historique déjà fusionné n'est pas réécrit : cela demanderait un force-push sur `main`, risqué pour le déploiement automatique.
 - **Problèmes rencontrés** : —
 - **Remplace / modifie** : —
+
+### T-079 : Espace des milliers lisible dans les montants
+- **Date** : 2026-11-07
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : Les montants formatés en français (« 391 347 FCFA ») utilisent une espace fine insécable (U+202F), presque invisible dans Plus Jakarta Sans : « 391347 ». Un correctif chargé en premier dans `main.tsx` remplace ce caractère par l'espace insécable classique (U+00A0) dans `Number.toLocaleString`, `Intl.NumberFormat.format` et `formatToParts`.
+- **Fichiers touchés** : frontend/src/utils/numberSpacing.ts (créé), frontend/src/main.tsx, docs/JOURNAL_PROJET.md
+- **Décisions & justifications** : le CSS ne peut pas corriger ce caractère (Chrome ignore `word-spacing` et `unicode-range` pour U+202F, essais en T-077). Plutôt que de modifier ~80 appels de formatage dans 49 fichiers, un seul point d'entrée, commenté et protégé contre le double chargement. U+00A0 reste insécable : un montant ne se coupe toujours pas en fin de ligne. Les dates et les autres langues ne sont pas touchées.
+- **Problèmes rencontrés** : les `import` ES sont évalués avant le corps du fichier : le correctif s'applique donc à l'import du module lui-même, placé en premier. Contrôles : caractère produit (U+00A0), écart mesuré de 1,4 px à 4 px pour 16 px, `en-US` et dates inchangés, `pdfGenerator` gère déjà les deux espaces, `tsc` et `npm run build` OK.
+- **Remplace / modifie** : T-077 (le point resté ouvert sur l'espace des montants est traité ici)
