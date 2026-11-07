@@ -84,7 +84,10 @@ router.get('/', permissions.canRead('locataires'), tenantGuard, async (req: Auth
         const { statut } = req.query;
         // [SÉCURITÉ] Même filtrage par propriétaire que GET /:id (scopeByOwner) :
         // la liste renvoyait les baux de TOUS les propriétaires (IDOR).
-        const leases = await LeaseService.findAll(dbClient, {
+        // findAll renvoie un objet paginé { leases, total, page, totalPages } :
+        // on n'expose ici que le tableau, car le front (useBiens, Locations, Contrats)
+        // attend `locations` sous forme de liste (.forEach / .map).
+        const { leases } = await LeaseService.findAll(dbClient, {
             isAdmin: (req as any).userRole === 'admin',
             validOwnerIds: (req as any).validOwnerIds || [],
         }, { statut: statut as string });

@@ -27,7 +27,9 @@ router.get('/', permissions.canRead('locataires'), tenantGuard, async (req: Auth
             statut: statut as string,
             ...(pageNum !== undefined && limitNum !== undefined ? { page: pageNum, limit: limitNum } : {}),
         });
-        res.json(result);  // { leases, total, page, totalPages }
+        // Compatibilité : les clients existants (dont l'app mobile, à confirmer) lisent `baux`.
+        // On garde cette clé et on ajoute les infos de pagination à côté.
+        res.json({ baux: result.leases, total: result.total, page: result.page, totalPages: result.totalPages });
     } catch (error) {
         console.error('Error fetching leases (baux):', error);
         res.status(500).json({ message: 'Erreur serveur' });
