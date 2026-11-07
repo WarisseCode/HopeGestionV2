@@ -1248,3 +1248,13 @@ Mis à jour automatiquement après chaque tâche.
 - **Décisions & justifications** : correction côté backend (contrat d'API rétabli) plutôt que côté front, pour ne pas toucher les trois pages ni les autres clients. `GET /api/baux` renvoie de nouveau la clé historique `baux` (clients existants, dont l'app mobile à confirmer), avec `total`, `page`, `totalPages` en plus : la pagination reste disponible.
 - **Problèmes rencontrés** : le test `lease.ownerScope.test.ts` détectait déjà la régression ; il repasse. Les 21 échecs restants sont identiques sur main (préexistants). Le 404 sur un fichier `/uploads/properties/*.webp` vu dans la console est un fichier absent du serveur, sans lien avec le plantage.
 - **Remplace / modifie** : —
+
+### T-077 : Nouvelle police Plus Jakarta Sans (fin de l'effet « tout en gras »)
+- **Date** : 2026-11-07
+- **Statut** : Terminée
+- **Type** : Fonctionnalité
+- **Description** : Remplacement de DejaVu Sans par Plus Jakarta Sans, police variable auto-hébergée (graisses 200 à 800, latin et latin étendu, droit et italique). Les textes en `font-medium` / `font-semibold` s'affichent enfin à leur vraie graisse au lieu du gras complet. Ajout d'un léger espacement entre les mots (`word-spacing: 0.08em`), aussi hérité par les boutons et champs.
+- **Fichiers touchés** : frontend/src/globals.css, frontend/src/config/branding.ts, frontend/public/fonts/ (4 fichiers PlusJakartaSans-*.woff2 + licence OFL ajoutés ; 4 fichiers DejaVuSans*.woff2 + licence retirés), docs/JOURNAL_PROJET.md
+- **Décisions & justifications** : DejaVu Sans n'existait qu'en 400 et 700, donc tout ce qui était semi-gras passait en gras. Comparaison visuelle DejaVu / Inter / Plus Jakarta Sans sur la page Locataires : Plus Jakarta Sans retenue par l'utilisateur. Fichiers repris de @fontsource-variable/plus-jakarta-sans 5.1.0 (OFL) et servis depuis /fonts comme avant : aucune dépendance externe, aucun appel à Google Fonts. Un seul fichier de styles change : aucune logique applicative touchée.
+- **Problèmes rencontrés** : l'espace de cette police est très étroite (« En retard » se lisait « Enretard ») : corrigé par `word-spacing`. Les boutons et champs ne l'héritaient pas (le navigateur impose `normal`) : règle `word-spacing: inherit` ajoutée. Reste ouvert : l'espace fine des montants (U+202F, « 391 347 ») reste étroite. Chrome l'ignore pour `word-spacing` et pour `unicode-range` (essais faits puis annulés). La corriger demanderait un formateur de montants partagé (82 appels dans 49 fichiers).
+- **Remplace / modifie** : —
