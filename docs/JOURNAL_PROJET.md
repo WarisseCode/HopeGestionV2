@@ -1238,3 +1238,13 @@ Mis à jour automatiquement après chaque tâche.
   - Sécurité : RLS, `set_config`, `req.dbClient` et le filtre `owner_id = ANY(...)` sont inchangés ; aucune donnée modifiée ; tout est idempotent.
 - **Problèmes rencontrés** : `owner_id` sur `buildings`/`lots`/`leases`/`payments` n'est créé par aucune migration suivie (ni `init.sql` ni `_archive`) : ajout manuel en production (à confirmer). Ces index sont créés seulement si la colonne existe (contrôle dans `information_schema` via un bloc `DO`), pour que la migration ne soit pas annulée sur une base neuve. Migration non exécutée contre une base locale pendant la session : à vérifier dans les logs du prochain démarrage (`066_perf_indexes_core_tables — OK`).
 - **Remplace / modifie** : aucune
+
+### T-076 : Correction du plantage des pages Biens, Baux & locations et Contrats
+- **Date** : 2026-11-07
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : Depuis le commit 864318a (pagination optionnelle), `LeaseService.findAll` renvoie un objet `{ leases, total, page, totalPages }` alors que `GET /api/locations` l'enveloppait toujours tel quel dans `{ locations }`. Le front recevait un objet au lieu d'une liste et plantait (`q.forEach is not a function` dans `useBiens`) sur /dashboard/biens, /dashboard/locations et /dashboard/contrats. La route extrait désormais le tableau `leases`.
+- **Fichiers touchés** : backend/routes/leaseRoutes.ts, backend/routes/bauxRoutes.ts, docs/JOURNAL_PROJET.md
+- **Décisions & justifications** : correction côté backend (contrat d'API rétabli) plutôt que côté front, pour ne pas toucher les trois pages ni les autres clients. `GET /api/baux` renvoie de nouveau la clé historique `baux` (clients existants, dont l'app mobile à confirmer), avec `total`, `page`, `totalPages` en plus : la pagination reste disponible.
+- **Problèmes rencontrés** : le test `lease.ownerScope.test.ts` détectait déjà la régression ; il repasse. Les 21 échecs restants sont identiques sur main (préexistants). Le 404 sur un fichier `/uploads/properties/*.webp` vu dans la console est un fichier absent du serveur, sans lien avec le plantage.
+- **Remplace / modifie** : —
