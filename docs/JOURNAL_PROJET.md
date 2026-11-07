@@ -1277,4 +1277,4 @@ Mis à jour automatiquement après chaque tâche.
 - **Fichiers touchés** : frontend/src/utils/numberSpacing.ts (créé), frontend/src/main.tsx, docs/JOURNAL_PROJET.md
 - **Décisions & justifications** : le CSS ne peut pas corriger ce caractère (Chrome ignore `word-spacing` et `unicode-range` pour U+202F, essais en T-077). Plutôt que de modifier ~80 appels de formatage dans 49 fichiers, un seul point d'entrée, commenté et protégé contre le double chargement. U+00A0 reste insécable : un montant ne se coupe toujours pas en fin de ligne. Les dates et les autres langues ne sont pas touchées.
 - **Problèmes rencontrés** : les `import` ES sont évalués avant le corps du fichier : le correctif s'applique donc à l'import du module lui-même, placé en premier. Contrôles : caractère produit (U+00A0), écart mesuré de 1,4 px à 4 px pour 16 px, `en-US` et dates inchangés, `pdfGenerator` gère déjà les deux espaces, `tsc` et `npm run build` OK.
-- **Remplace / modifie** : T-077 (le point resté ouvert sur l'espace des montants est traité ici)
+- **Remplace / modifie** : — (complète T-077, qui reste valable : traite le point qu'elle laissait ouvert)
