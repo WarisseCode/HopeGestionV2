@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { BRANDING } from '../../config/branding';
 
 const LocatairePublicPage: React.FC = () => {
   return (
@@ -182,7 +183,7 @@ const LocatairePublicPage: React.FC = () => {
       <footer className="footer p-10 bg-neutral text-neutral-content">
         <aside>
           <h3 className="text-2xl font-bold text-primary mb-2">Hope Gestion</h3>
-          <p className="opacity-70">Cotonou, Bénin<br/>contact@hopegestion.bj</p>
+          <p className="opacity-70">{BRANDING.contact.address}<br/>{BRANDING.contact.email}</p>
         </aside>
       </footer>
     </div>

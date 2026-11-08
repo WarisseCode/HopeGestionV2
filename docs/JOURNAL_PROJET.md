@@ -1288,3 +1288,23 @@ Mis à jour automatiquement après chaque tâche.
 - **Décisions & justifications** : les coordonnées étaient écrites en dur dans `HomePage.tsx` et répétées dans `branding.ts` (pied de page) : une seule source évite qu'elles divergent au prochain changement. Préfixe +229 conservé, comme l'ancien numéro, pour les visiteurs appelant de l'étranger ou via WhatsApp.
 - **Problèmes rencontrés** : — (non modifiés car hors section contact : mentions « Cotonou, Bénin » dans les CGU, des pages publiques secondaires et l'en-tête des PDF de bail)
 - **Remplace / modifie** : —
+
+### T-081 : Cotonou remplacé par Bohicon (adresse de l'entreprise et lieu d'émission des documents)
+- **Date** : 2026-11-08
+- **Statut** : Terminée
+- **Type** : Config
+- **Description** : Toutes les mentions de Cotonou désignant l'entreprise sont remplacées : pied de page des pages publiques (gestionnaires/propriétaires, locataires, modules), identité en fin de CGU, et lieu d'émission « Bohicon, le … » sur les quittances, états des lieux, reçus de don (serveur) et baux PDF (site). Le reçu de don reçoit aussi la vraie adresse et le vrai téléphone, à la place des valeurs fictives.
+- **Fichiers touchés** : backend/config/company.ts (créé), backend/services/ReceiptService.ts, backend/services/EdlPdfService.ts, backend/services/DonationReceiptService.ts, frontend/src/config/branding.ts, frontend/src/utils/pdfGenerator.ts, frontend/src/components/legal/CguArticles.tsx, frontend/src/pages/public/GestionnaireProprietairePage.tsx, frontend/src/pages/public/LocatairePublicPage.tsx, frontend/src/pages/public/ModulesTransversesPage.tsx, docs/JOURNAL_PROJET.md
+- **Décisions & justifications** : une seule source par côté : `branding.ts` (ajout de `contact.city`) pour le site et `backend/config/company.ts` pour le serveur. Ce dernier est un nouveau fichier sans effet de bord, car `config.ts` arrête le processus sans JWT_SECRET. Le bail PDF affichait « Cotonou, Bénin » quand l'adresse du propriétaire manquait : il affiche désormais « Adresse non renseignée », plutôt que d'attribuer au propriétaire l'adresse de l'entreprise. La version des CGU étant un numéro fixe (`CGU_CURRENT_VERSION`), aucune réacceptation n'est déclenchée.
+- **Problèmes rencontrés** : volontairement non modifiés, car ce ne sont pas l'adresse de l'entreprise : exemples dans les champs (formulaire immeuble, invitation), liste des villes du Bénin, commentaire de code, données de démo et de test. Restent à confirmer par le client : téléphones et e-mail du bloc CGU (SKILLEXIE S.E.P), numéro IFU/RCCM du reçu de don, e-mail `contact@hopegestion.bj` (domaine .bj) sur deux pages publiques. Tests services backend : 27 OK, 2 échecs `financeService.getPayments` identiques sur main.
+- **Remplace / modifie** : —
+
+### T-082 : E-mail de contact unifié sur les pages publiques
+- **Date** : 2026-11-08
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : Les pages publiques « Locataires » et « Modules transverses » affichaient `contact@hopegestion.bj`. Elles lisent désormais l'e-mail dans `config/branding.ts` : `contact@hopegestion.com`, confirmé par le client comme le bon.
+- **Fichiers touchés** : frontend/src/pages/public/LocatairePublicPage.tsx, frontend/src/pages/public/ModulesTransversesPage.tsx, docs/JOURNAL_PROJET.md
+- **Décisions & justifications** : même source que l'adresse (T-081), pour que l'e-mail ne diverge plus d'une page à l'autre.
+- **Problèmes rencontrés** : —
+- **Remplace / modifie** : —

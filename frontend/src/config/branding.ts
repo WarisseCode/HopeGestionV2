@@ -19,6 +19,8 @@ export interface BrandingConfig {
     favicon: string;
   };
   contact: {
+    /** Ville affichée comme lieu d'émission des documents (« Bohicon, le … ») */
+    city: string;
     address: string;
     phone: string;
     phoneFormatted: string;
@@ -55,6 +57,7 @@ export const BRANDING: BrandingConfig = {
     favicon: '/logo-icon.png',
   },
   contact: {
+    city: 'Bohicon',
     address: 'Quartier Hêzonho, Bohicon, Bénin',
     phone: '+2290190673128',
     phoneFormatted: '+229 01 90 67 31 28',

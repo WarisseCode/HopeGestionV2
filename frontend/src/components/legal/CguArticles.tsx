@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import LegalPlaceholder from './LegalPlaceholder';
+import { BRANDING } from '../../config/branding';
 
 // Corps des CGU, partagé entre la page publique (CguPage) et le garde-fou de consentement
 // (CguGate). Deux corrections de forme par rapport au document source (sans changer le fond) :
@@ -144,7 +145,7 @@ const CguArticles: React.FC = () => (
 
         <div className="mt-10 pt-6 border-t border-base-200 text-sm text-base-content/70 space-y-1">
             <p className="font-semibold text-base-content">CGU SKILLEXIE S.E.P</p>
-            <p>Cotonou, Bénin</p>
+            <p>{BRANDING.contact.address}</p>
             <p>Tél : (229) 0161280346 / 0166962026</p>
             <p>E-mail : 10xsuperieur@gmail.com</p>
            {/*  <p>RCCM : <LegalPlaceholder>numéro RCCM</LegalPlaceholder></p>
