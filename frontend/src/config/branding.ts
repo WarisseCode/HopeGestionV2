@@ -55,9 +55,9 @@ export const BRANDING: BrandingConfig = {
     favicon: '/logo-icon.png',
   },
   contact: {
-    address: 'Haie Vive, Cotonou, Bénin',
-    phone: '+2290196291361',
-    phoneFormatted: '+229 01 96 29 13 61',
+    address: 'Quartier Hêzonho, Bohicon, Bénin',
+    phone: '+2290190673128',
+    phoneFormatted: '+229 01 90 67 31 28',
     email: 'contact@hopegestion.com',
     supportEmail: 'support@hopegestion.com',
   },

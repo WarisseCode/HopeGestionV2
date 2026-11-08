@@ -18,6 +18,7 @@ import HeroImage from './assets/images/hero-image.png';
 import TenantImage from './assets/images/tenant-family.png';
 import PublicLayout from './layout/PublicLayout';
 import PropertyCarousel from './components/public/PropertyCarousel';
+import { BRANDING } from './config/branding';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -400,7 +401,8 @@ const HomePage: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-semibold">Adresse</h4>
-                      <p className="text-base-content/70">Quartier Haie Vive, Cotonou, Bénin</p>
+                      {/* Coordonnées lues dans config/branding.ts : une seule source pour l'accueil et le pied de page */}
+                      <p className="text-base-content/70">{BRANDING.contact.address}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -409,7 +411,7 @@ const HomePage: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-semibold">Téléphone & WhatsApp</h4>
-                      <p className="text-base-content/70">+229 01 96 29 13 61</p>
+                      <p className="text-base-content/70">{BRANDING.contact.phoneFormatted}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -418,7 +420,7 @@ const HomePage: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-semibold">Email</h4>
-                      <p className="text-base-content/70">contact@hopegestion.com</p>
+                      <p className="text-base-content/70">{BRANDING.contact.email}</p>
                     </div>
                   </div>
                 </div>
