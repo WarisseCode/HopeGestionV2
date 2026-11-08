@@ -10,6 +10,7 @@
 import PDFDocument from 'pdfkit';
 import fs from 'fs-extra';
 import path from 'path';
+import { COMPANY } from '../config/company';
 import { Response } from 'express';
 
 const PAGE_BOTTOM = 800; // limite basse avant saut de page (A4 = 841.89, marge 50)
@@ -75,7 +76,7 @@ function header(doc: PDFKit.PDFDocument, title: string, subtitle: string): numbe
     doc.fontSize(18).font('Helvetica-Bold').fillColor(NAVY).text('HOPE GESTION', MARGIN, y);
     doc.fontSize(8).font('Helvetica').fillColor(MED).text('Gestion Immobilière Simplifiée', MARGIN, y + 20);
     doc.fontSize(9).font('Helvetica').fillColor(MED)
-        .text(`Cotonou, le ${formatDate(new Date())}`, PAGE_WIDTH - MARGIN - 160, y, { width: 160, align: 'right' })
+        .text(`${COMPANY.city}, le ${formatDate(new Date())}`, PAGE_WIDTH - MARGIN - 160, y, { width: 160, align: 'right' })
         .text('contact@hopegestion.com', PAGE_WIDTH - MARGIN - 160, y + 14, { width: 160, align: 'right' });
 
     y += 44;

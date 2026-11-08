@@ -6,6 +6,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import crypto from 'crypto';
 import pool from '../db/database';
+import { COMPANY } from '../config/company';
 
 // ============================================================================
 // CONFIGURATION
@@ -258,7 +259,7 @@ class ReceiptService {
 
                 // Date & contact — right side
                 doc.fontSize(9).font('Helvetica').fillColor(mediumText)
-                    .text(`Cotonou, le ${this.formatDate(new Date())}`, pageWidth - margin - 150, y, { width: 150, align: 'right' })
+                    .text(`${COMPANY.city}, le ${this.formatDate(new Date())}`, pageWidth - margin - 150, y, { width: 150, align: 'right' })
                     .text('Tél: +229 01 02 03 04', pageWidth - margin - 150, y + 14, { width: 150, align: 'right' })
                     .text('contact@hopegestion.com', pageWidth - margin - 150, y + 26, { width: 150, align: 'right' });
 

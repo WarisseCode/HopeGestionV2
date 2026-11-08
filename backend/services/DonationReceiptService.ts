@@ -9,6 +9,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import crypto from 'crypto';
 import pool from '../db/database';
+import { COMPANY } from '../config/company';
 
 // ============================================================================
 // CONFIGURATION
@@ -25,10 +26,10 @@ fs.ensureDirSync(RECEIPTS_DIR);
 // production sans validation.
 const ORGANIZATION_IDENTITY = {
     name: 'HOPE GESTION',
-    address: '[Adresse légale à confirmer], Cotonou, Bénin',
+    address: COMPANY.address,
     taxId: '[Numéro IFU/RCCM à confirmer]',
-    phone: '+229 01 02 03 04',
-    email: 'contact@hopegestion.com',
+    phone: COMPANY.phone,
+    email: COMPANY.email,
 };
 
 // ============================================================================
@@ -157,7 +158,7 @@ class DonationReceiptService {
                 }
 
                 doc.fontSize(9).font('Helvetica').fillColor(mediumText)
-                    .text(`Cotonou, le ${this.formatDate(new Date())}`, pageWidth - margin - 150, y, { width: 150, align: 'right' })
+                    .text(`${COMPANY.city}, le ${this.formatDate(new Date())}`, pageWidth - margin - 150, y, { width: 150, align: 'right' })
                     .text(`Tél: ${ORGANIZATION_IDENTITY.phone}`, pageWidth - margin - 150, y + 14, { width: 150, align: 'right' })
                     .text(ORGANIZATION_IDENTITY.email, pageWidth - margin - 150, y + 26, { width: 150, align: 'right' });
 

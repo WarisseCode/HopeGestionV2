@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { BRANDING } from '../config/branding';
 
 // Types pour les données de la quittance
 export interface QuittanceData {
@@ -115,7 +116,7 @@ export const generateQuittancePDF = async (data: QuittanceData, mode: 'download'
   doc.setTextColor(...BRAND.mediumText);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Cotonou, le ${formattedDate}`, pageWidth - margin, headerY + 4, { align: 'right' });
+  doc.text(`${BRANDING.contact.city}, le ${formattedDate}`, pageWidth - margin, headerY + 4, { align: 'right' });
 
   // Contact info under date
   doc.setFontSize(8);
@@ -174,7 +175,8 @@ export const generateQuittancePDF = async (data: QuittanceData, mode: 'download'
   // sinon repli sur les coordonnées génériques de l'agence.
   doc.setFontSize(9);
   doc.setTextColor(...BRAND.mediumText);
-  doc.text(data.proprietaireAdresse || 'Cotonou, Bénin', margin + 8, partiesY + 26, { maxWidth: colWidth - 16 });
+  // Adresse du propriétaire inconnue : on l'indique, plutôt qu'une ville inventée
+  doc.text(data.proprietaireAdresse || 'Adresse non renseignée', margin + 8, partiesY + 26, { maxWidth: colWidth - 16 });
   doc.text(`Tél: ${data.proprietaireTel || '+229 01 02 03 04'}`, margin + 8, partiesY + 33);
 
   // --- Locataire (Right column) ---
