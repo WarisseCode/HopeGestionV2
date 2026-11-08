@@ -1308,3 +1308,13 @@ Mis à jour automatiquement après chaque tâche.
 - **Décisions & justifications** : même source que l'adresse (T-081), pour que l'e-mail ne diverge plus d'une page à l'autre.
 - **Problèmes rencontrés** : —
 - **Remplace / modifie** : —
+
+### T-083 : Plus de « 0 » à effacer dans les champs de montant
+- **Date** : 2026-11-08
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : Plusieurs formulaires initialisent leurs montants à 0 et affichaient ce « 0 » : il fallait l'effacer avant de taper, sinon on obtenait « 080000 ». Le composant commun `Input` affiche désormais vide un champ numérique valant 0 (ou NaN après effacement). Le champ brut « Montant à payer » du détail d'un bail est corrigé de la même façon.
+- **Fichiers touchés** : frontend/src/components/ui/Input.tsx, frontend/src/components/biens/ImmeubleForm.tsx, frontend/src/pages/LocationDetails.tsx, docs/JOURNAL_PROJET.md
+- **Décisions & justifications** : correction à la source (le composant `Input`) plutôt que formulaire par formulaire : elle couvre d'un coup quittances, paiements, Mobile Money, interventions, dépenses, prêts, fiscalité, édition de lot et les futurs formulaires. Seul l'affichage change : la valeur du formulaire reste 0 et les `onChange` sont intacts, donc les enregistrements ne changent pas. Option `showZero` pour les champs où 0 a un sens visible (« Nombre d'étages », 0 = plain-pied). Les grands formulaires (lot, bail, affectation, contrat) masquaient déjà le 0 via `valeur || ''` : comportement inchangé.
+- **Problèmes rencontrés** : contrôle dans le navigateur sur « Nouvelle quittance » : champ vide au départ, saisie « 80000 » → 80000, effacement → vide, aucune erreur console. `tsc` et `npm run build` OK.
+- **Remplace / modifie** : —

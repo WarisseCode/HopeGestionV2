@@ -385,6 +385,7 @@ const ImmeubleForm: React.FC<ImmeubleFormProps> = ({
                       type="number"
                       min={0}
                       value={formData.nombre_etages ?? 0}
+                      showZero
                       onChange={e => handleChange('nombre_etages',
                         e.target.value === '' ? 0 : parseInt(e.target.value))}
                       helperText="0 si plain-pied"
