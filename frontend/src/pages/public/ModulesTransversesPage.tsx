@@ -223,7 +223,7 @@ const ModulesTransversesPage: React.FC = () => {
       <footer className="footer p-10 bg-neutral text-neutral-content">
         <aside>
           <h3 className="text-2xl font-bold text-primary mb-2">Hope Gestion</h3>
-          <p className="opacity-70">{BRANDING.contact.address}<br/>contact@hopegestion.bj</p>
+          <p className="opacity-70">{BRANDING.contact.address}<br/>{BRANDING.contact.email}</p>
         </aside>
       </footer>
     </div>
