@@ -1278,3 +1278,13 @@ Mis à jour automatiquement après chaque tâche.
 - **Décisions & justifications** : le CSS ne peut pas corriger ce caractère (Chrome ignore `word-spacing` et `unicode-range` pour U+202F, essais en T-077). Plutôt que de modifier ~80 appels de formatage dans 49 fichiers, un seul point d'entrée, commenté et protégé contre le double chargement. U+00A0 reste insécable : un montant ne se coupe toujours pas en fin de ligne. Les dates et les autres langues ne sont pas touchées.
 - **Problèmes rencontrés** : les `import` ES sont évalués avant le corps du fichier : le correctif s'applique donc à l'import du module lui-même, placé en premier. Contrôles : caractère produit (U+00A0), écart mesuré de 1,4 px à 4 px pour 16 px, `en-US` et dates inchangés, `pdfGenerator` gère déjà les deux espaces, `tsc` et `npm run build` OK.
 - **Remplace / modifie** : — (complète T-077, qui reste valable : traite le point qu'elle laissait ouvert)
+
+### T-080 : Nouvelles coordonnées de contact (accueil et pied de page)
+- **Date** : 2026-11-08
+- **Statut** : Terminée
+- **Type** : Config
+- **Description** : Coordonnées de contact remplacées : adresse « Quartier Hêzonho, Bohicon, Bénin », téléphone et WhatsApp « +229 01 90 67 31 28 ». La section « Nos coordonnées » de la page d'accueil (#contact) lit désormais adresse, téléphone et email dans `config/branding.ts`, comme le pied de page public.
+- **Fichiers touchés** : frontend/src/config/branding.ts, frontend/src/HomePage.tsx, docs/JOURNAL_PROJET.md
+- **Décisions & justifications** : les coordonnées étaient écrites en dur dans `HomePage.tsx` et répétées dans `branding.ts` (pied de page) : une seule source évite qu'elles divergent au prochain changement. Préfixe +229 conservé, comme l'ancien numéro, pour les visiteurs appelant de l'étranger ou via WhatsApp.
+- **Problèmes rencontrés** : — (non modifiés car hors section contact : mentions « Cotonou, Bénin » dans les CGU, des pages publiques secondaires et l'en-tête des PDF de bail)
+- **Remplace / modifie** : —
