@@ -449,7 +449,8 @@ const [activeTab, setActiveTab] = useState<'echeancier' | 'infos'>('echeancier')
                                     <input
                                         type="number"
                                         className="w-full p-3 border rounded-lg text-lg font-bold"
-                                        value={paymentAmount}
+                                        // 0 ou NaN (champ vidé) affichés vides : pas de « 0 » à effacer avant de taper
+                                        value={paymentAmount && Number.isFinite(paymentAmount) ? paymentAmount : ''}
                                         onChange={e => setPaymentAmount(parseFloat(e.target.value))}
                                         min={0}
                                         max={Math.max(0, selectedSchedule.montant - (selectedSchedule.montant_paye || 0))}
