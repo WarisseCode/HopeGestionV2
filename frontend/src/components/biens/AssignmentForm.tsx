@@ -424,7 +424,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                           helperText={form.loyer_mensuel > 0 ? `≈ ${((form.caution) / form.loyer_mensuel).toFixed(1)} mois` : undefined}
                         />
                         <Input
-                          label="Avance (mois)"
+                          label="Préfinancement (mois)"
                           type="number"
                           min={0}
                           value={form.avance || ''}
@@ -594,7 +594,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                           )}
                           <RecapRow label="Loyer" value={`${form.loyer_mensuel.toLocaleString('fr-FR')} FCFA/mois`} onEdit={() => goToStep(1)} />
                           {form.caution > 0 && <RecapRow label="Caution" value={`${form.caution.toLocaleString('fr-FR')} FCFA`} onEdit={() => goToStep(1)} />}
-                          {form.avance > 0  && <RecapRow label="Avance"  value={`${form.avance} mois`}               onEdit={() => goToStep(1)} />}
+                          {form.avance > 0  && <RecapRow label="Préfinancement"  value={`${form.avance} mois`}               onEdit={() => goToStep(1)} />}
                         </>
                       )}
                       {type === 'vente' && (

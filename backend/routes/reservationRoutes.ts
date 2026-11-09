@@ -37,7 +37,7 @@ const transformReservationRules = [
     reservationIdParam,
     body('date_fin').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('Date invalide'),
     body('caution').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Caution invalide'),
-    body('avance').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Avance invalide'),
+    body('avance').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Préfinancement invalide'),
     body('periodicite').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Périodicité invalide'),
 ];
 

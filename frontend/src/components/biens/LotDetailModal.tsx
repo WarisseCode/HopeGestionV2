@@ -60,7 +60,7 @@ const LotDetailModal: React.FC<Props> = ({ lot, locations, canWrite, onClose, on
             { label: 'Loyer',    value: lot.loyer    ? `${lot.loyer.toLocaleString()} FCFA`    : '—' },
             { label: 'Charges',  value: lot.charges  ? `${lot.charges.toLocaleString()} FCFA`  : '—' },
             { label: 'Caution',  value: lot.caution  ? `${lot.caution.toLocaleString()} FCFA`  : '—' },
-            { label: 'Avance',   value: lot.avance   ? `${lot.avance} mois`                    : '—' },
+            { label: 'Préfinancement', value: lot.avance   ? `${lot.avance} mois`                    : '—' },
           ].map(m => (
             <div key={m.label} className="bg-base-200/60 rounded-xl p-3 text-center">
               <p className="text-xs font-semibold text-base-content/50 uppercase mb-1">{m.label}</p>

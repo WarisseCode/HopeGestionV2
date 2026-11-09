@@ -407,7 +407,7 @@ const ReservationsList: React.FC = () => {
                                         className="w-full h-11 px-3 border border-base-300 rounded-xl bg-base-100" />
                                 </label>
                                 <label className="block">
-                                    <span className="block text-sm font-medium text-base-content/80 mb-1">Avance (mois)</span>
+                                    <span className="block text-sm font-medium text-base-content/80 mb-1">Préfinancement (mois)</span>
                                     <input type="number" min="1" value={transformData.avance}
                                         onChange={(e) => setTransformData({ ...transformData, avance: e.target.value })}
                                         className="w-full h-11 px-3 border border-base-300 rounded-xl bg-base-100" />

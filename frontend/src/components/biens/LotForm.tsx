@@ -523,7 +523,7 @@ const LotForm: React.FC<LotFormProps> = ({
                         helperText="Habituellement 2-3 mois de loyer"
                       />
                       <Input
-                        label="Avance (mois)"
+                        label="Préfinancement (mois)"
                         type="number"
                         min={0}
                         value={formData.avance ?? 1}

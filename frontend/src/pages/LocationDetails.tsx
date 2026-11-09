@@ -394,7 +394,7 @@ const [activeTab, setActiveTab] = useState<'echeancier' | 'infos'>('echeancier')
                         <div className="space-y-2 text-sm">
                             <p><span className="text-base-content/60">Loyer:</span> {formatCurrency(location.loyer_mensuel)}</p>
                             <p><span className="text-base-content/60">Caution:</span> {formatCurrency(location.caution)}</p>
-                            <p><span className="text-base-content/60">Avance:</span> {formatCurrency(location.avance)}</p>
+                            <p><span className="text-base-content/60">Préfinancement :</span> {formatCurrency(location.avance)}</p>
                             <p><span className="text-base-content/60">Type paiement:</span> {location.type_paiement}</p>
                         </div>
                     </div>

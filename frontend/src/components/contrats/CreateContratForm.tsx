@@ -130,7 +130,7 @@ const CreateContratForm: React.FC<Props> = ({ form, setForm, locataires, lots, o
           <Input label="Caution" type="number" min={0} value={form.caution || ''}
             onChange={e => setForm(f => ({ ...f, caution: Number(e.target.value) }))}
             endIcon={<span className="text-xs text-base-content/40">{form.devise}</span>} />
-          <Input label="Avance" type="number" min={0} value={form.avance || ''}
+          <Input label="Préfinancement" type="number" min={0} value={form.avance || ''}
             onChange={e => setForm(f => ({ ...f, avance: Number(e.target.value) }))}
             endIcon={<span className="text-xs text-base-content/40">{form.devise}</span>} />
 

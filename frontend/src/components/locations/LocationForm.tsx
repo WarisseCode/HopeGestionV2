@@ -531,7 +531,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
                       />
                     </div>
 
-                    {/* Caution & Avance */}
+                    {/* Caution & préfinancement (loyers payés d'avance) */}
                     <div className="grid grid-cols-2 gap-4">
                       <Input
                         label="Caution"
@@ -544,7 +544,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
                           : 'Dépôt de garantie'}
                       />
                       <Input
-                        label="Avance sur loyer"
+                        label="Préfinancement"
                         type="number"
                         min={0}
                         value={form.avance || ''}
@@ -570,7 +570,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
                           )}
                           {(form.avance ?? 0) > 0 && (
                             <div className="flex justify-between text-base-content/70">
-                              <span>Avance loyer</span>
+                              <span>Préfinancement</span>
                               <span>{(form.avance ?? 0).toLocaleString('fr-FR')} {form.devise}</span>
                             </div>
                           )}
@@ -757,7 +757,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
                         )}
                         {(form.avance ?? 0) > 0 && (
                           <RecapRow
-                            label="Avance"
+                            label="Préfinancement"
                             value={`${(form.avance ?? 0).toLocaleString('fr-FR')} ${form.devise}`}
                             onEdit={() => goToStep(1)}
                           />
