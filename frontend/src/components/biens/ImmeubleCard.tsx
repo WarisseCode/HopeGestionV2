@@ -33,7 +33,7 @@ const ImmeubleCard: React.FC<Props> = ({ immeuble, lots, canWrite, onEdit, onDel
           title="Ouvrir la galerie"
         />
         {immeuble.photo ? (
-          <img
+          <img loading="lazy" decoding="async"
             src={immeuble.photo}
             alt={`${immeuble.nom} — ${immeuble.ville}`}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
