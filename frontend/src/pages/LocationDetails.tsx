@@ -170,22 +170,22 @@ const [activeTab, setActiveTab] = useState<'echeancier' | 'infos'>('echeancier')
     }
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-4 md:space-y-6">
             {/* Header */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
                 <button 
                     onClick={() => navigate('/dashboard/locations')}
                     className="p-2 hover:bg-base-300 rounded-lg transition"
                 >
                     <ArrowLeft size={20} />
                 </button>
-                <div className="flex-1">
-                    <h1 className="text-2xl font-bold text-base-content/90">{location.reference_bail}</h1>
-                    <p className="text-sm text-base-content/60">
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-lg md:text-2xl font-bold text-base-content/90 truncate">{location.reference_bail}</h1>
+                    <p className="text-sm text-base-content/60 truncate">
                         {location.locataire_prenoms} {location.locataire_nom} • {location.ref_lot}
                     </p>
                 </div>
-                <span className={`px-4 py-2 rounded-full text-sm font-medium capitalize ${
+                <span className={`shrink-0 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium capitalize ${
                     location.statut === 'actif' ? 'bg-green-100 text-green-700' :
                     location.statut === 'signe' ? 'bg-teal-100 text-teal-700' :
                     'bg-base-300 text-base-content/70'
@@ -211,47 +211,47 @@ const [activeTab, setActiveTab] = useState<'echeancier' | 'infos'>('echeancier')
             )}
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+                <Card className="p-3 md:p-4">
+                    <div className="flex items-center gap-2 md:gap-3">
+                        <div className="hidden sm:flex w-10 h-10 rounded-lg bg-teal-100 items-center justify-center">
                             <DollarSign className="text-teal-600" size={20} />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-base-content/90">{formatCurrency(location.loyer_mensuel)}</p>
+                            <p className="text-base md:text-2xl font-bold break-words text-base-content/90">{formatCurrency(location.loyer_mensuel)}</p>
                             <p className="text-xs text-base-content/60">Loyer mensuel</p>
                         </div>
                     </div>
                 </Card>
-                <Card className="p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                <Card className="p-3 md:p-4">
+                    <div className="flex items-center gap-2 md:gap-3">
+                        <div className="hidden sm:flex w-10 h-10 rounded-lg bg-green-100 items-center justify-center">
                             <Check className="text-green-600" size={20} />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid)}</p>
+                            <p className="text-base md:text-2xl font-bold break-words text-green-600">{formatCurrency(totalPaid)}</p>
                             <p className="text-xs text-base-content/60">Total payé</p>
                         </div>
                     </div>
                 </Card>
-                <Card className="p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                <Card className="p-3 md:p-4">
+                    <div className="flex items-center gap-2 md:gap-3">
+                        <div className="hidden sm:flex w-10 h-10 rounded-lg bg-orange-100 items-center justify-center">
                             <Wallet className="text-orange-600" size={20} />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-orange-600">{formatCurrency(balance)}</p>
+                            <p className="text-base md:text-2xl font-bold break-words text-orange-600">{formatCurrency(balance)}</p>
                             <p className="text-xs text-base-content/60">Solde restant</p>
                         </div>
                     </div>
                 </Card>
-                <Card className="p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+                <Card className="p-3 md:p-4">
+                    <div className="flex items-center gap-2 md:gap-3">
+                        <div className="hidden sm:flex w-10 h-10 rounded-lg bg-teal-100 items-center justify-center">
                             <Calendar className="text-teal-600" size={20} />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-base-content/90">{echeancier.length}</p>
+                            <p className="text-base md:text-2xl font-bold break-words text-base-content/90">{echeancier.length}</p>
                             <p className="text-xs text-base-content/60">Échéances</p>
                         </div>
                     </div>
@@ -294,7 +294,46 @@ const [activeTab, setActiveTab] = useState<'echeancier' | 'infos'>('echeancier')
                             <p className="text-sm">L'échéancier est créé automatiquement pour les paiements échelonnés.</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
+                        <>
+                        {/* Téléphone : une carte par échéance, bouton « Payer » toujours visible
+                            (le tableau à 7 colonnes obligeait à défiler vers la droite). */}
+                        <ul className="md:hidden divide-y divide-base-200">
+                            {echeancier.map((item) => {
+                                const statusBadge = getStatusBadge(item.statut);
+                                const solde = item.montant - (item.montant_paye || 0);
+                                return (
+                                    <li key={item.id} className="p-4 space-y-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="text-xs text-base-content/60">Échéance n° {item.numero_echeance}</p>
+                                                <p className="font-semibold">
+                                                    {new Date(item.date_echeance).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                </p>
+                                            </div>
+                                            <span className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge.color}`}>
+                                                {statusBadge.icon}
+                                                {STATUT_LABELS[item.statut] || item.statut}
+                                            </span>
+                                        </div>
+                                        <dl className="space-y-1 text-sm">
+                                            <div className="flex justify-between gap-3"><dt className="text-base-content/60">Dû</dt><dd className="font-medium">{formatCurrency(item.montant)}</dd></div>
+                                            <div className="flex justify-between gap-3"><dt className="text-base-content/60">Payé</dt><dd className="font-medium text-green-600">{formatCurrency(item.montant_paye || 0)}</dd></div>
+                                            <div className="flex justify-between gap-3"><dt className="text-base-content/60">Solde</dt><dd className="font-medium text-orange-600">{formatCurrency(solde)}</dd></div>
+                                        </dl>
+                                        {item.statut !== 'paye' && (
+                                            <button
+                                                onClick={() => openPaymentModal(item)}
+                                                className="w-full py-2.5 bg-primary text-primary-content rounded-lg text-sm font-medium hover:bg-primary/90 transition flex items-center justify-center gap-2"
+                                            >
+                                                <CreditCard size={16} />
+                                                Payer
+                                            </button>
+                                        )}
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                        <div className="hidden md:block overflow-x-auto">
                             <table className="w-full">
                                 <thead className="bg-base-200 text-base-content/70 text-sm">
                                     <tr>
@@ -352,12 +391,13 @@ const [activeTab, setActiveTab] = useState<'echeancier' | 'infos'>('echeancier')
                                 </tbody>
                             </table>
                         </div>
+                        </>
                     )}
                 </Card>
             )}
 
             {activeTab === 'infos' && (
-                <Card className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                         <h3 className="font-semibold text-base-content/90 flex items-center gap-2">
                             <User size={18} /> Locataire
