@@ -2,6 +2,7 @@
 import { getToken } from './authApi';
 
 import { API_URL } from '../config';
+import { saveBlob } from '../utils/saveBlob';
 
 export interface BuildingStats {
     building_id: string;
@@ -78,13 +79,5 @@ export async function exportExcel(startDate?: string, endDate?: string): Promise
         throw new Error('Erreur lors de l\'exportation Excel');
     }
 
-    const blob = await res.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.download = `Rapport_Financier_${new Date().toISOString().split('T')[0]}.xlsx`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(downloadUrl);
-    a.remove();
+    saveBlob(await res.blob(), `Rapport_Financier_${new Date().toISOString().split('T')[0]}.xlsx`);
 }

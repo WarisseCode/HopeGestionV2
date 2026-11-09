@@ -3,6 +3,7 @@
 // suppression définitive des éléments supprimés (soft-delete).
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Trash2, RotateCcw, Search, Filter, AlertTriangle, Inbox } from 'lucide-react';
+import { saveBlob } from '../utils/saveBlob';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
@@ -168,11 +169,7 @@ const Corbeille: React.FC = () => {
       if (endDate) p.set('endDate', endDate);
       const res = await fetch(`${API_URL}/trash/export/${format}?${p.toString()}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
       if (!res.ok) throw new Error('Export impossible');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `Corbeille_${Date.now()}.${format === 'excel' ? 'xlsx' : 'pdf'}`; a.click();
-      URL.revokeObjectURL(url);
+      saveBlob(await res.blob(), `Corbeille_${Date.now()}.${format === 'excel' ? 'xlsx' : 'pdf'}`);
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de l'export");
     }
