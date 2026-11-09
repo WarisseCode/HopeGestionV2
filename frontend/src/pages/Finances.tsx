@@ -80,6 +80,8 @@ const Finances: React.FC = () => {
     modePaiement: 'especes',
     reference: ''
   });
+  // Bail du locataire choisi : sert à pré-remplir le montant (loyer ou charges, BUG-017).
+  const [selectedLease, setSelectedLease] = useState<any | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -148,6 +150,33 @@ const Finances: React.FC = () => {
     }
   };
 
+  // Bail en cours du locataire : actif, sinon signé, sinon le plus récent (la liste arrive triée par date de début décroissante).
+  const pickLease = (baux: any[] = []) =>
+    baux.find(b => b.statut === 'actif') || baux.find(b => b.statut === 'signe') || baux[0];
+
+  // Montant attendu selon le type : loyer (loyer_actuel côté base) ou charges mensuelles.
+  const expectedAmount = (lease: any, type: string) =>
+    Number(type === 'charges' ? lease?.charges_mensuelles : (lease?.loyer_actuel ?? lease?.loyer_mensuel)) || 0;
+
+  const handleTenantChange = async (locataireId: string) => {
+    setPaiementForm(f => ({ ...f, locataireId }));
+    setSelectedLease(null);
+    if (!locataireId) return;
+    try {
+      const details = await getLocataireDetails(parseInt(locataireId));
+      const lease = pickLease(details.baux);
+      setSelectedLease(lease || null);
+      // Garde-fou : si l'utilisateur a changé de locataire entre-temps, on n'écrase rien.
+      if (lease) setPaiementForm(f => (f.locataireId === locataireId ? { ...f, montant: expectedAmount(lease, f.type) } : f));
+    } catch {
+      // Échec du chargement : le montant reste saisissable à la main.
+    }
+  };
+
+  const handleTypeChange = (type: string) => {
+    setPaiementForm(f => ({ ...f, type, montant: selectedLease ? expectedAmount(selectedLease, type) : f.montant }));
+  };
+
   const handlePaymentSubmit = async () => {
       try {
           if (!paiementForm.locataireId) {
@@ -155,7 +184,7 @@ const Finances: React.FC = () => {
               return;
           }
           const details = await getLocataireDetails(parseInt(paiementForm.locataireId));
-          const activeLease = details.baux.find((b: any) => b.statut === 'actif') || details.baux[0];
+          const activeLease = pickLease(details.baux);
           const leaseId = activeLease?.id ?? null;
 
           if (!leaseId) {
@@ -460,21 +489,27 @@ const Finances: React.FC = () => {
                             <Select
                                 label={t('finance.tenant')}
                                 value={paiementForm.locataireId}
-                                onChange={(e) => setPaiementForm({...paiementForm, locataireId: e.target.value})}
+                                onChange={(e) => handleTenantChange(e.target.value)}
                                 options={[
                                     { value: '', label: t('common.choose') },
                                     ...locataires.map(l => ({ value: l.id, label: `${l.prenoms} ${l.nom}` }))
                                 ]}
                             />
                             <div className="grid grid-cols-2 gap-4">
-                                <Input label={t('finance.amount')} type="number" value={paiementForm.montant} onChange={(e) => setPaiementForm({...paiementForm, montant: parseFloat(e.target.value)})} />
+                                <Input
+                                    label={t('finance.amount')}
+                                    type="number"
+                                    value={paiementForm.montant}
+                                    onChange={(e) => setPaiementForm({...paiementForm, montant: parseFloat(e.target.value)})}
+                                    helperText={selectedLease ? t('finance.amountFromLease') : undefined}
+                                />
                                 <Input label={t('finance.date')} type="date" value={paiementForm.date} onChange={(e) => setPaiementForm({...paiementForm, date: e.target.value})} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <Select
                                     label={t('finance.type')}
                                     value={paiementForm.type}
-                                    onChange={(e) => setPaiementForm({...paiementForm, type: e.target.value})}
+                                    onChange={(e) => handleTypeChange(e.target.value)}
                                     options={[
                                         { value: 'loyer', label: t('finance.typeRent') },
                                         { value: 'charges', label: t('finance.typeCharges') },

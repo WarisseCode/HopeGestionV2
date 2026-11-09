@@ -62,6 +62,7 @@
     "collectPaymentTitle": "Encaisser un paiement",
     "tenant": "Locataire",
     "amount": "Montant",
+    "amountFromLease": "Pré-rempli d'après le bail (modifiable)",
     "date": "Date",
     "type": "Type",
     "typeRent": "Loyer",
