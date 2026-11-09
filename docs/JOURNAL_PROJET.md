@@ -1341,4 +1341,4 @@ Mis à jour automatiquement après chaque tâche.
   - Safari n'est pas testable ici : correction des causes connues, à confirmer sur un iPhone ou un Mac.
   - BUG-001 : la liste des biens est déjà paginée et les requêtes serveur sont simples ; la lenteur réelle reste à mesurer en production (page concernée, temps de réponse de l'API).
   - Écarts relevés et laissés en l'état : « Préfinancement » est un montant dans les baux, mais un nombre de mois dans les lots et réservations. Dans nginx, la règle des fichiers statiques (.jpg/.png) passe avant celle de `/uploads/` (à vérifier sur le VPS).
-- **Remplace / modifie** : T-083 (le composant `Input` reçoit l'option `amount` ; le masquage du 0 reste inchangé)
+- **Remplace / modifie** : — (complète T-083, qui reste valable : le composant `Input` reçoit l'option `amount`, le masquage du 0 est inchangé)
