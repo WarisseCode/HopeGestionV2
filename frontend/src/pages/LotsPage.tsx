@@ -425,8 +425,8 @@ const LotsPage: React.FC = () => {
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Loyer (FCFA)" type="number" value={editingLot.loyer} onChange={(e) => setEditingLot({...editingLot, loyer: parseFloat(e.target.value)})} />
-            <Input label="Charges (FCFA)" type="number" value={editingLot.charges} onChange={(e) => setEditingLot({...editingLot, charges: parseFloat(e.target.value)})} />
+            <Input amount label="Loyer (FCFA)" type="number" value={editingLot.loyer} onChange={(e) => setEditingLot({...editingLot, loyer: parseFloat(e.target.value)})} />
+            <Input amount label="Charges (FCFA)" type="number" value={editingLot.charges} onChange={(e) => setEditingLot({...editingLot, charges: parseFloat(e.target.value)})} />
           </div>
           <div className="grid grid-cols-3 gap-4">
             <Input label="Étage" value={editingLot.etage} onChange={(e) => setEditingLot({...editingLot, etage: e.target.value})} />

@@ -500,7 +500,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
                     />
 
                     {/* Loyer */}
-                    <Input
+                    <Input amount
                       label="Loyer mensuel"
                       required
                       type="number"
@@ -521,7 +521,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
                         value={form.type_charges ?? 'forfaitaire'}
                         onChange={e => set('type_charges', e.target.value)}
                       />
-                      <Input
+                      <Input amount
                         label="Charges mensuelles"
                         type="number"
                         min={0}
@@ -533,7 +533,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
 
                     {/* Caution & préfinancement (loyers payés d'avance) */}
                     <div className="grid grid-cols-2 gap-4">
-                      <Input
+                      <Input amount
                         label="Caution"
                         type="number"
                         min={0}
@@ -543,7 +543,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
                           ? `= ${((form.caution ?? 0) / form.loyer_mensuel).toFixed(1)} mois`
                           : 'Dépôt de garantie'}
                       />
-                      <Input
+                      <Input amount
                         label="Préfinancement"
                         type="number"
                         min={0}

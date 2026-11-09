@@ -459,7 +459,7 @@ const Quittances: React.FC = () => {
             />
           </div>
 
-          <Input
+          <Input amount
             label="Montant (FCFA)"
             type="number"
             value={formData.montant}

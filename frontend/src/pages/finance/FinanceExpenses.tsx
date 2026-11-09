@@ -115,7 +115,7 @@ const FinanceExpenses: React.FC = () => {
                                         onChange={(e) => setFormData({...formData, date_expense: e.target.value})}
                                         required
                                     />
-                                    <Input 
+                                    <Input amount 
                                         label="Montant (FCFA)" 
                                         type="number" 
                                         value={formData.amount} 

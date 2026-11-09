@@ -477,7 +477,7 @@ const LotForm: React.FC<LotFormProps> = ({
                       <Banknote size={14} /> Configuration locative
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <Input
+                      <Input amount
                         label="Loyer mensuel (FCFA)"
                         type="number"
                         min={0}
@@ -487,7 +487,7 @@ const LotForm: React.FC<LotFormProps> = ({
                           e.target.value === '' ? undefined : parseFloat(e.target.value))}
                         startIcon={<Banknote size={16} />}
                       />
-                      <Input
+                      <Input amount
                         label="Charges (FCFA)"
                         type="number"
                         min={0}
@@ -511,7 +511,7 @@ const LotForm: React.FC<LotFormProps> = ({
                       Conditions d'entrée
                     </p>
                     <div className="grid grid-cols-2 gap-3">
-                      <Input
+                      <Input amount
                         label="Caution (FCFA)"
                         type="number"
                         min={0}
@@ -589,7 +589,7 @@ const LotForm: React.FC<LotFormProps> = ({
                         >
                           <div className="mt-3 p-4 bg-success/5 border border-success/20 rounded-xl space-y-3">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <Input
+                              <Input amount
                                 label="Prix de vente (FCFA)"
                                 type="number"
                                 min={0}

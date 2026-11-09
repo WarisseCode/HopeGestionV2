@@ -472,7 +472,7 @@ const MobileMoney: React.FC = () => {
                                 onChange={(e) => setTxForm({...txForm, remarque: e.target.value})}
                             />
                            <div className="grid grid-cols-2 gap-4">
-                               <Input 
+                               <Input amount 
                                     label="Montant" 
                                     placeholder="0 F CFA" 
                                     type="number" 

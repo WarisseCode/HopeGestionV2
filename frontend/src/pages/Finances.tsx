@@ -496,7 +496,7 @@ const Finances: React.FC = () => {
                                 ]}
                             />
                             <div className="grid grid-cols-2 gap-4">
-                                <Input
+                                <Input amount
                                     label={t('finance.amount')}
                                     type="number"
                                     value={paiementForm.montant}
