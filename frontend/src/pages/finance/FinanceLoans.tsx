@@ -203,7 +203,7 @@ const FinanceLoans: React.FC = () => {
                             <Input label="Nom du prêt (Banque)" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required placeholder="ex: Banque Atlantique - Achat Immeuble Yopougon" />
                             
                             <div className="grid grid-cols-2 gap-4">
-                                <Input label="Montant (Principal)" type="number" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} required />
+                                <Input amount label="Montant (Principal)" type="number" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} required />
                                 <Input label="Taux Intérêt (%)" type="number" step="0.01" value={formData.interest_rate} onChange={e => setFormData({...formData, interest_rate: e.target.value})} required />
                             </div>
 

@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { BRANDING } from '../config/branding';
+import { saveBlob } from './saveBlob';
 
 // Types pour les données de la quittance
 export interface QuittanceData {
@@ -339,11 +340,15 @@ export const generateQuittancePDF = async (data: QuittanceData, mode: 'download'
   );
 
   // ─── OUTPUT ───
+  const filename = `Quittance_${data.numero}_${data.locataire.replace(/\s+/g, '_')}.pdf`;
   if (mode === 'preview') {
     const pdfBlob = doc.output('blob');
     const url = URL.createObjectURL(pdfBlob);
-    window.open(url, '_blank');
+    // Safari bloque window.open appelé après un chargement (hors du clic) : repli sur le téléchargement.
+    const win = window.open(url, '_blank');
+    if (!win) saveBlob(pdfBlob, filename);
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   } else {
-    doc.save(`Quittance_${data.numero}_${data.locataire.replace(/\s+/g, '_')}.pdf`);
+    doc.save(filename);
   }
 };

@@ -12,6 +12,12 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   showErrorIcon?: boolean;
   /** Champ numérique : afficher « 0 » quand la valeur vaut 0 (ex. étages, 0 = plain-pied). Par défaut le 0 est masqué. */
   showZero?: boolean;
+  /**
+   * Champ de montant : affiche le nombre groupé par milliers pendant la saisie (« 80 000 »).
+   * Le onChange reçoit toujours le nombre brut dans e.target.value (« 80000 »), donc les
+   * parseFloat / Number des formulaires existants fonctionnent sans changement.
+   */
+  amount?: boolean;
 }
 
 const Input: React.FC<InputProps> = ({
@@ -23,6 +29,7 @@ const Input: React.FC<InputProps> = ({
   endIcon,
   showErrorIcon = true,
   showZero = false,
+  amount = false,
   className = '',
   id,
   ...props
@@ -40,7 +47,23 @@ const Input: React.FC<InputProps> = ({
   // NaN (champ vidé puis parseFloat('')) est aussi affiché vide.
   const isZeroLike = props.value === 0 || props.value === '0'
     || (typeof props.value === 'number' && Number.isNaN(props.value));
-  const displayValue = props.type === 'number' && !showZero && isZeroLike ? '' : props.value;
+  const displayValue = (props.type === 'number' || amount) && !showZero && isZeroLike ? '' : props.value;
+
+  // Montant : affichage groupé par milliers (espace insécable), saisie limitée aux chiffres.
+  const amountProps = amount ? {
+    type: 'text',
+    inputMode: 'numeric' as const,
+    value: displayValue === '' || displayValue == null
+      ? ''
+      // Valeur lue comme un nombre (la base renvoie souvent « 80000.00 ») puis arrondie : FCFA sans centimes.
+      : (Math.round(Number(String(displayValue).replace(/[\s\u00A0\u202F]/g, '').replace(',', '.'))) || 0)
+          .toLocaleString('fr-FR').replace(/[\u202F\u00A0\s]/g, '\u00A0'),
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      const digits = e.target.value.replace(/\D/g, '');
+      // On renvoie un événement dont target.value est le nombre brut (sans espaces).
+      props.onChange?.({ ...e, target: { ...e.target, name: e.target.name, value: digits }, currentTarget: { ...e.currentTarget, name: e.target.name, value: digits } } as unknown as React.ChangeEvent<HTMLInputElement>);
+    },
+  } : {};
   const [shake, setShake] = useState(false);
 
   // Déclenche l'animation shake quand une nouvelle erreur apparaît
@@ -84,6 +107,7 @@ const Input: React.FC<InputProps> = ({
           aria-describedby={[errorId, helperId].filter(Boolean).join(' ') || undefined}
           {...props}
           {...('value' in props ? { value: displayValue } : {})}
+          {...amountProps}
           className={`
             w-full py-3 px-4 
             ${startIcon ? 'pl-11' : ''} 

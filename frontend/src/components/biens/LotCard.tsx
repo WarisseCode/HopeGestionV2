@@ -23,7 +23,7 @@ const LotCard: React.FC<Props> = ({ lot, canWrite, onEdit, onDetail }) => {
       {/* Image */}
       <div className="h-40 bg-base-300 relative overflow-hidden shrink-0">
         {lot.photos?.[0] ? (
-          <img
+          <img loading="lazy" decoding="async"
             src={lot.photos[0]}
             alt={`${lot.reference} — ${lot.immeuble || ''}`}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

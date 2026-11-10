@@ -396,7 +396,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                       )}
 
                       <div className="grid grid-cols-2 gap-4">
-                        <Input
+                        <Input amount
                           label="Loyer mensuel"
                           required
                           type="number"
@@ -406,7 +406,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                           startIcon={<DollarSign size={16} />}
                           helperText="Hors charges"
                         />
-                        <Input
+                        <Input amount
                           label="Charges mensuelles"
                           type="number"
                           min={0}
@@ -415,7 +415,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
-                        <Input
+                        <Input amount
                           label="Caution (FCFA)"
                           type="number"
                           min={0}
@@ -424,7 +424,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                           helperText={form.loyer_mensuel > 0 ? `≈ ${((form.caution) / form.loyer_mensuel).toFixed(1)} mois` : undefined}
                         />
                         <Input
-                          label="Avance (mois)"
+                          label="Préfinancement (mois)"
                           type="number"
                           min={0}
                           value={form.avance || ''}
@@ -455,7 +455,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                         onChange={e => set('date_debut', e.target.value)}
                         startIcon={<Calendar size={16} />}
                       />
-                      <Input
+                      <Input amount
                         label="Prix de vente (FCFA)"
                         required
                         type="number"
@@ -479,7 +479,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                             className="overflow-hidden"
                           >
                             <div className="grid grid-cols-2 gap-4 pt-1">
-                              <Input
+                              <Input amount
                                 label="Apport initial (FCFA)"
                                 type="number"
                                 min={0}
@@ -521,7 +521,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                         helperText="Date limite de validité de la réservation"
                         startIcon={<Calendar size={16} />}
                       />
-                      <Input
+                      <Input amount
                         label="Montant de réservation (FCFA)"
                         type="number"
                         min={0}
@@ -594,7 +594,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ lot, onSuccess, onCance
                           )}
                           <RecapRow label="Loyer" value={`${form.loyer_mensuel.toLocaleString('fr-FR')} FCFA/mois`} onEdit={() => goToStep(1)} />
                           {form.caution > 0 && <RecapRow label="Caution" value={`${form.caution.toLocaleString('fr-FR')} FCFA`} onEdit={() => goToStep(1)} />}
-                          {form.avance > 0  && <RecapRow label="Avance"  value={`${form.avance} mois`}               onEdit={() => goToStep(1)} />}
+                          {form.avance > 0  && <RecapRow label="Préfinancement"  value={`${form.avance} mois`}               onEdit={() => goToStep(1)} />}
                         </>
                       )}
                       {type === 'vente' && (

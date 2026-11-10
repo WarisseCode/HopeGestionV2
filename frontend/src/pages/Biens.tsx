@@ -132,7 +132,7 @@ const BuildingPanel = forwardRef<HTMLElement, BuildingPanelProps>(
           className="relative block w-full h-36 rounded-xl overflow-hidden bg-base-200 group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           {photo
-            ? <img src={photo} alt="" className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300" />
+            ? <img loading="lazy" decoding="async" src={photo} alt="" className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300" />
             : <NoPhotoPlaceholder className="w-full h-full" />}
           {photoCount > 0 && (
             <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-black/60 text-white text-xs font-semibold">
@@ -577,7 +577,7 @@ const Biens: React.FC = () => {
                         >
                           <span className="w-14 h-14 shrink-0 rounded-xl overflow-hidden bg-base-200">
                             {photo
-                              ? <img src={photo} alt="" className="w-full h-full object-cover" />
+                              ? <img loading="lazy" decoding="async" src={photo} alt="" className="w-full h-full object-cover" />
                               : <NoPhotoPlaceholder className="w-full h-full" showLabel={false} iconSize={18} />}
                           </span>
                           <span className="min-w-0">
@@ -742,7 +742,7 @@ const Biens: React.FC = () => {
             {b.gallerySelectedBuilding?.photos?.length ? (
               b.gallerySelectedBuilding.photos.map((url, idx) => (
                 <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-base-200 shadow-sm hover:shadow-md transition-shadow">
-                  <img src={url} alt={`${t('properties.photo')} ${idx + 1}`} className="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" src={url} alt={`${t('properties.photo')} ${idx + 1}`} className="w-full h-full object-cover" />
                 </div>
               ))
             ) : (

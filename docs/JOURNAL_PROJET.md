@@ -1318,3 +1318,27 @@ Mis à jour automatiquement après chaque tâche.
 - **Décisions & justifications** : correction à la source (le composant `Input`) plutôt que formulaire par formulaire : elle couvre d'un coup quittances, paiements, Mobile Money, interventions, dépenses, prêts, fiscalité, édition de lot et les futurs formulaires. Seul l'affichage change : la valeur du formulaire reste 0 et les `onChange` sont intacts, donc les enregistrements ne changent pas. Option `showZero` pour les champs où 0 a un sens visible (« Nombre d'étages », 0 = plain-pied). Les grands formulaires (lot, bail, affectation, contrat) masquaient déjà le 0 via `valeur || ''` : comportement inchangé.
 - **Problèmes rencontrés** : contrôle dans le navigateur sur « Nouvelle quittance » : champ vide au départ, saisie « 80000 » → 80000, effacement → vide, aucune erreur console. `tsc` et `npm run build` OK.
 - **Remplace / modifie** : —
+
+### T-084 : Correction groupée de bugs du fichier de pilotage (BUG-020, 023, 017, 024, 016, 001)
+- **Date** : 2026-11-09
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : Correction des bugs du fichier « Pilotage 360 » qui ne demandaient pas d'arbitrage du client :
+  - BUG-020 : « Avance » renommé « Préfinancement » dans toute l'interface (EN : « Prepayment ») ;
+  - BUG-023 : détail d'un bail lisible sur téléphone (échéances en cartes, bouton « Payer » visible, résumé sur 2 colonnes) ;
+  - BUG-017 : montant pré-rempli d'après le bail à l'encaissement (loyer ou charges selon le type, modifiable) ;
+  - BUG-024 : séparateur des milliers pendant la saisie des montants ;
+  - BUG-016 : téléchargements de fichiers compatibles Safari ;
+  - BUG-001 (partiel) : chargement différé des photos de la page Biens.
+- **Fichiers touchés** : frontend/src/components/ui/Input.tsx, frontend/src/utils/saveBlob.ts (créé), frontend/src/utils/downloadPdf.ts, frontend/src/utils/pdfGenerator.ts, frontend/src/api/reportApi.ts, frontend/src/pages/{Corbeille,Finances,LocationDetails,ReservationsList,Quittances,MobileMoney,Interventions,LotsPage,Biens}.tsx, frontend/src/pages/finance/{FinanceLoans,FinanceExpenses}.tsx, frontend/src/components/{contrats/CreateContratForm,locations/LocationForm,biens/AssignmentForm,biens/LotForm,biens/LotDetailModal,biens/LotCard,biens/ImmeubleCard}.tsx, frontend/src/i18n/locales/{fr,en}.json, backend/routes/{leaseRoutes,reservationRoutes}.ts (messages de validation), docs/JOURNAL_PROJET.md
+- **Décisions & justifications** :
+  - Option `amount` du composant `Input` : affiche « 80 000 » mais transmet toujours « 80000 » au `onChange`, donc aucun formulaire ni aucune donnée envoyée ne change de format. La valeur est lue comme un nombre avant formatage (« 80000.00 » venant de la base ne devient pas 8 000 000).
+  - Safari annule un téléchargement si l'URL du blob est révoquée juste après le clic : utilitaire `saveBlob` qui révoque plus tard, et repli sur le téléchargement quand Safari bloque `window.open`.
+  - BUG-017 : choix du bail aligné entre pré-remplissage et enregistrement (actif, puis signé, puis le plus récent).
+  - BUG-020 : seuls les libellés changent ; le champ en base reste `avance`.
+- **Problèmes rencontrés** :
+  - Vérifications dans le navigateur avec une API simulée : saisie « 80000 » → affichée « 80 000 », envoyée `30000` au serveur pour « 30 000 » ; pré-remplissage 45 511 puis 5 000 en « Charges » ; détail d'un bail à 390 px sans débordement ; téléchargement d'un blob OK sous Chromium.
+  - Safari n'est pas testable ici : correction des causes connues, à confirmer sur un iPhone ou un Mac.
+  - BUG-001 : la liste des biens est déjà paginée et les requêtes serveur sont simples ; la lenteur réelle reste à mesurer en production (page concernée, temps de réponse de l'API).
+  - Écarts relevés et laissés en l'état : « Préfinancement » est un montant dans les baux, mais un nombre de mois dans les lots et réservations. Dans nginx, la règle des fichiers statiques (.jpg/.png) passe avant celle de `/uploads/` (à vérifier sur le VPS).
+- **Remplace / modifie** : — (complète T-083, qui reste valable : le composant `Input` reçoit l'option `amount`, le masquage du 0 est inchangé)

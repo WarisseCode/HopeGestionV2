@@ -117,25 +117,25 @@ const CreateContratForm: React.FC<Props> = ({ form, setForm, locataires, lots, o
           </div>
 
           {form.type_contrat === 'location' && (
-            <Input label="Loyer mensuel" required type="number" min={0} value={form.loyer_mensuel || ''}
+            <Input amount label="Loyer mensuel" required type="number" min={0} value={form.loyer_mensuel || ''}
               onChange={e => setForm(f => ({ ...f, loyer_mensuel: Number(e.target.value) }))}
               endIcon={<span className="text-xs text-base-content/40">{form.devise}</span>} />
           )}
           {form.type_contrat === 'vente' && (
-            <Input label="Prix de vente" required type="number" min={0} value={form.prix_vente || ''}
+            <Input amount label="Prix de vente" required type="number" min={0} value={form.prix_vente || ''}
               onChange={e => setForm(f => ({ ...f, prix_vente: Number(e.target.value) }))}
               endIcon={<span className="text-xs text-base-content/40">{form.devise}</span>} />
           )}
 
-          <Input label="Caution" type="number" min={0} value={form.caution || ''}
+          <Input amount label="Caution" type="number" min={0} value={form.caution || ''}
             onChange={e => setForm(f => ({ ...f, caution: Number(e.target.value) }))}
             endIcon={<span className="text-xs text-base-content/40">{form.devise}</span>} />
-          <Input label="Avance" type="number" min={0} value={form.avance || ''}
+          <Input amount label="Préfinancement" type="number" min={0} value={form.avance || ''}
             onChange={e => setForm(f => ({ ...f, avance: Number(e.target.value) }))}
             endIcon={<span className="text-xs text-base-content/40">{form.devise}</span>} />
 
           {form.type_contrat === 'location' && (
-            <Input label="Charges mensuelles" type="number" min={0} value={form.charges_mensuelles || ''}
+            <Input amount label="Charges mensuelles" type="number" min={0} value={form.charges_mensuelles || ''}
               onChange={e => setForm(f => ({ ...f, charges_mensuelles: Number(e.target.value) }))}
               endIcon={<span className="text-xs text-base-content/40">{form.devise}</span>} />
           )}

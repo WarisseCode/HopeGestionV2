@@ -34,7 +34,7 @@ const leaseCreateRules = [
     body('duree_contrat').optional({ nullable: true }).isInt({ min: 1 }).withMessage('Durée invalide'),
     body('loyer_mensuel').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Loyer invalide'),
     body('caution').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Caution invalide'),
-    body('avance').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Avance invalide'),
+    body('avance').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Préfinancement invalide'),
     body('charges_mensuelles').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Charges invalides'),
     body('prix_vente').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Prix de vente invalide'),
     body('jour_echeance').optional({ nullable: true }).isInt({ min: 1, max: 31 }).withMessage("Jour d'échéance invalide (1-31)"),

@@ -816,7 +816,7 @@ const Interventions: React.FC = () => {
                 </select>
               </div>
               <Input type="date" label="Date Intervention" value={assignForm.scheduled_date} onChange={e => setAssignForm({...assignForm, scheduled_date: e.target.value})} />
-              <Input type="number" label="Coût Estimé (FCFA)" value={assignForm.cost_estimated} onChange={e => setAssignForm({...assignForm, cost_estimated: parseFloat(e.target.value)})} />
+              <Input amount type="number" label="Coût Estimé (FCFA)" value={assignForm.cost_estimated} onChange={e => setAssignForm({...assignForm, cost_estimated: parseFloat(e.target.value)})} />
               <div className="flex justify-end gap-3 pt-4 border-t">
                 <Button variant="ghost" onClick={() => setShowAssignModal(false)}>Annuler</Button>
                 <Button onClick={handleAssign}>Affecter</Button>
@@ -836,7 +836,7 @@ const Interventions: React.FC = () => {
                 <label htmlFor={`${formId}-close-actions`} className="block text-sm font-bold mb-1">Actions réalisées *</label>
                 <textarea id={`${formId}-close-actions`} className="w-full border border-base-content/50 rounded-lg p-2" rows={3} value={closeForm.actions_done} onChange={e => setCloseForm({...closeForm, actions_done: e.target.value})} placeholder="Décrivez les travaux effectués..." />
               </div>
-              <Input type="number" label="Coût Réel (FCFA)" value={closeForm.cost_real} onChange={e => setCloseForm({...closeForm, cost_real: parseFloat(e.target.value)})} />
+              <Input amount type="number" label="Coût Réel (FCFA)" value={closeForm.cost_real} onChange={e => setCloseForm({...closeForm, cost_real: parseFloat(e.target.value)})} />
               <Input label="Commentaires" value={closeForm.comments} onChange={e => setCloseForm({...closeForm, comments: e.target.value})} />
               <div>
                 <label id={`${formId}-photos-after`} className="block text-sm font-bold mb-2">Photos (après intervention)</label>
@@ -914,7 +914,7 @@ const Interventions: React.FC = () => {
                   {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
-              <Input type="number" label="Coût Mensuel (FCFA)" value={contractForm.cost_monthly} onChange={e => setContractForm({...contractForm, cost_monthly: parseFloat(e.target.value)})} />
+              <Input amount type="number" label="Coût Mensuel (FCFA)" value={contractForm.cost_monthly} onChange={e => setContractForm({...contractForm, cost_monthly: parseFloat(e.target.value)})} />
               <div className="grid grid-cols-2 gap-4">
                 <Input type="date" label="Début" value={contractForm.start_date} onChange={e => setContractForm({...contractForm, start_date: e.target.value})} />
                 <Input type="date" label="Fin" value={contractForm.end_date} onChange={e => setContractForm({...contractForm, end_date: e.target.value})} />

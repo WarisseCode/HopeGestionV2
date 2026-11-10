@@ -1,4 +1,5 @@
 import { getToken } from '../api/authApi';
+import { saveBlob } from './saveBlob';
 
 /**
  * Télécharge un PDF servi par une route authentifiée.
@@ -12,13 +13,5 @@ export async function downloadPdf(url: string, filename: string): Promise<void> 
     });
     if (!resp.ok) throw new Error('Téléchargement échoué');
 
-    const blob = await resp.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = objectUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(objectUrl);
+    saveBlob(await resp.blob(), filename);
 }
