@@ -5,6 +5,12 @@ import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { API_URL } from '../../config';
 import { resolveFileUrl } from '../../utils/fileUrl';
 import { getToken } from '../../api/authApi';
+import { resizeImage } from '../../utils/imageCompress';
+
+// Taille max acceptée AVANT réduction (photos de téléphone récentes : 5 à 12 Mo).
+// Après réduction, l'image envoyée doit rester sous 5 Mo.
+const MAX_ORIGINAL_BYTES = 20 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
 interface ImageUploadProps {
     value?: string;           // URL de l'image existante
@@ -29,23 +35,30 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        const original = e.target.files?.[0];
+        if (!original) return;
 
-        // Validation taille (5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            setError("L'image ne doit pas dépasser 5MB");
+        // Validation type
+        if (!original.type.startsWith('image/')) {
+            setError("Seules les images sont acceptées");
             return;
         }
 
-        // Validation type
-        if (!file.type.startsWith('image/')) {
-            setError("Seules les images sont acceptées");
+        if (original.size > MAX_ORIGINAL_BYTES) {
+            setError("L'image ne doit pas dépasser 20 Mo");
             return;
         }
 
         setError(null);
         setUploading(true);
+
+        // Réduction avant envoi (BUG-005). Pièces d'identité : 2000 px pour rester lisibles.
+        const file = await resizeImage(original, folder === 'document' ? 2000 : 1600);
+        if (file.size > MAX_UPLOAD_BYTES) {
+            setError("L'image est trop lourde (5 Mo maximum après réduction)");
+            setUploading(false);
+            return;
+        }
 
         // Preview immédiat
         const objectUrl = URL.createObjectURL(file);
@@ -156,7 +169,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                                     <ImageIcon size={24} />
                                 </div>
                                 <span className="text-sm font-medium">Cliquez pour ajouter</span>
-                                <span className="text-xs mt-1">JPG, PNG (max 5MB)</span>
+                                <span className="text-xs mt-1">JPG, PNG — taille ajustée automatiquement</span>
                             </>
                         )}
                     </div>

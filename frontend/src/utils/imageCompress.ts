@@ -53,3 +53,59 @@ export async function compressImage(file: File, maxDim = 1280, quality = 0.7): P
         );
     });
 }
+
+// ─── Redimensionnement des photos de biens / locataires (BUG-005) ─────────────
+// Les photos de téléphone font souvent 3 à 8 Mo pour 4000 px de large : lentes à
+// envoyer en 3G/4G, et lentes à afficher dans les listes (BUG-001). On les réduit
+// dans le navigateur avant l'envoi, sans horodatage (contrairement à l'EDL).
+//
+// Règles :
+// - GIF / SVG : renvoyés tels quels (animation / vectoriel perdus au ré-encodage) ;
+// - image déjà petite (côté ≤ maxDim et ≤ 500 Ko) : renvoyée telle quelle ;
+// - sinon : JPEG, fond blanc (un PNG transparent ne devient pas noir) ;
+// - si le résultat est plus lourd que l'original ou si le navigateur échoue à
+//   décoder l'image : on renvoie l'original (jamais pire qu'avant).
+const SMALL_ENOUGH_BYTES = 500 * 1024;
+
+export async function resizeImage(file: File, maxDim = 1600, quality = 0.82): Promise<File> {
+    if (!file.type.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') {
+        return file;
+    }
+
+    let img: HTMLImageElement;
+    try {
+        img = await loadImage(file);
+    } catch {
+        return file;
+    }
+
+    const srcW = img.naturalWidth || img.width;
+    const srcH = img.naturalHeight || img.height;
+    if (!srcW || !srcH) return file;
+
+    const longest = Math.max(srcW, srcH);
+    if (longest <= maxDim && file.size <= SMALL_ENOUGH_BYTES) return file;
+
+    const scale = longest > maxDim ? maxDim / longest : 1;
+    const width = Math.round(srcW * scale);
+    const height = Math.round(srcH * scale);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return file;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, width, height);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/jpeg', quality)
+    );
+    if (!blob || blob.size >= file.size) return file;
+
+    // Le backend déduit l'extension du nom d'origine : on la remplace par .jpg
+    const baseName = file.name.replace(/\.[^.]+$/, '') || 'photo';
+    return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg', lastModified: Date.now() });
+}
