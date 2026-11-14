@@ -1371,3 +1371,21 @@ Mis à jour automatiquement après chaque tâche.
   - sauvegardes non visibles dans le dépôt.
 - **Problèmes rencontrés** : Pas d'accès à la base de production ni au VPS : RLS réelle, secrets en vigueur, sauvegardes et version de nginx sont marqués « à confirmer ». Valeurs des secrets masquées pendant l'analyse, aucune reproduite dans le rapport.
 - **Remplace / modifie** : — (complète T-011 et T-018, qui restent valables)
+
+### T-087 : Isolation entre agences sur les écritures — prestataires, contrats de service, dépenses, interventions (audit S2)
+- **Date** : 2026-11-14
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : Les modifications et suppressions de ces modules ciblaient `WHERE id = $n` seul, sans vérifier le propriétaire : un gestionnaire pouvait modifier ou supprimer les données d'une autre agence en changeant l'identifiant. Toutes ces requêtes filtrent désormais sur les propriétaires gérés (`owner_id = ANY(validOwnerIds)`), avec un accès global conservé pour l'admin ; un élément hors périmètre renvoie 404. La liste `GET /api/expenses`, que l'audit n'avait pas repérée, n'était pas filtrée non plus et l'est maintenant.
+- **Fichiers touchés** :
+  - `backend/routes/providerRoutes.ts` (PUT, DELETE)
+  - `backend/routes/serviceContractRoutes.ts` (PUT, DELETE)
+  - `backend/routes/expenseRoutes.ts` (GET, DELETE, nouvelle fonction `scopeExpenseByOwner`)
+  - `backend/routes/ticketRoutes.ts` (PUT dans ses 2 variantes, reschedule, close, nouvelle fonction `scopeByOwner`)
+  - `backend/tests/routes/writeScope.ownerScope.test.ts` (nouveau, 29 tests)
+- **Décisions & justifications** :
+  - Réutilisation de `scopeByOwner()`, déjà présent dans ces fichiers pour les lectures (T-026), plutôt qu'une nouvelle abstraction.
+  - Dépenses : `expenses.owner_id` peut être NULL (`ON DELETE SET NULL`, anciennes lignes). Le filtre retombe alors sur le propriétaire de l'immeuble rattaché, pour qu'aucune dépense légitime ne disparaisse de son agence.
+  - Filtre dans la requête elle-même (UPDATE/DELETE … AND owner_id = ANY) : une seule requête, pas de fenêtre entre vérification et écriture.
+- **Problèmes rencontrés** : Suite complète : 443 tests réussis, 21 en échec. Ce sont les mêmes 21 échecs (5 suites) que sur `main` avant la modification, des tests périmés relevés en F3 de l'audit. Le premier script d'édition a été bloqué par un contrôle de sécurité de l'outil (faux positif, aucune suppression) ; il a été relancé depuis un fichier.
+- **Remplace / modifie** : — (complète T-026, qui avait filtré les lectures de ces modules)
