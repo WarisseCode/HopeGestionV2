@@ -11,6 +11,15 @@ import { parsePagination, paginate } from '../utils/pagination';
 
 const router = express.Router();
 
+// [SÉCURITÉ] Filtre propriétaire explicite sur tickets.owner_id pour les écritures
+// (audit S2) — même logique que GET / et DELETE /:id de ce fichier. Admin : accès global.
+function scopeByOwner(req: any, params: any[], col = 'owner_id'): string {
+    if (req.userRole === 'admin') return '';
+    const validOwnerIds: number[] = req.validOwnerIds || [];
+    params.push(validOwnerIds);
+    return ` AND ${col} = ANY($${params.length}::int[])`;
+}
+
 const ticketIdParam = param('id').isInt({ min: 1 }).withMessage('Identifiant invalide');
 const ticketCreateRules = [
     body('lot_id').notEmpty().withMessage("L'ID du lot est requis").bail().isInt({ min: 1 }).withMessage('lot_id invalide'),
@@ -205,19 +214,23 @@ router.put('/:id', protect, tenantGuard, validate(ticketUpdateRules), async (req
         const id = req.params.id;
 
         if (provider_id) {
+             const params: any[] = [provider_id, scheduled_date, cost_estimated, statut || 'En cours', id];
+             const ownerClause = scopeByOwner(req, params);
              const result = await dbClient.query(
                 `UPDATE tickets SET provider_id=$1, scheduled_date=$2, cost_estimated=$3, statut=$4, updated_at=NOW()
-                 WHERE id=$5 RETURNING *`,
-                [provider_id, scheduled_date, cost_estimated, statut || 'En cours', id]
+                 WHERE id=$5${ownerClause} RETURNING *`,
+                params
             );
             if (result.rowCount === 0) {
                 return res.status(404).json({ message: 'Ticket non trouvé ou accès refusé' });
             }
             res.json(result.rows[0]);
         } else {
+            const params: any[] = [statut, id];
+            const ownerClause = scopeByOwner(req, params);
             const result = await dbClient.query(
-                `UPDATE tickets SET statut=$1, updated_at=NOW() WHERE id=$2 RETURNING *`,
-                [statut, id]
+                `UPDATE tickets SET statut=$1, updated_at=NOW() WHERE id=$2${ownerClause} RETURNING *`,
+                params
             );
             if (result.rowCount === 0) {
                 return res.status(404).json({ message: 'Ticket non trouvé ou accès refusé' });
@@ -235,6 +248,8 @@ router.post('/:id/reschedule', protect, tenantGuard, validate(ticketRescheduleRu
         const dbClient = (req as any).dbClient;
         const { new_date, reason } = req.body;
         const id = req.params.id;
+        const params: any[] = [new_date, reason || 'Reprogrammé', id];
+        const ownerClause = scopeByOwner(req, params); // audit S2
 
         const result = await dbClient.query(
             `UPDATE tickets SET 
@@ -242,8 +257,8 @@ router.post('/:id/reschedule', protect, tenantGuard, validate(ticketRescheduleRu
                 statut = 'En attente',
                 description = description || '\n[Reprogrammé]: ' || $2,
                 updated_at = NOW()
-             WHERE id = $3 RETURNING *`,
-            [new_date, reason || 'Reprogrammé', id]
+             WHERE id = $3${ownerClause} RETURNING *`,
+            params
         );
 
         if (result.rowCount === 0) {
@@ -262,6 +277,8 @@ router.post('/:id/close', protect, tenantGuard, validate(ticketCloseRules), asyn
         const dbClient = (req as any).dbClient;
         const { cost_real, photos_after, comments, actions_done } = req.body;
         const id = req.params.id;
+        const params: any[] = [cost_real, JSON.stringify(photos_after || []), actions_done || '', comments || '', id];
+        const ownerClause = scopeByOwner(req, params); // audit S2
 
         const result = await dbClient.query(
             `UPDATE tickets SET 
@@ -271,8 +288,8 @@ router.post('/:id/close', protect, tenantGuard, validate(ticketCloseRules), asyn
                 description = description || '\n[Clôture - Actions]: ' || $3 || '\n[Commentaire]: ' || $4,
                 date_resolution=NOW(),
                 updated_at=NOW()
-             WHERE id=$5 RETURNING *`,
-            [cost_real, JSON.stringify(photos_after || []), actions_done || '', comments || '', id]
+             WHERE id=$5${ownerClause} RETURNING *`,
+            params
         );
 
         if (result.rowCount === 0) {

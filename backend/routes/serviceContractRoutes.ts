@@ -92,10 +92,13 @@ router.put('/:id', protect, tenantGuard, validate(contractUpdateRules), async (r
         const { provider_id, title, description, cost_monthly, start_date, end_date, status } = req.body;
         const id = req.params.id;
 
+        // [SÉCURITÉ] Filtre propriétaire : un contrat d'une autre agence → 404 (audit S2)
+        const params: any[] = [provider_id, title, description, cost_monthly, start_date, end_date, status, id];
+        const ownerClause = scopeByOwner(req, params);
         const result = await dbClient.query(
             `UPDATE service_contracts SET provider_id=$1, title=$2, description=$3, cost_monthly=$4, start_date=$5, end_date=$6, status=$7, updated_at=NOW()
-             WHERE id=$8 RETURNING *`,
-            [provider_id, title, description, cost_monthly, start_date, end_date, status, id]
+             WHERE id=$8${ownerClause} RETURNING *`,
+            params
         );
         if (result.rowCount === 0) {
             return res.status(404).json({ message: 'Contrat introuvable ou accès refusé' });
@@ -112,7 +115,10 @@ router.delete('/:id', protect, tenantGuard, async (req: any, res) => {
     try {
         const dbClient = (req as any).dbClient;
         // On modifie ici par un RETURNING id pour identifier si la suppression a réussi 
-        const result = await dbClient.query('DELETE FROM service_contracts WHERE id = $1 RETURNING id', [req.params.id]);
+        // [SÉCURITÉ] Filtre propriétaire (audit S2)
+        const params: any[] = [req.params.id];
+        const ownerClause = scopeByOwner(req, params);
+        const result = await dbClient.query(`DELETE FROM service_contracts WHERE id = $1${ownerClause} RETURNING id`, params);
         if (result.rowCount === 0) {
             return res.status(404).json({ message: 'Contrat introuvable ou accès refusé' });
         }

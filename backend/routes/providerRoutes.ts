@@ -151,10 +151,13 @@ router.put('/:id', validate(providerUpdateRules), async (req: AuthenticatedReque
         const { name, specialty, contact_name, phone, email, address, status } = req.body;
         const id = req.params.id;
 
+        // [SÉCURITÉ] Filtre propriétaire : un prestataire d'une autre agence → 404 (audit S2)
+        const params: any[] = [name, specialty, contact_name, phone, email, address, status, id];
+        const ownerClause = scopeByOwner(req, params);
         const result = await dbClient.query(
             `UPDATE providers SET name=$1, specialty=$2, contact_name=$3, phone=$4, email=$5, address=$6, status=$7, updated_at=NOW()
-             WHERE id=$8 RETURNING *`,
-            [name, specialty, contact_name, phone, email, address, status, id]
+             WHERE id=$8${ownerClause} RETURNING *`,
+            params
         );
         
         if (result.rowCount === 0) {
@@ -171,7 +174,10 @@ router.put('/:id', validate(providerUpdateRules), async (req: AuthenticatedReque
 router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
-        const result = await dbClient.query('DELETE FROM providers WHERE id = $1 RETURNING id', [req.params.id]);
+        // [SÉCURITÉ] Filtre propriétaire (audit S2)
+        const params: any[] = [req.params.id];
+        const ownerClause = scopeByOwner(req, params);
+        const result = await dbClient.query(`DELETE FROM providers WHERE id = $1${ownerClause} RETURNING id`, params);
         
         if (result.rowCount === 0) {
             return res.status(404).json({ message: 'Prestataire introuvable ou accès refusé' });

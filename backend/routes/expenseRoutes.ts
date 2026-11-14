@@ -40,13 +40,26 @@ const router = Router();
 router.use(protect);
 router.use(tenantGuard);
 
+// [SÉCURITÉ] Filtre propriétaire explicite (audit S2) : la RLS n'est pas versionnée
+// pour expenses et le rôle DB peut avoir BYPASSRLS. expenses.owner_id peut être NULL
+// (ON DELETE SET NULL, anciennes lignes) : on retombe alors sur le propriétaire de
+// l'immeuble rattaché, pour ne pas faire disparaître ces dépenses de leur agence.
+// Admin : accès global.
+function scopeExpenseByOwner(req: AuthenticatedRequest, params: any[], alias = 'e'): string {
+    if ((req as any).userRole === 'admin') return '';
+    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
+    params.push(validOwnerIds);
+    const n = params.length;
+    return ` AND (${alias}.owner_id = ANY($${n}::int[]) OR (${alias}.owner_id IS NULL AND EXISTS (
+        SELECT 1 FROM buildings bx WHERE bx.id = ${alias}.building_id AND bx.owner_id = ANY($${n}::int[]))))`;
+}
+
 // GET /api/expenses - List expenses
 router.get('/', permissions.canRead('finance'), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const dbClient = (req as any).dbClient;
         const { building_id, category, start_date, end_date } = req.query;
         
-        // RLS s'occupe de l'isolation owner_id
         let query = `
             SELECT e.*, 
                    b.nom as building_name,
@@ -60,7 +73,8 @@ router.get('/', permissions.canRead('finance'), async (req: AuthenticatedRequest
         `;
         
         const params: any[] = [];
-        let pIdx = 1;
+        query += scopeExpenseByOwner(req, params);
+        let pIdx = params.length + 1;
 
         if (building_id) {
             query += ` AND e.building_id = $${pIdx++}`;
@@ -214,7 +228,9 @@ router.delete('/:id', permissions.canWrite('finance'), validate(expenseIdParam),
         const dbClient = (req as any).dbClient;
         const { id } = req.params;
         
-        const result = await dbClient.query('DELETE FROM expenses WHERE id = $1 RETURNING id', [id]);
+        const params: any[] = [id];
+        const ownerClause = scopeExpenseByOwner(req, params, 'expenses');
+        const result = await dbClient.query(`DELETE FROM expenses WHERE id = $1${ownerClause} RETURNING id`, params);
         if (result.rowCount === 0) {
              return res.status(404).json({ message: 'Dépense introuvable ou accès refusé' });
         }
