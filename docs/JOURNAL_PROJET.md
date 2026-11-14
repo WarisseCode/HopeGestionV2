@@ -1342,3 +1342,13 @@ Mis à jour automatiquement après chaque tâche.
   - BUG-001 : la liste des biens est déjà paginée et les requêtes serveur sont simples ; la lenteur réelle reste à mesurer en production (page concernée, temps de réponse de l'API).
   - Écarts relevés et laissés en l'état : « Préfinancement » est un montant dans les baux, mais un nombre de mois dans les lots et réservations. Dans nginx, la règle des fichiers statiques (.jpg/.png) passe avant celle de `/uploads/` (à vérifier sur le VPS).
 - **Remplace / modifie** : — (complète T-083, qui reste valable : le composant `Input` reçoit l'option `amount`, le masquage du 0 est inchangé)
+
+### T-085 : Redimensionnement automatique des photos avant envoi (BUG-005)
+- **Date** : 2026-11-14
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : Les photos de biens, de pièces d'identité et de profil (locataires, propriétaires) sont réduites dans le navigateur avant l'envoi : 1600 px max pour les biens, 2000 px pour les pièces d'identité, 800 px pour les photos de profil, ré-encodage JPEG qualité 0,82. Les originaux jusqu'à 20 Mo sont acceptés (contre 5 Mo avant), l'envoi reste plafonné à 5 Mo après réduction.
+- **Fichiers touchés** : frontend/src/utils/imageCompress.ts (nouvelle fonction `resizeImage`), frontend/src/components/ui/ImageUpload.tsx, frontend/src/components/ui/AvatarUpload.tsx
+- **Décisions & justifications** : Réduction côté navigateur plutôt que côté serveur (sharp) : moins de données envoyées en 3G/4G, aucune dépendance native à installer sur le VPS, aucun changement backend. `resizeImage` ne fait jamais pire qu'avant : GIF/SVG, images déjà petites (≤ 1600 px et ≤ 500 Ko), images non décodables ou résultat plus lourd → fichier d'origine envoyé tel quel. Fond blanc pour éviter qu'un PNG transparent devienne noir. `compressImage` (photos d'EDL horodatées) n'est pas modifiée. Les photos déjà en ligne ne sont pas retraitées. Les règles métier de BUG-006/007 (contrôle IA, qualité, quota par abonnement) restent à définir.
+- **Problèmes rencontrés** : Vérifié sous Playwright : 4000×3000 px / 18,8 Mo → 1600×1200 px / 0,44 Mo ; photo de 9,7 Mo (refusée avant) envoyée à 363 Ko (bien) et 47 Ko (profil). L'erreur console « gis is not defined » sur /login existe déjà sur main (sans lien).
+- **Remplace / modifie** : — (complète T-084 pour BUG-001 : listes plus légères à afficher)

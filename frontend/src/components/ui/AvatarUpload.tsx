@@ -5,6 +5,7 @@ import { User, Camera, Loader2, X } from 'lucide-react';
 import { API_URL } from '../../config';
 import { resolveFileUrl } from '../../utils/fileUrl';
 import { getToken } from '../../api/authApi';
+import { resizeImage } from '../../utils/imageCompress';
 
 interface AvatarUploadProps {
   value?: string;
@@ -21,13 +22,16 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({ value, onChange, size = 112
   useEffect(() => { setPreview(value || null); }, [value]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { setError('Max 5 MB'); return; }
-    if (!file.type.startsWith('image/')) { setError('Image uniquement'); return; }
+    const original = e.target.files?.[0];
+    if (!original) return;
+    if (!original.type.startsWith('image/')) { setError('Image uniquement'); return; }
+    // Limite haute avant réduction ; une photo de profil n'a besoin que de 800 px (BUG-005)
+    if (original.size > 20 * 1024 * 1024) { setError('Max 20 Mo'); return; }
 
     setError(null);
     setUploading(true);
+    const file = await resizeImage(original, 800);
+    if (file.size > 5 * 1024 * 1024) { setError('Max 5 Mo'); setUploading(false); return; }
     setPreview(URL.createObjectURL(file));
 
     const fd = new FormData();
@@ -132,7 +136,7 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({ value, onChange, size = 112
 
       <p className="text-xs text-base-content/40 text-center leading-tight">
         Photo de profil
-        <span className="block text-[10px] mt-0.5">JPG, PNG · max 5 MB</span>
+        <span className="block text-[10px] mt-0.5">JPG, PNG · taille ajustée</span>
       </p>
 
       {error && <p className="text-xs text-error text-center">{error}</p>}
