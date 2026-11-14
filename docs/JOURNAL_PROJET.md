@@ -1352,3 +1352,22 @@ Mis à jour automatiquement après chaque tâche.
 - **Décisions & justifications** : Réduction côté navigateur plutôt que côté serveur (sharp) : moins de données envoyées en 3G/4G, aucune dépendance native à installer sur le VPS, aucun changement backend. `resizeImage` ne fait jamais pire qu'avant : GIF/SVG, images déjà petites (≤ 1600 px et ≤ 500 Ko), images non décodables ou résultat plus lourd → fichier d'origine envoyé tel quel. Fond blanc pour éviter qu'un PNG transparent devienne noir. `compressImage` (photos d'EDL horodatées) n'est pas modifiée. Les photos déjà en ligne ne sont pas retraitées. Les règles métier de BUG-006/007 (contrôle IA, qualité, quota par abonnement) restent à définir.
 - **Problèmes rencontrés** : Vérifié sous Playwright : 4000×3000 px / 18,8 Mo → 1600×1200 px / 0,44 Mo ; photo de 9,7 Mo (refusée avant) envoyée à 363 Ko (bien) et 47 Ko (profil). L'erreur console « gis is not defined » sur /login existe déjà sur main (sans lien).
 - **Remplace / modifie** : — (complète T-084 pour BUG-001 : listes plus légères à afficher)
+
+### T-086 : Audit sécurité, performance et fiabilité de la plateforme
+- **Date** : 2026-11-14
+- **Statut** : Terminée
+- **Type** : Documentation
+- **Description** : Audit en lecture seule du backend, du frontend et du déploiement, sur trois axes : sécurité, performance, fiabilité. Il relève 18 constats classés par gravité, avec un ordre de correction. Rapport : `docs/suivi/AUDIT_2026-11-14.md`.
+- **Fichiers touchés** : `docs/suivi/AUDIT_2026-11-14.md` (nouveau), `docs/JOURNAL_PROJET.md`.
+- **Décisions & justifications** : Aucun correctif appliqué : l'utilisateur choisit quoi corriger. Constats principaux :
+  - routes d'écriture sans filtre propriétaire (prestataires, contrats de service, dépenses, tickets) ; la correction T-026 avait couvert la lecture seulement ;
+  - modèles de documents communs à toutes les agences ;
+  - webhooks FedaPay inopérants : loyers bloqués par `protect`, abonnements limités aux IP localhost en live et non revérifiés en sandbox ;
+  - secrets de février 2026 encore dans l'historique git ;
+  - dépendances vulnérables (T-018 jamais appliqué) ;
+  - pool DB de 10 connexions, chacune tenue par requête (piste BUG-001) ;
+  - 21 tests backend périmés en échec ;
+  - déploiement sans tests ni bascule atomique ;
+  - sauvegardes non visibles dans le dépôt.
+- **Problèmes rencontrés** : Pas d'accès à la base de production ni au VPS : RLS réelle, secrets en vigueur, sauvegardes et version de nginx sont marqués « à confirmer ». Valeurs des secrets masquées pendant l'analyse, aucune reproduite dans le rapport.
+- **Remplace / modifie** : — (complète T-011 et T-018, qui restent valables)
