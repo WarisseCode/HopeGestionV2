@@ -1431,3 +1431,39 @@ Mis à jour automatiquement après chaque tâche.
   - Correction mineure : le log SMS lisait `recipient.id` sans l'avoir sélectionné.
 - **Problèmes rencontrés** : Suite complète : 469 réussis, 21 en échec, les mêmes que sur `main` (constat F3).
 - **Remplace / modifie** : — (complète T-086, constat S5)
+
+### T-090 : Mise à jour des bibliothèques vulnérables sans changement majeur (audit S6)
+- **Date** : 2026-11-15
+- **Statut** : Terminée
+- **Type** : Config
+- **Description** : `npm audit fix`, sans `--force`, côté backend et frontend. Seuls les fichiers `package-lock.json` changent ; les `package.json` sont inchangés.
+
+  | Partie | Avant (prod) | Après (prod) | Versions directes modifiées |
+  |---|---|---|---|
+  | Backend | 2 critiques, 15 hautes | 0 critique, 3 hautes | axios 1.13.5 → 1.21.1, express-rate-limit 8.2.1 → 8.7.4, multer 2.0.2 → 2.5.0, nodemailer 7.0.12 → 7.0.13 (+ outils ESLint en dev) |
+  | Frontend | 1 critique, 8 hautes | 1 critique (jspdf), 0 haute | axios 1.13.2 → 1.21.1, react-router-dom 7.11.0 → 7.18.5 (+ vite, storybook, postcss en dev) ; dompurify 3.3.1 → 3.4.18 en transitif |
+- **Fichiers touchés** : `backend/package-lock.json`, `frontend/package-lock.json`.
+- **Décisions & justifications** :
+  - Aucune montée de version majeure en production. Les seules versions majeures qui changent sont des dépendances d'outils de dev (ESLint : minimatch, flat-cache, keyv) et `proxy-from-env`, une dépendance interne d'axios.
+  - Frontend : `--legacy-peer-deps`, comme `npm ci` dans `.github/workflows/deploy.yml`, pour que le fichier de verrouillage corresponde exactement à l'installation sur le VPS.
+  - **Laissé volontairement**, chacun demandant une version majeure à tester à part :
+    - `jspdf` 3 → 4 (critique, génération des PDF) ;
+    - `nodemailer` 7 → 10 (envoi des e-mails) ;
+    - `fedapay` (embarque un axios vulnérable, sans correctif publié) ;
+    - storybook (dev uniquement).
+- **Problèmes rencontrés / vérifications** :
+  - **Backend, sur PostgreSQL 16 réel en local.**
+    - Méthode : base recréée vierge avant chaque passage (`init.sql` + migrations au démarrage), serveur compilé lancé, puis 38 contrôles HTTP enchaînés.
+    - Contrôles : connexion (mot de passe faux et correct, cookie de rafraîchissement), limitation de débit, 401/403, validation, 16 lectures protégées, créations (propriétaire, modèle, tâche, message), envoi de fichier (vrai PNG, faux PNG refusé par la vérification du contenu, fichier trop lourd), 404, CORS.
+    - Résultat : **identique avant et après**. Deux passages avec les anciennes bibliothèques donnaient déjà le même résultat, ce qui confirme que la comparaison est fiable.
+    - `tsc` OK. Jest : 469 réussis, 21 en échec, les mêmes que sur `main`.
+  - **Frontend.**
+    - Installation identique au déploiement (`npm ci --legacy-peer-deps`), `tsc` OK, build de production OK.
+    - Tour de 31 pages (publiques et tableau de bord) sous Playwright avec une API simulée, plus navigation par la barre latérale et retour arrière : **identique avant et après**.
+    - Quittance PDF générée et téléchargée (1 page, sans erreur).
+  - **Constats annexes, existants, non corrigés ici** :
+    - La base ne peut pas être recréée entièrement depuis le dépôt : `init.sql` et les migrations ne créent pas `buildings.owner_id`, `leases.owner_id`, `documents`, `buildings.gestionnaire_id`, `lots.bloc`, `leases.reference_bail`, etc., ajoutés à la main en production. Sur une base neuve, 4 migrations échouent et plusieurs listes renvoient 500. Restaurer une sauvegarde reste possible ; repartir de zéro ne l'est pas.
+    - `POST /api/upload` renvoie 500 au lieu de 400 pour un fichier de plus de 10 Mo (`handleUploadErrors` non branché sur cette route).
+    - La quittance PDF pèse environ 5 Mo pour une seule page.
+    - Le linter backend signale déjà une erreur dans `DonationReceiptService.ts:303` (espace insécable), et 3 erreurs existent déjà dans `DocumentTemplates.tsx`.
+- **Remplace / modifie** : — (complète T-086, constat S6 ; T-018 est enfin appliqué pour la partie sans risque)
