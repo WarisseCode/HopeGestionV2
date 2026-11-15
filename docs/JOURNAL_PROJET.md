@@ -1467,3 +1467,59 @@ Mis à jour automatiquement après chaque tâche.
     - La quittance PDF pèse environ 5 Mo pour une seule page.
     - Le linter backend signale déjà une erreur dans `DonationReceiptService.ts:303` (espace insécable), et 3 erreurs existent déjà dans `DocumentTemplates.tsx`.
 - **Remplace / modifie** : — (complète T-086, constat S6 ; T-018 est enfin appliqué pour la partie sans risque)
+
+### T-091 : Envoi de fichier trop lourd en 400, quittance PDF allégée, faux numéro retiré
+- **Date** : 2026-11-15
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : Trois corrections, dont deux constats annexes de T-090.
+  - `POST /api/upload` répondait 500 quand multer refusait un fichier (plus de 10 Mo, ou format non accepté). Il répond maintenant 400 avec un message clair.
+  - La quittance PDF générée dans le navigateur pesait environ 5 Mo pour une page ; elle pèse maintenant 45 Ko.
+  - Le numéro fictif « +229 01 02 03 04 » apparaissait dans l'en-tête des quittances (site et serveur) et comme téléphone du bailleur. Il est remplacé par les coordonnées Hope ; quand le téléphone du bailleur est inconnu, la ligne n'est plus affichée.
+- **Fichiers touchés** :
+  - `backend/middleware/uploadMiddleware.ts` (`uploadErrorHandler`, factorisé ; `handleUploadErrors` inchangé pour les dépenses)
+  - `backend/routes/uploadRoutes.ts`
+  - `backend/services/ReceiptService.ts` (en-tête : `COMPANY`)
+  - `frontend/src/utils/pdfGenerator.ts`
+  - `backend/tests/routes/upload.errors.test.ts` (nouveau, 3 tests)
+- **Décisions & justifications** :
+  - PDF : le logo source (2080×600 px, PNG avec transparence) était stocké en pixels bruts par jsPDF. Il est réduit à 600 px de large (environ 380 dpi pour 40 mm, net à l'impression) et compressé (`'FAST'`). Rendu vérifié visuellement.
+- **Problèmes rencontrés** : —
+- **Remplace / modifie** : — (complète T-090 et T-080/T-081 : un en-tête de quittance avait échappé au remplacement des coordonnées)
+
+### T-092 : Base de données recréable depuis le dépôt, perte du propriétaire à la création, quittances serveur réparées
+- **Date** : 2026-11-15
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : Corrige le constat annexe de T-090 : la base ne pouvait pas être recréée depuis le dépôt. La vérification a révélé deux bugs de production, corrigés aussi.
+  1. **Schéma.** Une base neuve (`init.sql` + migrations) n'avait pas 5 tables et 85 colonnes utilisées par le code. Elles provenaient des 64 scripts SQL de `backend/migrations/_archive/`, passés à la main en production puis supprimés du dépôt. Résultat : 4 migrations échouaient et des listes (immeubles, lots, baux, page publique, corbeille) renvoyaient 500. Nouvelle migration de rattrapage `000_baseline_schema_archive`, rejouée en `068_baseline_schema_completion` ; migration 043 rendue conditionnelle (problème d'ordre sur une base neuve). Une base vierge passe désormais les 74 migrations sans erreur.
+  2. **Perte du propriétaire à la création (production).** `tenantGuard` mettait en cache pendant 5 min une liste VIDE de propriétaires. Un gestionnaire qui créait son premier propriétaire puis ses biens les voyait enregistrés avec `owner_id` NULL (invisibles ensuite), et ses baux étaient refusés (« Accès refusé à ce lot »). Correctifs : une liste vide n'est plus mise en cache, et `invalidateOwnerIdsCache()` est appelé après chacun des ajouts de lien `owner_user` (création de propriétaire, affectation, délégation, invitation, autorisations).
+  3. **Quittances serveur (production, probable).** `ReceiptService` lisait `t.adresse`, `lot.numero` et `o.nom`, colonnes absentes : la requête échouait, l'erreur était avalée, et aucune quittance n'était générée au règlement d'une échéance. Une fois la requête corrigée, une seconde erreur est apparue : les montants étaient écrits hors de la page (zone de texte placée au-delà du bord droit).
+- **Fichiers touchés** :
+  - `backend/scripts/baselineSchema.ts` (nouveau)
+  - `backend/scripts/runMigrations.ts` : 000, 043 conditionnelle, 068
+  - `backend/middleware/tenantGuard.ts`, `backend/utils/cache.ts`
+  - `backend/routes/ownerRoutes.ts`, `compteRoutes.ts`, `invitationRoutes.ts`, `userAssignmentRoutes.ts`, `delegationRoutes.ts`
+  - `backend/services/ReceiptService.ts`
+  - `backend/tests/middleware/tenantGuard.emptyCache.test.ts` (nouveau, 3 tests)
+- **Décisions & justifications** :
+  - **Comment le SQL de rattrapage a été obtenu**, plutôt que deviné :
+    - les 64 scripts `_archive` ont été récupérés dans l'historique git et rejoués sur une base PostgreSQL 16 locale ;
+    - le résultat a été comparé à une base construite depuis le dépôt ;
+    - la différence a été générée automatiquement, avec les types et valeurs par défaut exacts.
+  - **Ajout complémentaire** : 7 colonnes lues ou écrites par le code mais créées par aucun script (`payments.created_by`, `tickets.updated_at`, `buildings.updated_at`, `lots.updated_at`, `notebook_contacts.updated_at`, `owner_user.end_date`, `mobile_money_configs.owner_id`). Si la production les a, l'ajout est sans effet ; sinon, il répare la fonction concernée.
+  - **Sans effet sur la production.** Uniquement `CREATE TABLE IF NOT EXISTS` et `ADD COLUMN IF NOT EXISTS`. Aucune donnée modifiée, aucune règle RLS, aucune clé étrangère, aucun NOT NULL ajouté. Vérifié sur la base rejouée (la plus proche de la production) : seules les 7 colonnes ci-dessus apparaissent, rien n'est modifié ni supprimé. Tables exclues : la table inutilisée `role_permissions` et les vues `v_user_owners` et `v_owners_summary`.
+  - **ReceiptService** : les colonnes de remplacement (`adresse_actuelle`, `ref_lot`, `owners.name`, `first_name`, `address`) existent en production, d'après le relevé de schéma `tenants` retrouvé dans l'historique et les migrations de `owners`.
+- **Problèmes rencontrés / vérifications** :
+  - Base vierge : 74/74 migrations, 38 contrôles HTTP sans erreur 500.
+  - Parcours complet sur PostgreSQL réel : propriétaire, immeuble, lot, locataire, bail échelonné, paiement, quittance serveur générée et rendue.
+  - Jest : 473 réussis, 20 en échec. Les 20 échecs étaient déjà présents ; aucun nouvel échec, et `alert.tenantGuardScope` est réparé par le correctif du cache.
+- **Restent à vérifier en production**, colonnes absentes de tout script et dont le nom semble faux dans le code (non corrigés, faute de schéma de production complet) :
+  - `compteRoutes.ts:494` met à jour `users.prenom` et `users.photo` (le schéma connu a `photo_url` et pas de `prenom`) ;
+  - `compteRoutes.ts:784` lit `lots.loyer` et `lots.superficie` (à la place de `loyer_mensuel` et `surface`) ;
+  - `RentPaymentService.ts:329` lit `users.prenoms` ;
+  - `adminRoutes.ts:475` lit `payments.status` (à la place de `statut`) ;
+  - `DashboardService.ts:471` lit `tickets.lease_id` et `tickets.created_at`.
+
+  Un `pg_dump --schema-only` de la production permettrait de trancher.
+- **Remplace / modifie** : — (complète T-090 ; rectifie T-086 sur la question du schéma)

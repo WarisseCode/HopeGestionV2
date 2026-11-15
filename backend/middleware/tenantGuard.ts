@@ -24,7 +24,12 @@ async function resolveValidOwnerIds(userId: number): Promise<number[]> {
         [userId]
     );
     const validOwnerIds = ownersRes.rows.map((row: { owner_id: number }) => row.owner_id);
-    cache.set(cacheKey, validOwnerIds, TTL.OWNER_IDS);
+    // [CORRECTIF] Une liste VIDE n'est pas mise en cache. Sinon, un gestionnaire qui
+    // crée son premier propriétaire restait vu « sans propriétaire » pendant 5 min :
+    // ses immeubles, lots et locataires étaient enregistrés avec owner_id NULL
+    // (invisibles ensuite) et ses baux refusés (« Accès refusé à ce lot »).
+    // Coût : une requête indexée par appel pour les seuls comptes sans propriétaire.
+    if (validOwnerIds.length > 0) cache.set(cacheKey, validOwnerIds, TTL.OWNER_IDS);
     return validOwnerIds;
 }
 

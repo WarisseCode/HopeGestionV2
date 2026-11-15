@@ -6,7 +6,7 @@ import { checkOwnerAccess } from '../middleware/ownerIsolation';
 import { checkAgencyLimit } from '../middleware/subscriptionLimits';
 import { validate } from '../middleware/validate';
 import db from '../db/database';
-import { cache } from '../utils/cache';
+import { cache, invalidateOwnerIdsCache } from '../utils/cache';
 
 const router = Router();
 
@@ -157,6 +157,7 @@ router.post('/', protect, checkAgencyLimit, validate(ownerCreateRules), async (r
             );
 
             await txClient.query('COMMIT');
+            invalidateOwnerIdsCache(userId); // nouveau propriétaire visible tout de suite
         } catch (txError) {
             try { await txClient.query('ROLLBACK'); } catch (rbError) {
                 console.error('Error rolling back owner creation:', rbError);
@@ -244,6 +245,7 @@ router.post('/:id/users', protect, validate(ownerAssignUserRules), checkOwnerAcc
                 start_date || new Date().toISOString().split('T')[0], end_date || null
             ]
         );
+        invalidateOwnerIdsCache(user_id);
 
         res.status(201).json({ success: true, message: 'Utilisateur affecté avec succès' });
     } catch (error) {

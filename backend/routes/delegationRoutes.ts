@@ -3,7 +3,7 @@ import { body, param } from 'express-validator';
 import pool from '../db/database';
 import { protect } from '../middleware/authMiddleware';
 import { validate } from '../middleware/validate';
-import { cache } from '../utils/cache';
+import { cache, invalidateOwnerIdsCache } from '../utils/cache';
 
 const router = express.Router();
 
@@ -131,6 +131,7 @@ router.post('/', protect, validate(delegationCreateRules), async (req: any, res:
       );
 
       await txClient.query('COMMIT');
+      invalidateOwnerIdsCache(targetUserId);
     } catch (txError) {
       try { await txClient.query('ROLLBACK'); } catch (rbError) {
         console.error('Erreur ROLLBACK délégation:', rbError);

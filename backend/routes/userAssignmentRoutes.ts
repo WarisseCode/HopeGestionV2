@@ -8,7 +8,7 @@ import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 import pool from '../db/database';
 import { Response } from 'express';
 import { validate } from '../middleware/validate';
-import { cache } from '../utils/cache';
+import { cache, invalidateOwnerIdsCache } from '../utils/cache';
 
 const router = Router();
 
@@ -93,6 +93,7 @@ router.put('/bulk/:userId', validate(bulkAssignRules), async (req: Authenticated
             }
 
             await txClient.query('COMMIT');
+            invalidateOwnerIdsCache(userId);
         } catch (txError) {
             try { await txClient.query('ROLLBACK'); } catch (rbError) {
                 console.error('Erreur ROLLBACK affectations bulk:', rbError);
@@ -229,6 +230,7 @@ router.post('/', validate(createAssignRules), async (req: AuthenticatedRequest, 
             permissions?.can_manage_users || false,
             permissions?.can_delete_data || false
         ]);
+        invalidateOwnerIdsCache(user_id);
 
         res.status(201).json({ message: 'Affectation créée/mise à jour', assignment: result.rows[0] });
     } catch (error) {

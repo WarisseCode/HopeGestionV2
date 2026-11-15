@@ -13,10 +13,12 @@
 //      du backend (index.ts).  Chaque migration est idempotente (IF NOT EXISTS /
 //      ON CONFLICT) et tracée dans la table `migrations_log`.
 //
-// Note : les anciens fichiers SQL de _archive/ ont été consolidés ici.
+// Note : les anciens fichiers SQL de _archive/ ont été consolidés ici ; ce qui
+// manquait de cette consolidation est rattrapé par baselineSchema.ts (000 et 068).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import pool from '../db/database';
+import { BASELINE_SCHEMA_SQL } from './baselineSchema';
 
 interface Migration {
     name: string;
@@ -27,7 +29,33 @@ interface Migration {
 // LISTE DES MIGRATIONS (ordre important : dépendances d'abord)
 // Toutes les requêtes SQL doivent être idempotentes (IF NOT EXISTS, ON CONFLICT, etc.)
 // ============================================================
+
+// Migration 043, rendue conditionnelle (voir son entrée dans MIGRATIONS).
+const SUBSCRIPTION_FIX_043_SQL = `
+    DO $$ BEGIN
+        -- Colonne manquante dans subscription_payments (crash silencieux du webhook FedaPay)
+        IF to_regclass('public.subscription_payments') IS NOT NULL THEN
+            ALTER TABLE subscription_payments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+        END IF;
+        IF to_regclass('public.subscriptions') IS NOT NULL THEN
+            -- Colonne cancelled_at pour tracer les annulations d'abonnements
+            ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP NULL;
+            -- Index UNIQUE partiel : un seul abonnement actif ou en attente par utilisateur.
+            -- Requis pour que le ON CONFLICT du webhook fonctionne correctement.
+            CREATE UNIQUE INDEX IF NOT EXISTS unique_active_subscription_per_user
+            ON subscriptions(user_id)
+            WHERE status IN ('active', 'pending_payment');
+        END IF;
+    END $$;
+`;
+
 const MIGRATIONS: Migration[] = [
+    {
+        // Rattrapage du schéma des anciens scripts _archive (voir baselineSchema.ts).
+        // En tête : les migrations suivantes (015, 040, 056…) dépendent de ces colonnes.
+        name: '000_baseline_schema_archive',
+        sql: BASELINE_SCHEMA_SQL,
+    },
     {
         name: '000_create_system_settings_table',
         sql: `
@@ -875,19 +903,10 @@ const MIGRATIONS: Migration[] = [
     },
     {
         name: '043_fix_subscription_schema',
-        sql: `
-            -- Colonne manquante dans subscription_payments (crash silencieux du webhook FedaPay)
-            ALTER TABLE subscription_payments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-
-            -- Colonne cancelled_at pour tracer les annulations d'abonnements
-            ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP NULL;
-
-            -- Index UNIQUE partiel : un seul abonnement actif ou en attente par utilisateur.
-            -- Requis pour que le ON CONFLICT du webhook fonctionne correctement.
-            CREATE UNIQUE INDEX IF NOT EXISTS unique_active_subscription_per_user
-            ON subscriptions(user_id)
-            WHERE status IN ('active', 'pending_payment');
-        `
+        // Conditionnel : sur une base neuve, subscriptions et subscription_payments ne
+        // sont créées que plus loin dans la liste ; le même SQL est rejoué par 068.
+        // (Déjà appliquée en production : cette réécriture n'y change rien.)
+        sql: SUBSCRIPTION_FIX_043_SQL,
     },
     {
         name: '044_fix_phone_varchar',
@@ -1689,6 +1708,13 @@ const MIGRATIONS: Migration[] = [
                 ADD COLUMN IF NOT EXISTS agency_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
             CREATE INDEX IF NOT EXISTS idx_document_templates_agency ON document_templates(agency_user_id);
         `
+    },
+    {
+        // Même SQL qu'en tête de liste, rejoué pour les tables créées par des
+        // migrations intermédiaires (ex. tickets, tasks, payment_schedules). Idempotent.
+        name: '068_baseline_schema_completion',
+        // + 043 rejouée : sur une base neuve, ses tables n'existaient pas encore.
+        sql: BASELINE_SCHEMA_SQL + SUBSCRIPTION_FIX_043_SQL,
     }
 ];
 

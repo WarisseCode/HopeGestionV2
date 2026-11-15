@@ -52,6 +52,13 @@ class TTLCache {
 // Singleton shared across the process.
 export const cache = new TTLCache();
 
+// Cache des propriétaires autorisés d'un compte (tenantGuard). À appeler après tout
+// ajout ou retrait d'un lien owner_user, sinon le changement n'est vu qu'au bout de
+// TTL.OWNER_IDS (5 min).
+export const invalidateOwnerIdsCache = (userId: number | string | null | undefined): void => {
+    if (userId !== null && userId !== undefined) cache.del(`tenant:owners:${userId}`);
+};
+
 // TTL constants — centralised so tuning is easy.
 export const TTL = {
     PERMISSIONS:  5 * 60 * 1000,   // 5 min — permission_matrix rarely changes
