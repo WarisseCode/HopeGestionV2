@@ -1416,3 +1416,18 @@ Mis à jour automatiquement après chaque tâche.
   - Écran vérifié sous Playwright (bureau et 390 px) avec une API simulée : badge, « Personnaliser », copie créée par POST.
   - Rectification de l'audit T-086 : le constat P3 (index `owner_id` manquants) était en partie inexact. La migration `066_perf_indexes_core_tables` crée déjà ces index sur `payments`, `lots`, `buildings` et `leases`, sous condition. Restent sans index : `tenants`, `documents`, `tickets`.
 - **Remplace / modifie** : — (complète T-086, constat S3)
+
+### T-089 : Messagerie limitée aux participants de la tâche (audit S5)
+- **Date** : 2026-11-15
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** :
+  - **Faille corrigée** : `POST /api/messages` permettait à tout compte connecté, locataire compris, d'envoyer un e-mail ou un WhatsApp au nom de Hope à n'importe quel `recipient_id`, avec un contenu HTML non échappé (hameçonnage crédible). Désormais, le contexte doit être une tâche existante. Seuls ses participants (créateur, assigné) ou l'admin peuvent écrire, et un destinataire éventuel doit être participant. Le contenu de l'e-mail est échappé.
+  - **Bug corrigé au passage** : `GET` filtrait sur `sender_id`/`recipient_id`. Or le chat de tâche n'a pas de destinataire, donc chaque participant ne voyait que ses propres messages. Les participants voient maintenant toute la conversation ; un non-participant reçoit 403.
+- **Fichiers touchés** : `backend/routes/messageRoutes.ts`, `backend/tests/routes/message.access.test.ts` (nouveau, 10 tests).
+- **Décisions & justifications** :
+  - Seul le contexte `task` est accepté : c'est le seul utilisé par l'interface (`ChatWindow` dans `TasksPage`) et par `taskRoutes` (commentaires). Aucun autre contexte n'a de règle d'appartenance. La liste des tâches ne montrant que celles dont on est participant, l'interface ne peut pas tomber sur un 403.
+  - Validation renforcée : `context_type` limité à `task`, `channel` limité à internal, whatsapp, email ou sms.
+  - Correction mineure : le log SMS lisait `recipient.id` sans l'avoir sélectionné.
+- **Problèmes rencontrés** : Suite complète : 469 réussis, 21 en échec, les mêmes que sur `main` (constat F3).
+- **Remplace / modifie** : — (complète T-086, constat S5)
