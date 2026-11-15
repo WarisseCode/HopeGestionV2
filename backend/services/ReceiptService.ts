@@ -260,8 +260,8 @@ class ReceiptService {
                 // Date & contact — right side
                 doc.fontSize(9).font('Helvetica').fillColor(mediumText)
                     .text(`${COMPANY.city}, le ${this.formatDate(new Date())}`, pageWidth - margin - 150, y, { width: 150, align: 'right' })
-                    .text('Tél: +229 01 02 03 04', pageWidth - margin - 150, y + 14, { width: 150, align: 'right' })
-                    .text('contact@hopegestion.com', pageWidth - margin - 150, y + 26, { width: 150, align: 'right' });
+                    .text(`Tél: ${COMPANY.phone}`, pageWidth - margin - 150, y + 14, { width: 150, align: 'right' })
+                    .text(COMPANY.email, pageWidth - margin - 150, y + 26, { width: 150, align: 'right' });
 
                 // Separator line
                 y += 45;
@@ -290,8 +290,8 @@ class ReceiptService {
                 doc.fontSize(10).font('Helvetica').fillColor(darkText)
                     .text(data.owner.name, margin + 10, y + 22);
                 doc.fontSize(9).font('Helvetica').fillColor(mediumText)
-                    .text(data.owner.address, margin + 10, y + 34)
-                    .text('Tél: +229 01 02 03 04', margin + 10, y + 46);
+                    .text(data.owner.address, margin + 10, y + 34);
+                // Le téléphone affiché ici était un numéro fictif (+229 01 02 03 04) : retiré.
 
                 // Locataire box
                 const rightX = margin + colWidth + 15;

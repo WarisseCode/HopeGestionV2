@@ -9,7 +9,7 @@ import { Router, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs-extra';
 import crypto from 'crypto';
-import { upload, verifyMagicBytes } from '../middleware/uploadMiddleware';
+import { upload, verifyMagicBytes, uploadErrorHandler } from '../middleware/uploadMiddleware';
 import { uploadToSpaces } from '../services/spacesUploadService';
 
 const router = Router();
@@ -46,7 +46,11 @@ const resolveFolder = (req: Request, file: Express.Multer.File): string => {
  * Accepte un ou plusieurs fichiers dans n'importe quel champ (upload.any()).
  * Renvoie la liste des URLs accessibles.
  */
-router.post('/', upload.any(), verifyMagicBytes, async (req: Request, res: Response) => {
+// uploadErrorHandler : un refus de multer (fichier > 10 Mo, plus de 10 fichiers, format
+// non accepté) répondait 500 « erreur serveur » ; c'est une erreur de saisie → 400.
+const uploadRefused = uploadErrorHandler('Fichier refusé : format non accepté (JPG, PNG, WEBP, GIF ou PDF) ou fichier trop volumineux (10 Mo maximum).');
+
+router.post('/', upload.any(), uploadRefused, verifyMagicBytes, async (req: Request, res: Response) => {
     try {
         const files = req.files as Express.Multer.File[];
 
