@@ -1416,3 +1416,110 @@ Mis à jour automatiquement après chaque tâche.
   - Écran vérifié sous Playwright (bureau et 390 px) avec une API simulée : badge, « Personnaliser », copie créée par POST.
   - Rectification de l'audit T-086 : le constat P3 (index `owner_id` manquants) était en partie inexact. La migration `066_perf_indexes_core_tables` crée déjà ces index sur `payments`, `lots`, `buildings` et `leases`, sous condition. Restent sans index : `tenants`, `documents`, `tickets`.
 - **Remplace / modifie** : — (complète T-086, constat S3)
+
+### T-089 : Messagerie limitée aux participants de la tâche (audit S5)
+- **Date** : 2026-11-15
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** :
+  - **Faille corrigée** : `POST /api/messages` permettait à tout compte connecté, locataire compris, d'envoyer un e-mail ou un WhatsApp au nom de Hope à n'importe quel `recipient_id`, avec un contenu HTML non échappé (hameçonnage crédible). Désormais, le contexte doit être une tâche existante. Seuls ses participants (créateur, assigné) ou l'admin peuvent écrire, et un destinataire éventuel doit être participant. Le contenu de l'e-mail est échappé.
+  - **Bug corrigé au passage** : `GET` filtrait sur `sender_id`/`recipient_id`. Or le chat de tâche n'a pas de destinataire, donc chaque participant ne voyait que ses propres messages. Les participants voient maintenant toute la conversation ; un non-participant reçoit 403.
+- **Fichiers touchés** : `backend/routes/messageRoutes.ts`, `backend/tests/routes/message.access.test.ts` (nouveau, 10 tests).
+- **Décisions & justifications** :
+  - Seul le contexte `task` est accepté : c'est le seul utilisé par l'interface (`ChatWindow` dans `TasksPage`) et par `taskRoutes` (commentaires). Aucun autre contexte n'a de règle d'appartenance. La liste des tâches ne montrant que celles dont on est participant, l'interface ne peut pas tomber sur un 403.
+  - Validation renforcée : `context_type` limité à `task`, `channel` limité à internal, whatsapp, email ou sms.
+  - Correction mineure : le log SMS lisait `recipient.id` sans l'avoir sélectionné.
+- **Problèmes rencontrés** : Suite complète : 469 réussis, 21 en échec, les mêmes que sur `main` (constat F3).
+- **Remplace / modifie** : — (complète T-086, constat S5)
+
+### T-090 : Mise à jour des bibliothèques vulnérables sans changement majeur (audit S6)
+- **Date** : 2026-11-15
+- **Statut** : Terminée
+- **Type** : Config
+- **Description** : `npm audit fix`, sans `--force`, côté backend et frontend. Seuls les fichiers `package-lock.json` changent ; les `package.json` sont inchangés.
+
+  | Partie | Avant (prod) | Après (prod) | Versions directes modifiées |
+  |---|---|---|---|
+  | Backend | 2 critiques, 15 hautes | 0 critique, 3 hautes | axios 1.13.5 → 1.21.1, express-rate-limit 8.2.1 → 8.7.4, multer 2.0.2 → 2.5.0, nodemailer 7.0.12 → 7.0.13 (+ outils ESLint en dev) |
+  | Frontend | 1 critique, 8 hautes | 1 critique (jspdf), 0 haute | axios 1.13.2 → 1.21.1, react-router-dom 7.11.0 → 7.18.5 (+ vite, storybook, postcss en dev) ; dompurify 3.3.1 → 3.4.18 en transitif |
+- **Fichiers touchés** : `backend/package-lock.json`, `frontend/package-lock.json`.
+- **Décisions & justifications** :
+  - Aucune montée de version majeure en production. Les seules versions majeures qui changent sont des dépendances d'outils de dev (ESLint : minimatch, flat-cache, keyv) et `proxy-from-env`, une dépendance interne d'axios.
+  - Frontend : `--legacy-peer-deps`, comme `npm ci` dans `.github/workflows/deploy.yml`, pour que le fichier de verrouillage corresponde exactement à l'installation sur le VPS.
+  - **Laissé volontairement**, chacun demandant une version majeure à tester à part :
+    - `jspdf` 3 → 4 (critique, génération des PDF) ;
+    - `nodemailer` 7 → 10 (envoi des e-mails) ;
+    - `fedapay` (embarque un axios vulnérable, sans correctif publié) ;
+    - storybook (dev uniquement).
+- **Problèmes rencontrés / vérifications** :
+  - **Backend, sur PostgreSQL 16 réel en local.**
+    - Méthode : base recréée vierge avant chaque passage (`init.sql` + migrations au démarrage), serveur compilé lancé, puis 38 contrôles HTTP enchaînés.
+    - Contrôles : connexion (mot de passe faux et correct, cookie de rafraîchissement), limitation de débit, 401/403, validation, 16 lectures protégées, créations (propriétaire, modèle, tâche, message), envoi de fichier (vrai PNG, faux PNG refusé par la vérification du contenu, fichier trop lourd), 404, CORS.
+    - Résultat : **identique avant et après**. Deux passages avec les anciennes bibliothèques donnaient déjà le même résultat, ce qui confirme que la comparaison est fiable.
+    - `tsc` OK. Jest : 469 réussis, 21 en échec, les mêmes que sur `main`.
+  - **Frontend.**
+    - Installation identique au déploiement (`npm ci --legacy-peer-deps`), `tsc` OK, build de production OK.
+    - Tour de 31 pages (publiques et tableau de bord) sous Playwright avec une API simulée, plus navigation par la barre latérale et retour arrière : **identique avant et après**.
+    - Quittance PDF générée et téléchargée (1 page, sans erreur).
+  - **Constats annexes, existants, non corrigés ici** :
+    - La base ne peut pas être recréée entièrement depuis le dépôt : `init.sql` et les migrations ne créent pas `buildings.owner_id`, `leases.owner_id`, `documents`, `buildings.gestionnaire_id`, `lots.bloc`, `leases.reference_bail`, etc., ajoutés à la main en production. Sur une base neuve, 4 migrations échouent et plusieurs listes renvoient 500. Restaurer une sauvegarde reste possible ; repartir de zéro ne l'est pas.
+    - `POST /api/upload` renvoie 500 au lieu de 400 pour un fichier de plus de 10 Mo (`handleUploadErrors` non branché sur cette route).
+    - La quittance PDF pèse environ 5 Mo pour une seule page.
+    - Le linter backend signale déjà une erreur dans `DonationReceiptService.ts:303` (espace insécable), et 3 erreurs existent déjà dans `DocumentTemplates.tsx`.
+- **Remplace / modifie** : — (complète T-086, constat S6 ; T-018 est enfin appliqué pour la partie sans risque)
+
+### T-091 : Envoi de fichier trop lourd en 400, quittance PDF allégée, faux numéro retiré
+- **Date** : 2026-11-15
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : Trois corrections, dont deux constats annexes de T-090.
+  - `POST /api/upload` répondait 500 quand multer refusait un fichier (plus de 10 Mo, ou format non accepté). Il répond maintenant 400 avec un message clair.
+  - La quittance PDF générée dans le navigateur pesait environ 5 Mo pour une page ; elle pèse maintenant 45 Ko.
+  - Le numéro fictif « +229 01 02 03 04 » apparaissait dans l'en-tête des quittances (site et serveur) et comme téléphone du bailleur. Il est remplacé par les coordonnées Hope ; quand le téléphone du bailleur est inconnu, la ligne n'est plus affichée.
+- **Fichiers touchés** :
+  - `backend/middleware/uploadMiddleware.ts` (`uploadErrorHandler`, factorisé ; `handleUploadErrors` inchangé pour les dépenses)
+  - `backend/routes/uploadRoutes.ts`
+  - `backend/services/ReceiptService.ts` (en-tête : `COMPANY`)
+  - `frontend/src/utils/pdfGenerator.ts`
+  - `backend/tests/routes/upload.errors.test.ts` (nouveau, 3 tests)
+- **Décisions & justifications** :
+  - PDF : le logo source (2080×600 px, PNG avec transparence) était stocké en pixels bruts par jsPDF. Il est réduit à 600 px de large (environ 380 dpi pour 40 mm, net à l'impression) et compressé (`'FAST'`). Rendu vérifié visuellement.
+- **Problèmes rencontrés** : —
+- **Remplace / modifie** : — (complète T-090 et T-080/T-081 : un en-tête de quittance avait échappé au remplacement des coordonnées)
+
+### T-092 : Base de données recréable depuis le dépôt, perte du propriétaire à la création, quittances serveur réparées
+- **Date** : 2026-11-15
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : Corrige le constat annexe de T-090 : la base ne pouvait pas être recréée depuis le dépôt. La vérification a révélé deux bugs de production, corrigés aussi.
+  1. **Schéma.** Une base neuve (`init.sql` + migrations) n'avait pas 5 tables et 85 colonnes utilisées par le code. Elles provenaient des 64 scripts SQL de `backend/migrations/_archive/`, passés à la main en production puis supprimés du dépôt. Résultat : 4 migrations échouaient et des listes (immeubles, lots, baux, page publique, corbeille) renvoyaient 500. Nouvelle migration de rattrapage `000_baseline_schema_archive`, rejouée en `068_baseline_schema_completion` ; migration 043 rendue conditionnelle (problème d'ordre sur une base neuve). Une base vierge passe désormais les 74 migrations sans erreur.
+  2. **Perte du propriétaire à la création (production).** `tenantGuard` mettait en cache pendant 5 min une liste VIDE de propriétaires. Un gestionnaire qui créait son premier propriétaire puis ses biens les voyait enregistrés avec `owner_id` NULL (invisibles ensuite), et ses baux étaient refusés (« Accès refusé à ce lot »). Correctifs : une liste vide n'est plus mise en cache, et `invalidateOwnerIdsCache()` est appelé après chacun des ajouts de lien `owner_user` (création de propriétaire, affectation, délégation, invitation, autorisations).
+  3. **Quittances serveur (production, probable).** `ReceiptService` lisait `t.adresse`, `lot.numero` et `o.nom`, colonnes absentes : la requête échouait, l'erreur était avalée, et aucune quittance n'était générée au règlement d'une échéance. Une fois la requête corrigée, une seconde erreur est apparue : les montants étaient écrits hors de la page (zone de texte placée au-delà du bord droit).
+- **Fichiers touchés** :
+  - `backend/scripts/baselineSchema.ts` (nouveau)
+  - `backend/scripts/runMigrations.ts` : 000, 043 conditionnelle, 068
+  - `backend/middleware/tenantGuard.ts`, `backend/utils/cache.ts`
+  - `backend/routes/ownerRoutes.ts`, `compteRoutes.ts`, `invitationRoutes.ts`, `userAssignmentRoutes.ts`, `delegationRoutes.ts`
+  - `backend/services/ReceiptService.ts`
+  - `backend/tests/middleware/tenantGuard.emptyCache.test.ts` (nouveau, 3 tests)
+- **Décisions & justifications** :
+  - **Comment le SQL de rattrapage a été obtenu**, plutôt que deviné :
+    - les 64 scripts `_archive` ont été récupérés dans l'historique git et rejoués sur une base PostgreSQL 16 locale ;
+    - le résultat a été comparé à une base construite depuis le dépôt ;
+    - la différence a été générée automatiquement, avec les types et valeurs par défaut exacts.
+  - **Ajout complémentaire** : 7 colonnes lues ou écrites par le code mais créées par aucun script (`payments.created_by`, `tickets.updated_at`, `buildings.updated_at`, `lots.updated_at`, `notebook_contacts.updated_at`, `owner_user.end_date`, `mobile_money_configs.owner_id`). Si la production les a, l'ajout est sans effet ; sinon, il répare la fonction concernée.
+  - **Sans effet sur la production.** Uniquement `CREATE TABLE IF NOT EXISTS` et `ADD COLUMN IF NOT EXISTS`. Aucune donnée modifiée, aucune règle RLS, aucune clé étrangère, aucun NOT NULL ajouté. Vérifié sur la base rejouée (la plus proche de la production) : seules les 7 colonnes ci-dessus apparaissent, rien n'est modifié ni supprimé. Tables exclues : la table inutilisée `role_permissions` et les vues `v_user_owners` et `v_owners_summary`.
+  - **ReceiptService** : les colonnes de remplacement (`adresse_actuelle`, `ref_lot`, `owners.name`, `first_name`, `address`) existent en production, d'après le relevé de schéma `tenants` retrouvé dans l'historique et les migrations de `owners`.
+- **Problèmes rencontrés / vérifications** :
+  - Base vierge : 74/74 migrations, 38 contrôles HTTP sans erreur 500.
+  - Parcours complet sur PostgreSQL réel : propriétaire, immeuble, lot, locataire, bail échelonné, paiement, quittance serveur générée et rendue.
+  - Jest : 473 réussis, 20 en échec. Les 20 échecs étaient déjà présents ; aucun nouvel échec, et `alert.tenantGuardScope` est réparé par le correctif du cache.
+- **Restent à vérifier en production**, colonnes absentes de tout script et dont le nom semble faux dans le code (non corrigés, faute de schéma de production complet) :
+  - `compteRoutes.ts:494` met à jour `users.prenom` et `users.photo` (le schéma connu a `photo_url` et pas de `prenom`) ;
+  - `compteRoutes.ts:784` lit `lots.loyer` et `lots.superficie` (à la place de `loyer_mensuel` et `surface`) ;
+  - `RentPaymentService.ts:329` lit `users.prenoms` ;
+  - `adminRoutes.ts:475` lit `payments.status` (à la place de `statut`) ;
+  - `DashboardService.ts:471` lit `tickets.lease_id` et `tickets.created_at`.
+
+  Un `pg_dump --schema-only` de la production permettrait de trancher.
+- **Remplace / modifie** : — (complète T-090 ; rectifie T-086 sur la question du schéma)

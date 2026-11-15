@@ -2,6 +2,7 @@
 import { Router, Request, Response } from 'express';
 import { body, param } from 'express-validator';
 import pool from '../db/database';
+import { invalidateOwnerIdsCache } from '../utils/cache';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -188,6 +189,8 @@ router.post('/:token/accept', validate(acceptInviteRules), async (req: Request, 
          ON CONFLICT (owner_id, user_id) DO NOTHING`,
         [owner_id, inv.gestionnaire_id]
       );
+      invalidateOwnerIdsCache(newUser.id);
+      invalidateOwnerIdsCache(inv.gestionnaire_id);
 
       // Mettre à jour l'invitation avec l'owner créé
       await client.query(

@@ -40,12 +40,16 @@ export const upload = multer({
 // masquant un refus de saisie utilisateur derrière une "erreur serveur". On répond 400
 // directement ici, sans toucher au gestionnaire d'erreurs global (inchangé pour le reste
 // de l'API).
-export function handleUploadErrors(err: unknown, _req: Request, res: Response, next: NextFunction) {
-    if (!err) return next();
-    res.status(400).json({
-        message: 'Justificatif refusé : format non accepté ou fichier trop volumineux (10 Mo maximum).',
-    });
+export function uploadErrorHandler(message: string) {
+    return (err: unknown, _req: Request, res: Response, next: NextFunction) => {
+        if (!err) return next();
+        res.status(400).json({ message });
+    };
 }
+
+export const handleUploadErrors = uploadErrorHandler(
+    'Justificatif refusé : format non accepté ou fichier trop volumineux (10 Mo maximum).'
+);
 
 // Middleware post-multer : vérifie les magic bytes réels du fichier.
 // Le Content-Type déclaré par le client peut être falsifié — les magic bytes ne mentent pas.

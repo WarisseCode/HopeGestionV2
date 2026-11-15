@@ -116,13 +116,16 @@ class ReceiptService {
                 l.date_debut as lease_start,
                 t.nom as tenant_last_name,
                 t.prenoms as tenant_first_name,
-                t.adresse as tenant_address,
+                -- [CORRECTIF] t.adresse / lot.numero / o.nom n'existent pas (schéma de
+                -- production : adresse_actuelle, ref_lot, name) : la requête échouait et
+                -- aucune quittance serveur n'était générée (erreur avalée par l'appelant).
+                t.adresse_actuelle as tenant_address,
                 b.nom as building_name,
                 b.adresse as building_address,
-                lot.numero as lot_number,
+                lot.ref_lot as lot_number,
                 lot.type as lot_type,
-                o.nom as owner_name,
-                'Adresse du propriétaire' as owner_address,
+                TRIM(CONCAT(o.name, ' ', COALESCE(o.first_name, ''))) as owner_name,
+                COALESCE(NULLIF(TRIM(o.address), ''), 'Adresse non renseignée') as owner_address,
                 COALESCE((
                     SELECT p.name 
                     FROM owner_user ou
@@ -260,8 +263,8 @@ class ReceiptService {
                 // Date & contact — right side
                 doc.fontSize(9).font('Helvetica').fillColor(mediumText)
                     .text(`${COMPANY.city}, le ${this.formatDate(new Date())}`, pageWidth - margin - 150, y, { width: 150, align: 'right' })
-                    .text('Tél: +229 01 02 03 04', pageWidth - margin - 150, y + 14, { width: 150, align: 'right' })
-                    .text('contact@hopegestion.com', pageWidth - margin - 150, y + 26, { width: 150, align: 'right' });
+                    .text(`Tél: ${COMPANY.phone}`, pageWidth - margin - 150, y + 14, { width: 150, align: 'right' })
+                    .text(COMPANY.email, pageWidth - margin - 150, y + 26, { width: 150, align: 'right' });
 
                 // Separator line
                 y += 45;
@@ -290,8 +293,8 @@ class ReceiptService {
                 doc.fontSize(10).font('Helvetica').fillColor(darkText)
                     .text(data.owner.name, margin + 10, y + 22);
                 doc.fontSize(9).font('Helvetica').fillColor(mediumText)
-                    .text(data.owner.address, margin + 10, y + 34)
-                    .text('Tél: +229 01 02 03 04', margin + 10, y + 46);
+                    .text(data.owner.address, margin + 10, y + 34);
+                // Le téléphone affiché ici était un numéro fictif (+229 01 02 03 04) : retiré.
 
                 // Locataire box
                 const rightX = margin + colWidth + 15;
@@ -314,7 +317,7 @@ class ReceiptService {
                 doc.roundedRect(margin, y, contentWidth, 28, 3).fill(navy);
                 doc.fontSize(10).font('Helvetica-Bold').fillColor('#FFFFFF')
                     .text('Désignation', margin + 12, y + 9)
-                    .text('Montant / Détails', pageWidth - margin - 12, y + 9, { align: 'right', width: 150 });
+                    .text('Montant / Détails', pageWidth - margin - 12 - 150, y + 9, { align: 'right', width: 150 }); // x = bord droit - largeur : la zone était hors page, montants invisibles
 
                 y += 28;
 
@@ -329,7 +332,7 @@ class ReceiptService {
                     doc.fontSize(10).font('Helvetica-Bold').fillColor(darkText)
                         .text(row[0], margin + 12, y + 9);
                     doc.fontSize(10).font('Helvetica').fillColor(darkText)
-                        .text(row[1], pageWidth - margin - 12, y + 9, { align: 'right', width: 150 });
+                        .text(row[1], pageWidth - margin - 12 - 150, y + 9, { align: 'right', width: 150 });
                     y += 28;
                 });
 
@@ -337,7 +340,7 @@ class ReceiptService {
                 doc.roundedRect(margin, y, contentWidth, 32, 3).fill('#EBF0F8');
                 doc.fontSize(11).font('Helvetica-Bold').fillColor(navy)
                     .text('TOTAL PAYÉ', margin + 12, y + 10)
-                    .text(this.formatCurrency(total), pageWidth - margin - 12, y + 10, { align: 'right', width: 150 });
+                    .text(this.formatCurrency(total), pageWidth - margin - 12 - 150, y + 10, { align: 'right', width: 150 });
 
                 y += 45;
 

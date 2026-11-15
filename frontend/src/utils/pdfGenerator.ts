@@ -39,18 +39,28 @@ let logoBase64Cache: string | null = null;
 async function loadLogo(): Promise<string | null> {
   if (logoBase64Cache) return logoBase64Cache;
   
+  // Le logo source fait 2080×600 px. jsPDF stocke un PNG avec transparence en
+  // pixels bruts : inséré tel quel, il pesait ~5 Mo dans chaque quittance alors
+  // qu'il n'occupe que 40 mm de large. On le réduit à 600 px de large (≈ 380 dpi
+  // à 40 mm, net à l'impression) avant de l'insérer.
+  const LOGO_MAX_WIDTH_PX = 600;
   try {
-    const response = await fetch('/logo.png');
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        logoBase64Cache = reader.result as string;
-        resolve(logoBase64Cache);
-      };
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = '/logo.png';
     });
+    const scale = Math.min(1, LOGO_MAX_WIDTH_PX / (img.naturalWidth || LOGO_MAX_WIDTH_PX));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.naturalWidth * scale);
+    canvas.height = Math.round(img.naturalHeight * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    logoBase64Cache = canvas.toDataURL('image/png');
+    return logoBase64Cache;
   } catch {
     return null;
   }
@@ -98,7 +108,8 @@ export const generateQuittancePDF = async (data: QuittanceData, mode: 'download'
 
   // Logo
   if (logo) {
-    doc.addImage(logo, 'PNG', margin, headerY - 2, 40, 16);
+    // 'FAST' : compresse les pixels du logo dans le PDF (sinon stockés bruts)
+    doc.addImage(logo, 'PNG', margin, headerY - 2, 40, 16, undefined, 'FAST');
   } else {
     // Fallback: text logo
     doc.setTextColor(...BRAND.primary);
@@ -121,8 +132,8 @@ export const generateQuittancePDF = async (data: QuittanceData, mode: 'download'
 
   // Contact info under date
   doc.setFontSize(8);
-  doc.text('Tél: +229 01 02 03 04', pageWidth - margin, headerY + 10, { align: 'right' });
-  doc.text('contact@hopegestion.com', pageWidth - margin, headerY + 15, { align: 'right' });
+  doc.text(`Tél: ${BRANDING.contact.phoneFormatted}`, pageWidth - margin, headerY + 10, { align: 'right' });
+  doc.text(BRANDING.contact.email, pageWidth - margin, headerY + 15, { align: 'right' });
 
   // Separator
   headerY += 25;
@@ -178,7 +189,8 @@ export const generateQuittancePDF = async (data: QuittanceData, mode: 'download'
   doc.setTextColor(...BRAND.mediumText);
   // Adresse du propriétaire inconnue : on l'indique, plutôt qu'une ville inventée
   doc.text(data.proprietaireAdresse || 'Adresse non renseignée', margin + 8, partiesY + 26, { maxWidth: colWidth - 16 });
-  doc.text(`Tél: ${data.proprietaireTel || '+229 01 02 03 04'}`, margin + 8, partiesY + 33);
+  // Sans téléphone connu, on n'affiche rien (avant : numéro fictif +229 01 02 03 04)
+  if (data.proprietaireTel) doc.text(`Tél: ${data.proprietaireTel}`, margin + 8, partiesY + 33);
 
   // --- Locataire (Right column) ---
   const rightColX = margin + colWidth + 10;

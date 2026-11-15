@@ -3,6 +3,7 @@ import { Router, Response } from 'express';
 import { body, param } from 'express-validator';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import db from '../db/database';
+import { invalidateOwnerIdsCache } from '../utils/cache';
 import { AuditService } from '../services/AuditService';
 import { validate } from '../middleware/validate';
 import { USER_MANAGER_ROLES, ALL_ASSIGNABLE_ROLES, assignableRolesFor } from '../utils/roleHierarchy';
@@ -303,6 +304,7 @@ router.post('/proprietaires', validate(ownerCreateRules), async (req: Authentica
                  ON CONFLICT (user_id, owner_id) DO NOTHING`,
                 [req.userId!, ownerId, linkRole]
             );
+            invalidateOwnerIdsCache(req.userId);
 
             await txClient.query('COMMIT');
         } catch (txError) {
@@ -561,6 +563,7 @@ router.post('/autorisations', validate(autorisationRules), async (req: Authentic
             niveauAcces.suppression || false,
             modules.paiements || false // Using paiements module for audit logs access check maybe? or just adding 0/1
         ]);
+        invalidateOwnerIdsCache(utilisateur);
 
         await AuditService.log({
             userId: req.userId!.toString(),
