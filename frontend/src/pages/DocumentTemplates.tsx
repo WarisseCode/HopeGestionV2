@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Save, LayoutTemplate, Tags, ChevronRight, FileText, Receipt, AlertTriangle, File, Info } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, LayoutTemplate, Tags, ChevronRight, FileText, Receipt, AlertTriangle, File, Info, Copy, ShieldCheck } from 'lucide-react';
 import { templateApi, type DocumentTemplate } from '../api/templateApi';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -107,6 +107,15 @@ const DocumentTemplates: React.FC = () => {
     };
 
     const getTypeInfo = (typeId: string) => types.find(t => t.id === typeId) || types[3];
+
+    // Modèle Hope (lecture seule pour l'agence) : on ouvre l'éditeur sur une COPIE,
+    // sans id, que « Enregistrer » crée comme modèle de l'agence (audit S3).
+    const customize = (t: DocumentTemplate) => setEditingTemplate({
+        type: t.type,
+        content: t.content,
+        name: `${t.name} (ma version)`,
+    });
+    const isEditable = (t: DocumentTemplate) => t.editable !== false;
 
     // ============================================
     // EDITOR VIEW
@@ -239,20 +248,32 @@ const DocumentTemplates: React.FC = () => {
                         return (
                             <Card key={t.id} className="group hover:shadow-lg transition-all duration-300 relative border border-base-200 hover:border-primary/30">
                                 <div className="absolute top-4 right-4 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button 
-                                        onClick={() => setEditingTemplate(t)} 
-                                        className="p-2 text-base-content/50 hover:text-primary bg-base-100 rounded-lg shadow-sm border border-base-200 hover:border-primary/30 transition-colors"
-                                        title="Modifier"
-                                    >
-                                        <Edit2 size={15}/>
-                                    </button>
-                                    <button 
-                                        onClick={() => handleDelete(t.id)} 
-                                        className="p-2 text-base-content/50 hover:text-red-500 bg-base-100 rounded-lg shadow-sm border border-base-200 hover:border-red-200 transition-colors"
-                                        title="Supprimer"
-                                    >
-                                        <Trash2 size={15}/>
-                                    </button>
+                                    {isEditable(t) ? (
+                                        <>
+                                            <button 
+                                                onClick={() => setEditingTemplate(t)} 
+                                                className="p-2 text-base-content/50 hover:text-primary bg-base-100 rounded-lg shadow-sm border border-base-200 hover:border-primary/30 transition-colors"
+                                                title="Modifier"
+                                            >
+                                                <Edit2 size={15}/>
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDelete(t.id)} 
+                                                className="p-2 text-base-content/50 hover:text-red-500 bg-base-100 rounded-lg shadow-sm border border-base-200 hover:border-red-200 transition-colors"
+                                                title="Supprimer"
+                                            >
+                                                <Trash2 size={15}/>
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <button 
+                                            onClick={() => customize(t)} 
+                                            className="p-2 text-base-content/50 hover:text-primary bg-base-100 rounded-lg shadow-sm border border-base-200 hover:border-primary/30 transition-colors"
+                                            title="Personnaliser (créer ma version)"
+                                        >
+                                            <Copy size={15}/>
+                                        </button>
+                                    )}
                                 </div>
                                 
                                 <div className="flex items-start gap-4 mb-4">
@@ -264,6 +285,11 @@ const DocumentTemplates: React.FC = () => {
                                         <span className="text-xs px-2 py-0.5 bg-base-200 rounded-full text-base-content/60 mt-1 inline-block">
                                             {typeInfo.label}
                                         </span>
+                                        {!isEditable(t) && (
+                                            <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full mt-1 ml-1 inline-flex items-center gap-1">
+                                                <ShieldCheck size={12} /> Modèle Hope
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -276,10 +302,10 @@ const DocumentTemplates: React.FC = () => {
                                         Créé le {new Date(t.created_at).toLocaleDateString('fr-FR')}
                                     </p>
                                     <button 
-                                        onClick={() => setEditingTemplate(t)}
+                                        onClick={() => (isEditable(t) ? setEditingTemplate(t) : customize(t))}
                                         className="text-xs text-primary font-medium hover:underline"
                                     >
-                                        Éditer →
+                                        {isEditable(t) ? 'Éditer →' : 'Personnaliser →'}
                                     </button>
                                 </div>
                             </Card>

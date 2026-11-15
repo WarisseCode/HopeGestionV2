@@ -78,13 +78,14 @@ describe("POST /api/documents/generate (type 'lease') — filtre owner_id", () =
     it('gestionnaire multi-propriétaires : la requête bail inclut l.owner_id = ANY($2)', async () => {
         mockValidOwnerIds = [1, 2];
         mockAuthLookup();
+        q().mockResolvedValueOnce({ rows: [{ created_by: null }] });                    // agence du modèle (audit S3)
         q().mockResolvedValueOnce({ rows: [{ id: 3, name: 'Modele', content: 'x' }] }); // template
         q().mockResolvedValueOnce({ rows: [] });                                         // bail
 
         const res = await send();
 
         expect(res.status).toBe(404);
-        const [sql, params] = q().mock.calls[2];
+        const [sql, params] = q().mock.calls[3];
         expect(sql).toContain('FROM leases l');
         expect(sql).toContain('l.owner_id = ANY($2::int[])');
         expect(params).toEqual([42, [1, 2]]);
@@ -92,18 +93,20 @@ describe("POST /api/documents/generate (type 'lease') — filtre owner_id", () =
 
     it('admin : requête bail sans filtre owner_id', async () => {
         mockAuthLookup();
+        q().mockResolvedValueOnce({ rows: [{ created_by: null }] });                    // agence du modèle (audit S3)
         q().mockResolvedValueOnce({ rows: [{ id: 3, name: 'Modele', content: 'x' }] });
         q().mockResolvedValueOnce({ rows: [] });
 
         await send('admin');
 
-        const [sql, params] = q().mock.calls[2];
+        const [sql, params] = q().mock.calls[3];
         expect(sql).not.toContain('owner_id = ANY(');
         expect(params).toEqual([42]);
     });
 
     it('bail hors périmètre : 404, aucun document inséré', async () => {
         mockAuthLookup();
+        q().mockResolvedValueOnce({ rows: [{ created_by: null }] });                    // agence du modèle (audit S3)
         q().mockResolvedValueOnce({ rows: [{ id: 3, name: 'Modele', content: 'x' }] });
         q().mockResolvedValueOnce({ rows: [] });
 
@@ -111,7 +114,7 @@ describe("POST /api/documents/generate (type 'lease') — filtre owner_id", () =
 
         expect(res.status).toBe(404);
         expect(res.body.message).toBe('Bail introuvable ou accès refusé');
-        expect(q()).toHaveBeenCalledTimes(3);
+        expect(q()).toHaveBeenCalledTimes(4) // auth + agence + modèle + bail;
     });
 });
 
