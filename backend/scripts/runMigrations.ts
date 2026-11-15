@@ -1677,6 +1677,18 @@ const MIGRATIONS: Migration[] = [
                 END IF;
             END $$;
         `
+    },
+    {
+        name: '067_document_templates_agency',
+        // Audit S3 : modèles de documents par agence. NULL = modèle Hope (par défaut ou
+        // créé avant cette migration) : visible par tous, modifiable par l'admin seul.
+        // Les lignes existantes restent NULL : aucun modèle ne disparaît pour personne.
+        // ON DELETE CASCADE : supprimer le compte d'une agence supprime ses modèles.
+        sql: `
+            ALTER TABLE document_templates
+                ADD COLUMN IF NOT EXISTS agency_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+            CREATE INDEX IF NOT EXISTS idx_document_templates_agency ON document_templates(agency_user_id);
+        `
     }
 ];
 

@@ -15,6 +15,7 @@ import PDFDocument from 'pdfkit';
 import { upload } from '../middleware/uploadMiddleware';
 import { validate } from '../middleware/validate';
 import { uploadToSpaces } from '../services/spacesUploadService';
+import { resolveAgencyUserId, templateVisibilityClause } from '../utils/templateAgency';
 
 dotenv.config();
 
@@ -212,8 +213,12 @@ router.post('/generate', permissions.canWrite('documents'), tenantGuard, validat
         const strictOwnerId = (req as any).resolvedOwnerId;
         const { templateId, entityId, type } = req.body; // type = 'lease', 'receipt'
 
-        // 1. Fetch Template (document_templates table should be accessible/read-only usually without tenant logic or configured via RLS natively if any)
-        const templateRes = await dbClient.query('SELECT * FROM document_templates WHERE id = $1', [templateId]);
+        // 1. Fetch Template
+        // [SÉCURITÉ] Audit S3 : seuls les modèles Hope et ceux de l'agence sont utilisables
+        const agencyUserId = await resolveAgencyUserId(req, dbClient);
+        const tplParams: any[] = [templateId];
+        const tplClause = templateVisibilityClause(req, agencyUserId, tplParams);
+        const templateRes = await dbClient.query(`SELECT * FROM document_templates WHERE id = $1${tplClause}`, tplParams);
         if (templateRes.rows.length === 0) return res.status(404).json({ message: 'Modèle introuvable' });
         const template = templateRes.rows[0];
 

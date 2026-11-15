@@ -10,6 +10,8 @@ export interface DocumentTemplate {
     content: string;
     is_default: boolean;
     created_at: string;
+    // false = modèle Hope en lecture seule pour cette agence (à « Personnaliser »)
+    editable?: boolean;
 }
 
 export const templateApi = {
@@ -67,10 +69,12 @@ export const templateApi = {
     // Delete
     deleteTemplate: async (id: number): Promise<void> => {
         const token = getToken();
-        await fetch(`${API_URL}/templates/${id}`, { 
+        const res = await fetch(`${API_URL}/templates/${id}`, { 
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        // Auparavant la réponse était ignorée : un refus s'affichait comme un succès
+        if (!res.ok) throw new Error("Erreur suppression");
     },
 
     // Get Variables

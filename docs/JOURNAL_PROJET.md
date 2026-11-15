@@ -1389,3 +1389,30 @@ Mis à jour automatiquement après chaque tâche.
   - Filtre dans la requête elle-même (UPDATE/DELETE … AND owner_id = ANY) : une seule requête, pas de fenêtre entre vérification et écriture.
 - **Problèmes rencontrés** : Suite complète : 443 tests réussis, 21 en échec. Ce sont les mêmes 21 échecs (5 suites) que sur `main` avant la modification, des tests périmés relevés en F3 de l'audit. Le premier script d'édition a été bloqué par un contrôle de sécurité de l'outil (faux positif, aucune suppression) ; il a été relancé depuis un fichier.
 - **Remplace / modifie** : — (complète T-026, qui avait filtré les lectures de ces modules)
+
+### T-088 : Modèles de documents par agence (audit S3)
+- **Date** : 2026-11-15
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : La table `document_templates` était commune à toutes les agences : n'importe quel gestionnaire pouvait lire, modifier ou supprimer les modèles des autres, dont le contrat et la quittance par défaut. Règle choisie par l'utilisateur : modèles par agence.
+  - Les modèles Hope (par défaut, ou créés avant la correction) sont visibles par tous et modifiables par l'admin seul.
+  - Chaque agence crée ses propres modèles, ou une copie d'un modèle Hope via « Personnaliser ». Ils ne sont visibles et modifiables que par elle.
+- **Fichiers touchés** :
+  - `backend/scripts/runMigrations.ts` : migration `067_document_templates_agency`, colonne `agency_user_id` + index.
+  - `backend/utils/templateAgency.ts` (nouveau) : `resolveAgencyUserId`, `templateVisibilityClause`, `templateWriteClause`.
+  - `backend/routes/templateRoutes.ts` : filtre sur toutes les routes, drapeau `editable`, 403 pour un modèle Hope, 404 pour celui d'une autre agence.
+  - `backend/routes/documentRoutes.ts` : la génération de PDF n'accepte que les modèles visibles.
+  - `frontend/src/api/templateApi.ts`, `frontend/src/pages/DocumentTemplates.tsx` : badge « Modèle Hope » et bouton « Personnaliser ».
+  - Tests : `backend/tests/routes/template.agencyScope.test.ts` (nouveau, 16 tests) ; `document.leaseOwnerScope.test.ts` adapté (une requête de plus).
+- **Décisions & justifications** :
+  - Il n'existe pas de table « agence ». L'agence est le compte racine : l'émetteur pour un accès invité, le créateur (`users.created_by`) pour un collaborateur, sinon le compte lui-même. Un créateur admin est ignoré, sinon tous les comptes créés par l'admin Hope partageraient leurs modèles.
+  - Rattachement par compte et non par propriétaire (`owner_id`) : un gestionnaire peut gérer plusieurs propriétaires, voire aucun (mode gestionnaire pur).
+  - Les modèles existants restent NULL, donc visibles par tous comme avant : rien ne disparaît. Une agence qui avait créé son propre modèle ne peut plus le modifier directement, mais peut le « Personnaliser ».
+  - Admin : les modèles qu'il crée deviennent des modèles Hope.
+  - `PUT` utilise désormais `COALESCE` : un champ absent garde sa valeur (`name` est NOT NULL, un PUT partiel échouait avant).
+  - `deleteTemplate` côté interface vérifie maintenant la réponse : un refus ne s'affiche plus comme un succès.
+- **Problèmes rencontrés** :
+  - Suite complète : 459 réussis, 21 en échec, les mêmes que sur `main` (constat F3).
+  - Écran vérifié sous Playwright (bureau et 390 px) avec une API simulée : badge, « Personnaliser », copie créée par POST.
+  - Rectification de l'audit T-086 : le constat P3 (index `owner_id` manquants) était en partie inexact. La migration `066_perf_indexes_core_tables` crée déjà ces index sur `payments`, `lots`, `buildings` et `leases`, sous condition. Restent sans index : `tenants`, `documents`, `tickets`.
+- **Remplace / modifie** : — (complète T-086, constat S3)
