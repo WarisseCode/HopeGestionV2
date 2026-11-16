@@ -1566,3 +1566,23 @@ Mis à jour automatiquement après chaque tâche.
   - À 390 px : il reste dans l'écran.
   - Aucune erreur.
 - **Remplace / modifie** : — (complète T-060/T-062, création de `RowMenu`)
+
+### T-096 : Menu « ⋯ » affiché au-dessus de la page (Baux & Locations)
+- **Date** : 2026-11-16
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** :
+  - **Symptôme** : l'utilisateur signale le même menu coupé sur la page Baux & Locations.
+  - **Cause** : le menu de cette page compte 7 actions (environ 300 px de haut). T-095 réglait le côté gauche/droite, mais quand la liste est courte, le menu ne tient ni au-dessus ni en dessous dans la carte de la liste (`overflow-hidden`). Mesuré sous Playwright avec 3 baux : il restait coupé en hauteur.
+  - **Correctif** : le menu est rendu dans `<body>` (portail React, `position: fixed`). La carte ne peut plus le couper, seul l'écran le limite. Le choix du côté de T-095 est conservé, calculé par rapport à l'écran. Si la hauteur manque des deux côtés, le menu défile (`maxHeight`).
+- **Fichiers touchés** : `frontend/src/components/ui/RowMenu.tsx` (8 pages concernées, comme T-095).
+- **Décisions & justifications** :
+  - Un menu en position fixe ne suit pas sa ligne. Au défilement ou au redimensionnement, il est donc replacé contre son bouton (une fois par image), et il se ferme seulement si le bouton sort de l'écran.
+  - Le clic à l'extérieur tient compte du menu, désormais hors du bouton.
+  - `z-[70]` : au-dessus de la barre latérale (`z-50`).
+  - Le thème suit `data-theme` posé sur `<html>`, donc s'applique aussi dans `<body>` (vérifié en sombre).
+- **Problèmes rencontrés** :
+  - Une première version fermait le menu à tout défilement. Un défilement doux encore en cours au moment du clic le refermait aussitôt (3 cas sur 12 dans le test), d'où le suivi décrit ci-dessus.
+  - Vérifié sous Playwright, page Baux & Locations, à 1100, 1280, 1800 et 390 px, sur 3 lignes (dont une avec la fiche ouverte) : menu entièrement visible dans les 12 cas, aucune erreur.
+  - Page Propriétaires : « Modifier » ouvre bien le formulaire.
+- **Remplace / modifie** : — (complète T-095)
