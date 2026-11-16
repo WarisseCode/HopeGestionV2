@@ -1523,3 +1523,16 @@ Mis à jour automatiquement après chaque tâche.
 
   Un `pg_dump --schema-only` de la production permettrait de trancher.
 - **Remplace / modifie** : — (complète T-090 ; rectifie T-086 sur la question du schéma)
+
+### T-093 : Bouton de menu en double dans la barre du haut
+- **Date** : 2026-11-16
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : Deux boutons presque identiques s'affichaient côte à côte : celui de la barre latérale (ajouté par la refonte T-070) et celui de la barre du haut (`Header.tsx`), qui faisaient la même chose (réduire ou déplier la barre latérale). Le bouton de la barre du haut est retiré.
+- **Fichiers touchés** : `frontend/src/components/layout/Header.tsx`.
+- **Décisions & justifications** :
+  - Une seule mise en page (`DashboardLayout`) sert à tous les rôles. Sur bureau, la barre latérale garde toujours son propre bouton, dépliée comme réduite en rail.
+  - Sur mobile, le menu s'ouvre par « Menu » dans la barre du bas et se ferme par la croix de la barre latérale.
+  - Les props `toggleSidebar` et `isSidebarOpen` restent dans l'interface, pour ne pas modifier `DashboardLayout`.
+- **Problèmes rencontrés** : Vérifié sous Playwright, à 1280 px (réduire puis rouvrir) et à 390 px (ouvrir et fermer le menu) : aucun bouton de menu dans la barre du haut, aucune erreur. L'erreur ESLint `no-explicit-any` ligne 18 de `Header.tsx` existait déjà.
+- **Remplace / modifie** : — (complète T-070)

@@ -2,7 +2,7 @@
 // frontend/src/components/layout/Header.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Home, ChevronRight, Settings, Crown, Sun, Moon, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Search, Home, ChevronRight, Settings, Crown, Sun, Moon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import NotificationBell from '../NotificationBell';
 import SubscriptionBadge from '../SubscriptionBadge';
@@ -19,7 +19,7 @@ interface HeaderProps {
   onLogout: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, breadcrumb, userProfile, onLogout }) => {
+const Header: React.FC<HeaderProps> = ({ breadcrumb, userProfile, onLogout }) => {
   const { t } = useTranslation();
   const [theme, setTheme] = React.useState<'hopegestion' | 'dark'>('hopegestion');
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
@@ -85,14 +85,9 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen, breadcrum
   return (
     <header className="h-16 bg-gradient-to-r from-primary/5 via-base-100 to-base-100 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between px-4 md:px-6 shadow-sm border-b border-base-200 transition-all gap-4">
         {/* Left: Toggle & Breadcrumbs — se comprime (min-w-0) pour laisser les actions de droite visibles */}
+        {/* Pas de bouton de menu ici : il faisait doublon avec celui de la barre latérale
+            (bureau) et avec « Menu » de la barre du bas (mobile). */}
         <div className="flex items-center gap-4 min-w-0">
-            <button 
-              onClick={toggleSidebar} 
-              className="p-2 rounded-lg hover:bg-base-200 text-base-content active:scale-95 transition-transform shrink-0"
-              aria-label={t('header.toggleMenu')}
-            >
-                {isSidebarOpen ? <PanelLeftClose size={22} /> : <PanelLeftOpen size={22} />}
-            </button>
             {getBreadcrumbs()}
         </div>
 
