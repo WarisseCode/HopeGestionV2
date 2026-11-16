@@ -2,6 +2,7 @@
 // Menu « ⋯ » des lignes de liste (T-060, partagé avec T-062) : regroupe les actions secondaires
 // (modifier, supprimer…) hors de portée d'un clic accidentel.
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { MoreHorizontal } from 'lucide-react';
 
 // Bouton secondaire des pages refondues (Parc immobilier, Locataires)
@@ -9,82 +10,101 @@ export const OUTLINE_BTN = 'inline-flex items-center justify-center gap-1.5 roun
 
 export interface RowMenuItem { label: string; onSelect: () => void; danger?: boolean }
 
-// Marge gardée entre le menu et le bord de la zone visible (px)
+// Marge gardée entre le menu et le bord de l'écran (px), et écart avec le bouton.
 const EDGE = 8;
+const GAP = 6;
 
 /**
- * Zone réellement visible autour d'un élément : l'écran, rétréci par chaque parent qui
- * coupe ce qui dépasse (overflow ≠ visible). Les listes sont dans des cartes en
- * `overflow-hidden` (coins arrondis) : un menu qui en sort devient invisible.
+ * Position du menu, en coordonnées d'écran (position: fixed).
+ *
+ * Pourquoi un menu « au-dessus de la page » (portail dans <body>) : les listes sont dans
+ * des cartes en `overflow-hidden` (coins arrondis). Un menu positionné dans la ligne était
+ * coupé dès qu'il dépassait de la carte : à gauche quand la liste se resserre (T-095,
+ * « odifier »), et en hauteur quand la liste est courte et le menu long (Baux &
+ * Locations : 7 actions, ~300 px). Hors de la carte, seul l'écran limite le menu.
  */
-function visibleBounds(el: HTMLElement) {
-  let top = 0, left = 0, right = window.innerWidth, bottom = window.innerHeight;
-  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
-    const s = getComputedStyle(p);
-    if (s.overflowX !== 'visible' || s.overflowY !== 'visible') {
-      const r = p.getBoundingClientRect();
-      top = Math.max(top, r.top); left = Math.max(left, r.left);
-      right = Math.min(right, r.right); bottom = Math.min(bottom, r.bottom);
-    }
-  }
-  return { top, left, right, bottom };
-}
-
-type Placement = { x: 'start' | 'end'; y: 'down' | 'up' };
-// Par défaut : aligné sur le bord droit du bouton ('end', s'étend vers la gauche), vers le bas.
-const DEFAULT_PLACEMENT: Placement = { x: 'end', y: 'down' };
+type Pos = { style: React.CSSProperties };
 
 const RowMenu: React.FC<{ label: string; items: RowMenuItem[] }> = ({ label, items }) => {
   const [open, setOpen] = useState(false);
-  const [placement, setPlacement] = useState<Placement>(DEFAULT_PLACEMENT);
+  const [pos, setPos] = useState<Pos>({ style: {} });
   const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  // Écouteurs posés seulement menu ouvert : clic à l'extérieur et Échap le referment
+  // Menu ouvert : clic à l'extérieur (bouton ET menu, ce dernier étant dans <body>) et Échap
+  // le referment. En position fixe, il ne suit pas la ligne tout seul : au défilement ou au
+  // redimensionnement, on le replace contre son bouton (une fois par image), et on le ferme
+  // seulement si le bouton sort de l'écran.
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: MouseEvent) => { if (!rootRef.current?.contains(e.target as Node)) setOpen(false); };
+    const inside = (t: EventTarget | null) =>
+      !!t && (rootRef.current?.contains(t as Node) || menuRef.current?.contains(t as Node));
+    const onDown = (e: MouseEvent) => { if (!inside(e.target)) setOpen(false); };
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    let frame = 0;
+    const follow = (e?: Event) => {
+      if (e && menuRef.current?.contains(e.target as Node)) return; // défilement interne du menu
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const btn = rootRef.current?.getBoundingClientRect();
+        if (!btn || btn.bottom < 0 || btn.top > window.innerHeight) { setOpen(false); return; }
+        setPos(computePos());
+      });
+    };
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+    window.addEventListener('scroll', follow, true); // capture : défilement de n'importe quel conteneur
+    window.addEventListener('resize', follow);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', follow, true);
+      window.removeEventListener('resize', follow);
+    };
+    // computePos ne dépend que des refs et des libellés : pas besoin de relancer l'effet
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Choix du côté d'ouverture au moment du clic, avant l'affichage (pas de clignotement).
-  // Quand une liste se resserre (panneau de détail ouvert, téléphone), les boutons passent
-  // sous le nom, à gauche : un menu ouvert vers la gauche sortait de la carte et était
-  // coupé (« odifier », « upprimer »). On l'ouvre alors vers la droite ; de même vers le
-  // haut s'il manque de la place en bas (dernière ligne de la liste).
-  const computePlacement = (): Placement => {
+  // Côté d'ouverture choisi au clic, avant l'affichage (pas de clignotement) : vers la
+  // gauche et vers le bas par défaut ; vers la droite / le haut s'il manque de la place.
+  const computePos = (): Pos => {
     const root = rootRef.current;
-    if (!root) return DEFAULT_PLACEMENT;
+    if (!root) return { style: {} };
     const btn = root.getBoundingClientRect();
-    const zone = visibleBounds(root);
-    // Taille du menu estimée sans l'afficher : min-w-44 (176 px) ou libellé le plus long
-    // (≈ 7,5 px par caractère + marges), 40 px par action + bordures et marges internes.
+    const vw = window.innerWidth, vh = window.innerHeight;
+    // Taille estimée sans afficher le menu : min-w-44 (176 px) ou libellé le plus long
+    // (≈ 7,5 px par caractère + marges) ; 40 px par action + bordures et marges internes.
     const longest = Math.max(0, ...items.map(i => i.label.length));
     const width = Math.max(176, Math.ceil(longest * 7.5) + 30);
     const height = items.length * 40 + 14;
-    const MARGIN = 6; // mt-1.5 / mb-1.5
 
-    const fitsLeftward = btn.right - width >= zone.left + EDGE;   // 'end' : s'étend vers la gauche
-    const fitsRightward = btn.left + width <= zone.right - EDGE;  // 'start' : s'étend vers la droite
-    const fitsBelow = btn.bottom + MARGIN + height <= zone.bottom - EDGE;
-    const fitsAbove = btn.top - MARGIN - height >= zone.top + EDGE;
-    // Ni l'un ni l'autre ne tient (ex. liste d'une seule ligne) : le côté le plus spacieux.
-    const roomLeft = btn.right - zone.left, roomRight = zone.right - btn.left;
-    const roomBelow = zone.bottom - btn.bottom, roomAbove = btn.top - zone.top;
-    return {
-      x: fitsLeftward ? 'end' : fitsRightward ? 'start' : (roomLeft >= roomRight ? 'end' : 'start'),
-      y: fitsBelow ? 'down' : fitsAbove ? 'up' : (roomBelow >= roomAbove ? 'down' : 'up'),
-    };
+    const style: React.CSSProperties = {};
+    // Horizontal : bord droit du menu sur le bord droit du bouton (s'étend vers la gauche)…
+    if (btn.right - width >= EDGE) style.right = vw - btn.right;
+    // … sinon bord gauche sur le bord gauche du bouton (s'étend vers la droite)…
+    else if (btn.left + width <= vw - EDGE) style.left = btn.left;
+    // … sinon collé au bord gauche de l'écran (très petit écran).
+    else style.left = EDGE;
+
+    // Vertical : en dessous si possible, sinon au-dessus, sinon le côté le plus spacieux
+    // avec défilement interne (maxHeight).
+    const roomBelow = vh - btn.bottom - GAP - EDGE;
+    const roomAbove = btn.top - GAP - EDGE;
+    if (height <= roomBelow || roomBelow >= roomAbove) {
+      style.top = btn.bottom + GAP;
+      if (height > roomBelow) style.maxHeight = Math.max(roomBelow, 120);
+    } else {
+      style.bottom = vh - btn.top + GAP;
+      if (height > roomAbove) style.maxHeight = Math.max(roomAbove, 120);
+    }
+    return { style };
   };
 
   const toggle = () => {
-    if (!open) setPlacement(computePlacement());
+    if (!open) setPos(computePos());
     setOpen(o => !o);
   };
-
-  const posClass = `${placement.x === 'end' ? 'right-0' : 'left-0'} ${placement.y === 'down' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'}`;
 
   return (
     <div ref={rootRef} className="relative">
@@ -98,8 +118,14 @@ const RowMenu: React.FC<{ label: string; items: RowMenuItem[] }> = ({ label, ite
       >
         <MoreHorizontal size={16} aria-hidden="true" />
       </button>
-      {open && (
-        <div role="menu" className={`absolute ${posClass} z-30 min-w-44 py-1.5 rounded-xl border border-base-300 bg-base-100 shadow-lg`}>
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          role="menu"
+          aria-label={label}
+          style={{ position: 'fixed', ...pos.style }}
+          className="z-[70] min-w-44 py-1.5 overflow-y-auto rounded-xl border border-base-300 bg-base-100 shadow-lg"
+        >
           {items.map(item => (
             <button
               key={item.label}
@@ -111,7 +137,8 @@ const RowMenu: React.FC<{ label: string; items: RowMenuItem[] }> = ({ label, ite
               {item.label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
