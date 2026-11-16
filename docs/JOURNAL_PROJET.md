@@ -1677,3 +1677,18 @@ Mis à jour automatiquement après chaque tâche.
     - `subscriptions/status` : compteurs exacts.
   - **Limite** : base locale, donc allers-retours quasi gratuits. Le gain de temps n'est pas visible en test ; il dépendra de la production. Le serveur ne suffisant pas à expliquer des secondes d'attente, la cause restante est probablement le réseau (Bénin ↔ VPS) ou les ressources du VPS (cf. BUG-001, « augmenter le VPS »). Une capture de l'onglet Réseau en production reste nécessaire pour trancher.
 - **Remplace / modifie** : — (complète T-098 et le constat P1 de T-086)
+
+### T-100 : Analyse de complexité : code et montée en charge
+- **Date** : 2026-11-16
+- **Statut** : Terminée
+- **Type** : Documentation
+- **Description** : Analyse demandée par l'utilisateur, sur deux volets : complexité du code et comportement quand les données augmentent. Rapport : `docs/suivi/ANALYSE_COMPLEXITE_2026-11-16.md`. Aucun code modifié.
+  - **Montée en charge** : mesures sur PostgreSQL 16 local, avec des données à ×1, ×10 et ×40 du volume de production. Les temps croissent linéairement, jusqu'à 59 ms (130 ms pour `/locataires`) à ×40. En revanche, les listes ne sont pas paginées : jusqu'à 2,7 Mo par liste à ×40, et 10 Mo pour `/finances`.
+  - **Premier point de rupture prévisible** : la page Transactions, qui charge et affiche tous les paiements (environ 1 000 de plus par an).
+  - **Code** : ~78 000 lignes, 272 routes, 71 pages, 0 test frontend, 535 + 232 `any`. Le SQL est écrit directement dans les routes (570 appels, contre 155 dans les services). `scopeByOwner` est recopié 12 fois et `getEffectiveOwnerIds` 6 fois. 115 `fetch` manuels côté frontend. Des API en double (baux/locations, depenses/expenses, paiements/finances) et du code mort.
+- **Fichiers touchés** : `docs/suivi/ANALYSE_COMPLEXITE_2026-11-16.md` (nouveau), `docs/JOURNAL_PROJET.md`.
+- **Décisions & justifications** :
+  - Les données de test sont générées en SQL (`generate_series`) à partir du schéma réel du dépôt (T-092). Le serveur testé est la version compilée de `main`.
+  - Le poids compressé est mesuré en plus du poids brut, car nginx compresse le JSON.
+- **Problèmes rencontrés** : Premier essai de remplissage en échec : `lots.photos` est un tableau PostgreSQL (`text[]`), pas du `jsonb`. Corrigé dans le script de test.
+- **Remplace / modifie** : — (complète l'audit T-086 sur les volets performance et fiabilité)
