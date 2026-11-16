@@ -1586,3 +1586,28 @@ Mis à jour automatiquement après chaque tâche.
   - Vérifié sous Playwright, page Baux & Locations, à 1100, 1280, 1800 et 390 px, sur 3 lignes (dont une avec la fiche ouverte) : menu entièrement visible dans les 12 cas, aucune erreur.
   - Page Propriétaires : « Modifier » ouvre bien le formulaire.
 - **Remplace / modifie** : — (complète T-095)
+
+### T-097 : Photos perdues : visuel neutre au lieu de l'icône d'image cassée
+- **Date** : 2026-11-16
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** :
+  - **Symptôme** : la photo de Rodin AGOSSA (Baux & Locations) s'affichait en image cassée.
+  - **Cause**, selon l'utilisateur : après la suspension du serveur il y a quelques semaines, la plupart des fichiers envoyés ont été perdus, mais leurs adresses sont restées en base.
+  - **Correctif** : un filet de sécurité global (`utils/brokenImageFallback.ts`, importé dans `main.tsx`) écoute les erreurs de chargement d'image et remplace une image envoyée introuvable par un visuel neutre : silhouette grise pour une image ronde (avatar), icône « image indisponible » sinon.
+- **Fichiers touchés** : `frontend/src/utils/brokenImageFallback.ts` (nouveau), `frontend/src/main.tsx`.
+- **Décisions & justifications** :
+  - Un écouteur global (phase de capture, car l'événement `error` ne remonte pas) plutôt que de modifier chacun des ~35 `<img>` du site : il couvre aussi les écrans futurs.
+  - Ne touche qu'aux fichiers envoyés (`/uploads/…` ou DigitalOcean Spaces), jamais au logo ni aux images du site. Les aperçus `data:` et `blob:` sont exclus.
+  - L'adresse d'origine est gardée dans `data-broken-src` pour le diagnostic, et un marqueur évite toute boucle.
+  - React ne réécrit l'attribut `src` que si la prop change : le visuel de repli tient d'un rendu à l'autre.
+  - Aucune donnée n'est modifiée.
+- **Problèmes rencontrés** : Vérifié sous Playwright, avec une API simulée :
+  - photo de locataire introuvable → silhouette ; photo valide inchangée ;
+  - photo de bien introuvable → icône photo ;
+  - image du site en erreur → inchangée ;
+  - aucune erreur console.
+- **Reste à faire, à décider** :
+  - un script en lecture seule à lancer sur le VPS, pour lister les adresses en base dont le fichier n'existe plus et prévenir les gestionnaires de renvoyer ces photos ;
+  - une sauvegarde régulière du dossier `uploads` (ou un passage sur Spaces), pour éviter une nouvelle perte (voir l'audit, F2).
+- **Remplace / modifie** : — (complète T-034, `NoPhotoPlaceholder`)
