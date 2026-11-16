@@ -1,6 +1,9 @@
 // frontend/src/main.tsx
 // En premier : corrige l'espace des milliers avant tout formatage (voir utils/numberSpacing.ts)
 import './utils/numberSpacing';
+// Avant le premier rendu : remplace les photos envoyées introuvables (fichiers perdus) par un
+// visuel neutre au lieu de l'icône d'image cassée (voir utils/brokenImageFallback.ts)
+import './utils/brokenImageFallback';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
