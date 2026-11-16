@@ -1536,3 +1536,13 @@ Mis à jour automatiquement après chaque tâche.
   - Les props `toggleSidebar` et `isSidebarOpen` restent dans l'interface, pour ne pas modifier `DashboardLayout`.
 - **Problèmes rencontrés** : Vérifié sous Playwright, à 1280 px (réduire puis rouvrir) et à 390 px (ouvrir et fermer le menu) : aucun bouton de menu dans la barre du haut, aucune erreur. L'erreur ESLint `no-explicit-any` ligne 18 de `Header.tsx` existait déjà.
 - **Remplace / modifie** : — (complète T-070)
+
+### T-094 : Bouton de repli de la barre du haut déplacé dans la barre latérale
+- **Date** : 2026-11-16
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : À la demande de l'utilisateur, le bouton de la barre latérale reprend le style et les icônes de l'ancien bouton de la barre du haut : sans cadre, avec `PanelLeftClose` quand la barre est dépliée et `PanelLeftOpen` quand elle est réduite, au lieu de l'icône fixe `PanelLeft` encadrée. Sur mobile, la croix de fermeture est conservée.
+- **Fichiers touchés** : `frontend/src/components/layout/Sidebar.tsx`.
+- **Décisions & justifications** : L'icône change selon l'état, elle indique donc l'action. Taille 22 px et `active:scale-95` repris de l'ancien bouton. Libellés accessibles (`aria-label`, `title`) et anneau de focus inchangés.
+- **Problèmes rencontrés** : Vérifié sous Playwright, à 1280 px (réduire puis rouvrir) et à 390 px (menu) : aucune erreur.
+- **Remplace / modifie** : — (complète T-093)

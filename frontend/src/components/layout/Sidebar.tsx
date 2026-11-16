@@ -5,7 +5,7 @@
 // dans le menu « Mon compte » ouvert depuis la carte du profil (avec la déconnexion).
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LogOut, X, PanelLeft, ChevronUp } from 'lucide-react';
+import { LogOut, X, PanelLeftClose, PanelLeftOpen, ChevronUp } from 'lucide-react';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import ConfirmModal from '../ui/ConfirmModal';
@@ -96,9 +96,15 @@ const Sidebar: React.FC<SidebarProps & { isMobile: boolean }> = ({ isOpen, toggl
             onClick={toggleSidebar}
             aria-label={isMobile ? t('nav.closeMenu') : isOpen ? t('nav.collapseMenu') : t('nav.expandMenu')}
             title={isMobile ? undefined : isOpen ? t('nav.collapseMenu') : t('nav.expandMenu')}
-            className={`w-10 h-10 shrink-0 inline-flex items-center justify-center rounded-[10px] border border-base-300 text-base-content/70 hover:bg-base-200 hover:text-base-content transition-colors ${FOCUS}`}
+            // Style et icônes repris de l'ancien bouton de la barre du haut (retiré, T-093) :
+            // sans cadre, icône qui indique l'action (réduire ◧← / déplier ◧→).
+            className={`p-2 shrink-0 inline-flex items-center justify-center rounded-lg text-base-content hover:bg-base-200 active:scale-95 transition-transform ${FOCUS}`}
           >
-            {isMobile ? <X size={18} aria-hidden="true" /> : <PanelLeft size={18} aria-hidden="true" />}
+            {isMobile
+              ? <X size={22} aria-hidden="true" />
+              : isOpen
+                ? <PanelLeftClose size={22} aria-hidden="true" />
+                : <PanelLeftOpen size={22} aria-hidden="true" />}
           </button>
         </div>
 
