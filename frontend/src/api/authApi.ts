@@ -2,6 +2,7 @@
 
 import { API_URL as BASE_URL } from '../config';
 import { apiCall } from '../utils/apiUtils';
+import { queryClient } from './queryClient';
 
 interface AuthResponse {
     token: string;
@@ -78,6 +79,9 @@ export const logoutUser = async () => {
     } catch (_) {
         // Échec silencieux : la déconnexion locale se fait quoi qu'il arrive
     } finally {
+        // Vide toutes les données gardées en mémoire (cache des pages, React Query) avant de
+        // quitter : le compte suivant ne doit jamais les voir (voir utils/pageCache.ts).
+        queryClient.clear();
         localStorage.removeItem('userToken');
         localStorage.removeItem('userRole');
         window.location.href = '/';
@@ -98,6 +102,7 @@ export async function refreshAccessToken(): Promise<string | null> {
         });
 
         if (!res.ok) {
+            queryClient.clear(); // session expirée : on oublie aussi les données en mémoire
             localStorage.removeItem('userToken');
             localStorage.removeItem('userRole');
             return null;

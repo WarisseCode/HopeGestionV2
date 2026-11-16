@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     LayoutDashboard, Building2, Users, Wallet, FileText,
     FolderOpen, BarChart3, Bell, Settings, LogOut,
@@ -246,18 +246,17 @@ const ProprietaireLayout: React.FC<ProprietaireLayoutProps> = ({ children, onLog
 
                 {/* Page content */}
                 <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 scrollbar-thin scrollbar-thumb-base-300">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={location.pathname}
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -8 }}
-                            transition={{ duration: 0.15, ease: 'easeOut' }}
-                            className="max-w-[1600px] mx-auto"
-                        >
-                            {children}
-                        </motion.div>
-                    </AnimatePresence>
+                    {/* Fondu d'entrée sans animation de sortie : avec AnimatePresence mode="wait", le bloc sortant
+                        affichait déjà la nouvelle page, qui démarrait deux fois (requêtes en double). Voir DashboardLayout. */}
+                    <motion.div
+                        key={location.pathname}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.15, ease: 'easeOut' }}
+                        className="max-w-[1600px] mx-auto"
+                    >
+                        {children}
+                    </motion.div>
                 </main>
             </div>
 

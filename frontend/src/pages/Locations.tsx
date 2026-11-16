@@ -29,6 +29,7 @@ import LoadErrorState from '../components/ui/LoadErrorState';
 import RowMenu, { OUTLINE_BTN } from '../components/ui/RowMenu';
 import { useIsDesktop, isDesktop } from '../hooks/useIsDesktop';
 import { getAvatarColor } from '../utils/locataireUtils';
+import { readPageCache, writePageCache } from '../utils/pageCache';
 
 type FormOptions = React.ComponentProps<typeof LocationForm>;
 
@@ -320,9 +321,21 @@ const Locations: React.FC = () => {
   const [owners, setOwners] = useState<FormOptions['owners']>([]);
 
   // `silent` : rechargement après une action sans remplacer la page par le squelette
-  const loadData = useCallback(async (silent = false) => {
+  // `initial` : ouverture de la page ; la version en mémoire (visite précédente) s'affiche
+  // tout de suite, puis la fraîche la remplace (utils/pageCache). Jamais après une action.
+  const loadData = useCallback(async (silent = false, initial = false) => {
+    const cached = initial
+      ? readPageCache<{ locationsData: Location[]; locatairesData: FormOptions['locataires']; lotsData: FormOptions['lots']; ownersData: FormOptions['owners'] }>('locations')
+      : undefined;
+    if (cached) {
+      setLocations(cached.locationsData);
+      setLocataires(cached.locatairesData);
+      setLots(cached.lotsData);
+      setOwners(cached.ownersData);
+      setLoading(false); // la page démarre en « chargement »
+    }
     try {
-      if (!silent) setLoading(true);
+      if (!silent && !cached) setLoading(true);
       setLoadError(null);
       const [locationsData, locatairesData, lotsData, ownersData] = await Promise.all([
         locationApi.getLocations(),
@@ -334,15 +347,22 @@ const Locations: React.FC = () => {
       setLocataires(Array.isArray(locatairesData) ? locatairesData : []);
       setLots(Array.isArray(lotsData) ? lotsData : []);
       setOwners(Array.isArray(ownersData) ? ownersData : []);
+      writePageCache('locations', {
+        locationsData,
+        locatairesData: Array.isArray(locatairesData) ? locatairesData : [],
+        lotsData: Array.isArray(lotsData) ? lotsData : [],
+        ownersData: Array.isArray(ownersData) ? ownersData : [],
+      });
     } catch (err) {
       console.error(err);
-      setLoadError((err as Error)?.message || 'Erreur lors du chargement des données');
+      // Données en mémoire déjà affichées : on les garde plutôt qu'une page d'erreur
+      if (!cached) setLoadError((err as Error)?.message || 'Erreur lors du chargement des données');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { loadData(false, true); }, [loadData]);
   useEffect(() => { setCurrentPage(1); }, [searchTerm, group, sortKey]);
 
   const closeForm = () => { setShowForm(false); setEditing(null); };
