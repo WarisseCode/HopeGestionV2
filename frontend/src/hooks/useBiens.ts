@@ -15,6 +15,7 @@ import { getProprietaires, accountApi } from '../api/accountApi';
 import type { Proprietaire, Utilisateur } from '../api/accountApi';
 import type { FilterConfig, FilterValues } from '../components/ui/FilterPanel';
 import { ITEMS_PER_PAGE } from '../utils/bienUtils';
+import { readPageCache, writePageCache } from '../utils/pageCache';
 
 // Note : les filtres (labels traduisibles) sont construits dans le hook via t().
 
@@ -58,6 +59,12 @@ const DEFAULT_CONFIRM: ConfirmConfig = {
 };
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
+
+// Jeu de données de la page gardé en mémoire entre deux visites (utils/pageCache)
+type BiensSnapshot = {
+  immeublesData: Immeuble[]; lotsData: Lot[]; locationsData: BailLocation[];
+  propsData: Proprietaire[]; usersData: Utilisateur[]; subStatus: SubscriptionStatus | null;
+};
 
 export function useBiens() {
   const { user } = useUser();
@@ -142,9 +149,15 @@ export function useBiens() {
 
   // ── Data fetching ─────────────────────────────────────────────────────────
 
-  const fetchData = useCallback(async () => {
+  // `initial` : ouverture de la page. Si des données sont en mémoire (visite précédente), elles
+  // s'affichent tout de suite et la version fraîche les remplace à son arrivée (utils/pageCache).
+  // Après une action, on ne relit pas la mémoire : un élément supprimé ne doit pas réapparaître.
+  const fetchData = useCallback(async (initial = false) => {
+    // Comparaison stricte : `onRetry={fetchData}` passe l'événement de clic en argument
+    const cached = initial === true ? readPageCache<BiensSnapshot>('biens') : undefined;
+    if (cached) { applyBiens(cached); setLoading(false); } // la page démarre en « chargement »
     try {
-      setLoading(true);
+      if (!cached) setLoading(true);
       setLoadError(null);
       const [immeublesData, lotsData, locationsData, propsData, usersData, subStatus] = await Promise.all([
         getImmeubles(),
@@ -154,21 +167,30 @@ export function useBiens() {
         accountApi.getUsers(),
         getSubscriptionStatus().catch(err => { console.error('Erreur chargement abonnement', err); return null; }),
       ]);
-      setImmeubles(immeublesData);
-      setLots(lotsData);
-      setLocations(locationsData);
-      setProprietaires(propsData);
-      setUsers(usersData);
-      if (subStatus) setSubscriptionStatus(subStatus);
+      const fresh: BiensSnapshot = { immeublesData, lotsData, locationsData, propsData, usersData, subStatus };
+      applyBiens(fresh);
+      writePageCache('biens', fresh);
     } catch (err: any) {
       console.error(err);
-      setLoadError(err.message || t('properties.loadDataError'));
+      // Données en mémoire déjà affichées : on les garde plutôt que d'afficher une page d'erreur
+      if (!cached) setLoadError(err.message || t('properties.loadDataError'));
     } finally {
       setLoading(false);
     }
+    // applyBiens n'utilise que des setters d'état (stables) : pas de dépendance à ajouter
   }, [t]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  // Applique un jeu de données (frais ou en mémoire) aux états de la page
+  function applyBiens(d: BiensSnapshot) {
+    setImmeubles(d.immeublesData);
+    setLots(d.lotsData);
+    setLocations(d.locationsData);
+    setProprietaires(d.propsData);
+    setUsers(d.usersData);
+    if (d.subStatus) setSubscriptionStatus(d.subStatus);
+  }
+
+  useEffect(() => { fetchData(true); }, [fetchData]);
   useEffect(() => { setCurrentPage(1); }, [searchQuery, filterValues, activeTab, statusGroup, sortKey]);
 
   // ── Filtered data ─────────────────────────────────────────────────────────

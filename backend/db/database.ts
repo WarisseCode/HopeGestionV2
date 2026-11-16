@@ -3,9 +3,13 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-// Digital Ocean Basic PostgreSQL caps at 25 max_connections.
-// We claim at most 10 so other processes (migrations, admin) keep headroom.
-const POOL_MAX  = parseInt(process.env.DB_POOL_MAX  || '10');
+// Taille du pool : 20 par défaut (avant : 10, calibré pour l'ancienne base DigitalOcean
+// limitée à 25 connexions). La base tourne désormais sur le VPS (docs/DEPLOIEMENT_VPS.md,
+// PostgreSQL local, max_connections = 100 par défaut) : 20 laisse une large marge aux
+// migrations et à l'administration. Chaque requête protégée garde une connexion le temps
+// de son traitement (tenantGuard) : à 10, quelques utilisateurs simultanés suffisaient à
+// faire attendre les requêtes. Ajustable avec DB_POOL_MAX (ex. base distante plafonnée).
+const POOL_MAX  = parseInt(process.env.DB_POOL_MAX  || '20');
 const POOL_MIN  = parseInt(process.env.DB_POOL_MIN  || '2');
 // Close idle connections after 30 s; abort acquire after 10 s.
 const POOL_IDLE_TIMEOUT_MS    = parseInt(process.env.DB_IDLE_TIMEOUT_MS    || '30000');

@@ -52,8 +52,8 @@ describe('GET /api/alertes — owner_id client et tenantGuard (C4)', () => {
         expect(res.status).toBe(200);
         expect(res.body.alerts).toEqual([]);
         expect(callsTargeting999(client)).toHaveLength(0);
-        // seules requêtes : set_config (user + owner vidé) + dismissed_alerts
-        expect(client.query).toHaveBeenCalledTimes(3);
+        // seules requêtes : set_config (user + owner vidé, en une requête) + dismissed_alerts
+        expect(client.query).toHaveBeenCalledTimes(2);
     });
 
     it('gestionnaire lié à l\'owner 5, ?owner_id=999 : filtré sur son seul owner', async () => {

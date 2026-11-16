@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { getProfile } from '../api/authApi';
 import { getAlerts } from '../api/alertApi';
@@ -115,18 +115,19 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onLogout })
           id="onboarding-main-content"
           className={`flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scrollbar-thin scrollbar-thumb-base-300`}
         >
-           <AnimatePresence mode="wait">
-             <motion.div
-               key={location.pathname}
-               initial={{ opacity: 0, y: 10 }}
-               animate={{ opacity: 1, y: 0 }}
-               exit={{ opacity: 0, y: -10 }}
-               transition={{ duration: 0.15, ease: "easeOut" }}
-               className="h-full max-w-[1600px] mx-auto"
-             >
-               {children}
-             </motion.div>
-           </AnimatePresence>
+           {/* Apparition en fondu à chaque changement de page, SANS animation de sortie.
+               Avec AnimatePresence mode="wait", le bloc sortant affichait déjà la nouvelle
+               page (children = routes, qui lisent l'URL courante) : chaque page démarrait
+               deux fois et envoyait toutes ses requêtes en double, après 0,15 s d'attente. */}
+           <motion.div
+             key={location.pathname}
+             initial={{ opacity: 0, y: 10 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 0.15, ease: "easeOut" }}
+             className="h-full max-w-[1600px] mx-auto"
+           >
+             {children}
+           </motion.div>
         </main>
 
       </div>

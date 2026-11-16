@@ -1,6 +1,6 @@
 // frontend/src/layout/AdminLayout.tsx
 import React, { useState, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   LayoutDashboard, 
   Users, 
@@ -193,18 +193,17 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onLogout }) => {
 
         {/* Content Scroll Area */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8 relative bg-base-200/50">
-           <AnimatePresence mode="wait">
-             <motion.div
-               key={location.pathname}
-               initial={{ opacity: 0, y: 10 }}
-               animate={{ opacity: 1, y: 0 }}
-               exit={{ opacity: 0, y: -10 }}
-               transition={{ duration: 0.2 }}
-               className="h-full"
-             >
-               {children}
-             </motion.div>
-           </AnimatePresence>
+           {/* Fondu d'entrée sans animation de sortie : avec AnimatePresence mode="wait", le bloc sortant
+               affichait déjà la nouvelle page, qui démarrait deux fois (requêtes en double). Voir DashboardLayout. */}
+           <motion.div
+             key={location.pathname}
+             initial={{ opacity: 0, y: 10 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 0.2 }}
+             className="h-full"
+           >
+             {children}
+           </motion.div>
         </main>
       </div>
     </div>

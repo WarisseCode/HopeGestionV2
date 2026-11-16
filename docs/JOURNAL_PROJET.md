@@ -1611,3 +1611,69 @@ Mis à jour automatiquement après chaque tâche.
   - un script en lecture seule à lancer sur le VPS, pour lister les adresses en base dont le fichier n'existe plus et prévenir les gestionnaires de renvoyer ces photos ;
   - une sauvegarde régulière du dossier `uploads` (ou un passage sur Spaces), pour éviter une nouvelle perte (voir l'audit, F2).
 - **Remplace / modifie** : — (complète T-034, `NoPhotoPlaceholder`)
+
+### T-098 : Pages de liste instantanées au retour, et fin des chargements en double
+- **Date** : 2026-11-16
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : L'utilisateur signale que Biens, Propriétaires, Locataires et Baux sont lents, même déjà visités. Deux causes ont été corrigées.
+  1. **Aucune mémoire entre deux visites.** Ces 4 pages relançaient toutes leurs requêtes (4 à 6) à chaque ouverture, avec le squelette de chargement. Désormais, la dernière version connue s'affiche tout de suite, puis la version fraîche la remplace à son arrivée (`utils/pageCache.ts`, stocké dans le client React Query existant).
+  2. **Chaque page démarrait deux fois.** Les mises en page (gestionnaire, propriétaire, locataire, admin) utilisaient `AnimatePresence mode="wait"` avec `key={pathname}`. Pendant l'animation de sortie, le bloc sortant affichait déjà la nouvelle page (les routes lisent l'URL courante), qui se montait une première fois avant le vrai bloc. Toutes les requêtes partaient donc en double, après 0,15 s d'attente. L'animation de sortie est retirée ; le fondu d'entrée est conservé.
+- **Fichiers touchés** :
+  - `frontend/src/utils/pageCache.ts` (nouveau)
+  - `frontend/src/hooks/useBiens.ts`, `frontend/src/components/CompteProprietaires.tsx`, `frontend/src/pages/Locataires.tsx`, `frontend/src/pages/Locations.tsx`
+  - `frontend/src/api/authApi.ts` : effacement de la mémoire à la déconnexion et à l'expiration de session
+  - `frontend/src/layout/DashboardLayout.tsx`, `AdminLayout.tsx`, `ProprietaireLayout.tsx`, `LocataireLayout.tsx`
+- **Décisions & justifications** :
+  - **Sécurité** (question posée par l'utilisateur avant la mise en œuvre) :
+    - mémoire vive de l'onglet uniquement, jamais écrite sur disque ;
+    - rangée par identifiant d'utilisateur lu dans le jeton ;
+    - vidée par `queryClient.clear()` à la déconnexion et à l'échec du renouvellement de session ;
+    - le serveur revérifie les droits à chaque rafraîchissement.
+  - **Pas de clignotement après une action** : la mémoire n'est relue qu'à l'ouverture de la page (`initial === true`, comparaison stricte car `onRetry={fetchData}` transmet l'événement de clic). Après un ajout, une modification ou une suppression, le rechargement reste celui d'avant, et un élément supprimé ne réapparaît jamais.
+  - **Échec du rafraîchissement en arrière-plan** : la version en mémoire reste affichée, sans page d'erreur.
+  - **Mise en œuvre minimale** : chaque page garde sa logique d'état ; on ajoute seulement la lecture et l'écriture de la mémoire autour de son chargement existant, plutôt que de réécrire les 4 pages en `useQuery`.
+- **Problèmes rencontrés** :
+  - **Bug de la première version** : au retour, la page restait sur son squelette, car l'état initial `loading = true` n'était pas coupé quand la mémoire était disponible. Corrigé (`setLoading(false)`) après mesure.
+  - **Mesures sous Playwright**, sur la version de production compilée, avec une API simulée qui répond en 1,5 s :
+
+    | Mesure | Avant | Après |
+    |---|---|---|
+    | Retour sur une page | environ 2,3 s | 0,03 à 0,08 s |
+    | Première visite | environ 2,3 s | environ 2,3 s (inchangée) |
+    | Requêtes par ouverture | toutes envoyées 2 fois | une seule fois chacune (`/api/locataires` part 2 fois sur Locataires : locataires puis acheteurs) |
+
+  - **Séparation des comptes vérifiée** : un compte 2 ouvert dans le même onglet ne voit pas les données du compte 1 (il attend la réponse du serveur), et le compte 1 retrouve sa mémoire à son retour.
+  - `tsc` OK. ESLint sans nouvelle erreur : 16 erreurs, toutes déjà présentes.
+- **Remplace / modifie** : — (complète la piste « cache » de la discussion sur la lenteur ; le volet serveur, connexions DB du constat P1 de T-086, reste à faire)
+
+### T-099 : Volet serveur des lenteurs : moitié moins de requêtes vers la base, pool à 20
+- **Date** : 2026-11-16
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** :
+  - **Mesure.** Mesure faite sur un vrai serveur avec PostgreSQL 16 local et un volume comparable à la production (45 immeubles, 135 lots, 100 locataires, 90 baux, 540 paiements). Le serveur répond en 2 à 12 ms par appel, et une page entière se charge en 5 à 25 ms : le code n'est pas lent.
+  - **Problème.** Chaque appel faisait 3 à 5 allers-retours vers la base, dont un seul utile. Les autres :
+    - relecture de l'e-mail de l'utilisateur à chaque requête ;
+    - deux `set_config` séparés dans `tenantGuard` ;
+    - jusqu'à 4 requêtes pour `GET /subscriptions/status`, appelé par presque toutes les pages.
+  - **Résultat.** Une ouverture de chacune des 4 pages de liste passe de 68 à 33 requêtes SQL.
+- **Fichiers touchés** :
+  - `backend/middleware/authMiddleware.ts` : e-mail gardé 5 min en mémoire par utilisateur, désactivé sous Jest.
+  - `backend/middleware/tenantGuard.ts` : décision du propriétaire avant la prise de connexion (un 403 n'en consomme plus), puis `app.current_owner_id` et `app.current_user_id` posés en une seule requête.
+  - `backend/routes/subscriptionRoutes.ts` : offre gratuite gardée 1 h en mémoire, et les 3 compteurs lus en une requête (`getUsage`).
+  - `backend/db/database.ts` : `DB_POOL_MAX` par défaut à 20 au lieu de 10.
+  - Tests : `tests/middleware/tenantGuard.test.ts` et `tests/routes/alert.tenantGuardScope.test.ts` adaptés à la requête combinée.
+- **Décisions & justifications** :
+  - **E-mail** : il ne sert qu'à l'affichage et aux journaux (seul usage : un journal d'`adminRoutes`), jamais à une décision d'accès. Le garder en mémoire est donc sans risque.
+  - **Jest** : les tests de routes simulent la base dans un ordre qui commence par cette lecture. Une mémoire conservée d'un test à l'autre décalait tout l'ordre (85 tests cassés lors du premier essai). La mémoire est donc désactivée quand `NODE_ENV=test`.
+  - **tenantGuard** : règles de décision inchangées (X-Owner-Id, faille C4, propriétaire unique ou ciblé). Seul l'ordre des opérations change, d'où l'adaptation des 2 tests qui vérifiaient l'ancien découpage. Leur garantie de sécurité est conservée : `current_user_id` est toujours posé, et rien de l'owner 999 n'est lu.
+  - **Pool à 20** : d'après `docs/DEPLOIEMENT_VPS.md`, la base PostgreSQL est locale sur le VPS (`max_connections = 100` par défaut). L'ancienne valeur, 10, avait été calibrée pour la base DigitalOcean plafonnée à 25 connexions. La valeur reste ajustable par `DB_POOL_MAX`.
+- **Problèmes rencontrés** :
+  - Jest : 474 réussis, 20 en échec. Ce sont les 20 échecs anciens, identiques test par test à `main`, aucun nouveau.
+  - Vérifications sur le serveur réel :
+    - création d'un immeuble avec `owner_id = 3` : bien rattaché au propriétaire 3 ;
+    - `X-Owner-Id 999` : 403 ;
+    - `subscriptions/status` : compteurs exacts.
+  - **Limite** : base locale, donc allers-retours quasi gratuits. Le gain de temps n'est pas visible en test ; il dépendra de la production. Le serveur ne suffisant pas à expliquer des secondes d'attente, la cause restante est probablement le réseau (Bénin ↔ VPS) ou les ressources du VPS (cf. BUG-001, « augmenter le VPS »). Une capture de l'onglet Réseau en production reste nécessaire pour trancher.
+- **Remplace / modifie** : — (complète T-098 et le constat P1 de T-086)

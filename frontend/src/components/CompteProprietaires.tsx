@@ -21,6 +21,7 @@ import toast from 'react-hot-toast';
 import { getSubscriptionStatus } from '../api/subscriptionApi';
 import type { SubscriptionStatus } from '../api/subscriptionApi';
 import ConfirmModal from './ui/ConfirmModal';
+import { readPageCache, writePageCache } from '../utils/pageCache';
 
 interface Owner {
     id: number;
@@ -230,8 +231,8 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = () => {
     });
 
     useEffect(() => {
-        loadOwners();
-        loadSubscription();
+        loadOwners(true);
+        loadSubscription(true);
         getImmeubles()
             .then(setBuildings)
             .catch(err => { console.error('Erreur chargement immeubles', err); setBuildingsError(true); });
@@ -239,18 +240,26 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = () => {
 
     useEffect(() => { setCurrentPage(1); }, [searchTerm, filterType, filterMode, sortKey]);
 
-    const loadSubscription = async () => {
+    // `initial` (ouverture de la page) : la version en mémoire s'affiche d'abord (utils/pageCache)
+    const loadSubscription = async (initial = false) => {
+        const cached = initial ? readPageCache<SubscriptionStatus>('proprietaires-abonnement') : undefined;
+        if (cached) setSubscriptionStatus(cached);
         try {
             const status = await getSubscriptionStatus();
             setSubscriptionStatus(status);
+            writePageCache('proprietaires-abonnement', status);
         } catch (error) {
             console.error('Erreur lors du chargement du statut abonnement', error);
         }
     };
 
-    const loadOwners = async () => {
+    // `initial` (ouverture de la page) : la liste en mémoire (visite précédente) s'affiche tout
+    // de suite, puis la fraîche la remplace (utils/pageCache). Après une action, pas de relecture.
+    const loadOwners = async (initial = false) => {
+        const cached = initial ? readPageCache<Owner[]>('proprietaires') : undefined;
+        if (cached) { setOwners(cached); setLoading(false); }
         try {
-            setLoading(true);
+            if (!cached) setLoading(true);
             const data = await accountApi.getProprietaires();
 
             // Harmoniser le mapping pour supporter les deux formats (backend/frontend)
@@ -276,8 +285,10 @@ const CompteProprietaires: React.FC<CompteProprietairesProps> = () => {
             }));
 
             setOwners(mapped);
+            writePageCache('proprietaires', mapped);
         } catch (err) {
-            toast.error("Impossible de charger les propriétaires.");
+            // Liste en mémoire déjà affichée : pas d'alerte
+            if (!cached) toast.error("Impossible de charger les propriétaires.");
             console.error(err);
         } finally {
             setLoading(false);

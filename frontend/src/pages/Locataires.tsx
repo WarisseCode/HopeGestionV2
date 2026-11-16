@@ -29,6 +29,7 @@ import InvitationLinkModal from '../components/ui/InvitationLinkModal';
 import { useUser } from '../contexts/UserContext';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
+import { readPageCache, writePageCache } from '../utils/pageCache';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -287,9 +288,20 @@ const Locataires: React.FC = () => {
     isOpen: boolean; title: string; message: string; type: 'danger' | 'warning' | 'info'; action: () => Promise<void>;
   }>({ isOpen: false, title: '', message: '', type: 'danger', action: async () => {} });
 
-  const fetchData = useCallback(async () => {
+  // `initial` (ouverture de la page) : affiche d'abord la version en mémoire, puis la fraîche
+  // (utils/pageCache). Après une action, pas de relecture de la mémoire.
+  const fetchData = useCallback(async (initial?: unknown) => {
+    const cached = initial === true
+      ? readPageCache<{ locsAll: Locataire[]; achs: Locataire[]; subStatus: SubscriptionStatus | null; props: Awaited<ReturnType<typeof getProprietaires>> }>('locataires')
+      : undefined;
+    if (cached) {
+      setLocataires(cached.locsAll); setAcheteurs(cached.achs);
+      if (cached.subStatus) setSubscriptionStatus(cached.subStatus);
+      setProprietaires(cached.props);
+      setLoading(false); // la page démarre en « chargement »
+    }
     try {
-      setLoading(true);
+      if (!cached) setLoading(true);
       const [locsAll, achs, subStatus, props] = await Promise.all([
         getLocataires('Locataire'),
         getLocataires('Acheteur'),
@@ -300,15 +312,17 @@ const Locataires: React.FC = () => {
       setAcheteurs(achs);
       if (subStatus) setSubscriptionStatus(subStatus);
       setProprietaires(props);
+      writePageCache('locataires', { locsAll, achs, subStatus, props });
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || t('common.loadError'));
+      // Avec des données en mémoire déjà affichées, on évite un message d'erreur alarmant
+      if (!cached) toast.error(err.message || t('common.loadError'));
     } finally {
       setLoading(false);
     }
   }, [t]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { fetchData(true); }, [fetchData]);
   useEffect(() => { setCurrentPage(1); }, [searchQuery, filterValues, activeTab, group, sortKey]);
 
   const currentList = activeTab === 'locataires' ? locataires : acheteurs;
