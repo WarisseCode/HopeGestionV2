@@ -7,6 +7,7 @@ import { pool } from '../index';
 import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import { fedapayService, fedapayLogger as log } from '../services/fedapayService';
 import { validate } from '../middleware/validate';
+import { cache, TTL } from '../utils/cache';
 
 // Souscription : plan_id int + numéro + opérateur (mtn/moov) requis.
 const subscribeRules = [
@@ -30,6 +31,37 @@ router.get('/plans', async (req, res) => {
 });
 
 // GET /api/subscriptions/status - Statut abonnement de l'utilisateur connecté
+// [PERF] GET /status est appelé par presque toutes les pages. Avant : jusqu'à 4 requêtes
+// (offre gratuite + 3 COUNT séparés). L'offre gratuite (donnée de référence) est gardée
+// 1 h en mémoire, et les trois compteurs sont lus en UNE requête (mêmes conditions).
+async function getFreePlan() {
+    const cached = cache.get<any>('plans:free');
+    if (cached !== undefined) return cached;
+    const r = await pool.query(`SELECT * FROM plans WHERE name = 'free' LIMIT 1`);
+    const plan = r.rows[0] || null;
+    if (plan) cache.set('plans:free', plan, TTL.PLANS);
+    return plan;
+}
+
+async function getUsage(userId: number) {
+    const r = await pool.query(
+        `SELECT
+            (SELECT COUNT(l.id) FROM lots l JOIN owner_user ou ON l.owner_id = ou.owner_id
+              WHERE ou.user_id = $1 AND ou.is_active = TRUE) AS total_lots,
+            (SELECT COUNT(t.id) FROM tenants t JOIN owner_user ou ON t.owner_id = ou.owner_id
+              WHERE ou.user_id = $1 AND ou.is_active = TRUE) AS total_tenants,
+            (SELECT COUNT(id) FROM owner_user
+              WHERE user_id = $1 AND role = 'owner' AND is_active = TRUE) AS total_agencies`,
+        [userId]
+    );
+    const row = r.rows[0] || {};
+    return {
+        total_lots: parseInt(row.total_lots) || 0,
+        total_tenants: parseInt(row.total_tenants) || 0,
+        total_agencies: parseInt(row.total_agencies) || 0,
+    };
+}
+
 router.get('/status', protect, async (req: AuthenticatedRequest, res) => {
     try {
         const userId = req.userId;
@@ -49,19 +81,16 @@ router.get('/status', protect, async (req: AuthenticatedRequest, res) => {
 
         if (subResult.rows.length === 0) {
             // Default to Free plan
-            const freePlan = await pool.query(`SELECT * FROM plans WHERE name = 'free' LIMIT 1`);
-            
-            const countPropertiesRes = await pool.query(`SELECT COUNT(l.id) as total_lots FROM lots l JOIN owner_user ou ON l.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
-            const countTenantsRes = await pool.query(`SELECT COUNT(t.id) as total_tenants FROM tenants t JOIN owner_user ou ON t.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`, [userId]);
+            const [freePlan, usage] = await Promise.all([getFreePlan(), getUsage(userId!)]);
 
             return res.json({
-                plan: freePlan.rows[0] || { name: 'free', display_name: 'Gratuit', max_properties: 3, max_tenants: 5 },
+                plan: freePlan || { name: 'free', display_name: 'Gratuit', max_properties: 3, max_tenants: 5 },
                 status: 'free',
                 days_remaining: null,
                 is_premium: false,
                 usage: {
-                    current_properties: parseInt(countPropertiesRes.rows[0].total_lots),
-                    current_tenants: parseInt(countTenantsRes.rows[0].total_tenants)
+                    current_properties: usage.total_lots,
+                    current_tenants: usage.total_tenants
                 }
             });
         }
@@ -71,18 +100,7 @@ router.get('/status', protect, async (req: AuthenticatedRequest, res) => {
         const daysRemaining = endDate ? Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
 
         // Récupération de l'usage actuel
-        const countPropertiesRes = await pool.query(
-            `SELECT COUNT(l.id) as total_lots FROM lots l JOIN owner_user ou ON l.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`,
-            [userId]
-        );
-        const countTenantsRes = await pool.query(
-            `SELECT COUNT(t.id) as total_tenants FROM tenants t JOIN owner_user ou ON t.owner_id = ou.owner_id WHERE ou.user_id = $1 AND ou.is_active = TRUE`,
-            [userId]
-        );
-        const countAgenciesRes = await pool.query(
-            `SELECT COUNT(id) as total_agencies FROM owner_user WHERE user_id = $1 AND role = 'owner' AND is_active = TRUE`,
-            [userId]
-        );
+        const usage = await getUsage(userId!);
         res.json({
             subscription_id: subscription.id,
             plan: {
@@ -99,9 +117,9 @@ router.get('/status', protect, async (req: AuthenticatedRequest, res) => {
             days_remaining: daysRemaining,
             is_premium: subscription.plan_name !== 'free',
             usage: {
-                current_properties: parseInt(countPropertiesRes.rows[0].total_lots),
-                current_tenants: parseInt(countTenantsRes.rows[0].total_tenants),
-                current_agencies: parseInt(countAgenciesRes.rows[0].total_agencies)
+                current_properties: usage.total_lots,
+                current_tenants: usage.total_tenants,
+                current_agencies: usage.total_agencies
             }
         });
     } catch (error) {

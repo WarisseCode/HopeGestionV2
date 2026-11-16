@@ -4,6 +4,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../config/config';
 import pool from '../db/database';
+import { cache, TTL } from '../utils/cache';
 
 // 1. Définir l'interface pour étendre la requête Express
 // Cela permet d'ajouter 'userId' et 'userRole' à l'objet 'req' après décodage.
@@ -53,13 +54,27 @@ export const protect = async (req: AuthenticatedRequest, res: Response, next: Ne
             // (middleware global sur /api, avec cache) — pas besoin de le refaire ici.
 
             // Récupérer l'email depuis la DB si pas dans le token
+            // [PERF] L'email n'est pas dans le jeton : il était relu en base à CHAQUE requête
+            // (un aller-retour de plus avant tout traitement). Gardé 5 min en mémoire par
+            // utilisateur. Il ne sert qu'à l'affichage et aux journaux, jamais à une décision
+            // d'accès : un email modifié est simplement vu avec au plus 5 min de retard.
+            // Mémoire désactivée sous Jest : les tests de routes simulent la base dans un ordre
+            // précis qui commence par cette lecture ; la garder d'un test à l'autre le décalerait.
             let userEmail = payload.email || null;
             if (!userEmail) {
-                try {
-                    const userRow = await pool.query('SELECT email FROM users WHERE id = $1', [payload.id]);
-                    if (userRow.rows.length > 0) userEmail = userRow.rows[0].email;
-                } catch (dbErr) {
-                    console.warn('[AUTH] Could not fetch user email from DB:', dbErr);
+                const useCache = process.env.NODE_ENV !== 'test';
+                const emailKey = `auth:email:${payload.id}`;
+                userEmail = useCache ? (cache.get<string>(emailKey) ?? null) : null;
+                if (!userEmail) {
+                    try {
+                        const userRow = await pool.query('SELECT email FROM users WHERE id = $1', [payload.id]);
+                        if (userRow.rows.length > 0) {
+                            userEmail = userRow.rows[0].email;
+                            if (userEmail && useCache) cache.set(emailKey, userEmail, TTL.PERMISSIONS);
+                        }
+                    } catch (dbErr) {
+                        console.warn('[AUTH] Could not fetch user email from DB:', dbErr);
+                    }
                 }
             }
             

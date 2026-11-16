@@ -1646,3 +1646,34 @@ Mis à jour automatiquement après chaque tâche.
   - **Séparation des comptes vérifiée** : un compte 2 ouvert dans le même onglet ne voit pas les données du compte 1 (il attend la réponse du serveur), et le compte 1 retrouve sa mémoire à son retour.
   - `tsc` OK. ESLint sans nouvelle erreur : 16 erreurs, toutes déjà présentes.
 - **Remplace / modifie** : — (complète la piste « cache » de la discussion sur la lenteur ; le volet serveur, connexions DB du constat P1 de T-086, reste à faire)
+
+### T-099 : Volet serveur des lenteurs : moitié moins de requêtes vers la base, pool à 20
+- **Date** : 2026-11-16
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** :
+  - **Mesure.** Mesure faite sur un vrai serveur avec PostgreSQL 16 local et un volume comparable à la production (45 immeubles, 135 lots, 100 locataires, 90 baux, 540 paiements). Le serveur répond en 2 à 12 ms par appel, et une page entière se charge en 5 à 25 ms : le code n'est pas lent.
+  - **Problème.** Chaque appel faisait 3 à 5 allers-retours vers la base, dont un seul utile. Les autres :
+    - relecture de l'e-mail de l'utilisateur à chaque requête ;
+    - deux `set_config` séparés dans `tenantGuard` ;
+    - jusqu'à 4 requêtes pour `GET /subscriptions/status`, appelé par presque toutes les pages.
+  - **Résultat.** Une ouverture de chacune des 4 pages de liste passe de 68 à 33 requêtes SQL.
+- **Fichiers touchés** :
+  - `backend/middleware/authMiddleware.ts` : e-mail gardé 5 min en mémoire par utilisateur, désactivé sous Jest.
+  - `backend/middleware/tenantGuard.ts` : décision du propriétaire avant la prise de connexion (un 403 n'en consomme plus), puis `app.current_owner_id` et `app.current_user_id` posés en une seule requête.
+  - `backend/routes/subscriptionRoutes.ts` : offre gratuite gardée 1 h en mémoire, et les 3 compteurs lus en une requête (`getUsage`).
+  - `backend/db/database.ts` : `DB_POOL_MAX` par défaut à 20 au lieu de 10.
+  - Tests : `tests/middleware/tenantGuard.test.ts` et `tests/routes/alert.tenantGuardScope.test.ts` adaptés à la requête combinée.
+- **Décisions & justifications** :
+  - **E-mail** : il ne sert qu'à l'affichage et aux journaux (seul usage : un journal d'`adminRoutes`), jamais à une décision d'accès. Le garder en mémoire est donc sans risque.
+  - **Jest** : les tests de routes simulent la base dans un ordre qui commence par cette lecture. Une mémoire conservée d'un test à l'autre décalait tout l'ordre (85 tests cassés lors du premier essai). La mémoire est donc désactivée quand `NODE_ENV=test`.
+  - **tenantGuard** : règles de décision inchangées (X-Owner-Id, faille C4, propriétaire unique ou ciblé). Seul l'ordre des opérations change, d'où l'adaptation des 2 tests qui vérifiaient l'ancien découpage. Leur garantie de sécurité est conservée : `current_user_id` est toujours posé, et rien de l'owner 999 n'est lu.
+  - **Pool à 20** : d'après `docs/DEPLOIEMENT_VPS.md`, la base PostgreSQL est locale sur le VPS (`max_connections = 100` par défaut). L'ancienne valeur, 10, avait été calibrée pour la base DigitalOcean plafonnée à 25 connexions. La valeur reste ajustable par `DB_POOL_MAX`.
+- **Problèmes rencontrés** :
+  - Jest : 474 réussis, 20 en échec. Ce sont les 20 échecs anciens, identiques test par test à `main`, aucun nouveau.
+  - Vérifications sur le serveur réel :
+    - création d'un immeuble avec `owner_id = 3` : bien rattaché au propriétaire 3 ;
+    - `X-Owner-Id 999` : 403 ;
+    - `subscriptions/status` : compteurs exacts.
+  - **Limite** : base locale, donc allers-retours quasi gratuits. Le gain de temps n'est pas visible en test ; il dépendra de la production. Le serveur ne suffisant pas à expliquer des secondes d'attente, la cause restante est probablement le réseau (Bénin ↔ VPS) ou les ressources du VPS (cf. BUG-001, « augmenter le VPS »). Une capture de l'onglet Réseau en production reste nécessaire pour trancher.
+- **Remplace / modifie** : — (complète T-098 et le constat P1 de T-086)

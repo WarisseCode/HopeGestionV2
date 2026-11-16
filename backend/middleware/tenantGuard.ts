@@ -46,10 +46,11 @@ export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next
         // Toute la logique de sécurité (X-Owner-Id, Faille C4, RLS) reste strictement inchangée.
         const validOwnerIds = await resolveValidOwnerIds(req.userId);
 
-        client = await pool.connect();
-
-        // Toujours définir app.current_user_id (utilisé par la politique RLS multi-owner)
-        await client.query(`SELECT set_config('app.current_user_id', $1, false)`, [req.userId.toString()]);
+        // [PERF] On décide d'abord quel propriétaire s'applique (aucune connexion dédiée
+        // n'est encore prise : un refus 403 n'en consomme pas), puis on ouvre la connexion et
+        // on pose app.current_owner_id ET app.current_user_id en UNE seule requête au lieu de
+        // deux. Règles de décision inchangées.
+        let ownerSetting = ''; // '' = pas de propriétaire ciblé (contexte RLS vidé)
 
         if (validOwnerIds.length === 0) {
             // Aucun owner lié → mode gestionnaire pur (accès via user_id dans RLS).
@@ -77,10 +78,9 @@ export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next
             }
 
             if (acceptedOwnerId !== null) {
-                await client.query(`SELECT set_config('app.current_owner_id', $1, false)`, [acceptedOwnerId.toString()]);
+                ownerSetting = acceptedOwnerId.toString();
                 (req as any).resolvedOwnerId = acceptedOwnerId;
             } else {
-                await client.query(`SELECT set_config('app.current_owner_id', '', false)`);
                 (req as any).resolvedOwnerId = null;
             }
 
@@ -88,15 +88,14 @@ export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next
             // Owner explicitement demandé via header X-Owner-Id
             const parsedRequested = parseInt(requestedOwnerId as string, 10);
             if (!validOwnerIds.includes(parsedRequested)) {
-                client.release();
                 return res.status(403).json({ success: false, message: 'Accès interdit pour ce propriétaire spécifique.' });
             }
-            await client.query(`SELECT set_config('app.current_owner_id', $1, false)`, [parsedRequested.toString()]);
+            ownerSetting = parsedRequested.toString();
             (req as any).resolvedOwnerId = parsedRequested;
 
         } else if (validOwnerIds.length === 1) {
             // Un seul owner → mode propriétaire (RLS filtre sur cet owner)
-            await client.query(`SELECT set_config('app.current_owner_id', $1, false)`, [(validOwnerIds[0] as number).toString()]);
+            ownerSetting = (validOwnerIds[0] as number).toString();
             (req as any).resolvedOwnerId = validOwnerIds[0];
 
         } else {
@@ -110,14 +109,21 @@ export const tenantGuard = async (req: AuthenticatedRequest, res: Response, next
 
             if (bodyOwnerId && validOwnerIds.includes(bodyOwnerId)) {
                 // owner_id fourni et validé → mode ciblé (INSERT dans le bon tenant)
-                await client.query(`SELECT set_config('app.current_owner_id', $1, false)`, [bodyOwnerId.toString()]);
+                ownerSetting = bodyOwnerId.toString();
                 (req as any).resolvedOwnerId = bodyOwnerId;
             } else {
                 // Pas d'owner_id ciblé → mode lecture multi-owner via app.current_user_id
-                await client.query(`SELECT set_config('app.current_owner_id', '', false)`);
                 (req as any).resolvedOwnerId = null;
             }
         }
+
+        client = await pool.connect();
+        // Les deux réglages lus par les politiques RLS, en un aller-retour.
+        // (Session : écrasés à chaque requête sur cette connexion du pool.)
+        await client.query(
+            `SELECT set_config('app.current_owner_id', $1, false), set_config('app.current_user_id', $2, false)`,
+            [ownerSetting, req.userId.toString()]
+        );
 
         // Exposer validOwnerIds pour que les routes puissent filtrer explicitement
         // (nécessaire quand BYPASSRLS est actif sur le rôle DB)

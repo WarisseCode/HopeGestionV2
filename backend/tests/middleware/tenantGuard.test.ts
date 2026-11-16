@@ -173,9 +173,12 @@ describe('tenantGuard — compte SANS lien owner_user (faille C4)', () => {
 
     it('app.current_user_id est toujours posé', async () => {
         const { client } = await run({ links: [], role: 'gestionnaire', body: { owner_id: 42 } });
-        expect(client.query).toHaveBeenCalledWith(
-            expect.stringContaining("'app.current_user_id'"),
-            ['7'],
+        // Posé avec app.current_owner_id dans la même requête (un seul aller-retour) :
+        // set_config('app.current_user_id', $2) reçoit l'utilisateur 7.
+        const call = client.query.mock.calls.find(
+            ([sql]: [string]) => typeof sql === 'string' && sql.includes("set_config('app.current_user_id', $2"),
         );
+        expect(call).toBeDefined();
+        expect(call[1][1]).toBe('7');
     });
 });
