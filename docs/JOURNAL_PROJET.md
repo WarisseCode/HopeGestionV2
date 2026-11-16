@@ -1546,3 +1546,23 @@ Mis à jour automatiquement après chaque tâche.
 - **Décisions & justifications** : L'icône change selon l'état, elle indique donc l'action. Taille 22 px et `active:scale-95` repris de l'ancien bouton. Libellés accessibles (`aria-label`, `title`) et anneau de focus inchangés.
 - **Problèmes rencontrés** : Vérifié sous Playwright, à 1280 px (réduire puis rouvrir) et à 390 px (menu) : aucune erreur.
 - **Remplace / modifie** : — (complète T-093)
+
+### T-095 : Menu « ⋯ » des listes coupé quand la liste se resserre
+- **Date** : 2026-11-16
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** :
+  - **Symptôme** (page Propriétaires, fiche ouverte) : le menu « ⋯ » affichait « odifier » et « upprimer ».
+  - **Cause** : `RowMenu` s'ouvrait toujours vers la gauche (`right-0`). Or quand la liste se resserre, les boutons passent sous le nom, tout à gauche. Le menu sortait alors de la carte en `overflow-hidden` et était coupé.
+  - **Correctif** : au clic, le menu mesure la place réellement visible (l'écran, réduit par chaque parent qui coupe ce qui dépasse) et s'ouvre vers la droite s'il ne tient pas à gauche. Il s'ouvre vers le haut s'il ne tient pas en bas (dernière ligne d'une liste). Si aucun côté ne suffit, il prend le plus spacieux.
+- **Fichiers touchés** : `frontend/src/components/ui/RowMenu.tsx`. Le composant est partagé par 8 pages : Propriétaires, Locataires, Biens, Baux, Contrats, Réservations, États des lieux (liste et détail).
+- **Décisions & justifications** :
+  - Calcul fait au clic plutôt que dans un `useLayoutEffect` : pas de rendu en cascade (règle ESLint react-hooks) et pas de clignotement.
+  - Taille du menu estimée sans l'afficher : 176 px minimum ou la longueur du plus long libellé, et 40 px par action.
+  - Comportement par défaut inchangé quand il y a de la place : ouverture vers la gauche et vers le bas.
+- **Problèmes rencontrés** : Vérifié sous Playwright sur la page Propriétaires, avec une API simulée.
+  - À 1280 px, fiche ouverte ou non : le menu s'ouvre vers la droite et reste entièrement dans la carte.
+  - À 1800 px : il s'ouvre vers la gauche comme avant, et vers le haut sur la dernière ligne.
+  - À 390 px : il reste dans l'écran.
+  - Aucune erreur.
+- **Remplace / modifie** : — (complète T-060/T-062, création de `RowMenu`)
