@@ -1731,3 +1731,17 @@ Mis à jour automatiquement après chaque tâche.
   - **Ordre connexion / vérification (1 test)** : depuis T-099, `tenantGuard` vérifie le propriétaire avant d'ouvrir une connexion. Le test vérifie maintenant qu'aucune connexion n'est prise en cas d'erreur, une garantie plus forte que « connexion libérée une fois ».
 - **Problèmes rencontrés** : Aucun. TypeScript OK ; ESLint sans erreur.
 - **Remplace / modifie** : —
+
+### T-104 : Tests backend lancés avant chaque déploiement
+- **Date** : 2026-11-17
+- **Statut** : Terminée
+- **Type** : Config
+- **Description** : Le déploiement automatique (`deploy.yml`) commence désormais par un job « Tests backend », exécuté sur une machine GitHub (ubuntu-latest, Node de `.nvmrc`). Il lance `npm ci` puis `npm test` dans `backend/`. Le job de déploiement sur le VPS (`needs: test`) ne démarre que si les 512 tests passent.
+- **Fichiers touchés** : `.github/workflows/deploy.yml`
+- **Décisions & justifications** :
+  - **Tests hors du VPS.** Sur le serveur, le `.env` de production serait chargé : `upload.test.ts` enverrait alors un vrai fichier vers DigitalOcean Spaces, et le test échouerait à chaque déploiement.
+  - **Échec sans effet sur le site.** Sur une machine vierge, il n'y a ni secrets, ni base, ni dossier `uploads/`. Un échec n'a lieu qu'avant toute modification du serveur, alors que sur le VPS le code aurait déjà été mis à jour par `git reset`.
+  - **Base de données.** `tests/setup.ts` impose une base factice ; aucun test ne peut atteindre la base réelle.
+  - **Vérification.** Lancement dans une copie propre du dépôt (`git archive`, sans `.env`), sous Node 20.10.0 avec `npm ci` : 512/512 en 9 s.
+- **Problèmes rencontrés** : Premier choix envisagé (lancer `npm test` sur le VPS) abandonné pour la raison ci-dessus (envoi vers Spaces).
+- **Remplace / modifie** : —
