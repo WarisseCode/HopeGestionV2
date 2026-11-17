@@ -11,18 +11,10 @@ import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import { validate } from '../middleware/validate';
 import crypto from 'crypto';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { scopeByOwner } from '../utils/ownerScope';
 
 const router = express.Router();
-
-// [SÉCURITÉ] Filtre propriétaire explicite (ne jamais se fier uniquement à la RLS :
-// le rôle DB peut avoir BYPASSRLS). Même signature que reservationRoutes.ts /
-// documentRoutes.ts / locataireRoutes.ts. Contourné pour le rôle admin.
-function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
-    if ((req as any).userRole === 'admin') return '';
-    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
-    params.push(validOwnerIds);
-    return ` AND ${col} = ANY($${params.length}::int[])`;
-}
 
 // :tenantId est parseInt() côté handler — on le valide en amont pour éviter un NaN
 // qui partirait en requête. Les champs de config sont optionnels mais typés.

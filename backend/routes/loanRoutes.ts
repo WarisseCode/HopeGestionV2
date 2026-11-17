@@ -10,6 +10,8 @@ import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import { validate } from '../middleware/validate';
 import { addMonths } from 'date-fns';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { getEffectiveOwnerIds } from '../utils/ownerScope';
 
 const router = Router();
 
@@ -27,14 +29,6 @@ const loanCreateRules = [
     body('day_of_month').optional({ nullable: true }).isInt({ min: 1, max: 31 }).withMessage('Jour du mois invalide (1-31)'),
 ];
 
-// Propriétaires gérés par l'utilisateur : resolvedOwnerId (owner unique) sinon validOwnerIds
-// (gestionnaire multi-propriétaires, où resolvedOwnerId = null). Filtrer par cette liste évite
-// les requêtes "owner_id = NULL" qui renvoyaient une liste de prêts vide. Cf. financeRoutes.
-function getEffectiveOwnerIds(req: AuthenticatedRequest): number[] {
-    const ownerId = (req as any).resolvedOwnerId;
-    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
-    return ownerId != null ? [ownerId] : validOwnerIds;
-}
 const loanCloseRules = [param('id').isInt({ min: 1 }).withMessage('Identifiant invalide')];
 const loanInstallmentRules = [
     param('id').isInt({ min: 1 }).withMessage('Identifiant prêt invalide'),

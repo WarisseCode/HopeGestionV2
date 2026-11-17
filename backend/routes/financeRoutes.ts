@@ -12,19 +12,10 @@ import { validate } from '../middleware/validate';
 import * as ExcelJS from 'exceljs';
 import { FinanceService } from '../services/FinanceService';
 import { cache } from '../utils/cache';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { getEffectiveOwnerIds } from '../utils/ownerScope';
 
 const router = Router();
-
-// Liste des propriétaires effectivement gérés par l'utilisateur :
-// - resolvedOwnerId si tenantGuard a pu résoudre un owner unique ;
-// - sinon validOwnerIds (gestionnaire multi-propriétaires, resolvedOwnerId = null).
-// Filtrer par cette liste (= ANY(...)) évite les requêtes "owner_id = NULL" qui
-// renvoyaient une page Finances vide pour les comptes multi-owner.
-function getEffectiveOwnerIds(req: AuthenticatedRequest): number[] {
-    const ownerId = (req as any).resolvedOwnerId;
-    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
-    return ownerId != null ? [ownerId] : validOwnerIds;
-}
 
 // POST / délègue à FinanceService.createPayment. Les noms de champs DOIVENT correspondre
 // au contrat réel (front financeApi.createPayment + interface CreatePaymentData) :

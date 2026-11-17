@@ -8,6 +8,8 @@ import { tenantGuard } from '../middleware/tenantGuard';
 import permissions from '../middleware/permissionMiddleware';
 import { validate } from '../middleware/validate';
 import { streamEdlPdf, streamComparePdf } from '../services/EdlPdfService';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { scopeByOwner } from '../utils/ownerScope';
 
 const router = express.Router();
 
@@ -68,18 +70,6 @@ const edlUpdateRules = [
 // Protect all routes with auth check and RLS context
 router.use(protect);
 router.use(tenantGuard);
-
-// ─── Isolation par propriétaire (défense en profondeur) ──────────────────────
-// On filtre explicitement par owner_id en plus de la RLS : le rôle DB peut avoir
-// BYPASSRLS (cf. locataireRoutes), auquel cas la RLS seule ne protège pas. Ce helper
-// concatène la clause et pousse le paramètre, en respectant la numérotation $N.
-// Admin : accès global (pas de clause). Gestionnaire sans owner : ANY('{}') → 0 ligne.
-function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
-    if ((req as any).userRole === 'admin') return '';
-    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
-    params.push(validOwnerIds);
-    return ` AND ${col} = ANY($${params.length}::int[])`;
-}
 
 // ─── Moteur de comparaison entrée / sortie (VIII.6) ──────────────────────────
 // Gravité croissante des états (alignée sur le CdC : Neuf < Bon < Moyen < Mauvais,

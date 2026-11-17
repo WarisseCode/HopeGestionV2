@@ -8,17 +8,10 @@ import { protect } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import { validate } from '../middleware/validate';
 import { parsePagination, paginate } from '../utils/pagination';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { scopeByOwner } from '../utils/ownerScope';
 
 const router = express.Router();
-
-// [SÉCURITÉ] Filtre propriétaire explicite sur tickets.owner_id pour les écritures
-// (audit S2) — même logique que GET / et DELETE /:id de ce fichier. Admin : accès global.
-function scopeByOwner(req: any, params: any[], col = 'owner_id'): string {
-    if (req.userRole === 'admin') return '';
-    const validOwnerIds: number[] = req.validOwnerIds || [];
-    params.push(validOwnerIds);
-    return ` AND ${col} = ANY($${params.length}::int[])`;
-}
 
 const ticketIdParam = param('id').isInt({ min: 1 }).withMessage('Identifiant invalide');
 const ticketCreateRules = [

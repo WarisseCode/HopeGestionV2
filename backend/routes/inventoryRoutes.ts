@@ -7,17 +7,10 @@ import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import permissions from '../middleware/permissionMiddleware';
 import { validate } from '../middleware/validate';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { scopeByOwner } from '../utils/ownerScope';
 
 const router = express.Router();
-
-// Isolation par propriétaire explicite (défense en profondeur) — le rôle DB peut avoir
-// BYPASSRLS, la RLS seule ne suffit pas. Concatène la clause et pousse le paramètre.
-function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
-    if ((req as any).userRole === 'admin') return '';
-    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
-    params.push(validOwnerIds);
-    return ` AND ${col} = ANY($${params.length}::int[])`;
-}
 
 // Vérifie l'existence + l'appartenance de l'inventaire parent (pour les sous-routes /items).
 // Le statut est renvoyé pour permettre le verrouillage post-signature (cf. LOCK_MESSAGE).

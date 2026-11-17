@@ -9,16 +9,10 @@ import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import { validate } from '../middleware/validate';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { getEffectiveOwnerIds } from '../utils/ownerScope';
 
 const router = Router();
-
-// Propriétaires gérés : resolvedOwnerId (owner unique) sinon validOwnerIds (multi-owner, où
-// resolvedOwnerId = null). Filtrer par cette liste évite les requêtes "owner_id = NULL".
-function getEffectiveOwnerIds(req: AuthenticatedRequest): number[] {
-    const ownerId = (req as any).resolvedOwnerId;
-    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
-    return ownerId != null ? [ownerId] : validOwnerIds;
-}
 
 // lease_id obligatoire : il rattache la quittance à un bail réel et sert à dériver l'owner.
 const createRules = [

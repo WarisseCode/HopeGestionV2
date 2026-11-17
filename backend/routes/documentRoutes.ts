@@ -16,6 +16,8 @@ import { upload } from '../middleware/uploadMiddleware';
 import { validate } from '../middleware/validate';
 import { uploadToSpaces } from '../services/spacesUploadService';
 import { resolveAgencyUserId, templateVisibilityClause } from '../utils/templateAgency';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { scopeByOwner } from '../utils/ownerScope';
 
 dotenv.config();
 
@@ -43,16 +45,6 @@ const spacesConfigured = !!(
     process.env.SPACES_ENDPOINT &&
     process.env.SPACES_BUCKET
 );
-
-// [SÉCURITÉ] `leases` n'a pas de politique RLS versionnée et le rôle DB peut avoir
-// BYPASSRLS : filtrage explicite par propriétaire (même pattern que leaseRoutes.ts),
-// contourné pour le rôle admin.
-function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
-    if ((req as any).userRole === 'admin') return '';
-    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
-    params.push(validOwnerIds);
-    return ` AND ${col} = ANY($${params.length}::int[])`;
-}
 
 // --- Routes ---
 

@@ -17,6 +17,8 @@ import crypto from 'crypto';
 import { NotificationService } from '../services/notificationService';
 import { LeaseService } from '../services/leaseService';
 import { tenantGuard } from '../middleware/tenantGuard';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { scopeByOwner } from '../utils/ownerScope';
 
 dotenv.config();
 
@@ -61,21 +63,6 @@ const leaseSignRules = [
     leaseIdParam,
     body('signatureImage').notEmpty().withMessage('Image de signature manquante').bail().isString().withMessage('Signature invalide'),
 ];
-
-// ─── Isolation par propriétaire (défense en profondeur) ──────────────────────
-// [SÉCURITÉ] `leases` n'a pas de politique RLS versionnée et le rôle DB peut avoir
-// BYPASSRLS (même constat que edlRoutes.ts/inventoryRoutes.ts) : la RLS seule ne
-// protège donc pas. GET/PUT/:id, /resilier, /renouveler et /sign lisaient ou
-// modifiaient un bail par son seul id, sans vérifier qu'il appartient à un
-// propriétaire géré par l'appelant (IDOR). /:id/echeancier, dont le contrôle
-// reposait sur cette RLS absente, applique désormais aussi ce filtre.
-// Admin : accès global (pas de clause). Gestionnaire sans owner : ANY('{}') → 0 ligne.
-function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
-    if ((req as any).userRole === 'admin') return '';
-    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
-    params.push(validOwnerIds);
-    return ` AND ${col} = ANY($${params.length}::int[])`;
-}
 
 // GET /api/locations - Liste des baux/contrats
 router.get('/', permissions.canRead('locataires'), tenantGuard, async (req: AuthenticatedRequest, res: Response) => {
