@@ -14,6 +14,7 @@ jest.mock('../../db/database', () => ({
 
 import pool from '../../db/database';
 import { tenantGuard } from '../../middleware/tenantGuard';
+import { invalidateOwnerIdsCache } from '../../utils/cache';
 
 type MockClient = { query: jest.Mock; release: jest.Mock };
 
@@ -49,6 +50,10 @@ const run = async (opts: {
 }) => {
     const client = makeClient();
     (pool.query as jest.Mock).mockReset();
+    // tenantGuard met en cache les propriétaires du compte (tenant:owners:<userId>, 5 min).
+    // Tous les scénarios utilisent le compte 7 : sans purge, chacun héritait de la liste
+    // du précédent (ex. [5]) au lieu des liens qu'il simule.
+    invalidateOwnerIdsCache(7);
     (pool.connect as jest.Mock).mockReset().mockResolvedValue(client);
 
     (pool.query as jest.Mock).mockImplementation(async (sql: string) => {
@@ -167,7 +172,11 @@ describe('tenantGuard — compte SANS lien owner_user (faille C4)', () => {
 
         expect(next).not.toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(500);
-        expect(client.release).toHaveBeenCalledTimes(1);
+        // Depuis T-099, le propriétaire est vérifié AVANT pool.connect() : l'erreur survient
+        // sans qu'aucune connexion n'ait été prise, donc aucune fuite possible (garantie plus
+        // forte que l'ancienne « connexion libérée une fois »).
+        expect(pool.connect).not.toHaveBeenCalled();
+        expect(client.release).not.toHaveBeenCalled();
         expect(req.resolvedOwnerId).toBeUndefined();
     });
 

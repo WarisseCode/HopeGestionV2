@@ -14,6 +14,7 @@ import pool from '../../db/database';
 import { checkPermission, permissions } from '../../middleware/permissionMiddleware';
 import { AuthenticatedRequest } from '../../middleware/authMiddleware';
 import { Response } from 'express';
+import { cache } from '../../utils/cache';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -32,7 +33,13 @@ const mockReq = (role: string): Partial<AuthenticatedRequest> => ({
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('checkPermission middleware', () => {
-    beforeEach(() => jest.clearAllMocks());
+    // Le middleware met chaque permission en cache (perm:<rôle>:<module>:<action>). Sans
+    // purge, un test héritait du résultat du précédent (même rôle/module) et n'interrogeait
+    // plus la base simulée : « erreur DB → 500 » recevait le `true` mis en cache.
+    beforeEach(() => {
+        jest.clearAllMocks();
+        cache.invalidatePrefix('perm:');
+    });
 
     it("accorde l'accès à l'admin sans consulter la DB", async () => {
         const req  = mockReq('admin');
