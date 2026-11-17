@@ -36,6 +36,29 @@ export interface BaseStats {
 
 export const financeApi = {
     // --- PAYMENTS ---
+    // Une page de paiements (pagination serveur ?page=&limit=, plafonnée à 200 par page).
+    // Utilisée par Quittances : sans elle, TOUS les paiements depuis le début étaient chargés
+    // et affichés (environ 1 000 de plus par an pour une agence de 90 baux).
+    getPaymentsPage: async (
+        page: number,
+        limit: number,
+        filters?: { start_date?: string; end_date?: string }
+    ): Promise<{ payments: Payment[]; total: number; page: number; totalPages: number }> => {
+        const token = getToken();
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (filters?.start_date) params.append('start_date', filters.start_date);
+        if (filters?.end_date) params.append('end_date', filters.end_date);
+        const res = await fetch(`${API_URL}/finances?${params.toString()}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) throw new Error('Erreur chargement paiements');
+        const data = await res.json();
+        return {
+            payments: data.payments || [],
+            total: Number(data.total) || 0,
+            page: Number(data.page) || page,
+            totalPages: Number(data.totalPages) || 0,
+        };
+    },
+
     getPayments: async (filters?: { lease_id?: number; start_date?: string; end_date?: string; statut?: string; type?: string; }): Promise<Payment[]> => {
         const token = getToken();
         let url = `${API_URL}/finances`;

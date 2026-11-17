@@ -24,6 +24,9 @@ import type { BailSummary } from '@hopegestion/shared-types';
 import toast from 'react-hot-toast';
 import { useUser } from '../contexts/UserContext';
 
+// Quittances affichées par page (le serveur en accepte jusqu'à 200)
+const PAGE_SIZE = 20;
+
 const Quittances: React.FC = () => {
   const { user } = useUser();
   const canWrite = !['proprietaire', 'locataire'].includes(user?.userType || '');
@@ -34,6 +37,11 @@ const Quittances: React.FC = () => {
   // Quittances issues des paiements (onglet "Liste des quittances")
   const [quittances, setQuittances] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // Pagination serveur : seules PAGE_SIZE quittances sont chargées à la fois (voir financeApi.getPaymentsPage)
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [monthCount, setMonthCount] = useState(0);
 
   // Quittances générées manuellement (onglet "Générer manuel", persistées en base)
   const [manualQuittances, setManualQuittances] = useState<ManualQuittance[]>([]);
@@ -55,7 +63,21 @@ const Quittances: React.FC = () => {
   const [formData, setFormData] = useState(emptyForm);
 
   useEffect(() => {
-    fetchQuittances();
+    fetchQuittances(page);
+  }, [page]);
+
+  // « Ce mois » : compté par le serveur sur le mois ET l'année en cours. Auparavant calculé sur
+  // la liste complète avec getMonth() seul : novembre 2025 et novembre 2026 étaient additionnés.
+  useEffect(() => {
+    const now = new Date();
+    const start = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    // Dernier jour du mois, formaté en heure locale : toISOString() passerait en UTC et, au
+    // Bénin (UTC+1), donnerait la veille (le 29 au lieu du 30).
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const end = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    financeApi.getPaymentsPage(1, 1, { start_date: start, end_date: end })
+      .then(r => setMonthCount(r.total))
+      .catch(() => {/* carte non bloquante */});
   }, []);
 
   useEffect(() => {
@@ -65,10 +87,13 @@ const Quittances: React.FC = () => {
     loadManual();
   }, [canWrite]);
 
-  const fetchQuittances = async () => {
+  const fetchQuittances = async (pageToLoad: number) => {
     try {
       setLoading(true);
-      const data = await financeApi.getPayments();
+      const res = await financeApi.getPaymentsPage(pageToLoad, PAGE_SIZE);
+      setTotal(res.total);
+      setTotalPages(res.totalPages);
+      const data = res.payments;
       const formatted = data.map((p: any) => ({
         id: p.id,
         numero: p.reference || `QUI-${new Date(p.payment_date).getFullYear()}-${p.id.toString().padStart(3, '0')}`,
@@ -213,7 +238,7 @@ const Quittances: React.FC = () => {
           <p className="text-base-content/60">Gestion et génération des reçus de paiement</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap md:flex-nowrap">
-          <Button variant="ghost" className="flex items-center gap-2" onClick={() => { fetchQuittances(); loadManual(); }}>
+          <Button variant="ghost" className="flex items-center gap-2" onClick={() => { fetchQuittances(page); loadManual(); }}>
             <RefreshCw size={18} />
             Actualiser
           </Button>
@@ -267,7 +292,7 @@ const Quittances: React.FC = () => {
                 <div className="p-3 bg-teal-100 text-teal-600 rounded-full"><FileText size={24} /></div>
                 <div>
                   <p className="text-sm text-base-content/60">Total quittances</p>
-                  <p className="text-2xl font-bold text-base-content/90">{quittances.length}</p>
+                  <p className="text-2xl font-bold text-base-content/90">{total}</p>
                 </div>
               </div>
             </Card>
@@ -276,7 +301,7 @@ const Quittances: React.FC = () => {
                 <div className="p-3 bg-green-100 text-green-600 rounded-full"><CheckCircle size={24} /></div>
                 <div>
                   <p className="text-sm text-base-content/60">Payées</p>
-                  <p className="text-2xl font-bold text-base-content/90">{quittances.length}</p>
+                  <p className="text-2xl font-bold text-base-content/90">{total}</p>
                 </div>
               </div>
             </Card>
@@ -286,7 +311,7 @@ const Quittances: React.FC = () => {
                 <div>
                   <p className="text-sm text-base-content/60">Ce mois</p>
                   <p className="text-2xl font-bold text-base-content/90">
-                      {quittances.filter(q => new Date(q.datePaiement).getMonth() === new Date().getMonth()).length}
+                      {monthCount}
                   </p>
                 </div>
               </div>
@@ -343,6 +368,21 @@ const Quittances: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+                {/* Pied de pagination (même présentation que les autres listes) */}
+                {totalPages > 1 && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 border-t border-base-300/70 text-sm text-base-content/70">
+                    <span>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} sur {total} quittances</span>
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" disabled={page <= 1 || loading} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                        Précédent
+                      </Button>
+                      <span className="tabular-nums">Page {page} / {totalPages}</span>
+                      <Button variant="ghost" size="sm" disabled={page >= totalPages || loading} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>
+                        Suivant
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </Card>
