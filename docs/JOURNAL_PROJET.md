@@ -1767,3 +1767,26 @@ Mis à jour automatiquement après chaque tâche.
     - `nginx -t` échoue (droits de lecture des certificats pour l'utilisateur du runner) : nginx n'est pas rechargé ;
     - le runner termine le processus backend relancé par PM2 (« Terminate orphan process »), puis PM2 le redémarre.
 - **Remplace / modifie** : —
+
+### T-106 : Cache des alertes, montant d'échéance plafonné, coupure en fin de déploiement
+- **Date** : 2026-11-17
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : Trois petites corrections :
+  1. le calcul de `GET /api/alertes` est mis en cache 1 minute par périmètre (propriétaires + rôle) ;
+  2. la création d'un bail échelonné dont l'échéance dépasse la capacité de l'échéancier renvoie une erreur 400 claire au lieu d'une 500 ;
+  3. le déploiement ne provoque plus l'arrêt du serveur relancé par PM2.
+- **Fichiers touchés** : `backend/routes/alertRoutes.ts`, `backend/utils/cache.ts` (TTL `ALERTS`), `backend/routes/leaseRoutes.ts`, `backend/tests/routes/alert.cache.test.ts` (créé), `backend/tests/routes/lease.createLotScope.test.ts`, `.github/workflows/deploy.yml`
+- **Décisions & justifications** :
+  - **Alertes : ce qui est mis en cache.** La liste complète est en cache, et les alertes ignorées sont retirées à chaque appel et pour chaque utilisateur. « Ignorer » reste immédiat, et rien ne passe d'un compte à l'autre.
+  - **Alertes : expiration.** La clé est préfixée `dashboard:alerts:`. Les écritures qui vident déjà le cache du tableau de bord (bail, paiement, dépense) la vident aussi. Les tickets et lots modifiés ailleurs apparaissent au plus 1 min plus tard, comme pour le tableau de bord.
+  - **Montant d'échéance.** Le montant est calculé une seule fois avant la transaction, puis réutilisé pour l'échéancier. Plafond : `payment_schedules.total_amount` en `numeric(12,2)`, alors que le bail est en `numeric(15,2)`. Un paiement classique (sans échéancier) n'est pas concerné.
+  - **Déploiement.** `RUNNER_TRACKING_ID=""` devant `pm2 restart`. Sans cela, `--update-env` transmettait ce marqueur au serveur relancé, et le runner GitHub l'arrêtait en fin de job (« Terminate orphan process ») ; PM2 devait alors le relancer une deuxième fois.
+- **Problèmes rencontrés** :
+  - Le nouveau test « deuxième appel » échoue bien sur l'ancienne route, ce qui confirme qu'il teste le cache.
+  - PostgreSQL local arrêté entre deux essais (redémarrage du conteneur) : relancé.
+  - Vérifications :
+    - serveur réel, alertes : contenu identique à main ; 2e appel 260 ms → 9 ms ; « Ignorer » immédiat ;
+    - loyer de 20 Mds échelonné : 500 → 400 avec message ;
+    - Jest 525/525 (7 nouveaux tests) ; TypeScript OK ; ESLint sans erreur ; YAML valide.
+- **Remplace / modifie** : —

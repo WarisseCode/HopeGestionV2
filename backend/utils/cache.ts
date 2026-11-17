@@ -63,6 +63,7 @@ export const invalidateOwnerIdsCache = (userId: number | string | null | undefin
 export const TTL = {
     PERMISSIONS:  5 * 60 * 1000,   // 5 min — permission_matrix rarely changes
     DASHBOARD:    60 * 1000,         // 1 min — acceptable staleness for KPI stats
+    ALERTS:       60 * 1000,         // 1 min — calcul des alertes (vidé avec « dashboard: »)
     PLANS:        60 * 60 * 1000,   // 1 h   — subscription plans are static reference data
     // owner_user liens — même TTL que les permissions.
     // Les routes de révocation appellent cache.del() → révocation immédiate garantie.
