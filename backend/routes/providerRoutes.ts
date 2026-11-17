@@ -7,6 +7,8 @@ import { AuthenticatedRequest, protect } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import { validate } from '../middleware/validate';
 import { parsePagination, paginate } from '../utils/pagination';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { scopeByOwner } from '../utils/ownerScope';
 
 const router = express.Router();
 
@@ -29,16 +31,6 @@ const providerUpdateRules = [
     body('address').optional({ nullable: true }).isString().isLength({ max: 255 }).withMessage('Adresse trop longue'),
     body('status').optional({ nullable: true }).isIn(['active', 'inactive']).withMessage('Statut invalide'),
 ];
-
-// [SÉCURITÉ] Filtre propriétaire explicite (ne jamais se fier uniquement à la RLS :
-// le rôle DB peut avoir BYPASSRLS). Même signature que reservationRoutes.ts /
-// documentRoutes.ts / locataireRoutes.ts. Contourné pour le rôle admin.
-function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
-    if ((req as any).userRole === 'admin') return '';
-    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
-    params.push(validOwnerIds);
-    return ` AND ${col} = ANY($${params.length}::int[])`;
-}
 
 // Protect all routes with auth check and RLS context
 router.use(protect);

@@ -7,18 +7,10 @@ import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 // [RLS] Isolation garantie par PostgreSQL Row-Level Security via tenantGuard.
 import { tenantGuard } from '../middleware/tenantGuard';
 import { validate } from '../middleware/validate';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { scopeByOwner } from '../utils/ownerScope';
 
 const router = express.Router();
-
-// [SÉCURITÉ] Filtre propriétaire explicite (ne jamais se fier uniquement à la RLS :
-// le rôle DB peut avoir BYPASSRLS). Même signature que reservationRoutes.ts /
-// documentRoutes.ts / locataireRoutes.ts. Contourné pour le rôle admin.
-function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
-    if ((req as any).userRole === 'admin') return '';
-    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
-    params.push(validOwnerIds);
-    return ` AND ${col} = ANY($${params.length}::int[])`;
-}
 
 // title obligatoire ; le reste optionnel mais typé (cost_monthly >= 0, dates ISO).
 const contractCreateRules = [

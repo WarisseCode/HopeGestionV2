@@ -8,6 +8,8 @@ import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import { validate } from '../middleware/validate';
 import { NotificationService } from '../services/notificationService';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { scopeByOwner } from '../utils/ownerScope';
 
 dotenv.config();
 
@@ -48,16 +50,6 @@ const etagesOuDefaut = (value: unknown) =>
 // ⚠️ RÈGLE ARCHITECTURE : Ne jamais utiliser pool.query() directement dans ce fichier.
 // Toutes les requêtes doivent passer par req.dbClient fourni par tenantGuard.
 // L'utilisation de pool.query() contournerait le Row-Level Security (RLS).
-
-// [SÉCURITÉ] Filtre propriétaire explicite (ne jamais se fier uniquement à la RLS :
-// le rôle DB peut avoir BYPASSRLS). Même signature que reservationRoutes.ts /
-// documentRoutes.ts / locataireRoutes.ts. Contourné pour le rôle admin.
-function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
-    if ((req as any).userRole === 'admin') return '';
-    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
-    params.push(validOwnerIds);
-    return ` AND ${col} = ANY($${params.length}::int[])`;
-}
 
 // GET /api/biens/immeubles : Récupérer la liste des immeubles
 // [PATTERN RLS] - Remplacement de filterByOwner par tenantGuard

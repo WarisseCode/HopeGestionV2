@@ -11,6 +11,8 @@ import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import permissions from '../middleware/permissionMiddleware';
 import { validate } from '../middleware/validate';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { scopeByOwner } from '../utils/ownerScope';
 
 const depenseCreateRules = [
     body('category').notEmpty().withMessage('La catégorie est obligatoire').bail().isString().isLength({ max: 100 }).withMessage('Catégorie invalide'),
@@ -22,16 +24,6 @@ const depenseCreateRules = [
     body('date_expense').optional({ nullable: true }).isISO8601().withMessage('Date invalide (ISO 8601)'),
     body('proof_url').optional({ nullable: true }).isString().isLength({ max: 500 }).withMessage('URL invalide'),
 ];
-
-// [SÉCURITÉ] Filtre propriétaire explicite (ne jamais se fier uniquement à la RLS :
-// le rôle DB peut avoir BYPASSRLS). Même signature que reservationRoutes.ts /
-// documentRoutes.ts / locataireRoutes.ts. Contourné pour le rôle admin.
-function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
-    if ((req as any).userRole === 'admin') return '';
-    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
-    params.push(validOwnerIds);
-    return ` AND ${col} = ANY($${params.length}::int[])`;
-}
 
 // GET /api/depenses - Liste des dépenses filtrées par RLS
 router.get('/', permissions.canRead('finance'), tenantGuard, async (req: AuthenticatedRequest, res) => {

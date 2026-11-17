@@ -10,6 +10,8 @@ import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 // Isolation garantie par PostgreSQL Row-Level Security via tenantGuard.
 import { tenantGuard } from '../middleware/tenantGuard';
 import { validate } from '../middleware/validate';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { scopeByOwner } from '../utils/ownerScope';
 
 dotenv.config();
 
@@ -40,16 +42,6 @@ const transformReservationRules = [
     body('avance').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Préfinancement invalide'),
     body('periodicite').optional({ nullable: true }).isString().isLength({ max: 30 }).withMessage('Périodicité invalide'),
 ];
-
-// [SÉCURITÉ] `leases` n'a pas de politique RLS versionnée et le rôle DB peut avoir
-// BYPASSRLS : filtrage explicite par propriétaire (même pattern que leaseRoutes.ts),
-// contourné pour le rôle admin.
-function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
-    if ((req as any).userRole === 'admin') return '';
-    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
-    params.push(validOwnerIds);
-    return ` AND ${col} = ANY($${params.length}::int[])`;
-}
 
 // --- PUBLIC ROUTES (No Auth) ---
 

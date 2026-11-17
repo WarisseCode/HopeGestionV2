@@ -1702,3 +1702,19 @@ Mis à jour automatiquement après chaque tâche.
 - **Décisions & justifications** : L'analyse T-100 désignait « Transactions » comme première page à céder ; à la vérification, Transactions est déjà filtré par mois, la page non bornée était Quittances. `getPaymentsPage` est une fonction séparée pour ne pas modifier `getPayments`, utilisé ailleurs. Le compteur « Ce mois » additionnait auparavant le même mois de toutes les années (`getMonth()` seul) : corrigé par un appel filtré par dates. Dernier jour du mois formaté en heure locale (`toISOString()` aurait donné la veille au Bénin, UTC+1).
 - **Problèmes rencontrés** : Aucun. Vérifié avec Playwright (47 paiements simulés, 3 pages, 1280 px et 390 px, aucun débordement ni erreur) ; TypeScript sans erreur ; ESLint inchangé (12 erreurs préexistantes).
 - **Remplace / modifie** : —
+
+### T-102 : Filtre d'isolation par propriétaire unique (utils/ownerScope.ts)
+- **Date** : 2026-11-17
+- **Statut** : Terminée
+- **Type** : Refactorisation
+- **Description** : Les 16 copies locales du filtre d'isolation par propriétaire (`scopeByOwner` ×12, `getEffectiveOwnerIds` ×3, `scopeExpenseByOwner` ×1) sont remplacées par un module unique `backend/utils/ownerScope.ts`, importé par les routes. Le comportement est inchangé. 16 tests unitaires verrouillent ce module.
+- **Fichiers touchés** : `backend/utils/ownerScope.ts` (créé), `backend/tests/utils/ownerScope.test.ts` (créé), 16 fichiers de `backend/routes/` (provider, ticket, bien, reservation, lease, document, edl, depense, tenantAccess, locataire, serviceContract, inventory, quittance, loan, finance, expense).
+- **Décisions & justifications** :
+  - Recommandation n° 2 de l'analyse T-100 : chaque nouvelle route devait recopier le filtre, et les oublis étaient à l'origine des failles d'isolation de l'audit S2.
+  - Garde-fou ajouté : le nom de colonne, inséré tel quel dans le SQL, doit être un identifiant simple (`owner_id`, `l.owner_id`). Sinon, une erreur est levée. Tous les appels existants le respectent.
+  - Le module est typé, sans `any`, avec `import type` : il ne charge rien à l'exécution.
+  - Les 142 autres usages directs de `validOwnerIds` (tableau de bord, alertes, taxes, corbeille…) ne sont pas modifiés. Ils utilisent des requêtes spécifiques, et les migrer serait un chantier distinct, plus risqué.
+- **Problèmes rencontrés** :
+  - Premier comparatif des tests vide (mauvais filtre sur la sortie Jest). Refait avec la sortie JSON : les 20 mêmes échecs préexistants avant et après.
+  - Vérifications : TypeScript OK ; ESLint sans erreur ; serveur réel (PostgreSQL local, 3 600 baux) avec 21 appels sur les routes touchées, réponses identiques octet pour octet entre main et la branche.
+- **Remplace / modifie** : —

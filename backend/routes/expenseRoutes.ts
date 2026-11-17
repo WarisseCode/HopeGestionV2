@@ -13,6 +13,8 @@ import { handleUploadErrors, upload } from '../middleware/uploadMiddleware';
 import { validate } from '../middleware/validate';
 import { uploadToSpaces } from '../services/spacesUploadService';
 import { cache } from '../utils/cache';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { scopeExpenseByOwner } from '../utils/ownerScope';
 
 // Champs multipart (parsés par multer) : montant > 0, date et catégorie requis.
 const expenseCreateRules = [
@@ -39,20 +41,6 @@ const router = Router();
 // Protect all routes with auth check and RLS context
 router.use(protect);
 router.use(tenantGuard);
-
-// [SÉCURITÉ] Filtre propriétaire explicite (audit S2) : la RLS n'est pas versionnée
-// pour expenses et le rôle DB peut avoir BYPASSRLS. expenses.owner_id peut être NULL
-// (ON DELETE SET NULL, anciennes lignes) : on retombe alors sur le propriétaire de
-// l'immeuble rattaché, pour ne pas faire disparaître ces dépenses de leur agence.
-// Admin : accès global.
-function scopeExpenseByOwner(req: AuthenticatedRequest, params: any[], alias = 'e'): string {
-    if ((req as any).userRole === 'admin') return '';
-    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
-    params.push(validOwnerIds);
-    const n = params.length;
-    return ` AND (${alias}.owner_id = ANY($${n}::int[]) OR (${alias}.owner_id IS NULL AND EXISTS (
-        SELECT 1 FROM buildings bx WHERE bx.id = ${alias}.building_id AND bx.owner_id = ANY($${n}::int[]))))`;
-}
 
 // GET /api/expenses - List expenses
 router.get('/', permissions.canRead('finance'), async (req: AuthenticatedRequest, res: Response) => {

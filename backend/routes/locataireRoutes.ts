@@ -9,6 +9,8 @@ import { AuditService } from '../services/AuditService';
 import permissions from '../middleware/permissionMiddleware';
 import { tenantGuard } from '../middleware/tenantGuard';
 import { validate } from '../middleware/validate';
+// Filtre d'isolation par propriétaire : version unique et testée (utils/ownerScope.ts).
+import { scopeByOwner } from '../utils/ownerScope';
 
 const router = express.Router();
 
@@ -34,16 +36,6 @@ const tenantUpdateRules = [
     body('paiement_echelonne').optional({ nullable: true }).isBoolean().withMessage('paiement_echelonne doit être un booléen'),
 ];
 const tenantIdParam = [param('id').isInt({ min: 1 }).withMessage('Identifiant invalide')];
-
-// [SÉCURITÉ] `leases` n'a pas de politique RLS versionnée et le rôle DB peut avoir
-// BYPASSRLS : filtrage explicite par propriétaire (même pattern que leaseRoutes.ts),
-// contourné pour le rôle admin.
-function scopeByOwner(req: AuthenticatedRequest, params: any[], col = 'owner_id'): string {
-    if ((req as any).userRole === 'admin') return '';
-    const validOwnerIds: number[] = (req as any).validOwnerIds || [];
-    params.push(validOwnerIds);
-    return ` AND ${col} = ANY($${params.length}::int[])`;
-}
 
 // [RLS] Filtrage automatique par tenant via PostgreSQL Row-Level Security
 // Anciens helpers getManagedOwnerIds et getManagedOwnerId supprimés car redondants.
