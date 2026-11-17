@@ -139,6 +139,21 @@ router.post('/', permissions.canWrite('locataires'), tenantGuard, validate(lease
     const dbClient = (req as any).dbClient;
     const strictOwnerId = (req as any).resolvedOwnerId;
 
+    // Création en une seule transaction (audit F5) : bail, référence, statut du lot et
+    // échéancier réussissent ensemble ou pas du tout. Avant, une erreur en cours de route
+    // laissait un bail sans échéancier et un lot « occupé », et toute nouvelle tentative
+    // était refusée (« Ce lot a déjà une affectation active »).
+    // La connexion (tenantGuard) retourne au pool après la réponse : chaque sortie après
+    // BEGIN doit donc passer par rollback(), sinon la requête suivante hériterait d'une
+    // transaction ouverte. set_config (contexte du compte) est posé hors transaction par
+    // tenantGuard : un ROLLBACK ne l'efface pas.
+    let inTransaction = false;
+    const rollback = async () => {
+        if (!inTransaction) return;
+        inTransaction = false;
+        await dbClient.query('ROLLBACK');
+    };
+
     try {
         const {
             tenant_id, lot_id,
@@ -177,13 +192,27 @@ router.post('/', permissions.canWrite('locataires'), tenantGuard, validate(lease
             return res.status(403).json({ message: 'Accès refusé à ce lot.' });
         }
 
+        await dbClient.query('BEGIN');
+        inTransaction = true;
+
+        // Verrou sur la ligne du lot jusqu'au COMMIT : deux créations simultanées sur le même
+        // lot passent l'une après l'autre. La seconde voit alors le bail de la première au
+        // contrôle d'occupation ci-dessous, au lieu de créer un second bail actif.
+        await dbClient.query('SELECT id FROM lots WHERE id = $1 FOR UPDATE', [lot_id]);
+
         const lotCheck = await dbClient.query(
             "SELECT id FROM leases WHERE lot_id = $1 AND statut IN ('actif', 'signe')",
             [lot_id]
         );
         if (lotCheck.rows.length > 0) {
+            await rollback();
             return res.status(400).json({ message: 'Ce lot a déjà une affectation active' });
         }
+
+        // Propriétaire du bail : celui choisi dans le sélecteur ; à défaut (gestionnaire
+        // multi-propriétaires sans sélection, resolvedOwnerId = null), celui du lot. Avant,
+        // le bail était créé avec owner_id NULL et devenait invisible (filtre par propriétaire).
+        const leaseOwnerId = strictOwnerId ?? lotOwnerRes.rows[0].owner_id;
 
         // INSERT sans reference_bail — on l'attribue après pour utiliser l'id (garanti unique, sans race condition RLS)
         const result = await dbClient.query(`
@@ -197,7 +226,7 @@ router.post('/', permissions.canWrite('locataires'), tenantGuard, validate(lease
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, 'actif', $24)
             RETURNING *
         `, [
-            tenant_id, lot_id, strictOwnerId, type_contrat,
+            tenant_id, lot_id, leaseOwnerId, type_contrat,
             date_debut, date_fin || null, duree_contrat || 12, loyer_mensuel || 0,
             caution || 0, avance || 0, charges_mensuelles || 0, type_charges || 'forfaitaire', devise || 'XOF',
             type_paiement || 'classique', frequence_paiement || 'mensuel', jour_echeance || 1, penalite_retard || 0, tolerance_jours || 0,
@@ -227,10 +256,15 @@ router.post('/', permissions.canWrite('locataires'), tenantGuard, validate(lease
             await generatePaymentSchedule(dbClient, result.rows[0].id, date_debut, numSchedules, amount, jour_echeance, freq);
         }
 
+        await dbClient.query('COMMIT');
+        inTransaction = false;
+
         cache.invalidatePrefix('dashboard:');
         res.status(201).json(result.rows[0]);
     } catch (error) {
         console.error('Error creating contract:', error);
+        // Annule tout ce qui a été écrit (bail, référence, lot, échéances).
+        await rollback().catch((e: unknown) => console.error('ROLLBACK création de bail :', e));
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
