@@ -32,7 +32,8 @@ describe('FinanceService.getPayments', () => {
         const query = jest.fn().mockResolvedValue({ rows: [row] });
         const dbClient = { query } as any;
 
-        const rows = await FinanceService.getPayments(dbClient, [1], {});
+        // getPayments renvoie { payments, total, page, totalPages } (pagination) : on lit .payments.
+        const { payments: rows } = await FinanceService.getPayments(dbClient, [1], {});
 
         expect(rows[0].quittance_url).toBe('/uploads/receipts/quittance_202601-1.pdf');
     });
@@ -42,7 +43,8 @@ describe('FinanceService.getPayments', () => {
         const query = jest.fn().mockResolvedValue({ rows: [row] });
         const dbClient = { query } as any;
 
-        const rows = await FinanceService.getPayments(dbClient, [1], {});
+        // getPayments renvoie { payments, total, page, totalPages } (pagination) : on lit .payments.
+        const { payments: rows } = await FinanceService.getPayments(dbClient, [1], {});
 
         expect(rows[0].quittance_url).toBeNull();
     });

@@ -1718,3 +1718,16 @@ Mis à jour automatiquement après chaque tâche.
   - Premier comparatif des tests vide (mauvais filtre sur la sortie Jest). Refait avec la sortie JSON : les 20 mêmes échecs préexistants avant et après.
   - Vérifications : TypeScript OK ; ESLint sans erreur ; serveur réel (PostgreSQL local, 3 600 baux) avec 21 appels sur les routes touchées, réponses identiques octet pour octet entre main et la branche.
 - **Remplace / modifie** : —
+
+### T-103 : Suite de tests backend remise au vert (20 tests périmés)
+- **Date** : 2026-11-17
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : Les 20 tests backend en échec depuis plusieurs tâches sont réparés : la suite Jest passe entièrement (512/512, 45 fichiers), en exécution parallèle comme séquentielle. Aucun code de production n'est modifié : les échecs venaient des tests eux-mêmes, et non d'un bug du site.
+- **Fichiers touchés** : `backend/tests/middleware/tenantGuard.test.ts`, `backend/tests/middleware/permissionMiddleware.test.ts`, `backend/tests/routes/finance.test.ts`, `backend/tests/services/financeService.getPayments.test.ts`
+- **Décisions & justifications** :
+  - **Cache partagé entre tests (15 tests)** : `tenantGuard` met en cache les propriétaires d'un compte, et `permissionMiddleware` les permissions. Les tests réutilisaient le même compte, rôle et module : chacun héritait donc du résultat du précédent. Le cache est désormais purgé avant chaque scénario. Il reste inchangé en production, où il est voulu.
+  - **Format de réponse paginé (5 tests)** : `FinanceService.getPayments` renvoie `{ payments, total, page, totalPages }` depuis la pagination. Les simulations et lectures ont été adaptées ; les vérifications restent les mêmes.
+  - **Ordre connexion / vérification (1 test)** : depuis T-099, `tenantGuard` vérifie le propriétaire avant d'ouvrir une connexion. Le test vérifie maintenant qu'aucune connexion n'est prise en cas d'erreur, une garantie plus forte que « connexion libérée une fois ».
+- **Problèmes rencontrés** : Aucun. TypeScript OK ; ESLint sans erreur.
+- **Remplace / modifie** : —

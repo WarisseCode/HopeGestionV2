@@ -109,6 +109,10 @@ const mockPaymentRows = [
 
 // ── Tests : contrôle d'accès ──────────────────────────────────────────────────
 
+// FinanceService.getPayments renvoie une page { payments, total, page, totalPages }
+// (pagination T-101), et non plus un tableau : la route la transmet telle quelle.
+const pageOf = (payments: unknown[]) => ({ payments, total: payments.length, page: 1, totalPages: 1 });
+
 describe('GET /api/finances — contrôle d\'accès', () => {
     beforeEach(() => jest.clearAllMocks());
 
@@ -120,7 +124,7 @@ describe('GET /api/finances — contrôle d\'accès', () => {
     it('renvoie 200 avec un token gestionnaire valide', async () => {
         (pool.query as jest.Mock)
             .mockResolvedValueOnce({ rows: [{ email: 'test@test.com' }] }); // authMiddleware SELECT email
-        (FinanceService.getPayments as jest.Mock).mockResolvedValueOnce(mockPaymentRows);
+        (FinanceService.getPayments as jest.Mock).mockResolvedValueOnce(pageOf(mockPaymentRows));
 
         const res = await request(app)
             .get('/api/finances')
@@ -139,7 +143,7 @@ describe('GET /api/finances — structure de la réponse', () => {
     it('renvoie { payments: [...] } avec les paiements', async () => {
         (pool.query as jest.Mock)
             .mockResolvedValueOnce({ rows: [{ email: 'test@test.com' }] });
-        (FinanceService.getPayments as jest.Mock).mockResolvedValueOnce(mockPaymentRows);
+        (FinanceService.getPayments as jest.Mock).mockResolvedValueOnce(pageOf(mockPaymentRows));
 
         const res = await request(app)
             .get('/api/finances')
@@ -161,7 +165,7 @@ describe('GET /api/finances — structure de la réponse', () => {
     it('renvoie { payments: [] } si aucun paiement', async () => {
         (pool.query as jest.Mock)
             .mockResolvedValueOnce({ rows: [{ email: 'test@test.com' }] });
-        (FinanceService.getPayments as jest.Mock).mockResolvedValueOnce([]);
+        (FinanceService.getPayments as jest.Mock).mockResolvedValueOnce(pageOf([]));
 
         const res = await request(app)
             .get('/api/finances')
