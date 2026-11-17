@@ -1745,3 +1745,25 @@ Mis à jour automatiquement après chaque tâche.
   - **Vérification.** Lancement dans une copie propre du dépôt (`git archive`, sans `.env`), sous Node 20.10.0 avec `npm ci` : 512/512 en 9 s.
 - **Problèmes rencontrés** : Premier choix envisagé (lancer `npm test` sur le VPS) abandonné pour la raison ci-dessus (envoi vers Spaces).
 - **Remplace / modifie** : —
+
+### T-105 : Création de bail en une seule transaction (audit F5)
+- **Date** : 2026-11-17
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : `POST /api/locations` enregistre désormais le bail, sa référence, le statut du lot et l'échéancier dans une seule transaction (`BEGIN`/`COMMIT`, `ROLLBACK` sur toute erreur ou sortie anticipée). La ligne du lot est verrouillée (`FOR UPDATE`) avant le contrôle d'occupation, ce qui empêche deux baux actifs simultanés sur un même lot. Sans propriétaire choisi, le bail prend le propriétaire du lot au lieu de `NULL`.
+- **Fichiers touchés** : `backend/routes/leaseRoutes.ts`, `backend/tests/routes/lease.createLotScope.test.ts`
+- **Décisions & justifications** :
+  - **Contrôle d'appartenance du lot avant `BEGIN`.** Lecture seule : une demande refusée (403/404) n'ouvre pas de transaction.
+  - **`rollback()` sur chaque sortie après `BEGIN`.** La connexion de `tenantGuard` retourne au pool ; une transaction restée ouverte contaminerait la requête suivante. Le contexte `set_config` est posé hors transaction et survit au `ROLLBACK`.
+  - **Propriétaire du bail.** `resolvedOwnerId ?? propriétaire du lot` : comportement inchangé quand un propriétaire est choisi. Corrige le bail invisible (`owner_id` NULL) d'un gestionnaire multi-propriétaires sans sélection.
+- **Problèmes rencontrés** :
+  - Premier scénario d'échec réel (dates au-delà de l'an 9999) sans effet : PostgreSQL les accepte. Remplacé par un montant hors capacité de l'échéancier (`payment_schedules.total_amount` en `numeric(12,2)`, contre `numeric(15,2)` pour le bail). Écart de validation relevé, non corrigé ici.
+  - Vérifié sur PostgreSQL réel, main puis branche, depuis une même copie de la base :
+    - concurrence : main 201 + 201 (2 baux actifs), branche 201 + 400 (1 bail) ;
+    - échec de l'échéancier : main laisse un bail et un lot « occupé », puis bloque toute nouvelle tentative (400) ; branche n'écrit rien et la nouvelle tentative réussit (201).
+  - Jest 518/518 (6 nouveaux tests) ; TypeScript OK ; ESLint sans erreur.
+  - **Constat annexe (journaux de déploiement GitHub Actions, sans lien avec cette tâche, présent depuis au moins le 16/10)** :
+    - `source .env && npm run build` échoue faute de `frontend/.env` : l'interface n'est pas reconstruite par ce workflow (à confirmer : sans doute par `deploy.sh` sur le VPS, déclenché via `/api/deploy`) ;
+    - `nginx -t` échoue (droits de lecture des certificats pour l'utilisateur du runner) : nginx n'est pas rechargé ;
+    - le runner termine le processus backend relancé par PM2 (« Terminate orphan process »), puis PM2 le redémarre.
+- **Remplace / modifie** : —

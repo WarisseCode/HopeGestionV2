@@ -29,12 +29,13 @@ jest.mock('../../utils/cache', () => ({
 }));
 
 let mockValidOwnerIds: number[] = [1];
+let mockResolvedOwnerId: number | null = 1;
 jest.mock('../../middleware/tenantGuard', () => {
     const poolModule = require('../../db/database');
     return {
         tenantGuard: (req: any, _res: any, next: any) => {
             req.dbClient        = poolModule.default;
-            req.resolvedOwnerId = 1;
+            req.resolvedOwnerId = mockResolvedOwnerId;
             req.validOwnerIds   = mockValidOwnerIds;
             next();
         },
@@ -79,10 +80,13 @@ const sqlCalls = () => (pool.query as jest.Mock).mock.calls.map((c) => String(c[
 /** Enchaîne les réponses mockées d'une création réussie, après la vérif du lot. */
 const mockSuccessfulCreate = () => {
     (pool.query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [] })                    // BEGIN (création transactionnelle, F5)
+        .mockResolvedValueOnce({ rows: [{ id: 77 }] })          // verrou du lot (FOR UPDATE)
         .mockResolvedValueOnce({ rows: [] })                    // contrôle d'occupation
         .mockResolvedValueOnce({ rows: [{ id: 9, lot_id: 77 }] }) // INSERT leases
         .mockResolvedValueOnce({ rows: [] })                    // UPDATE reference_bail
-        .mockResolvedValueOnce({ rows: [] });                   // UPDATE lots
+        .mockResolvedValueOnce({ rows: [] })                    // UPDATE lots
+        .mockResolvedValueOnce({ rows: [] });                   // COMMIT
 };
 
 describe('POST /api/locations — appartenance du lot', () => {
@@ -109,6 +113,7 @@ describe('POST /api/locations — appartenance du lot', () => {
         expect(calls.some((s) => s.includes('FROM leases WHERE lot_id'))).toBe(false);
         expect(calls.some((s) => s.includes('INSERT INTO leases'))).toBe(false);
         expect(calls.some((s) => s.includes('UPDATE lots'))).toBe(false);
+        expect(calls).not.toContain('BEGIN'); // refus avant toute transaction
     });
 
     it('lot inexistant → 404, aucun INSERT', async () => {
@@ -123,6 +128,7 @@ describe('POST /api/locations — appartenance du lot', () => {
         expect(res.status).toBe(404);
         expect(pool.query).toHaveBeenCalledTimes(2);
         expect(sqlCalls().some((s) => s.includes('INSERT INTO leases'))).toBe(false);
+        expect(sqlCalls()).not.toContain('BEGIN');
     });
 
     it('gestionnaire lié (multi-propriétaires) → vérif du lot puis création inchangée (201)', async () => {
@@ -159,5 +165,100 @@ describe('POST /api/locations — appartenance du lot', () => {
 
         expect(res.status).toBe(201);
         expect(sqlCalls().some((s) => s.includes('INSERT INTO leases'))).toBe(true);
+    });
+});
+
+/**
+ * Création en une seule transaction (audit F5) : bail, référence, statut du lot et
+ * échéancier sont validés ensemble (COMMIT) ou annulés ensemble (ROLLBACK).
+ * Base simulée par contenu SQL (et non par ordre) pour décrire chaque scénario.
+ */
+describe('POST /api/locations — création transactionnelle', () => {
+    type Opts = { occupied?: boolean; failOn?: string; lotOwner?: number };
+    const routeDb = (opts: Opts = {}) => {
+        (pool.query as jest.Mock).mockImplementation(async (sql: string) => {
+            if (opts.failOn && sql.includes(opts.failOn)) throw new Error('panne simulée');
+            if (sql.includes('SELECT email')) return { rows: [{ email: 'test@test.com' }] };
+            if (sql.includes('FROM lots l JOIN buildings b')) return { rows: [{ owner_id: opts.lotOwner ?? 1 }] };
+            if (sql.includes('FROM leases WHERE lot_id')) return { rows: opts.occupied ? [{ id: 3 }] : [] };
+            if (sql.includes('INSERT INTO leases')) return { rows: [{ id: 9, lot_id: 77 }] };
+            return { rows: [] };
+        });
+    };
+    const post = (extra: Record<string, unknown> = {}) =>
+        request(app).post('/api/locations').set('Authorization', `Bearer ${authToken()}`).send({ ...body, ...extra });
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        (pool.query as jest.Mock).mockReset();
+        mockValidOwnerIds = [1];
+        mockResolvedOwnerId = 1;
+    });
+
+    it('succès : BEGIN, verrou du lot avant le contrôle d’occupation, puis COMMIT en dernier', async () => {
+        routeDb();
+        const res = await post({ type_paiement: 'echelonne', duree_contrat: 3 });
+
+        expect(res.status).toBe(201);
+        const calls = sqlCalls();
+        const begin = calls.indexOf('BEGIN');
+        const lock = calls.findIndex((s) => s.includes('FOR UPDATE'));
+        const occ = calls.findIndex((s) => s.includes('FROM leases WHERE lot_id'));
+        const sched = calls.findIndex((s) => s.includes('INSERT INTO payment_schedules'));
+        expect(begin).toBeGreaterThan(-1);
+        expect(lock).toBeGreaterThan(begin);
+        expect(occ).toBeGreaterThan(lock);
+        expect(sched).toBeGreaterThan(occ);
+        expect(calls[calls.length - 1]).toBe('COMMIT');
+        expect(calls).not.toContain('ROLLBACK');
+    });
+
+    it('échec de l’échéancier : ROLLBACK (bail, référence et lot annulés), aucun COMMIT, 500', async () => {
+        routeDb({ failOn: 'INSERT INTO payment_schedules' });
+        const res = await post({ type_paiement: 'echelonne', duree_contrat: 3 });
+
+        expect(res.status).toBe(500);
+        const calls = sqlCalls();
+        expect(calls).toContain('ROLLBACK');
+        expect(calls).not.toContain('COMMIT');
+        expect(calls.findIndex((s) => s.includes('INSERT INTO leases'))).toBeLessThan(calls.indexOf('ROLLBACK'));
+    });
+
+    it('échec de la mise à jour du lot : ROLLBACK, aucun COMMIT', async () => {
+        routeDb({ failOn: 'UPDATE lots' });
+        const res = await post();
+
+        expect(res.status).toBe(500);
+        expect(sqlCalls()).toContain('ROLLBACK');
+        expect(sqlCalls()).not.toContain('COMMIT');
+    });
+
+    it('lot déjà occupé : 400, ROLLBACK (verrou libéré), aucun INSERT', async () => {
+        routeDb({ occupied: true });
+        const res = await post();
+
+        expect(res.status).toBe(400);
+        const calls = sqlCalls();
+        expect(calls).toContain('ROLLBACK');
+        expect(calls).not.toContain('COMMIT');
+        expect(calls.some((s) => s.includes('INSERT INTO leases'))).toBe(false);
+    });
+
+    it('propriétaire choisi (resolvedOwnerId) : utilisé pour le bail, comportement inchangé', async () => {
+        routeDb({ lotOwner: 1 });
+        await post();
+        const insert = (pool.query as jest.Mock).mock.calls.find(([s]) => String(s).includes('INSERT INTO leases'));
+        expect(insert[1][2]).toBe(1);
+    });
+
+    it('aucun propriétaire choisi (multi-propriétaires) : le bail prend le propriétaire du lot, pas NULL', async () => {
+        mockValidOwnerIds = [1, 2];
+        mockResolvedOwnerId = null;
+        routeDb({ lotOwner: 2 });
+        const res = await post();
+
+        expect(res.status).toBe(201);
+        const insert = (pool.query as jest.Mock).mock.calls.find(([s]) => String(s).includes('INSERT INTO leases'));
+        expect(insert[1][2]).toBe(2);
     });
 });
