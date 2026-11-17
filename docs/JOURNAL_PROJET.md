@@ -1692,3 +1692,13 @@ Mis à jour automatiquement après chaque tâche.
   - Le poids compressé est mesuré en plus du poids brut, car nginx compresse le JSON.
 - **Problèmes rencontrés** : Premier essai de remplissage en échec : `lots.photos` est un tableau PostgreSQL (`text[]`), pas du `jsonb`. Corrigé dans le script de test.
 - **Remplace / modifie** : — (complète l'audit T-086 sur les volets performance et fiabilité)
+
+### T-101 : Pagination serveur de la page Quittances
+- **Date** : 2026-11-17
+- **Statut** : Terminée
+- **Type** : Fonctionnalité
+- **Description** : La page Quittances chargeait et affichait tous les paiements depuis l'origine (aucun filtre). Elle demande désormais 20 quittances à la fois au serveur (`/finances?page=&limit=`, déjà supporté) avec un pied de pagination Précédent / Suivant. Les cartes « Total » utilisent le total renvoyé par le serveur, et « Ce mois » est compté par le serveur sur le mois et l'année en cours.
+- **Fichiers touchés** : `frontend/src/api/financeApi.ts` (nouvelle fonction `getPaymentsPage`), `frontend/src/pages/Quittances.tsx`
+- **Décisions & justifications** : L'analyse T-100 désignait « Transactions » comme première page à céder ; à la vérification, Transactions est déjà filtré par mois, la page non bornée était Quittances. `getPaymentsPage` est une fonction séparée pour ne pas modifier `getPayments`, utilisé ailleurs. Le compteur « Ce mois » additionnait auparavant le même mois de toutes les années (`getMonth()` seul) : corrigé par un appel filtré par dates. Dernier jour du mois formaté en heure locale (`toISOString()` aurait donné la veille au Bénin, UTC+1).
+- **Problèmes rencontrés** : Aucun. Vérifié avec Playwright (47 paiements simulés, 3 pages, 1280 px et 390 px, aucun débordement ni erreur) ; TypeScript sans erreur ; ESLint inchangé (12 erreurs préexistantes).
+- **Remplace / modifie** : —
