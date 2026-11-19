@@ -251,6 +251,25 @@ describe('POST /api/locations — création transactionnelle', () => {
         expect(insert[1][2]).toBe(1);
     });
 
+    it('échéance au-delà de la capacité de l’échéancier : 400 clair, avant toute écriture', async () => {
+        routeDb();
+        const res = await post({ loyer_mensuel: 20_000_000_000, type_paiement: 'echelonne', duree_contrat: 3 });
+
+        expect(res.status).toBe(400);
+        expect(res.body.message).toMatch(/Montant d'échéance trop élevé/);
+        const calls = sqlCalls();
+        expect(calls).not.toContain('BEGIN');
+        expect(calls.some((s) => s.includes('INSERT INTO leases'))).toBe(false);
+    });
+
+    it('même loyer en paiement classique (sans échéancier) : accepté comme avant', async () => {
+        routeDb();
+        const res = await post({ loyer_mensuel: 20_000_000_000 });
+
+        expect(res.status).toBe(201);
+        expect(sqlCalls().some((s) => s.includes('INSERT INTO payment_schedules'))).toBe(false);
+    });
+
     it('aucun propriétaire choisi (multi-propriétaires) : le bail prend le propriétaire du lot, pas NULL', async () => {
         mockValidOwnerIds = [1, 2];
         mockResolvedOwnerId = null;

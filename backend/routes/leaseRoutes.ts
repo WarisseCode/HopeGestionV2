@@ -24,6 +24,9 @@ dotenv.config();
 
 const router = Router();
 
+// Plafond de payment_schedules.total_amount (numeric(12,2)).
+const MAX_SCHEDULE_AMOUNT = 9_999_999_999.99;
+
 // Les exigences conditionnelles (loyer si location, prix si vente) restent
 // gérées par les checks manuels du handler — ici on valide types + base.
 const leaseIdParam = param('id').isInt({ min: 1 }).withMessage('Identifiant de bail invalide');
@@ -176,6 +179,20 @@ router.post('/', permissions.canWrite('locataires'), tenantGuard, validate(lease
              return res.status(400).json({ message: 'Le prix de vente est requis pour une vente' });
         }
 
+        // Montant de chaque échéance (paiement échelonné), calculé une seule fois : vérifié
+        // ici, puis réutilisé pour générer l'échéancier plus bas.
+        const isEchelonne = type_paiement === 'echelonne' && !!duree_contrat;
+        const scheduleAmount = !isEchelonne ? 0 : type_contrat === 'vente'
+            ? (prix_vente - (apport_initial || 0)) / duree_contrat
+            : loyer_mensuel;
+        // payment_schedules.total_amount est en numeric(12,2) (max 9 999 999 999,99), alors
+        // que le bail accepte numeric(15,2) : au-delà, l'enregistrement échouait en 500.
+        if (isEchelonne && Number(scheduleAmount) > MAX_SCHEDULE_AMOUNT) {
+            return res.status(400).json({
+                message: "Montant d'échéance trop élevé (maximum 9 999 999 999,99). Augmentez le nombre d'échéances ou vérifiez le montant.",
+            });
+        }
+
         // Vérif d'appartenance du lot AVANT tout autre accès (pattern edlRoutes.ts POST /) :
         // sans elle, le contrôle d'occupation ci-dessous servirait d'oracle sur l'état d'un
         // lot tiers, et l'INSERT/UPDATE lots pourraient viser le lot d'un autre propriétaire.
@@ -246,14 +263,10 @@ router.post('/', permissions.canWrite('locataires'), tenantGuard, validate(lease
 
         await dbClient.query("UPDATE lots SET statut = $1 WHERE id = $2", [newLotStatus, lot_id]);
 
-        if (type_paiement === 'echelonne' && duree_contrat) {
-            const amount = type_contrat === 'vente' 
-                ? (prix_vente - (apport_initial || 0)) / duree_contrat 
-                : loyer_mensuel;
-            
+        if (isEchelonne) {
             const freq = frequence_paiement || 'mensuel';
             const numSchedules = nombre_echeances || duree_contrat;
-            await generatePaymentSchedule(dbClient, result.rows[0].id, date_debut, numSchedules, amount, jour_echeance, freq);
+            await generatePaymentSchedule(dbClient, result.rows[0].id, date_debut, numSchedules, scheduleAmount, jour_echeance, freq);
         }
 
         await dbClient.query('COMMIT');

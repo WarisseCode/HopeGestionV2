@@ -4,6 +4,7 @@ import { protect, AuthenticatedRequest } from '../middleware/authMiddleware';
 import { validate } from '../middleware/validate';
 import { tenantGuard } from '../middleware/tenantGuard';
 import pool from '../db/database';
+import { cache, TTL } from '../utils/cache';
 
 const router = Router();
 
@@ -44,39 +45,50 @@ router.get('/', protect, tenantGuard, async (req: AuthenticatedRequest, res: Res
             return res.json({ alerts: [], dismissedCount: dismissedIds.size });
         }
 
-        // Filtres owner explicites (vides pour l'admin). $1 = tableau d'owner_id.
-        const ownerParams: any[] = [];
-        let lotOwnerFilter = '';
-        let ticketOwnerFilter = '';
-        if (!isAdmin) {
-            ownerParams.push(effectiveOwnerIds);
-            lotOwnerFilter = 'AND lo.owner_id = ANY($1::int[])';
-            ticketOwnerFilter = 'AND t.owner_id = ANY($1::int[])';
-        }
+        // ── Cache 1 min du calcul (analyse de complexité, recommandation n° 4) ────
+        // Le calcul (retards, échéances, tickets, lots vacants) est la requête la plus
+        // coûteuse quand les données grossissent. Il ne dépend que du périmètre
+        // (propriétaires + rôle), pas de l'utilisateur : la liste COMPLÈTE est mise en
+        // cache, et les alertes ignorées par l'utilisateur sont retirées après, à chaque
+        // appel. « Ignorer » / « Réinitialiser » restent donc immédiats.
+        // Préfixe « dashboard: » : les écritures qui vident déjà le cache du tableau de
+        // bord (bail, paiement, dépense) vident aussi celui-ci.
+        const scopeKey = isAdmin ? 'admin' : [...effectiveOwnerIds].sort((a, b) => a - b).join(',');
+        const cacheKey = `dashboard:alerts:${scopeKey}:${isOwner ? 'proprietaire' : 'gestion'}`;
+        let allAlerts = cache.get<any[]>(cacheKey);
+        if (!allAlerts) {
+            // Filtres owner explicites (vides pour l'admin). $1 = tableau d'owner_id.
+            const ownerParams: any[] = [];
+            let lotOwnerFilter = '';
+            let ticketOwnerFilter = '';
+            if (!isAdmin) {
+                ownerParams.push(effectiveOwnerIds);
+                lotOwnerFilter = 'AND lo.owner_id = ANY($1::int[])';
+                ticketOwnerFilter = 'AND t.owner_id = ANY($1::int[])';
+            }
 
-        const alerts: any[] = [];
+            const alerts: any[] = [];
 
-        // 1. Loyers en retard
-        const latePaymentsQuery = `
-            SELECT l.id, lo.ref_lot, t.nom, t.prenoms, l.loyer_actuel, b.nom as building_name
-            FROM leases l
-            JOIN tenants t ON l.tenant_id = t.id
-            JOIN lots lo ON l.lot_id = lo.id
-            JOIN buildings b ON lo.building_id = b.id
-            WHERE l.statut = 'actif'
-            AND NOT EXISTS (
-                SELECT 1 FROM payments p
-                WHERE p.lease_id = l.id
-                AND EXTRACT(MONTH FROM p.date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
-                AND EXTRACT(YEAR FROM p.date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
-            )
-            AND EXTRACT(DAY FROM CURRENT_DATE) > (COALESCE(l.jour_echeance, 5) + 5)
-            ${lotOwnerFilter}
-        `;
-        const lateRes = await dbClient.query(latePaymentsQuery, ownerParams);
-        lateRes.rows.forEach((row: any) => {
-            const id = `late_${row.id}`;
-            if (!dismissedIds.has(id)) {
+            // 1. Loyers en retard
+            const latePaymentsQuery = `
+                SELECT l.id, lo.ref_lot, t.nom, t.prenoms, l.loyer_actuel, b.nom as building_name
+                FROM leases l
+                JOIN tenants t ON l.tenant_id = t.id
+                JOIN lots lo ON l.lot_id = lo.id
+                JOIN buildings b ON lo.building_id = b.id
+                WHERE l.statut = 'actif'
+                AND NOT EXISTS (
+                    SELECT 1 FROM payments p
+                    WHERE p.lease_id = l.id
+                    AND EXTRACT(MONTH FROM p.date_paiement) = EXTRACT(MONTH FROM CURRENT_DATE)
+                    AND EXTRACT(YEAR FROM p.date_paiement) = EXTRACT(YEAR FROM CURRENT_DATE)
+                )
+                AND EXTRACT(DAY FROM CURRENT_DATE) > (COALESCE(l.jour_echeance, 5) + 5)
+                ${lotOwnerFilter}
+            `;
+            const lateRes = await dbClient.query(latePaymentsQuery, ownerParams);
+            lateRes.rows.forEach((row: any) => {
+                const id = `late_${row.id}`;
                 alerts.push({
                     id, reference: `RET-${row.id}`,
                     titre: 'Loyer en retard',
@@ -88,26 +100,24 @@ router.get('/', protect, tenantGuard, async (req: AuthenticatedRequest, res: Res
                     // échéancier, c'est-à-dire précisément l'échéance en retard.
                     statut: 'Active', link: `/dashboard/locations/${row.id}`
                 });
-            }
-        });
+            });
 
-        // 2. Fins de contrat proches (60 jours)
-        const expiringQuery = `
-            SELECT l.id, lo.ref_lot, l.date_fin, t.nom, t.prenoms
-            FROM leases l
-            JOIN tenants t ON l.tenant_id = t.id
-            JOIN lots lo ON l.lot_id = lo.id
-            WHERE l.statut = 'actif'
-            AND l.date_fin IS NOT NULL
-            AND l.date_fin <= (CURRENT_DATE + INTERVAL '60 days')
-            AND l.date_fin >= CURRENT_DATE
-            ${lotOwnerFilter}
-        `;
-        const expiringRes = await dbClient.query(expiringQuery, ownerParams);
-        expiringRes.rows.forEach((row: any) => {
-            const id = `exp_${row.id}`;
-            const daysLeft = Math.ceil((new Date(row.date_fin).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
-            if (!dismissedIds.has(id)) {
+            // 2. Fins de contrat proches (60 jours)
+            const expiringQuery = `
+                SELECT l.id, lo.ref_lot, l.date_fin, t.nom, t.prenoms
+                FROM leases l
+                JOIN tenants t ON l.tenant_id = t.id
+                JOIN lots lo ON l.lot_id = lo.id
+                WHERE l.statut = 'actif'
+                AND l.date_fin IS NOT NULL
+                AND l.date_fin <= (CURRENT_DATE + INTERVAL '60 days')
+                AND l.date_fin >= CURRENT_DATE
+                ${lotOwnerFilter}
+            `;
+            const expiringRes = await dbClient.query(expiringQuery, ownerParams);
+            expiringRes.rows.forEach((row: any) => {
+                const id = `exp_${row.id}`;
+                const daysLeft = Math.ceil((new Date(row.date_fin).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
                 alerts.push({
                     id, reference: `FIN-${row.id}`,
                     titre: 'Fin de contrat proche',
@@ -118,21 +128,19 @@ router.get('/', protect, tenantGuard, async (req: AuthenticatedRequest, res: Res
                     // Même principe : le bail qui expire, pas la liste des contrats.
                     statut: 'Active', link: `/dashboard/locations/${row.id}`
                 });
-            }
-        });
+            });
 
-        // 3. Tickets / Plaintes ouverts (gestionnaire seulement), cadrés par owner
-        if (!isOwner) {
-            try {
-                const ticketsRes = await dbClient.query(
-                    `SELECT t.id, t.titre, t.description, t.priorite, t.date_creation
-                     FROM tickets t
-                     WHERE t.statut = 'ouvert' AND t.deleted_at IS NULL ${ticketOwnerFilter}`,
-                    ownerParams
-                );
-                ticketsRes.rows.forEach((row: any) => {
-                    const id = `tick_${row.id}`;
-                    if (!dismissedIds.has(id)) {
+            // 3. Tickets / Plaintes ouverts (gestionnaire seulement), cadrés par owner
+            if (!isOwner) {
+                try {
+                    const ticketsRes = await dbClient.query(
+                        `SELECT t.id, t.titre, t.description, t.priorite, t.date_creation
+                         FROM tickets t
+                         WHERE t.statut = 'ouvert' AND t.deleted_at IS NULL ${ticketOwnerFilter}`,
+                        ownerParams
+                    );
+                    ticketsRes.rows.forEach((row: any) => {
+                        const id = `tick_${row.id}`;
                         alerts.push({
                             id, reference: `TCK-${row.id}`,
                             titre: `Plainte: ${row.titre}`,
@@ -142,28 +150,26 @@ router.get('/', protect, tenantGuard, async (req: AuthenticatedRequest, res: Res
                             dateCreation: row.date_creation,
                             statut: 'Active', link: '/dashboard/interventions'
                         });
-                    }
-                });
-            } catch (e) {
-                console.warn('Tickets table might not exist or empty', e);
+                    });
+                } catch (e) {
+                    console.warn('Tickets table might not exist or empty', e);
+                }
             }
-        }
 
-        // 4. Lots vacants — AGRÉGÉS en une seule alerte (évite une alerte par lot,
-        //    qui noyait le centre d'alertes). Priorité Basse, purement informatif.
-        const vacantQuery = `
-            SELECT lo.id, lo.ref_lot, b.nom as building_name
-            FROM lots lo
-            JOIN buildings b ON lo.building_id = b.id
-            WHERE (lo.statut = 'libre' OR lo.statut = 'disponible')
-            AND lo.deleted_at IS NULL
-            ${lotOwnerFilter}
-            ORDER BY lo.id
-        `;
-        const vacantRes = await dbClient.query(vacantQuery, ownerParams);
-        if (vacantRes.rows.length > 0) {
-            const id = 'vac_all'; // id stable → "Ignorer" masque le groupe entier
-            if (!dismissedIds.has(id)) {
+            // 4. Lots vacants — AGRÉGÉS en une seule alerte (évite une alerte par lot,
+            //    qui noyait le centre d'alertes). Priorité Basse, purement informatif.
+            const vacantQuery = `
+                SELECT lo.id, lo.ref_lot, b.nom as building_name
+                FROM lots lo
+                JOIN buildings b ON lo.building_id = b.id
+                WHERE (lo.statut = 'libre' OR lo.statut = 'disponible')
+                AND lo.deleted_at IS NULL
+                ${lotOwnerFilter}
+                ORDER BY lo.id
+            `;
+            const vacantRes = await dbClient.query(vacantQuery, ownerParams);
+            if (vacantRes.rows.length > 0) {
+                const id = 'vac_all'; // id stable → "Ignorer" masque le groupe entier
                 const count = vacantRes.rows.length;
                 const first = vacantRes.rows[0];
                 alerts.push({
@@ -177,21 +183,26 @@ router.get('/', protect, tenantGuard, async (req: AuthenticatedRequest, res: Res
                     statut: 'Active', link: '/dashboard/biens?tab=lots'
                 });
             }
+
+            // Tri : Urgente → Haute → Moyenne → Basse
+            const priorityOrder: { [k: string]: number } = { 'Urgente': 1, 'Haute': 2, 'Moyenne': 3, 'Basse': 4 };
+            alerts.sort((a, b) => {
+                const pA = priorityOrder[a.priorite] || 3;
+                const pB = priorityOrder[b.priorite] || 3;
+                if (pA !== pB) return pA - pB;
+                return new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime();
+            });
+            allAlerts = alerts;
+            cache.set(cacheKey, allAlerts, TTL.ALERTS);
         }
 
-        // Tri : Urgente → Haute → Moyenne → Basse
-        const priorityOrder: { [k: string]: number } = { 'Urgente': 1, 'Haute': 2, 'Moyenne': 3, 'Basse': 4 };
-        alerts.sort((a, b) => {
-            const pA = priorityOrder[a.priorite] || 3;
-            const pB = priorityOrder[b.priorite] || 3;
-            if (pA !== pB) return pA - pB;
-            return new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime();
-        });
+        // Retrait des alertes ignorées par CET utilisateur (jamais mis en cache).
+        const visibleAlerts = allAlerts.filter((a: any) => !dismissedIds.has(a.id));
 
         // Stats : nombre d'alertes ignorées (proxy pour "résolues manuellement")
         const resolvedCount = dismissedIds.size;
 
-        res.json({ alerts, dismissedCount: resolvedCount });
+        res.json({ alerts: visibleAlerts, dismissedCount: resolvedCount });
 
     } catch (error) {
         console.error('Error fetching alerts:', error);

@@ -47,7 +47,10 @@ jobs:
           npm run build
           npm prune --omit=dev
           timeout 120 npm run migrate-prod || echo "migrate-prod non bloquant"
-          pm2 restart hopegestion-backend --update-env && pm2 save
+          # RUNNER_TRACKING_ID vidé : sinon --update-env le transmet au serveur relancé, et
+          # GitHub, en fin de job, le prend pour un reste du déploiement et l'arrête
+          # (« Terminate orphan process ») ; PM2 devait alors le relancer une 2e fois.
+          RUNNER_TRACKING_ID="" pm2 restart hopegestion-backend --update-env && pm2 save
 
           # ── Frontend ──
           cd /var/www/hopegestion/frontend
