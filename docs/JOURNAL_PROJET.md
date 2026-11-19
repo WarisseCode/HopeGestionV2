@@ -1790,3 +1790,19 @@ Mis à jour automatiquement après chaque tâche.
     - loyer de 20 Mds échelonné : 500 → 400 avec message ;
     - Jest 525/525 (7 nouveaux tests) ; TypeScript OK ; ESLint sans erreur ; YAML valide.
 - **Remplace / modifie** : —
+
+### T-107 : Inventaire des fichiers privés (audit S7), sans modification de code
+- **Date** : 2026-11-19
+- **Statut** : Terminée
+- **Type** : Documentation
+- **Description** : Inventaire de tous les fichiers stockés par la plateforme : voie de service, dossier, colonne en base, écrans du site et de l'application mobile qui les affichent, sensibilité et proposition public/privé. Il complète T-013 et l'audit S7 et propose une solution de liens temporaires signés distribués par l'API, sans changement côté clients. Rapport : `docs/suivi/INVENTAIRE_FICHIERS_2026-11-19.md`.
+- **Fichiers touchés** : `docs/suivi/INVENTAIRE_FICHIERS_2026-11-19.md` (créé)
+- **Décisions & justifications** :
+  - **Liens signés à la sortie de l'API plutôt qu'une route « connecté uniquement ».** Les balises `<img>`, `window.open` et l'application mobile ouvrent le lien sans jeton de connexion. Un contrôle par session casserait 46 endroits du site et le mobile.
+  - **Liens en base inchangés.** Mise en place en trois temps : signer, vérifier, puis fermer l'accès non signé.
+  - **Photos de biens publiques.** Elles sont nécessaires aux annonces publiques des lots vacants.
+- **Problèmes rencontrés** :
+  - **Nouveau constat** : `tenants.photo_piece_url` (pièce d'identité) passe par `/api/upload` (dossier `documents/`). L'application mobile lit directement `quittance_url`, `photo_piece_url` et `proof_url`. Les photos de tickets sont stockées en base (pas de fichier).
+  - **Constat important (à confirmer sur le VPS)** : dans `nginx/hopegestion.conf`, la règle par motif des fichiers statiques (`~* \.(png|jpg…)$`, `try_files $uri =404`) prime sur `location /uploads/`. Les JPG/PNG/GIF du disque renverraient donc 404 alors qu'ils existent. Explication possible d'une partie des photos « perdues ». Correction proposée : `location ^~ /uploads/`.
+  - Historique git partiel dans la session (clone superficiel) : impossible de dater les fichiers produits avant l'ajout des noms aléatoires (T-013) ; aucune incidence sur la proposition.
+- **Remplace / modifie** : complète T-013 (inventaire) et l'audit S7, sans les modifier.
