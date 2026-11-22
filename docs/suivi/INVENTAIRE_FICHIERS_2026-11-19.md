@@ -10,7 +10,7 @@
 - **Le risque réel, c'est un lien qui circule** : copié dans un e-mail, une capture d'écran, un historique de navigateur ou un journal de serveur. Il reste valable pour toujours.
 - **Une correction est possible sans changer l'application mobile ni la plupart des écrans du site**. L'API remplacerait, dans ses réponses, chaque lien sensible par un lien temporaire signé (valable par exemple 1 heure). Les liens enregistrés en base ne changent pas.
 - **5 décisions vous reviennent** (§ 5) avant de corriger.
-- **Constat urgent, indépendant du reste (§ 7)** : avec la configuration nginx du dépôt, les photos JPG/PNG stockées sur le disque du VPS renvoient probablement une erreur 404 alors qu'elles existent. C'est peut-être une partie des photos « perdues ». La correction tient en une ligne, après une vérification sur le VPS.
+- **Constat nginx infirmé (§ 7, mis à jour le 2026-11-22)** : une photo JPG du disque s'ouvre bien sur hopegestion.com. Les photos « perdues » ne sont donc pas bloquées par nginx. En revanche, le fichier `nginx/hopegestion.conf` du dépôt ne correspond pas à la configuration réelle du VPS.
 
 ---
 
@@ -94,10 +94,14 @@ ORDER BY 1, 3 DESC;
 Si les liens commencent par `/uploads/`, les fichiers sont sur le disque du VPS. S'ils commencent par `https://…digitaloceanspaces.com`, ils sont sur Spaces.
 
 ## 7. Autres constats
-- **⚠️ Photos du disque probablement introuvables à cause de nginx (S8, plus grave que prévu).**
-  - **Le mécanisme.** Dans `nginx/hopegestion.conf`, la règle des fichiers statiques du site (`location ~* \.(js|css|png|jpg|jpeg|gif|svg|…)$`, avec `try_files $uri =404`) est une règle par motif. nginx la préfère toujours à la règle par préfixe `location /uploads/`.
-  - **La conséquence.** Une demande `/uploads/properties/photo.jpg` est cherchée dans `frontend/dist/uploads/…`, où elle n'existe pas, et renvoie **404**, même si le fichier est bien dans `backend/uploads/`. Les PDF (quittances, baux) et les WEBP ne sont pas concernés.
-  - **Le lien possible.** Si la configuration réelle du VPS est celle du dépôt (à confirmer), cela peut expliquer une partie des **photos « perdues »** attribuées à la suspension du serveur.
-  - **Vérification sur le VPS.** Comparer `ls /var/www/hopegestion/backend/uploads/properties | head` avec l'affichage de l'une de ces photos dans le navigateur. Si le fichier existe sur le disque mais que le navigateur reçoit une erreur 404, c'est cette règle.
-  - **Correction.** Une ligne : `location ^~ /uploads/ {` (le `^~` donne priorité à ce préfixe sur les règles par motif). Puis `sudo nginx -t && sudo systemctl reload nginx`. Indépendante du reste, elle peut être faite tout de suite.
+- **Ordre des règles nginx : constat infirmé sur la production (mis à jour le 2026-11-22).**
+  - **Hypothèse du 19/11.** D'après `nginx/hopegestion.conf` du dépôt, la règle par motif des fichiers statiques (`location ~* \.(js|css|png|jpg|…)$`, `try_files $uri =404`) prime sur `location /uploads/`. Les JPG/PNG du disque renverraient donc 404.
+  - **Vérification sur le VPS (2026-11-22).** Des fichiers JPG et PNG sont bien présents dans `backend/uploads/properties/`, et l'un d'eux **s'ouvre normalement** à l'adresse `https://hopegestion.com/uploads/properties/<fichier>`.
+  - **Conclusions.**
+    - Les photos « perdues » ne sont pas bloquées par nginx : elles manquent réellement sur le disque. L'image de remplacement (T-097) reste la bonne réponse.
+    - Le VPS n'utilise pas la configuration du dépôt telle quelle. Elle a été modifiée sur place ; l'écart exact reste à confirmer.
+  - **Risque restant.** Copier un jour `nginx/hopegestion.conf` du dépôt sur le VPS (réinstallation, nouveau serveur) casserait probablement l'affichage des photos JPG/PNG.
+  - **À faire.** Remettre le fichier du dépôt en accord avec la configuration réelle, avant la modification de nginx du § 4.
+    - Sur le VPS, `sudo nginx -T | grep -nE "server_name|location|root|alias|try_files"` affiche la structure sans aucun secret.
+- **Vérifié au passage : l'accès sans connexion.** Le même test confirme qu'un fichier de `/uploads/` s'ouvre sans être connecté, comme décrit au § 1.
 - **Cache 30 jours.** `/uploads/` est servi avec `Cache-Control: public` pour 30 jours. Pour les dossiers privés, ce cache devra devenir `private`, faute de quoi un proxy intermédiaire pourrait garder une copie.

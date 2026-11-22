@@ -1793,7 +1793,7 @@ Mis à jour automatiquement après chaque tâche.
 
 ### T-107 : Inventaire des fichiers privés (audit S7), sans modification de code
 - **Date** : 2026-11-19
-- **Statut** : Terminée
+- **Statut** : Modifiée (voir T-108)
 - **Type** : Documentation
 - **Description** : Inventaire de tous les fichiers stockés par la plateforme : voie de service, dossier, colonne en base, écrans du site et de l'application mobile qui les affichent, sensibilité et proposition public/privé. Il complète T-013 et l'audit S7 et propose une solution de liens temporaires signés distribués par l'API, sans changement côté clients. Rapport : `docs/suivi/INVENTAIRE_FICHIERS_2026-11-19.md`.
 - **Fichiers touchés** : `docs/suivi/INVENTAIRE_FICHIERS_2026-11-19.md` (créé)
@@ -1806,3 +1806,16 @@ Mis à jour automatiquement après chaque tâche.
   - **Constat important (à confirmer sur le VPS)** : dans `nginx/hopegestion.conf`, la règle par motif des fichiers statiques (`~* \.(png|jpg…)$`, `try_files $uri =404`) prime sur `location /uploads/`. Les JPG/PNG/GIF du disque renverraient donc 404 alors qu'ils existent. Explication possible d'une partie des photos « perdues ». Correction proposée : `location ^~ /uploads/`.
   - Historique git partiel dans la session (clone superficiel) : impossible de dater les fichiers produits avant l'ajout des noms aléatoires (T-013) ; aucune incidence sur la proposition.
 - **Remplace / modifie** : complète T-013 (inventaire) et l'audit S7, sans les modifier.
+
+### T-108 : Inventaire des fichiers — constat nginx infirmé par une vérification sur le VPS
+- **Date** : 2026-11-22
+- **Statut** : Terminée
+- **Type** : Documentation
+- **Description** : Le rapport T-107 supposait, d'après `nginx/hopegestion.conf` du dépôt, que les photos JPG/PNG du disque renvoyaient 404 (règle par motif prioritaire sur `location /uploads/`). Vérification faite sur le VPS par l'utilisateur : des JPG/PNG sont bien présents dans `backend/uploads/properties/` et s'ouvrent normalement sur hopegestion.com. Le § 7 du rapport et son résumé sont corrigés en conséquence.
+- **Fichiers touchés** : `docs/suivi/INVENTAIRE_FICHIERS_2026-11-19.md`, `docs/JOURNAL_PROJET.md` (statut de T-107)
+- **Décisions & justifications** :
+  - **Conclusion sur les photos.** Les photos « perdues » manquent réellement sur le disque : nginx n'y est pour rien. L'image de remplacement (T-097) reste pertinente.
+  - **Écart de configuration.** La configuration nginx réelle du VPS diffère de celle du dépôt. Risque : une réinstallation à partir du dépôt casserait l'affichage des photos JPG/PNG.
+  - **Action recommandée.** Resynchroniser le fichier du dépôt d'après `nginx -T`, en ne relevant que la structure, sans secrets, avant toute modification nginx pour les liens signés.
+- **Problèmes rencontrés** : l'hypothèse de T-107 reposait sur le fichier du dépôt, alors que la configuration réelle n'était pas accessible depuis la session. Elle était présentée « à confirmer » et la vérification demandée l'a infirmée.
+- **Remplace / modifie** : T-107 (constat du § 7 uniquement ; le reste de l'inventaire est inchangé)
