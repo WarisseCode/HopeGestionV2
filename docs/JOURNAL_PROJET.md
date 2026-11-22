@@ -1819,3 +1819,15 @@ Mis à jour automatiquement après chaque tâche.
   - **Action recommandée.** Resynchroniser le fichier du dépôt d'après `nginx -T`, en ne relevant que la structure, sans secrets, avant toute modification nginx pour les liens signés.
 - **Problèmes rencontrés** : l'hypothèse de T-107 reposait sur le fichier du dépôt, alors que la configuration réelle n'était pas accessible depuis la session. Elle était présentée « à confirmer » et la vérification demandée l'a infirmée.
 - **Remplace / modifie** : T-107 (constat du § 7 uniquement ; le reste de l'inventaire est inchangé)
+
+### T-109 : Fichier nginx du dépôt aligné sur la configuration réelle du VPS
+- **Date** : 2026-11-22
+- **Statut** : Terminée
+- **Type** : Config
+- **Description** : D'après l'extrait `nginx -T` fourni par l'utilisateur (structure seule, sans secrets), le fichier `nginx/hopegestion.conf` du dépôt est mis à jour sur deux points : `location ^~ /uploads/` (au lieu de `location /uploads/`) et `server_name … 82.29.177.34` dans les deux blocs `server`. Cela confirme et explique le constat de T-108.
+- **Fichiers touchés** : `nginx/hopegestion.conf`
+- **Décisions & justifications** :
+  - **Seules les lignes vues dans l'extrait sont reprises.** L'ordre des blocs `server` diffère sur le VPS (443 avant 80) : c'est sans effet, il n'est pas reproduit.
+  - **Aucun effet sur la production.** Le déploiement ne copie pas ce fichier sur le VPS. Le but est d'éviter qu'une réinstallation à partir du dépôt casse l'affichage des photos JPG/PNG, et de partir d'une base exacte pour la future modification des liens signés.
+- **Problèmes rencontrés** : `nginx -t` impossible dans la session (nginx non installable). Modification limitée aux deux lignes relevées sur le VPS, où elles sont validées par `nginx -T` (« syntax is ok »).
+- **Remplace / modifie** : complète T-108
