@@ -22,7 +22,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
     className = ""
 }) => {
     const [uploading, setUploading] = useState(false);
-    const [fileName, setFileName] = useState<string | null>(value ? value.split('/').pop() || 'Document' : null);
+    const [fileName, setFileName] = useState<string | null>(value ? value.split('?')[0].split('/').pop() || 'Document' : null);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 

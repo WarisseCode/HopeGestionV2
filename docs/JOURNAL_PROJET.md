@@ -1790,3 +1790,64 @@ Mis à jour automatiquement après chaque tâche.
     - loyer de 20 Mds échelonné : 500 → 400 avec message ;
     - Jest 525/525 (7 nouveaux tests) ; TypeScript OK ; ESLint sans erreur ; YAML valide.
 - **Remplace / modifie** : —
+
+### T-107 : Inventaire des fichiers privés (audit S7), sans modification de code
+- **Date** : 2026-11-19
+- **Statut** : Modifiée (voir T-108)
+- **Type** : Documentation
+- **Description** : Inventaire de tous les fichiers stockés par la plateforme : voie de service, dossier, colonne en base, écrans du site et de l'application mobile qui les affichent, sensibilité et proposition public/privé. Il complète T-013 et l'audit S7 et propose une solution de liens temporaires signés distribués par l'API, sans changement côté clients. Rapport : `docs/suivi/INVENTAIRE_FICHIERS_2026-11-19.md`.
+- **Fichiers touchés** : `docs/suivi/INVENTAIRE_FICHIERS_2026-11-19.md` (créé)
+- **Décisions & justifications** :
+  - **Liens signés à la sortie de l'API plutôt qu'une route « connecté uniquement ».** Les balises `<img>`, `window.open` et l'application mobile ouvrent le lien sans jeton de connexion. Un contrôle par session casserait 46 endroits du site et le mobile.
+  - **Liens en base inchangés.** Mise en place en trois temps : signer, vérifier, puis fermer l'accès non signé.
+  - **Photos de biens publiques.** Elles sont nécessaires aux annonces publiques des lots vacants.
+- **Problèmes rencontrés** :
+  - **Nouveau constat** : `tenants.photo_piece_url` (pièce d'identité) passe par `/api/upload` (dossier `documents/`). L'application mobile lit directement `quittance_url`, `photo_piece_url` et `proof_url`. Les photos de tickets sont stockées en base (pas de fichier).
+  - **Constat important (à confirmer sur le VPS)** : dans `nginx/hopegestion.conf`, la règle par motif des fichiers statiques (`~* \.(png|jpg…)$`, `try_files $uri =404`) prime sur `location /uploads/`. Les JPG/PNG/GIF du disque renverraient donc 404 alors qu'ils existent. Explication possible d'une partie des photos « perdues ». Correction proposée : `location ^~ /uploads/`.
+  - Historique git partiel dans la session (clone superficiel) : impossible de dater les fichiers produits avant l'ajout des noms aléatoires (T-013) ; aucune incidence sur la proposition.
+- **Remplace / modifie** : complète T-013 (inventaire) et l'audit S7, sans les modifier.
+
+### T-108 : Inventaire des fichiers — constat nginx infirmé par une vérification sur le VPS
+- **Date** : 2026-11-22
+- **Statut** : Terminée
+- **Type** : Documentation
+- **Description** : Le rapport T-107 supposait, d'après `nginx/hopegestion.conf` du dépôt, que les photos JPG/PNG du disque renvoyaient 404 (règle par motif prioritaire sur `location /uploads/`). Vérification faite sur le VPS par l'utilisateur : des JPG/PNG sont bien présents dans `backend/uploads/properties/` et s'ouvrent normalement sur hopegestion.com. Le § 7 du rapport et son résumé sont corrigés en conséquence.
+- **Fichiers touchés** : `docs/suivi/INVENTAIRE_FICHIERS_2026-11-19.md`, `docs/JOURNAL_PROJET.md` (statut de T-107)
+- **Décisions & justifications** :
+  - **Conclusion sur les photos.** Les photos « perdues » manquent réellement sur le disque : nginx n'y est pour rien. L'image de remplacement (T-097) reste pertinente.
+  - **Écart de configuration.** La configuration nginx réelle du VPS diffère de celle du dépôt. Risque : une réinstallation à partir du dépôt casserait l'affichage des photos JPG/PNG.
+  - **Action recommandée.** Resynchroniser le fichier du dépôt d'après `nginx -T`, en ne relevant que la structure, sans secrets, avant toute modification nginx pour les liens signés.
+- **Problèmes rencontrés** : l'hypothèse de T-107 reposait sur le fichier du dépôt, alors que la configuration réelle n'était pas accessible depuis la session. Elle était présentée « à confirmer » et la vérification demandée l'a infirmée.
+- **Remplace / modifie** : T-107 (constat du § 7 uniquement ; le reste de l'inventaire est inchangé)
+
+### T-109 : Fichier nginx du dépôt aligné sur la configuration réelle du VPS
+- **Date** : 2026-11-22
+- **Statut** : Terminée
+- **Type** : Config
+- **Description** : D'après l'extrait `nginx -T` fourni par l'utilisateur (structure seule, sans secrets), le fichier `nginx/hopegestion.conf` du dépôt est mis à jour sur deux points : `location ^~ /uploads/` (au lieu de `location /uploads/`) et `server_name … 82.29.177.34` dans les deux blocs `server`. Cela confirme et explique le constat de T-108.
+- **Fichiers touchés** : `nginx/hopegestion.conf`
+- **Décisions & justifications** :
+  - **Seules les lignes vues dans l'extrait sont reprises.** L'ordre des blocs `server` diffère sur le VPS (443 avant 80) : c'est sans effet, il n'est pas reproduit.
+  - **Aucun effet sur la production.** Le déploiement ne copie pas ce fichier sur le VPS. Le but est d'éviter qu'une réinstallation à partir du dépôt casse l'affichage des photos JPG/PNG, et de partir d'une base exacte pour la future modification des liens signés.
+- **Problèmes rencontrés** : `nginx -t` impossible dans la session (nginx non installable). Modification limitée aux deux lignes relevées sur le VPS, où elles sont validées par `nginx -T` (« syntax is ok »).
+- **Remplace / modifie** : complète T-108
+
+### T-110 : Fichiers privés — étape 1 : liens signés dans les réponses de l'API (audit S7)
+- **Date** : 2026-11-22
+- **Statut** : Terminée
+- **Type** : Fonctionnalité
+- **Description** : Chaque réponse JSON de l'API remplace les liens vers un fichier privé de `/uploads/` par un lien signé, valable au moins 1 h (`?exp=…&sig=…`). Tous les dossiers sont privés sauf `properties/` (photos des biens, décision utilisateur). Les signatures sont retirées des liens reçus avant enregistrement. La vérification des signatures sur `/uploads` est écrite et testée, mais **désactivée** (`FILE_URLS_ENFORCE` absent) : rien n'est bloqué à cette étape.
+- **Fichiers touchés** : `backend/utils/signedFiles.ts` (créé), `backend/middleware/signedFileUrls.ts` (créé), `backend/index.ts` (montage), `backend/tests/utils/signedFiles.test.ts` (créé), `backend/tests/middleware/signedFileUrls.test.ts` (créé), `frontend/src/components/ui/DocumentUpload.tsx` (nom de fichier affiché sans la signature)
+- **Décisions & justifications** :
+  - **Un seul point de passage** (surcharge de `res.json` sur `/api`), plutôt qu'une modification route par route : aucune route ne peut être oubliée (baux, locataires, paiements, EDL, routes mobiles). Le parcours copie uniquement ce qui change et ne modifie jamais les objets d'origine (caches serveur partagés). Les objets non simples (Date…) sont laissés tels quels.
+  - **Expiration arrondie à la demi-heure** (validité 1 h à 1 h 30) : un même fichier garde le même lien 30 min, sans quoi le navigateur et le mobile re-téléchargeraient les images à chaque page.
+  - **Clé dérivée de `JWT_SECRET`** (HMAC avec un libellé dédié) : aucune variable à ajouter sur le VPS.
+  - **Spaces hors périmètre** : la production stocke tout sur le disque (commentaire de `app_config.dart` côté mobile, confirmé par le code). Les liens Spaces éventuels sont laissés intacts.
+  - **Clients** : le site et le mobile ajoutent eux-mêmes l'hôte aux liens relatifs, en conservant la chaîne de requête. Seul `DocumentUpload.tsx` déduisait un nom de fichier de la fin du lien : corrigé. Le mobile détermine le type d'un document par la colonne `type` (MIME), il n'est donc pas concerné.
+- **Problèmes rencontrés** :
+  - Strictness TypeScript (`noUncheckedIndexedAccess`) sur les groupes d'expression régulière : corrigée.
+  - Import d'abord placé après son usage dans `index.ts` (un `require` compilé en place aurait échoué au démarrage) : déplacé en tête.
+  - Vérifications :
+    - Jest 569/569 (44 nouveaux tests) ; TypeScript OK ; ESLint sans nouvelle erreur ;
+    - serveur réel (×40) : `/locataires` 3 Mo, 8 000 liens signés, 172 → 198 ms ; photos des lots non signées ; aucune erreur serveur.
+- **Remplace / modifie** : met en œuvre l'étape 1 de T-107 (§ 4). Étapes 2 (vérification d'affichage) et 3 (fermeture de l'accès non signé : `FILE_URLS_ENFORCE=true` et nginx) restent à faire.
