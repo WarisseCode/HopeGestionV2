@@ -1831,3 +1831,23 @@ Mis à jour automatiquement après chaque tâche.
   - **Aucun effet sur la production.** Le déploiement ne copie pas ce fichier sur le VPS. Le but est d'éviter qu'une réinstallation à partir du dépôt casse l'affichage des photos JPG/PNG, et de partir d'une base exacte pour la future modification des liens signés.
 - **Problèmes rencontrés** : `nginx -t` impossible dans la session (nginx non installable). Modification limitée aux deux lignes relevées sur le VPS, où elles sont validées par `nginx -T` (« syntax is ok »).
 - **Remplace / modifie** : complète T-108
+
+### T-110 : Fichiers privés — étape 1 : liens signés dans les réponses de l'API (audit S7)
+- **Date** : 2026-11-22
+- **Statut** : Terminée
+- **Type** : Fonctionnalité
+- **Description** : Chaque réponse JSON de l'API remplace les liens vers un fichier privé de `/uploads/` par un lien signé, valable au moins 1 h (`?exp=…&sig=…`). Tous les dossiers sont privés sauf `properties/` (photos des biens, décision utilisateur). Les signatures sont retirées des liens reçus avant enregistrement. La vérification des signatures sur `/uploads` est écrite et testée, mais **désactivée** (`FILE_URLS_ENFORCE` absent) : rien n'est bloqué à cette étape.
+- **Fichiers touchés** : `backend/utils/signedFiles.ts` (créé), `backend/middleware/signedFileUrls.ts` (créé), `backend/index.ts` (montage), `backend/tests/utils/signedFiles.test.ts` (créé), `backend/tests/middleware/signedFileUrls.test.ts` (créé), `frontend/src/components/ui/DocumentUpload.tsx` (nom de fichier affiché sans la signature)
+- **Décisions & justifications** :
+  - **Un seul point de passage** (surcharge de `res.json` sur `/api`), plutôt qu'une modification route par route : aucune route ne peut être oubliée (baux, locataires, paiements, EDL, routes mobiles). Le parcours copie uniquement ce qui change et ne modifie jamais les objets d'origine (caches serveur partagés). Les objets non simples (Date…) sont laissés tels quels.
+  - **Expiration arrondie à la demi-heure** (validité 1 h à 1 h 30) : un même fichier garde le même lien 30 min, sans quoi le navigateur et le mobile re-téléchargeraient les images à chaque page.
+  - **Clé dérivée de `JWT_SECRET`** (HMAC avec un libellé dédié) : aucune variable à ajouter sur le VPS.
+  - **Spaces hors périmètre** : la production stocke tout sur le disque (commentaire de `app_config.dart` côté mobile, confirmé par le code). Les liens Spaces éventuels sont laissés intacts.
+  - **Clients** : le site et le mobile ajoutent eux-mêmes l'hôte aux liens relatifs, en conservant la chaîne de requête. Seul `DocumentUpload.tsx` déduisait un nom de fichier de la fin du lien : corrigé. Le mobile détermine le type d'un document par la colonne `type` (MIME), il n'est donc pas concerné.
+- **Problèmes rencontrés** :
+  - Strictness TypeScript (`noUncheckedIndexedAccess`) sur les groupes d'expression régulière : corrigée.
+  - Import d'abord placé après son usage dans `index.ts` (un `require` compilé en place aurait échoué au démarrage) : déplacé en tête.
+  - Vérifications :
+    - Jest 569/569 (44 nouveaux tests) ; TypeScript OK ; ESLint sans nouvelle erreur ;
+    - serveur réel (×40) : `/locataires` 3 Mo, 8 000 liens signés, 172 → 198 ms ; photos des lots non signées ; aucune erreur serveur.
+- **Remplace / modifie** : met en œuvre l'étape 1 de T-107 (§ 4). Étapes 2 (vérification d'affichage) et 3 (fermeture de l'accès non signé : `FILE_URLS_ENFORCE=true` et nginx) restent à faire.

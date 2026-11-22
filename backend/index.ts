@@ -23,6 +23,7 @@ import mobileMoneyRoutes from './routes/mobileMoneyRoutes';
 import alertRoutes from './routes/alertRoutes';
 
 import { protect, AuthenticatedRequest } from './middleware/authMiddleware';
+import { signFileUrlsInResponses, stripFileUrlSignatures, serveUploadsWithSignature } from './middleware/signedFileUrls';
 import { checkMaintenance } from './middleware/maintenanceMiddleware';
 import { createMobileAuthCorsGate } from './middleware/mobileAuthCorsGate';
 
@@ -173,12 +174,16 @@ app.use('/uploads', (req, res, next) => {
     }
     res.header('Cross-Origin-Resource-Policy', 'same-site');
     next();
-}, express.static(path.join(__dirname, '../uploads')));
+}, serveUploadsWithSignature, express.static(path.join(__dirname, '../uploads')));
 
 // --- 2. Routes de l'API ---
 
 // Apply maintenance check to all API routes (before rate limiting)
 app.use('/api', checkMaintenance);
+
+// Liens de fichiers privés (audit S7) : signés dans chaque réponse JSON (valables ≥ 1 h),
+// signature retirée des liens reçus avant enregistrement. Voir middleware/signedFileUrls.ts.
+app.use('/api', stripFileUrlSignatures, signFileUrlsInResponses);
 
 // Apply general rate limiting to all API routes
 app.use('/api', apiLimiter);
