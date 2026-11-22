@@ -1851,3 +1851,27 @@ Mis à jour automatiquement après chaque tâche.
     - Jest 569/569 (44 nouveaux tests) ; TypeScript OK ; ESLint sans nouvelle erreur ;
     - serveur réel (×40) : `/locataires` 3 Mo, 8 000 liens signés, 172 → 198 ms ; photos des lots non signées ; aucune erreur serveur.
 - **Remplace / modifie** : met en œuvre l'étape 1 de T-107 (§ 4). Étapes 2 (vérification d'affichage) et 3 (fermeture de l'accès non signé : `FILE_URLS_ENFORCE=true` et nginx) restent à faire.
+
+### T-111 : Fichiers privés — étape 3 préparée (configuration nginx + procédure VPS)
+- **Date** : 2026-11-22
+- **Statut** : Terminée
+- **Type** : Config
+- **Description** : Étape 2 validée par l'utilisateur (tous les fichiers s'affichent avec les liens signés, déploiement #64 réussi). L'étape 3 est préparée : `nginx/hopegestion.conf` sert directement `/uploads/properties/` et transmet les autres dossiers de `/uploads/` à Node, qui vérifie la signature quand `FILE_URLS_ENFORCE=true`. La procédure pas à pas pour le VPS (sauvegarde, remplacement du bloc, test, activation, vérifications, retour arrière) est dans `docs/suivi/FICHIERS_PRIVES_ETAPE3.md`.
+- **Fichiers touchés** : `nginx/hopegestion.conf`, `docs/suivi/FICHIERS_PRIVES_ETAPE3.md` (créé)
+- **Décisions & justifications** :
+  - **Node vérifie la signature, plutôt que le module nginx `secure_link`.** Il n'y a qu'une seule implémentation de la vérification, déjà testée (T-110). Pas de dépendance à un module nginx ni d'algorithme à dupliquer.
+  - **Deux temps sur le VPS** : d'abord nginx, sans effet visible puisque le contrôle est éteint, puis l'activation. Chacun se vérifie et se défait en une commande.
+  - **Contrôles préalables.**
+    - L'application mobile ne conserve aucune réponse de l'API sur le téléphone (`shared_preferences` : langue, thème, accueil uniquement).
+    - Le cache des pages du site est en mémoire et rafraîchi à chaque visite.
+    - Aucun e-mail ni notification ne contient de lien vers un fichier.
+- **Problèmes rencontrés** :
+  - Premier essai du script de test sans `JWT_SECRET` (le script, pas le serveur) : relancé avec l'environnement de test.
+  - Comportement mesuré sur un serveur réel, contrôle éteint puis activé :
+    - lien signé : 200 (`private`) ;
+    - sans signature ou signature d'un autre fichier : 403 ;
+    - photo de bien : 200 ;
+    - nom accentué signé : 200 ;
+    - remontée de dossier : 404.
+  - `nginx -t` impossible dans la session (nginx non installable) : la procédure fait valider la syntaxe par `nginx -t` sur le VPS avant tout rechargement.
+- **Remplace / modifie** : complète T-110 (étapes 2 et 3 du plan de T-107)
