@@ -5,7 +5,7 @@
 
 ## Commits et pull requests
 
-- Auteur des commits : Warisse OTCHADE <155968067+WarisseCode@users.noreply.github.com> (configurer `git config user.name` / `user.email` en début de session si besoin).
+- Auteur des commits : Warisse OTCHADE <155968067+WarisseCode> (configurer `git config user.name` / `user.email` en début de session si besoin).
 - Aucune mention de Claude ou de Claude Code : pas de ligne `Co-Authored-By`, pas de `Claude-Session`, pas de pied de page « Generated with Claude Code » ni de lien de session dans les commits, les descriptions de PR ou les commentaires GitHub.
 
 
