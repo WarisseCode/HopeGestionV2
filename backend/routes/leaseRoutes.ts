@@ -532,18 +532,4 @@ async function generatePaymentSchedule(dbClient: any, leaseId: number, startDate
     await dbClient.query('UPDATE leases SET next_payment_date = $1 WHERE id = $2', [firstPaymentDate, leaseId]);
 }
 
-/*
- * ═══════════════════════════════════════════════════
- * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — leaseRoutes.ts (+ LeaseService.ts)
- * ═══════════════════════════════════════════════════
- * ✅ Import pool supprimé et remplacé par le commentaire d'avertissement.
- * ✅ tenantGuard ajouté sur toutes les routes de leaseRoutes.ts.
- * ✅ pool.query() remplacé par req.dbClient.query() sur toutes les requêtes (y compris \`generatePaymentSchedule\`).
- * ✅ resolvedOwnerId utilisé pour le champ owner_id dans le INSERT originel (POST /).
- * ✅ Anciens accès manuels (filterByOwner, buildOwnerWhereClause) supprimés de leaseRoutes et du LeaseService associé.
- * ✅ Réponse 404 ajoutée si la requete retourne 0 lignes modifiées (PUT, POST /resilier, POST /renouveler, POST /sign).
- * ⚠️ Points d'attention particuliers : LeaseService.findAll a été refactoré pour accepter \`dbClient\` en paramètre, empêchant ainsi la rupture du RLS en déléguant la requête au backend centralisé.
- * ═══════════════════════════════════════════════════
- */
-
 export default router;

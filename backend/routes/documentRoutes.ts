@@ -575,18 +575,4 @@ router.post('/generate/lease/:id', permissions.canWrite('documents'), tenantGuar
     }
 });
 
-/*
- * ═══════════════════════════════════════════════════
- * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — documentRoutes.ts
- * ═══════════════════════════════════════════════════
- * ✅ Import pool supprimé et remplacé par l'avertissement réglementaire.
- * ✅ tenantGuard ajouté post-authMiddleware sur toutes les méthodes.
- * ✅ GET : isolation multi-tenant explicite (aucune policy RLS active sur documents).
- * ✅ Remplacement de tous les pool.query par req.dbClient.query.
- * ✅ 'DELETE /:id' : soft-delete avec clause de propriété explicite + rowCount = 0 → 404.
- * ✅ Routes PDF modifiées pour incorporer la variable dbClient ET user_id, mais la création PDF ne subit pas d'interruption.
- * ✅ 'strictOwnerId' systématiquement injecté dans les requêtes de créations de documents en BDD via 'INSERT INTO documents'.
- * ═══════════════════════════════════════════════════
- */
-
 export default router;

@@ -230,18 +230,4 @@ router.delete('/:id', permissions.canWrite('finance'), validate(expenseIdParam),
     }
 });
 
-/*
- * ═══════════════════════════════════════════════════
- * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — expenseRoutes.ts
- * ═══════════════════════════════════════════════════
- * ✅ Application globale de protect et tenantGuard en haut de fichier via router.use().
- * ✅ L'ordre global positionne automatiquement tenantGuard AVANT multer (upload.single),
- *    empêchant ainsi l'écriture de fichier en cas d'accès rejeté ou d'absence de JWT valide.
- * ✅ Suppression totale de 'filterByOwner' et autres anciens helpers manuels désormais caduques.
- * ✅ Injection sécurisée de resolvedOwnerId sur l'INSERT de dépense.
- * ✅ Ajout d'un fs.unlinkSync() dans le catch pour nettoyer le fichier uploadé si l'insertion DB plante.
- * ✅ Blocage IDOR (404) sur le DELETE.
- * ═══════════════════════════════════════════════════
- */
-
 export default router;

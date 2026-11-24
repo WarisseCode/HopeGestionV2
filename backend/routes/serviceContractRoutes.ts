@@ -121,16 +121,4 @@ router.delete('/:id', protect, tenantGuard, async (req: any, res) => {
     }
 });
 
-/*
- * ═══════════════════════════════════════════════════
- * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — serviceContractRoutes.ts
- * ═══════════════════════════════════════════════════
- * ✅ La table service_contracts a été ajoutée à migration_rls.sql.
- * ✅ Suppression totale de IS NULL pour les contrats globaux ; le RLS exige un propriétaire pour chaque table métier.
- * ✅ Correction complète des failles d'escalade de privilège (IDOR) sur l'UPDATE et le DELETE avec le passage au dbClient.query. Un 404 est retourné si l'accès est refusé.
- * ✅ owner_id est récupéré depuis le resolvedOwnerId du JWT et ne provient plus jamais du client lors d'un POST.
- * ✅ L'helper de vérification manuelle getManagedOwnerId a été retiré.
- * ═══════════════════════════════════════════════════
- */
-
 export default router;

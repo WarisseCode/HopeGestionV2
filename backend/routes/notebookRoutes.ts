@@ -319,16 +319,4 @@ router.post('/field-actions', async (req: AuthenticatedRequest, res: Response) =
     }
 });
 
-/*
- * ═══════════════════════════════════════════════════
- * RÉCAPITULATIF DES CORRECTIONS USER-LEVEL — notebookRoutes.ts
- * ═══════════════════════════════════════════════════
- * ✅ tenantGuard N'A PAS été appliqué : Les notes, les contacts et field_actions appartiennent à l'utilisateur qui les crée (agent/gestionnaire), indépendamment de l'agence (owner_id).
- * ✅ L'import de pool est explicitement autorisé et documenté.
- * ✅ Toutes les requêtes garantissent de filtrer via le user_id fourni par req.userId venant du JWT (plus aucune fuite inter-utilisateur possible).
- * ✅ L'IDOR est contrecarré (le DELETE exige `WHERE id = $1 AND user_id = $2`) et déclenche un 404 dans ce cas contraire.
- * ✅ Aucun owner_id impliqué.
- * ═══════════════════════════════════════════════════
- */
-
 export default router;

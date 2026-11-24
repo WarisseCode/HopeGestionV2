@@ -453,7 +453,7 @@ Tous les champs sont facultatifs :
 - **409** si l'échéance est déjà soldée, **404** si elle est introuvable ou n'appartient pas aux propriétaires gérés.
 - Aucune route ne permet de modifier ou d'annuler un paiement : afficher un récapitulatif et désactiver le bouton pendant l'envoi pour éviter un double encaissement.
 
-> ⚠️ **Ne pas utiliser `POST /api/paiements`** (ancienne version de cette section) : elle ne met à jour que la colonne `statut` de l'échéance (les pages Échéances, statistiques et paiement en ligne lisent la colonne `status`) et ne génère **aucune** quittance. Elle n'est plus appelée que par la page détail du bail du web. `POST /api/finances` (encaissement sans échéance, utilisé par la page Finances du web) ne génère pas non plus de quittance.
+> ⚠️ **`POST /api/paiements` n'existe plus** (route supprimée le 2026-11-24, T-114, avec `/api/baux` et `/api/depenses`) : elle ne mettait à jour que la colonne `statut` de l'échéance et ne générait **aucune** quittance. Utiliser la route décrite ci-dessus. `POST /api/finances` (encaissement sans échéance, utilisé par la page Finances du web) ne génère pas non plus de quittance.
 
 ### 8.3 Initialisation d'un Paiement Mobile Money (FedaPay)
 Pour le portail locataire sur mobile :

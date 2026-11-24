@@ -389,7 +389,8 @@ export class FinanceService {
      * - `status` (pending/partial/paid) : lu par getSchedules, getStats, RentPaymentService
      *   et la page Échéances du web ;
      * - `statut` (en_attente/partiel/paye) : lu par la page détail du bail du web
-     *   (LocationDetails.tsx) et écrit par POST /api/paiements.
+     *   (LocationDetails.tsx) ; anciennement écrit aussi par POST /api/paiements (route
+     *   supprimée en T-114) : des échéances anciennes peuvent ne porter que ce statut.
      * Cette méthode écrit les deux, et considère l'échéance soldée si l'une OU l'autre le
      * dit, ou si `amount_paid` atteint `total_amount` (seule valeur tenue à jour par toutes
      * les routes d'encaissement).

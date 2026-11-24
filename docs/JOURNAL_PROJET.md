@@ -1914,3 +1914,57 @@ Mis à jour automatiquement après chaque tâche.
   - **Aucune action sur le VPS.** Le déploiement automatique redémarre le serveur, et `FILE_URLS_ENFORCE=true` reste dans `.env`, qui n'est pas suivi par git.
 - **Problèmes rencontrés** : Jest 575/575 (6 nouveaux tests) ; TypeScript OK ; ESLint sans erreur.
 - **Remplace / modifie** : complète T-110 à T-112 (audit S7 clos côté fichiers stockés sur le disque)
+
+### T-114 : Suppression des API en double et du code mort
+- **Date** : 2026-11-24
+- **Statut** : Terminée
+- **Type** : Refactorisation
+- **Description** : Retrait de ce que ni le site ni l'application mobile n'utilisent :
+  - **API en double** : `/api/baux`, `/api/paiements` et `/api/depenses`, doublons de `/api/locations`, `/api/finances` et `/api/expenses` ;
+  - **fichier d'exemple** : `UPLOAD_MIGRATION_EXAMPLE.ts` ;
+  - **11 fichiers du site importés nulle part** ;
+  - **commentaires « RÉCAPITULATIF DES CORRECTIONS »** en fin de 13 fichiers de routes.
+  
+  Environ 2 300 lignes retirées.
+- **Fichiers touchés** :
+  - backend : `index.ts` (montages et imports), `routes/{baux,paiement,depense}Routes.ts` et `routes/UPLOAD_MIGRATION_EXAMPLE.ts` (supprimés), 13 fichiers de `routes/` (commentaires), `services/FinanceService.ts` (commentaire périmé), `tests/routes/rlsOnly.ownerScope.test.ts` (tests de `/api/depenses` retirés) ;
+  - frontend (supprimés) : `components/locataires/{LocataireCard,LocataireListRow}.tsx`, `components/biens/{ImmeubleCard,LotCard}.tsx`, `components/ui/DocumentUpload.tsx`, `components/PermissionGate.tsx`, `theme/Theme.tsx`, `data/countries.ts`, `pages/public/index.ts`, `pages/LotsPage.tsx`, `pages/UserSpecificRedirect.tsx` ;
+  - docs : `docs/API_DOCUMENTATION_MOBILE.md` (avertissement sur `POST /api/paiements` mis à jour).
+- **Décisions & justifications** :
+  - **Usage vérifié des trois API.** Aucun appel côté site (seulement des noms d'onglets ou de graphiques) ni côté mobile (le code mobile les cite comme « appelés par aucun client »).
+    - La documentation mobile et un commentaire de `FinanceService` affirmaient que `POST /api/paiements` était encore utilisé par la page détail du bail : c'est faux aujourd'hui, la page utilise `/api/finances`. Les deux textes sont corrigés.
+    - `/api/baux` renvoyait tous les baux d'un coup (2,6 Mo sur la base de test ×40).
+  - **Fichiers du site.** Ils ont été repérés par recherche des imports, puis vérifiés un par un. Une seconde passe après suppression n'a révélé qu'un nouvel orphelin, `api/delegationApi.ts`.
+  - **Conservés volontairement** :
+    - `pages/DelegationsPage.tsx` et `api/delegationApi.ts` : fonctionnalité complète (écran et routes serveur `/api/delegations`) jamais branchée au menu. Décision à l'utilisateur.
+    - `utils/crypto.ts` : chiffrement AES-GCM prévu par le cahier des charges, non utilisé.
+    - `data/mockProperties.ts` : utilisé par le carrousel public et le chatbot.
+    - `stories/*` : Storybook.
+  - **Tests de `/api/depenses`.** Retirés avec la route : la même protection par propriétaire est testée sur `/api/expenses`.
+- **Problèmes rencontrés** :
+  - Vérifications :
+    - Jest 569/569 (575 − 6 tests de la route supprimée) ; TypeScript backend et frontend sans erreur ;
+    - ESLint frontend 476 → 465 erreurs, toutes préexistantes ;
+    - `vite build` réussi.
+  - Serveur réel, main puis branche :
+    - les 5 appels aux routes supprimées passent de 200 à 404 ;
+    - les 21 autres appels (dont `/delegations`) sont identiques octet pour octet.
+- **Remplace / modifie** : —
+
+### T-115 : Suppression de la fonction « Délégations » et des branches de menu inaccessibles
+- **Date** : 2026-11-24
+- **Statut** : Terminée
+- **Type** : Refactorisation
+- **Description** : Suppression de la fonction « Délégations », que l'utilisateur a validée après vérification des journaux nginx (0 appel à `/api/delegations`). Elle comprenait une page jamais branchée au menu, son API côté site et la route serveur `/api/delegations`. Suppression aussi des branches « locataire » et « propriétaire » de `buildDashboardMenu`, qui ne s'affichaient jamais ; l'entrée « Mon équipe », qui pointait vers `/equipe`, une adresse sans page, en faisait partie.
+- **Fichiers touchés** : `frontend/src/pages/DelegationsPage.tsx`, `frontend/src/api/delegationApi.ts`, `backend/routes/delegationRoutes.ts`, `backend/tests/routes/delegation.transaction.test.ts` (supprimés) ; `backend/index.ts` ; `backend/middleware/tenantGuard.ts` (commentaire) ; `frontend/src/components/layout/dashboardMenu.tsx`
+- **Décisions & justifications** :
+  - **Délégations remplacée.** « Mon compte › Utilisateurs » (`/api/compte/utilisateurs`) fait la même chose en plus complet : rôles, permissions détaillées, rattachement à plusieurs propriétaires, invités temporaires.
+  - **Mot de passe faible supprimé avec la route.** Elle créait des comptes avec un mot de passe temporaire faible (« Hg » + 4 caractères hexadécimaux + « ! », soit 65 536 possibilités), alors qu'elle restait accessible par l'API.
+  - **« Mon équipe » : première idée abandonnée.** La première correction faisait pointer l'entrée vers `/mon-compte#utilisateurs`, avec lecture de l'ancre dans `MonCompte`. Le test dans le navigateur a montré que cette entrée n'est jamais affichée : `UserSpecificLayout` envoie les propriétaires vers `ProprietaireLayout` et les locataires vers `LocataireLayout`, chacun avec son propre menu. Correction annulée, et branches inaccessibles supprimées, au lieu de réparer un lien invisible.
+  - **Gestion de l'équipe par les propriétaires** : leur menu « Mon profil » ouvre déjà « Mon compte » sur l'onglet Utilisateurs.
+- **Problèmes rencontrés** :
+  - Le constat de T-114 et du message à l'utilisateur (« Mon équipe » mène à une page vide) était faux sur un point : la page était bien vide, mais aucun utilisateur ne pouvait voir le lien. Corrigé ici.
+  - Premiers essais Playwright inopérants (sélecteur `aside a`, tableau de bord gestionnaire en erreur avec données simulées sommaires) : remplacés par la lecture de `#onboarding-sidebar` sur `/dashboard/alertes`.
+  - Résultat, main contre branche : menus identiques pour gestionnaire (20 entrées), propriétaire (12) et locataire (11), sans erreur.
+  - Jest 562/562 (7 tests de la route supprimée retirés) ; TypeScript backend et frontend sans erreur ; ESLint du menu sans erreur ; `vite build` réussi.
+- **Remplace / modifie** : complète T-114

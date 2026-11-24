@@ -466,18 +466,4 @@ router.post('/:id/reject', protect, tenantGuard, validate(tenantIdParam), async 
     }
 });
 
-/*
- * ═══════════════════════════════════════════════════
- * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — locataireRoutes.ts
- * ═══════════════════════════════════════════════════
- * ✅ Import pool supprimé et remplacé par le commentaire d'avertissement.
- * ✅ tenantGuard ajouté sur toutes les routes (7 routes).
- * ✅ pool.query() remplacé par req.dbClient.query() sur 10 occurrences.
- * ✅ resolvedOwnerId utilisé pour la vérification de doublons et l'insertion dans POST /.
- * ✅ Anciens accessCheck (getManagedOwnerIds, getManagedOwnerId) supprimés : 2 helpers complexes jetés. Multiples requêtes économisées.
- * ✅ Réponse 404 ajoutée si rowCount === 0 sur les 4 UPDATE (PUT /, DELETE /, POST /approve, POST /reject).
- * ⚠️ Points d'attention particuliers : L'insertion des notifications a été simplifiée (user_id récupéré avec le RETURNING de l'UPDATE de statut).
- * ═══════════════════════════════════════════════════
- */
-
 export default router;

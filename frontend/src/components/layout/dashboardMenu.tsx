@@ -3,9 +3,9 @@
 // aussi de source des libellés du fil d'Ariane (Header) : une seule table route → libellé.
 import React from 'react';
 import {
-  Building2, Users, FileText, Wallet, Settings, Bell,
+  Building2, Users, Wallet, Settings, Bell,
   LayoutDashboard, CreditCard, FolderOpen, BarChart3, Wrench,
-  Calendar, CalendarCheck, ClipboardList, ClipboardCheck, Briefcase, Crown, CheckSquare,
+  Calendar, CalendarCheck, ClipboardList, ClipboardCheck, Crown, CheckSquare,
   Home, UserCog, Receipt, UserCheck, Boxes, Trash2
 } from 'lucide-react';
 
@@ -39,85 +39,10 @@ export const buildDashboardMenu = (
     const type = userProfile?.userType; // 'locataire', 'proprietaire', etc.
     const perms = userProfile?.permissions || {};
 
-    // --- 1. LOCATAIRE ---
-    if (type === 'locataire') {
-      return [
-        {
-          id: "principal",
-          title: t('nav.groups.principal'),
-          items: [
-             { icon: <LayoutDashboard size={20} />, label: t('nav.bureau'), path: '/' },
-             { icon: <Bell size={20} />, label: t('nav.mesAlertes'), path: '/alertes', badge: alertsCount },
-          ]
-        },
-        {
-          id: "monEspace",
-          title: t('nav.groups.monEspace'),
-          items: [
-            { icon: <FileText size={20} />, label: t('nav.mesContrats'), path: '/contrats' },
-            { icon: <CreditCard size={20} />, label: t('nav.payerEnLigne'), path: '/paiements-loyer' },
-            { icon: <Wallet size={20} />, label: t('nav.mesPaiements'), path: '/finances' },
-            { icon: <Receipt size={20} />, label: t('nav.mesQuittances'), path: '/quittances' },
-            { icon: <FolderOpen size={20} />, label: t('nav.documents'), path: '/documents' },
-            { icon: <UserCog size={20} />, label: t('nav.monCompte'), path: '/mon-compte' },
-          ]
-        }
-      ];
-    }
-
-    // --- 2. PROPRIÉTAIRE ---
-    if (type === 'proprietaire') {
-      return [
-        {
-          id: "principal",
-          title: t('nav.groups.principal'),
-          items: [
-            { icon: <LayoutDashboard size={20} />, label: t('nav.bureau'), path: '/' },
-            { icon: <Crown size={20} />, label: t('nav.abonnement'), path: '/abonnement' },
-            { icon: <Bell size={20} />, label: t('nav.alertes'), path: '/alertes', badge: alertsCount },
-          ]
-        },
-        {
-          id: "gestion",
-          title: t('nav.groups.gestion'),
-          items: [
-            { icon: <Building2 size={20} />, label: t('nav.mesBiens'), path: '/biens' },
-            { icon: <Users size={20} />, label: t('nav.mesLocataires'), path: '/locataires' },
-            { icon: <FileText size={20} />, label: t('nav.locations'), path: '/locations' },
-            { icon: <ClipboardList size={20} />, label: t('nav.contrats'), path: '/contrats' },
-            { icon: <CalendarCheck size={20} />, label: t('nav.reservations'), path: '/reservations' },
-          ]
-        },
-        {
-          id: "finances",
-          title: t('nav.groups.finances'),
-          items: [
-            { icon: <Wallet size={20} />, label: t('nav.financesItem'), path: '/finances' },
-            { icon: <CreditCard size={20} />, label: t('nav.mobileMoney'), path: '/mobile-money' },
-            { icon: <Receipt size={20} />, label: t('nav.quittances'), path: '/quittances' },
-          ]
-        },
-        {
-          id: "organisation",
-          title: t('nav.groups.organisation'),
-          items: [
-            { icon: <Briefcase size={20} />, label: t('nav.monEquipe'), path: '/equipe' },
-            { icon: <Calendar size={20} />, label: t('nav.calendrier'), path: '/calendrier' },
-            { icon: <FolderOpen size={20} />, label: t('nav.documents'), path: '/documents' },
-            { icon: <Wrench size={20} />, label: t('nav.interventions'), path: '/interventions' },
-            { icon: <BarChart3 size={20} />, label: t('nav.rapports'), path: '/rapports' },
-          ]
-        },
-        {
-           id: "compte",
-           title: t('nav.groups.compte'),
-           items: [
-               { icon: <Settings size={20} />, label: t('nav.parametres'), path: '/parametres' },
-               { icon: <UserCog size={20} />, label: t('nav.monProfil'), path: '/mon-compte' },
-           ]
-        }
-      ];
-    }
+    // Pas de branche locataire ni propriétaire : UserSpecificLayout leur attribue leur propre
+    // mise en page (LocataireLayout, ProprietaireLayout) avec leur propre menu ; ce menu-ci
+    // (DashboardLayout) ne leur est jamais affiché. Les anciennes branches, inaccessibles, ont
+    // été retirées en T-115 (dont un lien « Mon équipe » vers /equipe, adresse sans page).
 
     // --- 3. GESTIONNAIRE / ADMIN / GUEST ---
     // Refonte T-070 (maquette T-069) : cinq sections courtes, toujours ouvertes ; les réglages du

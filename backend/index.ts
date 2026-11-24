@@ -7,15 +7,11 @@ import authRoutes from './routes/authRoutes';
 import googleAuthRoutes from './routes/googleAuthRoutes';
 import locataireRoutes from './routes/locataireRoutes'; // <--- AJOUT
 import bienRoutes from './routes/bienRoutes';           // <--- AJOUT
-import bauxRoutes from './routes/bauxRoutes';
-import paiementRoutes from './routes/paiementRoutes';
-import depenseRoutes from './routes/depenseRoutes';
 
 import dashboardRoutes from './routes/dashboardRoutes';
 import compteRoutes from './routes/compteRoutes';
 import ownerRoutes from './routes/ownerRoutes';
 import documentRoutes from './routes/documentRoutes';
-import delegationRoutes from './routes/delegationRoutes';
 import calendarRoutes from './routes/calendarRoutes';
 
 import auditRoutes from './routes/auditRoutes';
@@ -222,17 +218,14 @@ app.use('/api/locataires', protect, locataireRoutes); // <--- NOUVELLE LIGNE
 // Routes Biens Immobiliers (Nécessite le jeton JWT)
 app.use('/api/biens', protect, bienRoutes); // <--- NOUVELLE LIGNE
 
-app.use('/api/baux', protect, bauxRoutes);
-
-app.use('/api/paiements', protect, paiementRoutes);
-
-app.use('/api/depenses', protect, depenseRoutes);
+// /api/baux, /api/paiements et /api/depenses supprimés (T-114) : doublons de /api/locations,
+// /api/finances et /api/expenses, appelés ni par le site ni par l'application mobile.
 
 app.use('/api/dashboard', protect, dashboardRoutes);
 app.use('/api/compte', protect, compteRoutes);
 app.use('/api/owners', protect, ownerRoutes);
 app.use('/api/documents', protect, documentRoutes);
-app.use('/api/delegations', protect, delegationRoutes);
+// /api/delegations supprimé (T-115) : remplacé par Mon compte › Utilisateurs (/api/compte/utilisateurs).
 app.use('/api/calendar', protect, calendarRoutes);
 app.use('/api/audit-logs', protect, auditRoutes);
 
