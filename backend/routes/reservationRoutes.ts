@@ -294,17 +294,4 @@ router.post('/:id/transform', tenantGuard, validate(transformReservationRules), 
     }
 });
 
-/*
- * ═══════════════════════════════════════════════════
- * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — reservationRoutes.ts
- * ═══════════════════════════════════════════════════
- * ✅ Exception Publique documentée : La création par un visiteur de POST /public ignore tenantGuard (sans JWT), son owner_id est inféré via table lots ou buildings nativement.
- * ✅ ownerIsolation intégralement SUPPRIMÉ ("filterByOwner" & "buildOwnerWhereClause" out).
- * ✅ Routes gestionnaires assignées strictement avec tenantGuard (enchaînement avec req.dbClient).
- * ✅ Tous les appels de pool.query() remplacés par req.dbClient.query() sur l'espace d'administration.
- * ✅ L'opération de transformation 'POST /:id/transform' est maintenant englobée par un tunnel transactionnel (BEGIN/COMMIT/ROLLBACK) très strict pour la synchronisation bail et lots.
- * ✅ Déclenchement systémique d'erreur 404 là où blockages RLS peuvent survenir.
- * ═══════════════════════════════════════════════════
- */
-
 export default router;

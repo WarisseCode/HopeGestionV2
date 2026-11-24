@@ -1,8 +1,9 @@
 /**
  * Tests — routes qui ne filtraient que par RLS (aucun filtre applicatif).
  *
- * depenseRoutes (GET /, /stats, /history), providerRoutes (GET /),
- * serviceContractRoutes (GET /), tenantAccessRoutes (GET /:tenantId).
+ * providerRoutes (GET /), serviceContractRoutes (GET /), tenantAccessRoutes (GET /:tenantId).
+ * (Les tests de depenseRoutes ont été retirés avec la route, doublon inutilisé de
+ * /api/expenses — voir T-114.)
  * Convention du projet : ne jamais se fier uniquement à la RLS (le rôle DB peut
  * avoir BYPASSRLS). Ajout d'un scopeByOwner local filtrant sur validOwnerIds,
  * contourné pour admin.
@@ -44,15 +45,12 @@ jest.mock('../../middleware/permissionMiddleware', () => {
 });
 
 import pool from '../../db/database';
-import { protect } from '../../middleware/authMiddleware';
-import depenseRoutes from '../../routes/depenseRoutes';
 import providerRoutes from '../../routes/providerRoutes';
 import serviceContractRoutes from '../../routes/serviceContractRoutes';
 import tenantAccessRoutes from '../../routes/tenantAccessRoutes';
 
 const app = express();
 app.use(express.json());
-app.use('/api/depenses', protect, depenseRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api/service-contracts', serviceContractRoutes);
 app.use('/api/tenant-access', tenantAccessRoutes);
@@ -72,88 +70,6 @@ const get = (url: string, role = 'gestionnaire') =>
 beforeEach(() => {
     jest.clearAllMocks();
     mockValidOwnerIds = [1];
-});
-
-describe('GET /api/depenses', () => {
-    it('gestionnaire multi-propriétaires → filtre e.owner_id = ANY([1, 2])', async () => {
-        mockValidOwnerIds = [1, 2];
-        mockAuthLookup();
-        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
-
-        const res = await get('/api/depenses');
-
-        expect(res.status).toBe(200);
-        const [sql, params] = routeCalls()[0];
-        expect(sql).toContain('e.owner_id = ANY($1::int[])');
-        expect(params).toEqual([[1, 2]]);
-    });
-
-    it('admin → aucune clause owner_id', async () => {
-        mockAuthLookup();
-        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
-
-        const res = await get('/api/depenses', 'admin');
-
-        expect(res.status).toBe(200);
-        const [sql, params] = routeCalls()[0];
-        expect(sql).not.toContain('owner_id = ANY');
-        expect(params).toEqual([]);
-    });
-
-    it('gestionnaire sans lien → filtre sur [] (liste vide)', async () => {
-        mockValidOwnerIds = [];
-        mockAuthLookup();
-        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
-
-        const res = await get('/api/depenses');
-
-        expect(res.status).toBe(200);
-        expect(res.body).toEqual([]);
-        const [sql, params] = routeCalls()[0];
-        expect(sql).toContain('e.owner_id = ANY($1::int[])');
-        expect(params).toEqual([[]]);
-    });
-});
-
-describe('GET /api/depenses/stats et /history', () => {
-    it('stats : les deux agrégats sont filtrés sur validOwnerIds', async () => {
-        mockValidOwnerIds = [1, 2];
-        mockAuthLookup();
-        (pool.query as jest.Mock)
-            .mockResolvedValueOnce({ rows: [{ total: 10 }] })
-            .mockResolvedValueOnce({ rows: [{ total: 20 }] });
-
-        const res = await get('/api/depenses/stats');
-
-        expect(res.status).toBe(200);
-        for (const [sql, params] of routeCalls()) {
-            expect(sql).toContain('owner_id = ANY($1::int[])');
-            expect(params).toEqual([[1, 2]]);
-        }
-        expect(routeCalls()).toHaveLength(2);
-    });
-
-    it('stats admin → non filtrées', async () => {
-        mockAuthLookup();
-        (pool.query as jest.Mock)
-            .mockResolvedValueOnce({ rows: [{ total: 0 }] })
-            .mockResolvedValueOnce({ rows: [{ total: 0 }] });
-
-        await get('/api/depenses/stats', 'admin');
-
-        for (const [sql] of routeCalls()) expect(sql).not.toContain('owner_id = ANY');
-    });
-
-    it('history : filtrée sur validOwnerIds', async () => {
-        mockAuthLookup();
-        (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
-
-        await get('/api/depenses/history');
-
-        const [sql, params] = routeCalls()[0];
-        expect(sql).toContain('owner_id = ANY($1::int[])');
-        expect(params).toEqual([[1]]);
-    });
 });
 
 describe('GET /api/providers', () => {

@@ -170,17 +170,4 @@ router.post('/:tenantId/suspend', protect, permissions.canWrite('locataires'), t
     }
 });
 
-/*
- * ═══════════════════════════════════════════════════
- * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — tenantAccessRoutes.ts
- * ═══════════════════════════════════════════════════
- * ✅ Import pool totalement supprimé grâce au commentaire d'avertissement.
- * ✅ Fonctions d'accès manuelles getManagedOwnerId et verifyTenantAccess SUPPRIMÉES (Obsolètes).
- * ✅ Chaque ancien appel manuel remplacé par : // [RLS] Isolation garantie par PostgreSQL Row-Level Security.
- * ✅ tenantGuard greffé formellement après chaque authMiddleware et validation des permissions existantes.
- * ✅ Remplacement strict de pool.query() par req.dbClient.query().
- * ✅ Traitement explicite de la restriction dynamique RLS via vérification de result.rowCount === 0 propulsant un statut 404 là où indiqué.
- * ═══════════════════════════════════════════════════
- */
-
 export default router;

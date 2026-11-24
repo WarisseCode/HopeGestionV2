@@ -323,16 +323,4 @@ router.delete('/:id', protect, tenantGuard, validate([ticketIdParam]), async (re
     }
 });
 
-/*
- * ═══════════════════════════════════════════════════
- * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — ticketRoutes.ts
- * ═══════════════════════════════════════════════════
- * ✅ Exception Locataire (GET /tenant) documentée et gérée de manière isolée via req.userId.
- * ✅ Exception Mixte (POST /) documentée et sécurisée par la déduction intra-base du owner_id via le lot_id.
- * ✅ tenantGuard assigné strictement aux routes 100% Gestionnaires (GET /, PUT, POST close/reschedule).
- * ✅ L'helper getManagedOwnerId supprimé et remplacé par l'automatisation RLS.
- * ✅ UPDATE bloquant RLS complété avec des throw error 404 (rowCount === 0 explicit refus).
- * ═══════════════════════════════════════════════════
- */
-
 export default router;

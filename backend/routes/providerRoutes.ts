@@ -181,18 +181,4 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
     }
 });
 
-/*
- * ═══════════════════════════════════════════════════
- * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — providerRoutes.ts
- * ═══════════════════════════════════════════════════
- * ✅ Utilisation exclusive de req.dbClient à la place de pool.query.
- * ✅ Application globale de protect et tenantGuard en haut de fichier via router.use().
- * ✅ Suppression du IS NULL : les prestataires globaux sont radiés (tout prestataire requiert un owner).
- * ✅ getManagedOwnerId supprimé.
- * ✅ Injection sécurisée de owner_id = resolvedOwnerId dans l'INSERT de la table providers.
- * ✅ Blocages IDOR stricts : 404 retourné si les requêtes UPDATE/DELETE retournent rowCount === 0.
- * ✅ La table providers vient d'être couverte par migration_rls.sql.
- * ═══════════════════════════════════════════════════
- */
-
 export default router;

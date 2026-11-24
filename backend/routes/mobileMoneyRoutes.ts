@@ -223,17 +223,4 @@ router.patch('/configs/:id/toggle', tenantGuard, validate(configIdParam), async 
     }
 });
 
-/*
- * ═══════════════════════════════════════════════════
- * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — mobileMoneyRoutes.ts
- * ═══════════════════════════════════════════════════
- * ✅ Import pool supprimé et remplacé par le commentaire d'avertissement.
- * ✅ tenantGuard ajouté post-authMiddleware sur absolument toutes les requêtes du routeur entier (6 routes).
- * ✅ Tous les pool.query() remplacés par req.dbClient.query() sur `GET /transactions` et pour la route POST /pay.
- * ✅ Le service mobileMoneyService est invoqué en passant dbClient sur les requêtes DB (`getConfigs`, `addConfig`...), mais les appels purement externes (`requestPayment`) ne prennent pas le dbClient.
- * ✅ strictOwnerId encapsulant `owner_id` est exploité pour le sous-enregistrement final dans `payments`.
- * ✅ Gestion granulaire des exceptions dans les routes `configs` qui mappent l'erreur `Configuration introuvable ou accès refusé.` renvoyée par le service vers une erreur 404 HTTP, et renvoient 500 dans les autres cas.
- * ═══════════════════════════════════════════════════
- */
-
 export default router;

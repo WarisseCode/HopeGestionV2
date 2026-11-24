@@ -403,16 +403,4 @@ router.put('/:id/sign', permissions.canWrite('biens'), validate(inventorySignRul
     }
 });
 
-/*
- * ═══════════════════════════════════════════════════
- * RÉCAPITULATIF DES CORRECTIONS TENANTGUARD — inventoryRoutes.ts
- * ═══════════════════════════════════════════════════
- * ✅ Utilisation exclusive de req.dbClient à la place de pool.query.
- * ✅ Application globale de tenantGuard via router.use().
- * ✅ Injection sécurisée de resolvedOwnerId sur la création de l'inventaire.
- * ✅ Blocages IDOR stricts : les UPDATES et DELETES retournent une erreur 404 (grâce au RLS via req.dbClient).
- * ✅ Vérification parente sur les inventory_items (validation locale du droit sur inventory_id).
- * ═══════════════════════════════════════════════════
- */
-
 export default router;

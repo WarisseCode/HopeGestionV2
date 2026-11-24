@@ -333,17 +333,4 @@ router.delete('/:id', async (req: any, res) => {
     }
 });
 
-/*
- * ═══════════════════════════════════════════════════
- * RÉCAPITULATIF DES CORRECTIONS USER-LEVEL — taskRoutes.ts
- * ═══════════════════════════════════════════════════
- * ✅ tenantGuard n'est pas appliqué car l'entité concerne directement l'utilisateur et non un locataire (owner_id).
- * ✅ L'isolation est assurée par le user_id du JWT (req.user.id).
- * ✅ Dans la route GET, les tâches "créées par" ou "assignées à" sont filtrées solidement sur le user_id.
- * ✅ UPDATE et DELETE (route ajoutée) sont fermement restreints via "WHERE id=$1 AND created_by=$2" (le créateur seul est habilité).
- * ✅ Le 404 IDOR est géré : on empêche formellement un agent de modifier/supprimer une tâche dont il n'est pas le créateur.
- * ✅ L'import de la pool PostgreSQL est toléré avec Exception Documentée sous l'approche d'isolement par agent.
- * ═══════════════════════════════════════════════════
- */
-
 export default router;
