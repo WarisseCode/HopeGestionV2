@@ -1968,3 +1968,23 @@ Mis à jour automatiquement après chaque tâche.
   - Résultat, main contre branche : menus identiques pour gestionnaire (20 entrées), propriétaire (12) et locataire (11), sans erreur.
   - Jest 562/562 (7 tests de la route supprimée retirés) ; TypeScript backend et frontend sans erreur ; ESLint du menu sans erreur ; `vite build` réussi.
 - **Remplace / modifie** : complète T-114
+
+### T-116 : Page Baux — listes du formulaire chargées seulement à son ouverture
+- **Date** : 2026-11-24
+- **Statut** : Terminée
+- **Type** : Refactorisation
+- **Description** : La page Baux & locations ne charge plus que les baux à son ouverture. Les listes des locataires, des lots et des propriétaires, qui ne servent qu'à remplir le formulaire, sont chargées au clic sur « Nouveau bail » ou « Modifier ». Le formulaire attend qu'elles soient arrivées, avec un indicateur de chargement, ou affiche une erreur avec « Réessayer ».
+- **Fichiers touchés** : `frontend/src/pages/Locations.tsx`
+- **Décisions & justifications** :
+  - **Recommandation n° 5 de l'analyse de complexité (T-100).** Sur la base de test ×40, ces trois listes pesaient environ 5,4 Mo avant compression (`/locataires` 2,7 Mo, `/biens/lots` 2,6 Mo, `/compte/proprietaires` 0,1 Mo), téléchargés à chaque ouverture de la page alors que le formulaire reste le plus souvent fermé.
+  - **Le formulaire n'apparaît qu'avec ses listes.** `LocationForm` remplit le loyer et le propriétaire à partir du lot dès son ouverture (y compris en modification) : afficher le formulaire avant l'arrivée des lots aurait changé ce comportement.
+  - **Réouverture.** Listes gardées en mémoire (`pageCache`, clé `locations-form`) : réouverture immédiate, version fraîche rechargée en arrière-plan à chaque ouverture, donc un locataire ou un lot créé entre-temps apparaît. Le cache de la page `locations` ne contient plus que les baux.
+- **Problèmes rencontrés** :
+  - Premier relevé Playwright des champs vide (les champs n'ont pas d'attribut `name`) : remplacé par la lecture des valeurs dans l'ordre.
+  - Vérifications Playwright, main contre branche :
+    - ouverture de la page : `/locations` seul (au lieu de 4 appels) ;
+    - « Nouveau bail » et « Modifier » : chargement des 3 listes, menus et valeurs préremplies identiques à main ;
+    - échec du chargement : « Réessayer », puis formulaire normal ;
+    - aucune erreur JavaScript.
+  - TypeScript sans erreur ; ESLint inchangé (459 erreurs préexistantes) ; `vite build` réussi.
+- **Remplace / modifie** : —

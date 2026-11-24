@@ -315,44 +315,31 @@ const Locations: React.FC = () => {
     isOpen: boolean; title: string; message: string; type: 'danger' | 'warning' | 'info'; action: () => Promise<void>;
   }>({ isOpen: false, title: '', message: '', type: 'danger', action: async () => {} });
 
-  // Listes des formulaires
-  const [locataires, setLocataires] = useState<FormOptions['locataires']>([]);
-  const [lots, setLots] = useState<FormOptions['lots']>([]);
-  const [owners, setOwners] = useState<FormOptions['owners']>([]);
+  // Listes du formulaire (locataires, lots, propriétaires) : chargées seulement à l'ouverture
+  // du formulaire, et non plus à l'arrivée sur la page. Elles ne servent qu'à remplir ses
+  // menus, et ce sont les plus lourdes (analyse de complexité, recommandation n° 5).
+  // null = pas encore chargées → le formulaire attend (voir plus bas).
+  type FormLists = { locataires: FormOptions['locataires']; lots: FormOptions['lots']; owners: FormOptions['owners'] };
+  const [formLists, setFormLists] = useState<FormLists | null>(null);
+  const [formListsError, setFormListsError] = useState<string | null>(null);
 
   // `silent` : rechargement après une action sans remplacer la page par le squelette
   // `initial` : ouverture de la page ; la version en mémoire (visite précédente) s'affiche
   // tout de suite, puis la fraîche la remplace (utils/pageCache). Jamais après une action.
   const loadData = useCallback(async (silent = false, initial = false) => {
     const cached = initial
-      ? readPageCache<{ locationsData: Location[]; locatairesData: FormOptions['locataires']; lotsData: FormOptions['lots']; ownersData: FormOptions['owners'] }>('locations')
+      ? readPageCache<{ locationsData: Location[] }>('locations')
       : undefined;
     if (cached) {
       setLocations(cached.locationsData);
-      setLocataires(cached.locatairesData);
-      setLots(cached.lotsData);
-      setOwners(cached.ownersData);
       setLoading(false); // la page démarre en « chargement »
     }
     try {
       if (!silent && !cached) setLoading(true);
       setLoadError(null);
-      const [locationsData, locatairesData, lotsData, ownersData] = await Promise.all([
-        locationApi.getLocations(),
-        getLocataires(),
-        getLots(),
-        accountApi.getProprietaires(),
-      ]);
+      const locationsData = await locationApi.getLocations();
       setLocations(locationsData);
-      setLocataires(Array.isArray(locatairesData) ? locatairesData : []);
-      setLots(Array.isArray(lotsData) ? lotsData : []);
-      setOwners(Array.isArray(ownersData) ? ownersData : []);
-      writePageCache('locations', {
-        locationsData,
-        locatairesData: Array.isArray(locatairesData) ? locatairesData : [],
-        lotsData: Array.isArray(lotsData) ? lotsData : [],
-        ownersData: Array.isArray(ownersData) ? ownersData : [],
-      });
+      writePageCache('locations', { locationsData });
     } catch (err) {
       console.error(err);
       // Données en mémoire déjà affichées : on les garde plutôt qu'une page d'erreur
@@ -364,6 +351,34 @@ const Locations: React.FC = () => {
 
   useEffect(() => { loadData(false, true); }, [loadData]);
   useEffect(() => { setCurrentPage(1); }, [searchTerm, group, sortKey]);
+
+  // Charge les listes du formulaire. Si une version est déjà en mémoire (formulaire déjà
+  // ouvert pendant la visite, ou visite précédente via utils/pageCache), elle sert tout de
+  // suite et la fraîche la remplace en arrière-plan : un locataire ou un lot créé entre-temps
+  // apparaît, sans attente à la réouverture.
+  const loadFormLists = useCallback(async () => {
+    const cached = readPageCache<FormLists>('locations-form');
+    if (cached) setFormLists(prev => prev ?? cached);
+    setFormListsError(null);
+    try {
+      const [locatairesData, lotsData, ownersData] = await Promise.all([
+        getLocataires(),
+        getLots(),
+        accountApi.getProprietaires(),
+      ]);
+      const fresh: FormLists = {
+        locataires: Array.isArray(locatairesData) ? locatairesData : [],
+        lots: Array.isArray(lotsData) ? lotsData : [],
+        owners: Array.isArray(ownersData) ? ownersData : [],
+      };
+      setFormLists(fresh);
+      writePageCache('locations-form', fresh);
+    } catch (err) {
+      console.error(err);
+      // Listes déjà affichées : on les garde ; sinon le formulaire montre l'erreur et « Réessayer »
+      if (!cached) setFormListsError((err as Error)?.message || 'Erreur lors du chargement du formulaire');
+    }
+  }, []);
 
   const closeForm = () => { setShowForm(false); setEditing(null); };
 
@@ -499,20 +514,31 @@ const Locations: React.FC = () => {
           <h1 className="text-xl font-bold text-base-content/90">{editing ? t('leases.editLease') : t('leases.newLease')}</h1>
         </div>
         {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
-        <LocationForm
-          onSubmit={handleSubmit}
-          onCancel={closeForm}
-          locataires={locataires}
-          lots={lots}
-          owners={owners}
-          initialData={editing || undefined}
-        />
+        {/* Le formulaire n'apparaît qu'avec ses listes : il remplit le loyer et le propriétaire
+            à partir du lot dès son ouverture, comme avant ce changement. */}
+        {formLists ? (
+          <LocationForm
+            onSubmit={handleSubmit}
+            onCancel={closeForm}
+            locataires={formLists.locataires}
+            lots={formLists.lots}
+            owners={formLists.owners}
+            initialData={editing || undefined}
+          />
+        ) : formListsError ? (
+          <LoadErrorState message={formListsError} onRetry={loadFormLists} />
+        ) : (
+          <div className="flex items-center justify-center gap-3 py-16 text-base-content/60" role="status">
+            <span className="loading loading-spinner loading-md" />
+            <span className="text-sm">{t('common.loading', 'Chargement…')}</span>
+          </div>
+        )}
       </div>
     );
   }
 
-  const openNew = () => { setError(null); setEditing(null); setShowForm(true); };
-  const openEdit = (l: Location) => { setError(null); setEditing(l); setShowForm(true); };
+  const openNew = () => { setError(null); setEditing(null); setShowForm(true); loadFormLists(); };
+  const openEdit = (l: Location) => { setError(null); setEditing(l); setShowForm(true); loadFormLists(); };
   const openSchedule = (l: Location) => navigate(`/dashboard/locations/${l.id}`);
 
   const pickedExists = pickedId != null && locations.some(l => l.id === pickedId);
