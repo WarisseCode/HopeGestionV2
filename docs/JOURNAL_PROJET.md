@@ -1950,3 +1950,21 @@ Mis à jour automatiquement après chaque tâche.
     - les 5 appels aux routes supprimées passent de 200 à 404 ;
     - les 21 autres appels (dont `/delegations`) sont identiques octet pour octet.
 - **Remplace / modifie** : —
+
+### T-115 : Suppression de la fonction « Délégations » et des branches de menu inaccessibles
+- **Date** : 2026-11-24
+- **Statut** : Terminée
+- **Type** : Refactorisation
+- **Description** : Suppression de la fonction « Délégations », que l'utilisateur a validée après vérification des journaux nginx (0 appel à `/api/delegations`). Elle comprenait une page jamais branchée au menu, son API côté site et la route serveur `/api/delegations`. Suppression aussi des branches « locataire » et « propriétaire » de `buildDashboardMenu`, qui ne s'affichaient jamais ; l'entrée « Mon équipe », qui pointait vers `/equipe`, une adresse sans page, en faisait partie.
+- **Fichiers touchés** : `frontend/src/pages/DelegationsPage.tsx`, `frontend/src/api/delegationApi.ts`, `backend/routes/delegationRoutes.ts`, `backend/tests/routes/delegation.transaction.test.ts` (supprimés) ; `backend/index.ts` ; `backend/middleware/tenantGuard.ts` (commentaire) ; `frontend/src/components/layout/dashboardMenu.tsx`
+- **Décisions & justifications** :
+  - **Délégations remplacée.** « Mon compte › Utilisateurs » (`/api/compte/utilisateurs`) fait la même chose en plus complet : rôles, permissions détaillées, rattachement à plusieurs propriétaires, invités temporaires.
+  - **Mot de passe faible supprimé avec la route.** Elle créait des comptes avec un mot de passe temporaire faible (« Hg » + 4 caractères hexadécimaux + « ! », soit 65 536 possibilités), alors qu'elle restait accessible par l'API.
+  - **« Mon équipe » : première idée abandonnée.** La première correction faisait pointer l'entrée vers `/mon-compte#utilisateurs`, avec lecture de l'ancre dans `MonCompte`. Le test dans le navigateur a montré que cette entrée n'est jamais affichée : `UserSpecificLayout` envoie les propriétaires vers `ProprietaireLayout` et les locataires vers `LocataireLayout`, chacun avec son propre menu. Correction annulée, et branches inaccessibles supprimées, au lieu de réparer un lien invisible.
+  - **Gestion de l'équipe par les propriétaires** : leur menu « Mon profil » ouvre déjà « Mon compte » sur l'onglet Utilisateurs.
+- **Problèmes rencontrés** :
+  - Le constat de T-114 et du message à l'utilisateur (« Mon équipe » mène à une page vide) était faux sur un point : la page était bien vide, mais aucun utilisateur ne pouvait voir le lien. Corrigé ici.
+  - Premiers essais Playwright inopérants (sélecteur `aside a`, tableau de bord gestionnaire en erreur avec données simulées sommaires) : remplacés par la lecture de `#onboarding-sidebar` sur `/dashboard/alertes`.
+  - Résultat, main contre branche : menus identiques pour gestionnaire (20 entrées), propriétaire (12) et locataire (11), sans erreur.
+  - Jest 562/562 (7 tests de la route supprimée retirés) ; TypeScript backend et frontend sans erreur ; ESLint du menu sans erreur ; `vite build` réussi.
+- **Remplace / modifie** : complète T-114

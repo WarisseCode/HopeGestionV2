@@ -12,8 +12,8 @@ export const TENANT_PRIVILEGED_ROLES: readonly string[] = ['admin'];
 
 // [PERF] Résout et met en cache les owner_ids autorisés pour un utilisateur.
 // Clé individuelle par userId — aucun partage entre utilisateurs.
-// TTL = 5 min. Les 3 routes de révocation appellent cache.del(`tenant:owners:${userId}`)
-// pour garantir une révocation immédiate (delegationRoutes, ownerRoutes, userAssignmentRoutes).
+// TTL = 5 min. Les routes de révocation appellent cache.del(`tenant:owners:${userId}`)
+// pour garantir une révocation immédiate (ownerRoutes, userAssignmentRoutes ; delegationRoutes supprimé en T-115).
 async function resolveValidOwnerIds(userId: number): Promise<number[]> {
     const cacheKey = `tenant:owners:${userId}`;
     const cached = cache.get<number[]>(cacheKey);

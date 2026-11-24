@@ -12,7 +12,6 @@ import dashboardRoutes from './routes/dashboardRoutes';
 import compteRoutes from './routes/compteRoutes';
 import ownerRoutes from './routes/ownerRoutes';
 import documentRoutes from './routes/documentRoutes';
-import delegationRoutes from './routes/delegationRoutes';
 import calendarRoutes from './routes/calendarRoutes';
 
 import auditRoutes from './routes/auditRoutes';
@@ -226,7 +225,7 @@ app.use('/api/dashboard', protect, dashboardRoutes);
 app.use('/api/compte', protect, compteRoutes);
 app.use('/api/owners', protect, ownerRoutes);
 app.use('/api/documents', protect, documentRoutes);
-app.use('/api/delegations', protect, delegationRoutes);
+// /api/delegations supprimé (T-115) : remplacé par Mon compte › Utilisateurs (/api/compte/utilisateurs).
 app.use('/api/calendar', protect, calendarRoutes);
 app.use('/api/audit-logs', protect, auditRoutes);
 
