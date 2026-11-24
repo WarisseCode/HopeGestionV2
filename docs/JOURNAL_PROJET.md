@@ -1851,3 +1851,47 @@ Mis à jour automatiquement après chaque tâche.
     - Jest 569/569 (44 nouveaux tests) ; TypeScript OK ; ESLint sans nouvelle erreur ;
     - serveur réel (×40) : `/locataires` 3 Mo, 8 000 liens signés, 172 → 198 ms ; photos des lots non signées ; aucune erreur serveur.
 - **Remplace / modifie** : met en œuvre l'étape 1 de T-107 (§ 4). Étapes 2 (vérification d'affichage) et 3 (fermeture de l'accès non signé : `FILE_URLS_ENFORCE=true` et nginx) restent à faire.
+
+### T-111 : Fichiers privés — étape 3 préparée (configuration nginx + procédure VPS)
+- **Date** : 2026-11-22
+- **Statut** : Terminée
+- **Type** : Config
+- **Description** : Étape 2 validée par l'utilisateur (tous les fichiers s'affichent avec les liens signés, déploiement #64 réussi). L'étape 3 est préparée : `nginx/hopegestion.conf` sert directement `/uploads/properties/` et transmet les autres dossiers de `/uploads/` à Node, qui vérifie la signature quand `FILE_URLS_ENFORCE=true`. La procédure pas à pas pour le VPS (sauvegarde, remplacement du bloc, test, activation, vérifications, retour arrière) est dans `docs/suivi/FICHIERS_PRIVES_ETAPE3.md`.
+- **Fichiers touchés** : `nginx/hopegestion.conf`, `docs/suivi/FICHIERS_PRIVES_ETAPE3.md` (créé)
+- **Décisions & justifications** :
+  - **Node vérifie la signature, plutôt que le module nginx `secure_link`.** Il n'y a qu'une seule implémentation de la vérification, déjà testée (T-110). Pas de dépendance à un module nginx ni d'algorithme à dupliquer.
+  - **Deux temps sur le VPS** : d'abord nginx, sans effet visible puisque le contrôle est éteint, puis l'activation. Chacun se vérifie et se défait en une commande.
+  - **Contrôles préalables.**
+    - L'application mobile ne conserve aucune réponse de l'API sur le téléphone (`shared_preferences` : langue, thème, accueil uniquement).
+    - Le cache des pages du site est en mémoire et rafraîchi à chaque visite.
+    - Aucun e-mail ni notification ne contient de lien vers un fichier.
+- **Problèmes rencontrés** :
+  - Premier essai du script de test sans `JWT_SECRET` (le script, pas le serveur) : relancé avec l'environnement de test.
+  - Comportement mesuré sur un serveur réel, contrôle éteint puis activé :
+    - lien signé : 200 (`private`) ;
+    - sans signature ou signature d'un autre fichier : 403 ;
+    - photo de bien : 200 ;
+    - nom accentué signé : 200 ;
+    - remontée de dossier : 404.
+  - `nginx -t` impossible dans la session (nginx non installable) : la procédure fait valider la syntaxe par `nginx -t` sur le VPS avant tout rechargement.
+- **Remplace / modifie** : complète T-110 (étapes 2 et 3 du plan de T-107)
+
+### T-112 : Étape 3 des fichiers privés — script nginx et procédure corrigée
+- **Date** : 2026-11-24
+- **Statut** : Terminée
+- **Type** : Config
+- **Description** : L'étape A, appliquée à la main sur le VPS, n'avait pas été prise en compte. Diagnostic par l'utilisateur :
+  - `nginx -T` montrait toujours l'ancien bloc `location ^~ /uploads/ { alias … }` dans `/etc/nginx/sites-enabled/hopegestion` ;
+  - le fichier privé était servi par nginx (`Expires` à 30 jours, `Cache-Control: public`), sans l'en-tête `Cross-Origin-Resource-Policy` ajouté par Node.
+  
+  Nouveau script `scripts/nginx-uploads-prives.py`, qui remplace exactement ce bloc, et procédure réécrite en conséquence.
+- **Fichiers touchés** : `scripts/nginx-uploads-prives.py` (créé), `docs/suivi/FICHIERS_PRIVES_ETAPE3.md`
+- **Décisions & justifications** :
+  - **Script plutôt que modification manuelle.** Il s'arrête sans rien modifier si le bloc attendu n'est pas trouvé exactement une fois, ou s'il a déjà été appliqué. La procédure restaure la sauvegarde toute seule si `nginx -t` échoue.
+  - **Erreur corrigée dans la procédure de T-111.** La sauvegarde était proposée à côté du fichier : dans `sites-enabled/`, nginx l'aurait chargée comme un second site. Elle va maintenant dans le dossier personnel. `nginx -T` confirme qu'aucune sauvegarde n'avait été créée à cet endroit.
+  - **Contrôle par l'en-tête `Cross-Origin-Resource-Policy`** (posé par Node seulement), obligatoire avant d'activer `FILE_URLS_ENFORCE`.
+- **Problèmes rencontrés** : Script testé sur l'ancienne configuration du dépôt (commit a9b6eb5), équivalente au bloc relevé sur le VPS :
+  - remplacement correct ;
+  - second passage refusé ;
+  - résultat identique à `nginx/hopegestion.conf`, hors commentaires.
+- **Remplace / modifie** : T-111 (procédure de l'étape A)
