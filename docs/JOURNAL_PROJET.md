@@ -1895,3 +1895,22 @@ Mis à jour automatiquement après chaque tâche.
   - second passage refusé ;
   - résultat identique à `nginx/hopegestion.conf`, hors commentaires.
 - **Remplace / modifie** : T-111 (procédure de l'étape A)
+
+### T-113 : Fichiers privés — étape 3 appliquée sur le VPS, pages d'erreur lisibles pour /uploads
+- **Date** : 2026-11-24
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** : L'utilisateur a appliqué l'étape 3 sur le VPS.
+  - Étape A : script nginx, `Cross-Origin-Resource-Policy: same-site` constaté sur un fichier privé.
+  - Étape B : `FILE_URLS_ENFORCE=true` et redémarrage PM2.
+  - Contrôles : fichier privé sans signature → 403 ; photo de bien → 200 ; fichiers existants ouverts normalement depuis le site.
+
+  Effet de bord constaté : un fichier absent du disque (photos perdues) affichait du JSON brut `{"error":"Route not found",…}` dans l'onglet, et le refus de signature affichait lui aussi du JSON. Node renvoie désormais une page HTML lisible aux navigateurs (« Fichier introuvable » en 404, « Ce lien a expiré » en 403) et garde le JSON pour les clients d'API.
+- **Fichiers touchés** : `backend/middleware/signedFileUrls.ts` (`uploadNotFound`, `sendUploadError`), `backend/index.ts` (montage de `uploadNotFound` après `express.static`), `backend/tests/middleware/signedFileUrls.test.ts`, `docs/suivi/FICHIERS_PRIVES_ETAPE3.md` (étape 3 marquée appliquée)
+- **Décisions & justifications** :
+  - **Cause.** Depuis l'étape A, `/uploads/` (hors photos des biens) passe par Node. Un fichier absent faisait passer `express.static` au gestionnaire 404 général de l'API, alors qu'avant c'est nginx qui répondait avec sa propre page 404.
+  - **Choix du format.** Page HTML ou JSON selon l'en-tête `Accept`, **même code HTTP** dans les deux cas : le repli « image cassée » du site (T-097), déclenché par l'erreur de chargement, reste intact.
+  - **Sécurité de la page.** Textes fixes, aucune donnée de la requête insérée (test avec `<script>` dans le chemin) ; `Cache-Control: no-store`.
+  - **Aucune action sur le VPS.** Le déploiement automatique redémarre le serveur, et `FILE_URLS_ENFORCE=true` reste dans `.env`, qui n'est pas suivi par git.
+- **Problèmes rencontrés** : Jest 575/575 (6 nouveaux tests) ; TypeScript OK ; ESLint sans erreur.
+- **Remplace / modifie** : complète T-110 à T-112 (audit S7 clos côté fichiers stockés sur le disque)

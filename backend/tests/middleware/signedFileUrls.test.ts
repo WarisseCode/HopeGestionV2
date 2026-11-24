@@ -7,7 +7,7 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs';
 import {
-    signFileUrlsInResponses, stripFileUrlSignatures, serveUploadsWithSignature,
+    signFileUrlsInResponses, stripFileUrlSignatures, serveUploadsWithSignature, uploadNotFound,
 } from '../../middleware/signedFileUrls';
 
 // Mini serveur : même ordre de montage que index.ts.
@@ -20,7 +20,7 @@ fs.writeFileSync(path.join(uploadsDir, 'properties', 'lot.jpg'), 'JPG');
 let received: unknown = null;
 const app = express();
 app.use(express.json());
-app.use('/uploads', serveUploadsWithSignature, express.static(uploadsDir));
+app.use('/uploads', serveUploadsWithSignature, express.static(uploadsDir), uploadNotFound);
 app.use('/api', stripFileUrlSignatures, signFileUrlsInResponses);
 app.get('/api/locataire', (_req, res) => res.json({
     nom: 'AGOSSA',
@@ -101,6 +101,52 @@ describe('fichiers /uploads', () => {
         it('laisse les photos des biens publiques', async () => {
             const res = await request(app).get('/uploads/properties/lot.jpg');
             expect(res.status).toBe(200);
+        });
+    });
+});
+
+// Erreurs lisibles : un fichier ouvert dans un onglet ne doit plus afficher du JSON brut.
+const BROWSER = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8';
+describe('erreurs de /uploads', () => {
+    it('fichier absent, navigateur : page HTML « Fichier introuvable » (404)', async () => {
+        const res = await request(app).get('/uploads/receipts/perdu.pdf').set('Accept', BROWSER);
+        expect(res.status).toBe(404);
+        expect(res.headers['content-type']).toMatch(/text\/html/);
+        expect(res.text).toContain('Fichier introuvable');
+        expect(res.text).not.toContain('Route not found');
+    });
+
+    it('fichier absent, client d’API : JSON (404)', async () => {
+        const res = await request(app).get('/uploads/receipts/perdu.pdf').set('Accept', 'application/json');
+        expect(res.status).toBe(404);
+        expect(res.body).toEqual({ message: 'Fichier introuvable.' });
+    });
+
+    it('photo de bien absente : même page 404 (le repli « image cassée » du site reste déclenché)', async () => {
+        const res = await request(app).get('/uploads/properties/perdu.jpg').set('Accept', 'image/avif,image/webp,*/*');
+        expect(res.status).toBe(404);
+    });
+
+    describe('lien refusé (FILE_URLS_ENFORCE=true)', () => {
+        beforeEach(() => { process.env.FILE_URLS_ENFORCE = 'true'; });
+
+        it('navigateur : page HTML « Ce lien a expiré » (403), sans cache', async () => {
+            const res = await request(app).get('/uploads/receipts/q.pdf').set('Accept', BROWSER);
+            expect(res.status).toBe(403);
+            expect(res.text).toContain('Ce lien a expiré');
+            expect(res.headers['cache-control']).toBe('no-store');
+        });
+
+        it('client d’API : JSON (403)', async () => {
+            const res = await request(app).get('/uploads/receipts/q.pdf').set('Accept', 'application/json');
+            expect(res.status).toBe(403);
+            expect(res.body.message).toMatch(/Lien expiré ou invalide/);
+        });
+
+        it('le chemin demandé n’est jamais recopié dans la page', async () => {
+            const res = await request(app).get('/uploads/receipts/%3Cscript%3Ealert(1)%3C%2Fscript%3E.pdf').set('Accept', BROWSER);
+            expect(res.status).toBe(403);
+            expect(res.text).not.toMatch(/<script>/i);
         });
     });
 });

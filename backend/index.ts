@@ -23,7 +23,7 @@ import mobileMoneyRoutes from './routes/mobileMoneyRoutes';
 import alertRoutes from './routes/alertRoutes';
 
 import { protect, AuthenticatedRequest } from './middleware/authMiddleware';
-import { signFileUrlsInResponses, stripFileUrlSignatures, serveUploadsWithSignature } from './middleware/signedFileUrls';
+import { signFileUrlsInResponses, stripFileUrlSignatures, serveUploadsWithSignature, uploadNotFound } from './middleware/signedFileUrls';
 import { checkMaintenance } from './middleware/maintenanceMiddleware';
 import { createMobileAuthCorsGate } from './middleware/mobileAuthCorsGate';
 
@@ -174,7 +174,7 @@ app.use('/uploads', (req, res, next) => {
     }
     res.header('Cross-Origin-Resource-Policy', 'same-site');
     next();
-}, serveUploadsWithSignature, express.static(path.join(__dirname, '../uploads')));
+}, serveUploadsWithSignature, express.static(path.join(__dirname, '../uploads')), uploadNotFound);
 
 // --- 2. Routes de l'API ---
 
