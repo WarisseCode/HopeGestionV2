@@ -1,6 +1,9 @@
 # Fichiers privés — étape 3 : fermer l'accès sans signature
 **Date** : 2026-11-22 · **Suite de** : `INVENTAIRE_FICHIERS_2026-11-19.md` (§ 4), T-110 (étape 1, en ligne) · **Étape 2** : vérification d'affichage faite par l'utilisateur le 2026-11-22, tout s'affiche.
 
+> **✅ Appliquée le 2026-11-24.** Étape A par le script (`Cross-Origin-Resource-Policy: same-site` constaté sur un fichier privé), puis étape B (`FILE_URLS_ENFORCE=true`). Contrôles faits sur le VPS : fichier privé sans signature → **403**, photo de bien → **200** ; les fichiers existants s'ouvrent depuis le site.
+> Effet de bord constaté puis corrigé (T-113) : un fichier **absent du disque** (photos perdues) affichait du JSON brut (« Route not found ») au lieu de la page 404 de nginx. Node renvoie désormais une page lisible.
+
 **Où cela se fait** : sur le VPS. Le code nécessaire est **déjà en ligne** depuis l'étape 1 ; il ne reste que deux réglages.
 
 **Ordre et principe** : chaque étape se vérifie avant de passer à la suivante, et se défait en une commande.

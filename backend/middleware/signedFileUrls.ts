@@ -56,5 +56,41 @@ export function serveUploadsWithSignature(req: Request, res: Response, next: Nex
         res.setHeader('Cache-Control', 'private, max-age=3600');
         return next();
     }
-    return res.status(403).json({ message: 'Lien expiré ou invalide. Rouvrez le document depuis HopeGestion.' });
+    return sendUploadError(req, res, 403,
+        'Ce lien a expiré',
+        'Pour protéger vos documents, les liens vers les fichiers ne restent valables qu’une heure environ. Rouvrez le document depuis HopeGestion pour obtenir un nouveau lien.',
+        'Lien expiré ou invalide. Rouvrez le document depuis HopeGestion.');
+}
+
+/**
+ * À monter APRÈS express.static('/uploads') : fichier absent du disque (ex. photos perdues
+ * lors de la suspension du serveur). Sans lui, la demande tombait dans le 404 général de
+ * l'API et le navigateur affichait du JSON brut (« Route not found »).
+ */
+export function uploadNotFound(req: Request, res: Response) {
+    return sendUploadError(req, res, 404,
+        'Fichier introuvable',
+        'Ce fichier n’est plus disponible sur le serveur. Si vous en avez besoin, ajoutez-le de nouveau depuis HopeGestion.',
+        'Fichier introuvable.');
+}
+
+/**
+ * Réponse d'erreur lisible : page HTML pour un navigateur (fichier ouvert dans un onglet),
+ * JSON pour un client d'API. Le code HTTP est le même dans les deux cas, ce qui garde le
+ * repli « image cassée » du site (T-097), déclenché par le code d'erreur, pas par le contenu.
+ * Les textes sont fixes : aucune donnée de la requête n'est insérée dans la page.
+ */
+function sendUploadError(req: Request, res: Response, status: number, title: string, text: string, jsonMessage: string) {
+    res.setHeader('Cache-Control', 'no-store');
+    if (req.accepts(['json', 'html']) === 'html') {
+        return res.status(status).type('html').send(`<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${title} — HopeGestion</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;background:#f5f6f8;color:#1f2937}
+main{max-width:28rem;margin:1rem;padding:2rem;background:#fff;border-radius:1rem;box-shadow:0 1px 3px rgba(0,0,0,.08);text-align:center}
+h1{font-size:1.25rem;margin:0 0 .75rem}p{margin:0 0 1.25rem;line-height:1.5;color:#4b5563}
+a{display:inline-block;padding:.6rem 1.2rem;border-radius:.6rem;background:#2563eb;color:#fff;text-decoration:none}</style></head>
+<body><main><h1>${title}</h1><p>${text}</p><a href="/dashboard">Retour à HopeGestion</a></main></body></html>`);
+    }
+    return res.status(status).json({ message: jsonMessage });
 }
