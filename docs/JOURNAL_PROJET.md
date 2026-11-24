@@ -1988,3 +1988,31 @@ Mis à jour automatiquement après chaque tâche.
     - aucune erreur JavaScript.
   - TypeScript sans erreur ; ESLint inchangé (459 erreurs préexistantes) ; `vite build` réussi.
 - **Remplace / modifie** : —
+
+### T-117 : Audit S8 — documentation de l'API coupée en production, en-têtes de sécurité nginx, CSP en observation
+- **Date** : 2026-11-24
+- **Statut** : Terminée
+- **Type** : Correction
+- **Description** :
+  - **`/api/docs` et `/api/docs.json`** : plus servis en production, sauf `API_DOCS_ENABLED=true`. Ils répondent alors comme une route inconnue (404).
+  - **Pages servies par nginx** : la page du site, ses fichiers statiques et les photos des biens reçoivent des en-têtes de sécurité (HSTS, anti-iframe, `nosniff`, `Referrer-Policy`, `Permissions-Policy`), ajoutés par un script appliqué à `nginx/hopegestion.conf` et à appliquer sur le VPS.
+  - **Politique de contenu (CSP)** : posée en mode observation. Les infractions sont reçues par `POST /api/csp-report` et journalisées.
+  - **Procédure VPS** : `docs/suivi/ENTETES_SECURITE_S8.md`.
+- **Fichiers touchés** : `backend/config/apiDocs.ts` (créé), `backend/middleware/cspReport.ts` (créé), `backend/index.ts`, `backend/tests/utils/apiDocs.test.ts` et `backend/tests/middleware/cspReport.test.ts` (créés), `scripts/nginx-entetes-securite.py` (créé), `nginx/hopegestion.conf`, `frontend/index.html` (commentaire), `docs/suivi/ENTETES_SECURITE_S8.md` (créé)
+- **Décisions & justifications** :
+  - **Constat corrigé.** Contrairement à ce que disait l'audit, Helmet s'applique déjà à toutes les réponses de Node, pas seulement à `/api`. Il ne manquait des en-têtes qu'à ce que nginx sert lui-même.
+  - **En-têtes répétés dans chaque bloc.** Un bloc nginx qui a son propre `add_header` n'hérite pas de ceux du niveau supérieur.
+  - **CSP en observation d'abord.** Une CSP oubliant une ressource (connexion Google, bibliothèque) casserait une fonction.
+  - **Sources de la CSP**, établies par recensement du code :
+    - seul service externe chargé comme script ou cadre : `accounts.google.com/gsi` ;
+    - images de plusieurs domaines : `img-src https:` ;
+    - script de thème d'`index.html` autorisé par son empreinte sha256, identique avant et après construction.
+  - **Journalisation de `/api/csp-report`** limitée à 10 Ko par envoi et à une ligne par infraction et par heure, sans les paramètres d'adresse.
+  - **`Permissions-Policy`.** Caméra et micro coupés (non utilisés) ; géolocalisation gardée pour le site lui-même (carnet de terrain, itinéraires).
+- **Problèmes rencontrés** :
+  - nginx installé dans la session : configuration validée (`nginx -t`) et servie localement avec la page construite.
+    - En-têtes vérifiés sur `/`, une page interne, un fichier JS et une photo de bien. La photo renvoie 403 localement à cause des droits du dossier temporaire ; les en-têtes sont bien présents.
+  - Navigateur (Playwright) à travers ce nginx, sur 6 pages publiques : seules infractions dues à l'API factice du test (`http://mock.local`), qui n'est pas sur le même domaine que le site.
+  - Mode production non démarrable localement (SSL exigé vers la base) : règle de la documentation sortie dans `isApiDocsEnabled`, testée pour 7 cas. En mode test, sur un vrai serveur : docs 200, `/api/csp-report` 204 et ligne `[CSP]` journalisée.
+  - Jest 574/574 (12 nouveaux tests) ; TypeScript OK ; ESLint sans erreur.
+- **Remplace / modifie** : —

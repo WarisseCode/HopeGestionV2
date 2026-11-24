@@ -19,6 +19,7 @@ import mobileMoneyRoutes from './routes/mobileMoneyRoutes';
 import alertRoutes from './routes/alertRoutes';
 
 import { protect, AuthenticatedRequest } from './middleware/authMiddleware';
+import { cspReportRouter } from './middleware/cspReport';
 import { signFileUrlsInResponses, stripFileUrlSignatures, serveUploadsWithSignature, uploadNotFound } from './middleware/signedFileUrls';
 import { checkMaintenance } from './middleware/maintenanceMiddleware';
 import { createMobileAuthCorsGate } from './middleware/mobileAuthCorsGate';
@@ -365,18 +366,26 @@ app.post('/api/admin-invite/accept', acceptAdminInvite);
 // ========================================
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
+import { isApiDocsEnabled } from './config/apiDocs';
 
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-    customSiteTitle: 'HopeGestion API Docs',
-    customCss: '.swagger-ui .topbar { display: none }',
-    swaggerOptions: { persistAuthorization: true },
-}));
+// Audit S8 : plus servie en production sauf API_DOCS_ENABLED=true (config/apiDocs.ts).
+// Désactivée, /api/docs répond comme une route inconnue (404).
+if (isApiDocsEnabled()) {
+    app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+        customSiteTitle: 'HopeGestion API Docs',
+        customCss: '.swagger-ui .topbar { display: none }',
+        swaggerOptions: { persistAuthorization: true },
+    }));
 
-// Endpoint JSON brut (utile pour import Postman / Insomnia)
-app.get('/api/docs.json', (_req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(swaggerSpec);
-});
+    // Endpoint JSON brut (utile pour import Postman / Insomnia)
+    app.get('/api/docs.json', (_req, res) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.send(swaggerSpec);
+    });
+}
+
+// Rapports de la politique de contenu (CSP) des pages du site, en mode observation (S8).
+app.use('/api/csp-report', cspReportRouter);
 
 // --- 3. Test de communication (Endpoint de Ping) ---
 app.get('/api/ping', (req: Request, res: Response) => {
