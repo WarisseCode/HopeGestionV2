@@ -1,6 +1,8 @@
 # En-têtes de sécurité et documentation de l'API (audit S8)
 **Date** : 2026-11-24 · **Suite de** : `AUDIT_2026-11-14.md` (S8) · **Journal** : T-117
 
+> **✅ Étapes A et B appliquées sur le VPS le 2026-11-24** : `/api/docs` → 404 ; script nginx appliqué (3 blocs), `nginx -t` OK, les 5 en-têtes constatés sur `https://hopegestion.com/`. **Reste l'étape C** (lecture des infractions CSP après quelques jours, puis application de la CSP).
+
 ## En bref
 | Point de l'audit | État avant | Après cette étape |
 |---|---|---|

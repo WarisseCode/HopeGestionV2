@@ -2016,3 +2016,16 @@ Mis à jour automatiquement après chaque tâche.
   - Mode production non démarrable localement (SSL exigé vers la base) : règle de la documentation sortie dans `isApiDocsEnabled`, testée pour 7 cas. En mode test, sur un vrai serveur : docs 200, `/api/csp-report` 204 et ligne `[CSP]` journalisée.
   - Jest 574/574 (12 nouveaux tests) ; TypeScript OK ; ESLint sans erreur.
 - **Remplace / modifie** : —
+
+### T-118 : Audit S8 — étapes A et B appliquées sur le VPS
+- **Date** : 2026-11-24
+- **Statut** : Terminée
+- **Type** : Config
+- **Description** : Après le déploiement de T-117, l'utilisateur a appliqué les étapes A et B de `docs/suivi/ENTETES_SECURITE_S8.md`.
+  - Étape A : `GET /api/docs/` répond 404 en production.
+  - Étape B : le script `nginx-entetes-securite.py` a modifié `/etc/nginx/sites-available/hopegestion` (3 blocs), avec `nginx -t` réussi puis rechargement de nginx.
+  - En-têtes constatés sur `https://hopegestion.com/` : `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `Content-Security-Policy-Report-Only`.
+- **Fichiers touchés** : `docs/suivi/ENTETES_SECURITE_S8.md` (étapes A et B marquées appliquées)
+- **Décisions & justifications** : la CSP reste en observation. Étape C dans 3 à 7 jours : relire les lignes `[CSP]` des journaux PM2, ajuster si besoin, puis retirer `-Report-Only`.
+- **Problèmes rencontrés** : aucun.
+- **Remplace / modifie** : complète T-117
