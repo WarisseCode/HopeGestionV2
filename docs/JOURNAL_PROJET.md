@@ -1875,3 +1875,23 @@ Mis à jour automatiquement après chaque tâche.
     - remontée de dossier : 404.
   - `nginx -t` impossible dans la session (nginx non installable) : la procédure fait valider la syntaxe par `nginx -t` sur le VPS avant tout rechargement.
 - **Remplace / modifie** : complète T-110 (étapes 2 et 3 du plan de T-107)
+
+### T-112 : Étape 3 des fichiers privés — script nginx et procédure corrigée
+- **Date** : 2026-11-24
+- **Statut** : Terminée
+- **Type** : Config
+- **Description** : L'étape A, appliquée à la main sur le VPS, n'avait pas été prise en compte. Diagnostic par l'utilisateur :
+  - `nginx -T` montrait toujours l'ancien bloc `location ^~ /uploads/ { alias … }` dans `/etc/nginx/sites-enabled/hopegestion` ;
+  - le fichier privé était servi par nginx (`Expires` à 30 jours, `Cache-Control: public`), sans l'en-tête `Cross-Origin-Resource-Policy` ajouté par Node.
+  
+  Nouveau script `scripts/nginx-uploads-prives.py`, qui remplace exactement ce bloc, et procédure réécrite en conséquence.
+- **Fichiers touchés** : `scripts/nginx-uploads-prives.py` (créé), `docs/suivi/FICHIERS_PRIVES_ETAPE3.md`
+- **Décisions & justifications** :
+  - **Script plutôt que modification manuelle.** Il s'arrête sans rien modifier si le bloc attendu n'est pas trouvé exactement une fois, ou s'il a déjà été appliqué. La procédure restaure la sauvegarde toute seule si `nginx -t` échoue.
+  - **Erreur corrigée dans la procédure de T-111.** La sauvegarde était proposée à côté du fichier : dans `sites-enabled/`, nginx l'aurait chargée comme un second site. Elle va maintenant dans le dossier personnel. `nginx -T` confirme qu'aucune sauvegarde n'avait été créée à cet endroit.
+  - **Contrôle par l'en-tête `Cross-Origin-Resource-Policy`** (posé par Node seulement), obligatoire avant d'activer `FILE_URLS_ENFORCE`.
+- **Problèmes rencontrés** : Script testé sur l'ancienne configuration du dépôt (commit a9b6eb5), équivalente au bloc relevé sur le VPS :
+  - remplacement correct ;
+  - second passage refusé ;
+  - résultat identique à `nginx/hopegestion.conf`, hors commentaires.
+- **Remplace / modifie** : T-111 (procédure de l'étape A)

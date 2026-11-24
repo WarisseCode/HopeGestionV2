@@ -25,43 +25,47 @@ Comportement testé avant de rédiger cette procédure, sur un serveur réel :
 
 ## A. nginx : faire passer les fichiers privés par Node
 
-1. **Trouver le fichier de configuration du site**, puis en faire une copie de sauvegarde :
-   ```bash
-   sudo nginx -T 2>/dev/null | grep "# configuration file"
-   # Repérez le fichier du site (souvent /etc/nginx/sites-available/hopegestion ou …/default).
-   # Dans la suite, remplacez <FICHIER> par ce chemin.
-   sudo cp <FICHIER> <FICHIER>.bak-2026-11-22
-   ```
+> **Mise à jour du 2026-11-24.** Une première tentative par modification manuelle n'avait pas été prise en compte : `nginx -T` montrait encore l'ancien bloc. La sauvegarde ne doit pas non plus être placée dans `sites-enabled/`, car nginx y charge **tous** les fichiers et la prendrait pour un second site. La méthode ci-dessous remplace la modification manuelle : elle est scriptée, sauvegarde dans le dossier personnel et restaure toute seule en cas d'échec.
 
-2. **Ouvrir le fichier** (`sudo nano <FICHIER>`) et remplacer **tout le bloc** qui commence par `location ^~ /uploads/ {` et se termine par l'accolade fermante `}` correspondante, par :
-   ```nginx
-       # Photos des biens : publiques (annonces des lots vacants), servies directement.
-       location ^~ /uploads/properties/ {
-           alias /var/www/hopegestion/backend/uploads/properties/;
-           expires 30d;
-           add_header Cache-Control "public";
-       }
+Le fichier du site chargé par nginx est `/etc/nginx/sites-enabled/hopegestion` (relevé le 2026-11-24 avec `nginx -T`). Le script `scripts/nginx-uploads-prives.py` du dépôt :
+- remplace l'unique bloc `location ^~ /uploads/ { alias … }` par les deux blocs ci-dessous ;
+- s'arrête **sans rien modifier** s'il ne trouve pas exactement ce bloc, ou s'il a déjà été appliqué.
 
-       # Autres fichiers (pièces d'identité, quittances, baux, signatures…) : transmis à
-       # Node, qui vérifie la signature du lien quand FILE_URLS_ENFORCE=true.
-       location ^~ /uploads/ {
-           proxy_pass         http://127.0.0.1:8080;
-           proxy_http_version 1.1;
-           proxy_set_header   Host $host;
-           proxy_set_header   X-Real-IP $remote_addr;
-           proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-           proxy_set_header   X-Forwarded-Proto $scheme;
-           proxy_read_timeout 60s;
-       }
-   ```
-   - **Où modifier** : seulement dans le bloc `server` qui contient `listen 443` (celui qui a `root /var/www/hopegestion/frontend/dist`). Le bloc du port 80 ne fait que rediriger.
-   - **Le port 8080** est celui déjà utilisé par `location /api/`. Vérifiez qu'il est identique dans votre fichier.
+```bash
+F=$(readlink -f /etc/nginx/sites-enabled/hopegestion); echo "Fichier : $F"
+sudo cp "$F" ~/hopegestion.nginx.bak-2026-11-24
+sudo python3 /var/www/hopegestion/scripts/nginx-uploads-prives.py "$F"
+sudo nginx -t && sudo systemctl reload nginx \
+  || { echo "ÉCHEC : restauration"; sudo cp ~/hopegestion.nginx.bak-2026-11-24 "$F"; sudo nginx -t && sudo systemctl reload nginx; }
+```
 
-3. **Tester puis recharger** (le rechargement ne coupe pas le site) :
-   ```bash
-   sudo nginx -t && sudo systemctl reload nginx
-   ```
-   Si `nginx -t` signale une erreur, rien n'est rechargé : corrigez, ou restaurez la sauvegarde.
+Blocs obtenus :
+```nginx
+    # Photos des biens : publiques (annonces des lots vacants), servies directement.
+    location ^~ /uploads/properties/ {
+        alias /var/www/hopegestion/backend/uploads/properties/;
+        expires 30d;
+        add_header Cache-Control "public";
+    }
+
+    # Autres fichiers (pièces d'identité, quittances, baux…) : transmis à Node, qui vérifie
+    # la signature du lien quand FILE_URLS_ENFORCE=true.
+    location ^~ /uploads/ {
+        proxy_pass         http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+```
+
+**Contrôle indispensable avant l'étape B.** Seul Node ajoute l'en-tête `Cross-Origin-Resource-Policy` :
+```bash
+curl -sI https://hopegestion.com/uploads/documents/<fichier> | grep -i cross-origin-resource-policy   # doit afficher « same-site »
+curl -sI https://hopegestion.com/uploads/properties/<fichier> | grep -iE "cross-origin|expires"        # seulement « Expires »
+```
 
 4. **Vérifier**. Le résultat doit être identique à aujourd'hui :
    - une photo de lot s'affiche sur le site ;
@@ -70,7 +74,8 @@ Comportement testé avant de rédiger cette procédure, sur un serveur réel :
 
 **Retour arrière A** :
 ```bash
-sudo cp <FICHIER>.bak-2026-11-22 <FICHIER> && sudo nginx -t && sudo systemctl reload nginx
+F=$(readlink -f /etc/nginx/sites-enabled/hopegestion)
+sudo cp ~/hopegestion.nginx.bak-2026-11-24 "$F" && sudo nginx -t && sudo systemctl reload nginx
 ```
 
 ---
